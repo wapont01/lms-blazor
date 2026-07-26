@@ -1,0 +1,12 @@
+@page "/broker"
+@attribute [Authorize(Roles = "Admin,Broker")]
+@inject NavigationManager Navigation
+
+<PageTitle>Broker</PageTitle>
+
+@code {
+	protected override void OnInitialized()
+	{
+		Navigation.NavigateTo("/broker/portfolio", replace: true);
+	}
+}

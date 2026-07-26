@@ -1,0 +1,127 @@
+@using Lms.Domain.Entities
+
+<section class="card" id="admin-user-management">
+    <h2>User Management</h2>
+
+    @if (!string.IsNullOrWhiteSpace(UserError))
+    {
+        <p class="auth-error">@UserError</p>
+    }
+
+    <EditForm Model="NewUser" OnValidSubmit="OnCreateUser">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-field">
+            <label>Email</label>
+            <InputText @bind-Value="NewUser.Email" />
+        </div>
+        <div class="form-field">
+            <label>Display Name</label>
+            <InputText @bind-Value="NewUser.DisplayName" />
+        </div>
+        <div class="form-field">
+            <label>Password</label>
+            <InputText @bind-Value="NewUser.Password" type="password" />
+        </div>
+        <div class="form-field">
+            <label>Role</label>
+            <InputSelect @bind-Value="NewUser.Role">
+                @foreach (var role in Roles)
+                {
+                    <option value="@role">@role</option>
+                }
+            </InputSelect>
+        </div>
+        <button type="submit">Create user</button>
+    </EditForm>
+
+    @if (Users.Count == 0)
+    {
+        <p class="muted-text">No users found.</p>
+    }
+    else
+    {
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Display</th>
+                    <th>Role</th>
+                    <th>Password Expires</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Users)
+                {
+                    <tr>
+                        <td>@user.Email</td>
+                        <td>@user.DisplayName</td>
+                        <td>
+                            <select value="@user.Role" @onchange="@(args => ChangeRoleAsync(user.Id, args.Value?.ToString() ?? user.Role))">
+                                @foreach (var role in Roles)
+                                {
+                                    <option value="@role">@role</option>
+                                }
+                            </select>
+                        </td>
+                        <td>@(user.PasswordExpiresAt?.ToString("u") ?? "Not set")</td>
+                        <td>@(user.IsActive ? "Active" : "Inactive")</td>
+                        <td>
+                            <div class="action-stack">
+                                <button type="button" @onclick="() => OnToggleUser.InvokeAsync(user.Id)">
+                                    @(user.IsActive ? "Disable" : "Enable")
+                                </button>
+                                <input
+                                    type="password"
+                                    placeholder="New password"
+                                    value="@GetResetPassword(user.Id)"
+                                    @oninput="@(args => SetResetPassword(user.Id, args.Value?.ToString() ?? string.Empty))" />
+                                <button type="button" @onclick="() => OnResetPassword.InvokeAsync(user.Id)">Reset Password</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public string? UserError { get; set; }
+
+    [Parameter, EditorRequired]
+    public AdminCreateUserModel NewUser { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnCreateUser { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<UserAccount> Users { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<string> Roles { get; set; } = [];
+
+    [Parameter]
+    public Func<Guid, string> GetResetPassword { get; set; } = _ => string.Empty;
+
+    [Parameter]
+    public Action<Guid, string> SetResetPassword { get; set; } = (_, _) => { };
+
+    [Parameter]
+    public EventCallback<Guid> OnToggleUser { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnResetPassword { get; set; }
+
+    [Parameter]
+    public Func<Guid, string, Task> ChangeRole { get; set; } = (_, _) => Task.CompletedTask;
+
+    private Task ChangeRoleAsync(Guid userId, string role)
+    {
+        return ChangeRole(userId, role);
+    }
+}

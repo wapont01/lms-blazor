@@ -1,0 +1,238 @@
+@attribute [Authorize(Roles = "Admin,Broker")]
+@using Lms.Application.Services
+@inject IEnrollmentService EnrollmentService
+
+<PageTitle>Broker</PageTitle>
+
+<h1>@PageHeading</h1>
+
+<div class="dashboard-grid">
+	@if (IsSectionVisible("portfolio"))
+	{
+		<section class="card">
+			<h2>Portfolio Snapshot</h2>
+			<div class="stats-grid">
+				<article class="stat-card">
+					<h3>Learners</h3>
+					<p>@_summary.Learners</p>
+				</article>
+				<article class="stat-card">
+					<h3>Active Enrollments</h3>
+					<p>@_summary.ActiveEnrollments</p>
+				</article>
+				<article class="stat-card">
+					<h3>Completed</h3>
+					<p>@_summary.CompletedEnrollments</p>
+				</article>
+				<article class="stat-card">
+					<h3>At Risk</h3>
+					<p>@_summary.AtRiskEnrollments</p>
+				</article>
+				<article class="stat-card">
+					<h3>Cert Expiring Soon</h3>
+					<p>@_certificateSummary.ExpiringSoonCertificates</p>
+				</article>
+				<article class="stat-card">
+					<h3>Cert Expired</h3>
+					<p>@_certificateSummary.ExpiredCertificates</p>
+				</article>
+			</div>
+		</section>
+	}
+
+	@if (IsSectionVisible("compliance"))
+	{
+		<section class="card">
+			<h2>Learner Compliance</h2>
+
+			@if (_rows.Count == 0)
+			{
+				<p>No enrollments found yet.</p>
+			}
+			else
+			{
+				<table class="simple-table">
+					<thead>
+						<tr>
+							<th>Learner</th>
+							<th>Course</th>
+							<th>Progress</th>
+							<th>Status</th>
+							<th>Enrolled</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var row in _rows)
+						{
+							<tr>
+								<td>
+									<strong>@row.LearnerName</strong>
+									<div class="muted-text">@row.LearnerEmail</div>
+								</td>
+								<td>@row.CourseTitle</td>
+								<td>@row.ProgressPercent.ToString("0")%</td>
+								<td><span class="@(row.Completed ? "status-completed" : null)">@(row.Completed ? "Completed" : "In Progress")</span></td>
+								<td>@row.EnrolledAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</section>
+	}
+
+	@if (IsSectionVisible("blocked"))
+	{
+		<section class="card">
+			<h2>Assessment-Blocked Learners</h2>
+
+			@if (_blockedRows.Count == 0)
+			{
+				<p class="muted-text">No learners are currently blocked by assessment policy.</p>
+			}
+			else
+			{
+				<table class="simple-table">
+					<thead>
+						<tr>
+							<th>Learner</th>
+							<th>Course</th>
+							<th>Latest Score</th>
+							<th>Reason</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var row in _blockedRows)
+						{
+							<tr>
+								<td>@row.LearnerDisplay</td>
+								<td>@row.CourseTitle</td>
+								<td>@(row.LatestScorePercent?.ToString("0.##") ?? "-")</td>
+								<td>@row.Reason</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</section>
+	}
+
+	@if (IsSectionVisible("certificates"))
+	{
+		<section class="card">
+			<h2>Certificate Compliance</h2>
+
+			@if (_certificateRows.Count == 0)
+			{
+				<p>No completion certificates generated yet.</p>
+			}
+			else
+			{
+				<table class="simple-table">
+					<thead>
+						<tr>
+							<th>Learner</th>
+							<th>Course</th>
+							<th>Certificate</th>
+							<th>Verification</th>
+							<th>Issued</th>
+							<th>Expires</th>
+							<th>Status</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var row in _certificateRows)
+						{
+							<tr>
+								<td>
+									<strong>@row.LearnerName</strong>
+									<div class="muted-text">@row.LearnerEmail</div>
+								</td>
+								<td>@row.CourseTitle</td>
+								<td>@row.CertificateNumber</td>
+								<td><code>@row.VerificationCode</code></td>
+								<td>@row.IssuedAt.ToString("yyyy-MM-dd")</td>
+								<td>@row.ExpiresAt.ToString("yyyy-MM-dd")</td>
+								<td>@row.Status</td>
+								<td>
+									<div class="action-stack">
+										<a href="/certificates/@row.CertificateId/download">Download PDF</a>
+										<a href="@BuildVerifyLink(row.CertificateNumber, row.VerificationCode)">Verify</a>
+									</div>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</section>
+	}
+</div>
+
+@code {
+	[Parameter]
+	public string? Section { get; set; } = "dashboard";
+
+	private string NormalizedSection { get; set; } = "dashboard";
+
+	private bool IsDashboardView => string.Equals(NormalizedSection, "dashboard", StringComparison.Ordinal);
+
+	private string PageHeading => IsDashboardView ? "Broker Dashboard" : ToHeadingCase(NormalizedSection);
+
+	private BrokerDashboardSummary _summary = new(0, 0, 0, 0);
+	private List<BrokerLearnerRow> _rows = new();
+	private CertificateComplianceSummary _certificateSummary = new(0, 0, 0, 0, 0);
+	private List<CertificateComplianceRow> _certificateRows = new();
+	private List<AssessmentBlockedLearnerRow> _blockedRows = new();
+
+	protected override async Task OnInitializedAsync()
+	{
+		_summary = await EnrollmentService.GetBrokerSummaryAsync();
+		_rows = await EnrollmentService.GetBrokerLearnerRowsAsync();
+		_certificateSummary = await EnrollmentService.GetCertificateComplianceSummaryAsync();
+		_certificateRows = await EnrollmentService.GetCertificateComplianceRowsAsync();
+		_blockedRows = await EnrollmentService.GetAssessmentBlockedLearnersAsync();
+	}
+
+	protected override void OnParametersSet()
+	{
+		NormalizedSection = NormalizeSection(Section);
+	}
+
+	private bool IsSectionVisible(string sectionName)
+	{
+		return IsDashboardView || string.Equals(NormalizedSection, sectionName, StringComparison.Ordinal);
+	}
+
+	private static string NormalizeSection(string? section)
+	{
+		return (section ?? string.Empty).Trim().ToLowerInvariant() switch
+		{
+			"" => "dashboard",
+			"dashboard" => "dashboard",
+			"portfolio" => "portfolio",
+			"compliance" => "compliance",
+			"blocked" => "blocked",
+			"certificates" => "certificates",
+			_ => "dashboard"
+		};
+	}
+
+	private static string ToHeadingCase(string section)
+	{
+		return section switch
+		{
+			"portfolio" => "Portfolio",
+			"compliance" => "Compliance",
+			"blocked" => "Assessment Blocked",
+			"certificates" => "Certificates",
+			_ => "Broker Dashboard"
+		};
+	}
+
+	private static string BuildVerifyLink(string certificateNumber, string verificationCode)
+	{
+		return $"/verify-certificate?certificateNumber={Uri.EscapeDataString(certificateNumber)}&verificationCode={Uri.EscapeDataString(verificationCode)}";
+	}
+}

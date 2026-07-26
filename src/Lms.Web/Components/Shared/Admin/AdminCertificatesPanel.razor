@@ -1,0 +1,91 @@
+@using Lms.Application.Services
+
+<section class="card" id="admin-certificate-compliance">
+    <h2>Certificate Compliance</h2>
+
+    <div class="stats-grid">
+        <article class="stat-card">
+            <h3>Total</h3>
+            <p>@CertificateSummary.TotalCertificates</p>
+        </article>
+        <article class="stat-card">
+            <h3>Active</h3>
+            <p>@CertificateSummary.ActiveCertificates</p>
+        </article>
+        <article class="stat-card">
+            <h3>Expiring Soon</h3>
+            <p>@CertificateSummary.ExpiringSoonCertificates</p>
+        </article>
+        <article class="stat-card">
+            <h3>Expired</h3>
+            <p>@CertificateSummary.ExpiredCertificates</p>
+        </article>
+        <article class="stat-card">
+            <h3>Revoked</h3>
+            <p>@CertificateSummary.RevokedCertificates</p>
+        </article>
+    </div>
+
+    @if (CertificateRows.Count == 0)
+    {
+        <p class="muted-text">No certificates generated yet.</p>
+    }
+    else
+    {
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Learner</th>
+                    <th>Course</th>
+                    <th>Certificate</th>
+                    <th>Verification</th>
+                    <th>Issued</th>
+                    <th>Expires</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in CertificateRows)
+                {
+                    <tr>
+                        <td>
+                            <strong>@row.LearnerName</strong>
+                            <div class="muted-text">@row.LearnerEmail</div>
+                        </td>
+                        <td>@row.CourseTitle</td>
+                        <td>@row.CertificateNumber</td>
+                        <td><code>@row.VerificationCode</code></td>
+                        <td>@row.IssuedAt.ToString("yyyy-MM-dd")</td>
+                        <td>@row.ExpiresAt.ToString("yyyy-MM-dd")</td>
+                        <td>@row.Status</td>
+                        <td>
+                            <div class="action-stack">
+                                <a href="/certificates/@row.CertificateId/download">Download PDF</a>
+                                <a href="@BuildVerifyLink(row.CertificateNumber, row.VerificationCode)">Verify</a>
+                                @if (row.CanRenew)
+                                {
+                                    <button type="button" @onclick="() => OnRenewCertificate.InvokeAsync(row.CertificateId)">Renew</button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public CertificateComplianceSummary CertificateSummary { get; set; } = new(0, 0, 0, 0, 0);
+
+    [Parameter]
+    public IReadOnlyList<CertificateComplianceRow> CertificateRows { get; set; } = [];
+
+    [Parameter]
+    public Func<string, string, string> BuildVerifyLink { get; set; } = (_, _) => "/verify-certificate";
+
+    [Parameter]
+    public EventCallback<Guid> OnRenewCertificate { get; set; }
+}

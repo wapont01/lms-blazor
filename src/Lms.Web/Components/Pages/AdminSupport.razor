@@ -1,0 +1,355 @@
+@page "/admin/support"
+@attribute [Authorize(Roles = "Admin")]
+@using System.Security.Claims
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@using Lms.Web.Components.Shared
+@inject ICourseService CourseService
+@inject IUserAccountService UserAccountService
+@inject IEnrollmentService EnrollmentService
+@inject IDueDateReminderService DueDateReminderService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Learner Purchase Support</PageTitle>
+
+<h1>Learner Purchase Support</h1>
+
+<div class="dashboard-grid">
+	<section class="card support-action-card admin-support-card">
+		<h2>Purchase Support</h2>
+		<p class="muted-text">Add or remove enrollment.</p>
+
+		<div class="support-form-stack">
+			<div>
+				<label for="support-learner">Learner</label>
+				<select id="support-learner" value="@(_selectedLearnerId?.ToString() ?? string.Empty)" @onchange="OnLearnerChanged">
+					<option value="">Select learner</option>
+					@foreach (var learner in _learners)
+					{
+						<option value="@learner.Id">@learner.DisplayName (@learner.Email)</option>
+					}
+				</select>
+			</div>
+
+			<div>
+				<label for="support-course">Course</label>
+				<select id="support-course" value="@(_selectedCourseId?.ToString() ?? string.Empty)" @onchange="OnCourseChanged">
+					<option value="">Select course</option>
+					@foreach (var course in _courses)
+					{
+						<option value="@course.Id">@course.Title</option>
+					}
+				</select>
+			</div>
+		</div>
+
+		<div class="form-row">
+			<div class="form-field">
+				<label for="support-reason">Reason</label>
+				<textarea id="support-reason" rows="3" @bind="_supportReason"></textarea>
+			</div>
+		</div>
+
+		<div class="support-op-actions">
+			<button class="primary-btn" @onclick="EnrollSelectedLearnerAsync" disabled="@(!CanEnroll())">Enroll</button>
+			<button class="secondary-btn" @onclick="UnenrollSelectedLearnerAsync" disabled="@(!CanUnenroll())">Unenroll</button>
+		</div>
+
+		<div class="form-row">
+			<div class="form-field">
+				<label for="support-due-date">Due date</label>
+				<input id="support-due-date" type="date" @bind-value="_selectedDueDate" @bind-value:format="yyyy-MM-dd" />
+			</div>
+		</div>
+
+		<div class="support-op-actions">
+			<button class="secondary-btn" @onclick="UpdateDueDateAsync" disabled="@(!CanUpdateDueDate())">Update due date</button>
+		</div>
+
+		<div class="form-row">
+			<div class="form-field">
+				<label for="reminder-type-select">Reminder type</label>
+				<select id="reminder-type-select" @bind="_reminderProcessType">
+					<option value="all">All reminder types</option>
+					<option value="due-date">Due date reminders only</option>
+					<option value="course-start">Course start reminders only</option>
+					<option value="assessment">Assessment deadline reminders only</option>
+				</select>
+			</div>
+		</div>
+
+		<div class="support-op-actions">
+			<button class="secondary-btn" @onclick="ProcessRemindersAsync">Process Reminders</button>
+		</div>
+
+		@if (_reminderProcessResult != null)
+		{
+			<div class="reminder-results card">
+				<h4>Reminder Processing Results</h4>
+				<ul>
+					<li>Due Soon: <strong>@_reminderProcessResult.DueSoonSent</strong></li>
+					<li>Overdue: <strong>@_reminderProcessResult.OverdueSent</strong></li>
+					<li>Course Start: <strong>@_reminderProcessResult.CourseStartSent</strong></li>
+					<li>Enrollment Closing: <strong>@_reminderProcessResult.EnrollmentClosingSent</strong></li>
+					<li>Assessment Deadline: <strong>@_reminderProcessResult.AssessmentDeadlineSent</strong></li>
+					<li>Total Processed: <strong>@_reminderProcessResult.TotalProcessed</strong></li>
+				</ul>
+			</div>
+		}
+
+		@if (!string.IsNullOrWhiteSpace(_supportStatus))
+		{
+			<p class="@GetSupportStatusClass()">@_supportStatus</p>
+		}
+	</section>
+
+	<section class="card support-ownership-card admin-support-card">
+		<h3>Learner enrolled courses</h3>
+		<p class="muted-text">Courses the selected learner is currently enrolled in.</p>
+
+		<p><strong>@GetSelectedLearnerLabel()</strong></p>
+
+		@{
+			var learnerCourses = GetSelectedLearnerEnrolledCourses();
+		}
+
+		@if (learnerCourses.Count > 0)
+		{
+			<ul class="course-list">
+				@foreach (var course in learnerCourses)
+				{
+					<li>
+						<span>@course.Title</span>
+						<span class="@course.SourceCssClass">@course.SourceLabel</span>
+					</li>
+				}
+			</ul>
+		}
+		else
+		{
+			<p class="muted-text">This learner has no enrolled courses.</p>
+		}
+	</section>
+</div>
+
+@code {
+	private List<Course> _courses = new();
+	private List<UserAccount> _users = new();
+	private List<UserAccount> _learners = new();
+	private List<Enrollment> _learnerEnrollments = new();
+	private Guid? _actorUserId;
+	private string _actorEmail = "admin@lms.local";
+	private Guid? _selectedLearnerId;
+	private Guid? _selectedCourseId;
+	private string _supportReason = string.Empty;
+	private DateTime? _selectedDueDate;
+	private string? _supportStatus;
+	private bool? _supportSucceeded;
+	private string _reminderProcessType = "all";
+	private CourseReminderRunResult? _reminderProcessResult;
+
+	protected override async Task OnInitializedAsync()
+	{
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var user = authState.User;
+
+		var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+		if (Guid.TryParse(idClaim, out var parsedId))
+		{
+			_actorUserId = parsedId;
+		}
+
+		_actorEmail = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? _actorEmail;
+
+		await RefreshDataAsync();
+		await RefreshLearnerEnrollmentsAsync();
+	}
+
+	private async Task RefreshDataAsync()
+	{
+		_courses = await CourseService.GetAllAsync();
+		_users = await UserAccountService.GetAllAsync();
+		_learners = _users.Where(user => user.Role == "Learner" && user.IsActive).OrderBy(user => user.DisplayName).ToList();
+
+		_selectedLearnerId ??= _learners.FirstOrDefault()?.Id;
+		_selectedCourseId ??= _courses.FirstOrDefault()?.Id;
+		SyncSelectedDueDateFromEnrollment();
+	}
+
+	private async Task OnLearnerChanged(ChangeEventArgs args)
+	{
+		if (Guid.TryParse(args.Value?.ToString(), out var learnerId))
+		{
+			_selectedLearnerId = learnerId;
+		}
+		else
+		{
+			_selectedLearnerId = null;
+		}
+
+		await RefreshLearnerEnrollmentsAsync();
+		SyncSelectedDueDateFromEnrollment();
+		_supportStatus = null;
+		_supportSucceeded = null;
+	}
+
+	private Task OnCourseChanged(ChangeEventArgs args)
+	{
+		if (Guid.TryParse(args.Value?.ToString(), out var courseId))
+		{
+			_selectedCourseId = courseId;
+		}
+		else
+		{
+			_selectedCourseId = null;
+		}
+
+		SyncSelectedDueDateFromEnrollment();
+		return Task.CompletedTask;
+	}
+
+	private async Task RefreshLearnerEnrollmentsAsync()
+	{
+		if (!_selectedLearnerId.HasValue)
+		{
+			_learnerEnrollments = new();
+			return;
+		}
+
+		_learnerEnrollments = await EnrollmentService.GetEnrollmentsForLearnerAsync(_selectedLearnerId.Value);
+	}
+
+	private bool CanEnroll()
+	{
+		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue)
+		{
+			return false;
+		}
+
+		return !_learnerEnrollments.Any(item => item.CourseId == _selectedCourseId.Value);
+	}
+
+	private bool CanUnenroll()
+	{
+		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue)
+		{
+			return false;
+		}
+
+		return _learnerEnrollments.Any(item => item.CourseId == _selectedCourseId.Value);
+	}
+
+	private bool CanUpdateDueDate()
+	{
+		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue)
+		{
+			return false;
+		}
+
+		return _learnerEnrollments.Any(item => item.CourseId == _selectedCourseId.Value);
+	}
+
+	private async Task EnrollSelectedLearnerAsync()
+	{
+		_supportStatus = null;
+		_supportSucceeded = null;
+
+		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_supportStatus = "Select learner and course.";
+			_supportSucceeded = false;
+			return;
+		}
+
+		var result = await EnrollmentService.AdminEnrollLearnerAsync(_selectedLearnerId.Value, _selectedCourseId.Value, _actorUserId.Value, _actorEmail, _supportReason);
+		_supportSucceeded = result.Succeeded;
+		_supportStatus = result.Message;
+		await RefreshLearnerEnrollmentsAsync();
+		SyncSelectedDueDateFromEnrollment();
+	}
+
+	private async Task UnenrollSelectedLearnerAsync()
+	{
+		_supportStatus = null;
+		_supportSucceeded = null;
+
+		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_supportStatus = "Select learner and course.";
+			_supportSucceeded = false;
+			return;
+		}
+
+		var result = await EnrollmentService.AdminRemoveEnrollmentAsync(_selectedLearnerId.Value, _selectedCourseId.Value, _actorUserId.Value, _actorEmail, _supportReason);
+		_supportSucceeded = result.Succeeded;
+		_supportStatus = result.Message;
+		await RefreshLearnerEnrollmentsAsync();
+		SyncSelectedDueDateFromEnrollment();
+	}
+
+	private async Task UpdateDueDateAsync()
+	{
+		_supportStatus = null;
+		_supportSucceeded = null;
+
+		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_supportStatus = "Select learner and course.";
+			_supportSucceeded = false;
+			return;
+		}
+
+		if (!_selectedDueDate.HasValue)
+		{
+			_supportStatus = "Select a valid due date.";
+			_supportSucceeded = false;
+			return;
+		}
+
+		var dueAtUtc = DateTime.SpecifyKind(_selectedDueDate.Value.Date.AddHours(23).AddMinutes(59).AddSeconds(59), DateTimeKind.Utc);
+		var updated = await DueDateReminderService.SetDueDateAsync(_selectedLearnerId.Value, _selectedCourseId.Value, dueAtUtc, _actorUserId.Value, _actorEmail);
+
+		_supportSucceeded = updated;
+		_supportStatus = updated ? "Due date updated." : "Enrollment not found for the selected learner/course.";
+		await RefreshLearnerEnrollmentsAsync();
+		SyncSelectedDueDateFromEnrollment();
+	}
+
+	private async Task ProcessRemindersAsync()
+	{
+		try
+		{
+			_reminderProcessResult = await DueDateReminderService.ProcessAllRemindersAsync();
+			_supportSucceeded = true;
+			_supportStatus = "Reminders processed successfully.";
+		}
+		catch (Exception ex)
+		{
+			_supportSucceeded = false;
+			_supportStatus = $"Error processing reminders: {ex.Message}";
+		}
+	}
+
+	private void SyncSelectedDueDateFromEnrollment()
+	{
+		var selectedEnrollment = _learnerEnrollments.FirstOrDefault(item => item.CourseId == _selectedCourseId);
+		_selectedDueDate = selectedEnrollment?.DueAtUtc?.ToLocalTime().Date;
+	}
+
+	private string GetSupportStatusClass()
+	{
+		return _supportSucceeded == true ? "status-badge status-success" : "status-badge status-error";
+	}
+
+	private string GetSelectedLearnerLabel()
+	{
+		var learner = _learners.FirstOrDefault(item => item.Id == _selectedLearnerId) ?? _learners.FirstOrDefault();
+		return learner is null ? "Current learner" : $"{learner.DisplayName} ({learner.Email})";
+	}
+
+	private List<SupportEnrollmentCourseDisplay> GetSelectedLearnerEnrolledCourses()
+	{
+		return SupportEnrollmentDisplay.BuildCourseDisplays(_learnerEnrollments);
+	}
+}
+

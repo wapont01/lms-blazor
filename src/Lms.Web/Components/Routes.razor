@@ -1,0 +1,23 @@
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <AuthorizeView>
+                    <Authorized Context="authenticatedUser">
+                        <LayoutView Layout="@typeof(Layout.MainLayout)">
+                            <p>You do not have access to this page.</p>
+                        </LayoutView>
+                    </Authorized>
+                    <NotAuthorized Context="anonymousUser">
+                        <RedirectToLogin />
+                    </NotAuthorized>
+                </AuthorizeView>
+            </NotAuthorized>
+        </AuthorizeRouteView>
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <p>Sorry, there is nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
+</Router>

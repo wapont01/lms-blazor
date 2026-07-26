@@ -1,0 +1,192 @@
+@page "/learner"
+@attribute [Authorize(Roles = "Admin,Learner")]
+@using System.Security.Claims
+@using Lms.Application.Services
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ILearnerDashboardService LearnerDashboardService
+@inject IDueDateReminderService DueDateReminderService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Learner Courses</PageTitle>
+
+<h1>Learner Courses</h1>
+@if (_dashboardContext?.IsAdminViewer == true)
+{
+    <p>
+        <strong>Viewing learner:</strong>
+        <select value="@(_dashboardContext.LearnerUserId?.ToString() ?? string.Empty)" @onchange="OnLearnerSelectionChanged" disabled="@(_learnerOptions.Count == 0)">
+            @if (_learnerOptions.Count == 0)
+            {
+                <option value="">No learner accounts available</option>
+            }
+            else
+            {
+                @foreach (var learner in _learnerOptions)
+                {
+                    <option value="@learner.UserId">@learner.DisplayName (@learner.Email)</option>
+                }
+            }
+        </select>
+    </p>
+
+    @if (_dashboardContext.LearnerUserId.HasValue)
+    {
+        <p>@_dashboardContext.Email · @_dashboardContext.EnrolledCourseCount enrolled · @_dashboardContext.CompletedCourseCount completed</p>
+    }
+}
+
+@if (_dashboardContext?.IsAdminViewer == true && !_dashboardContext.LearnerUserId.HasValue)
+{
+    <p>No learner accounts available.</p>
+}
+else if (_courses.Count == 0)
+{
+    <p>@GetEmptyStateMessage()</p>
+}
+else
+{
+    <LearnerDashboardCourses Courses="_courses" LearnerId="GetActiveLearnerId()" />
+}
+
+@if (_dueDates.Count > 0)
+{
+    <div class="card due-date-card">
+        <h2>Upcoming Due Dates</h2>
+        <ul class="due-date-list">
+            @foreach (var dueDate in _dueDates)
+            {
+                <li class="due-date-item">
+                    <strong>@dueDate.CourseTitle</strong>
+                    <span>Due @FormatDueDate(dueDate.DueAtUtc)</span>
+                    @if (dueDate.IsOverdue)
+                    {
+                        <span class="assessment-failure-inline">Overdue</span>
+                    }
+                    else if (dueDate.DaysRemaining <= 3)
+                    {
+                        <span class="source-badge source-badge-neutral">@dueDate.DaysRemaining day(s) left</span>
+                    }
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    [SupplyParameterFromQuery(Name = "learnerId")]
+    public Guid? LearnerId { get; set; }
+
+    private List<LearnerDashboardCourseCard> _courses = new();
+    private List<LearnerDashboardLearnerOption> _learnerOptions = new();
+    private LearnerDashboardContext? _dashboardContext;
+    private Guid? _userId;
+    private bool _isAdminViewer;
+    private bool _isInitialized;
+    private List<LearnerDueDateRow> _dueDates = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        _isAdminViewer = state.User.IsInRole("Admin");
+
+        if (Guid.TryParse(userIdClaim, out var userId))
+        {
+            _userId = userId;
+        }
+
+        _isInitialized = true;
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_isInitialized || !_userId.HasValue)
+        {
+            return;
+        }
+
+        await LoadDashboardAsync();
+    }
+
+    private async Task LoadDashboardAsync()
+    {
+        var dashboard = await LearnerDashboardService.GetDashboardAsync(_userId!.Value, _isAdminViewer, LearnerId);
+        _dashboardContext = dashboard.Context;
+        _learnerOptions = dashboard.LearnerOptions;
+        _courses = dashboard.Courses;
+
+        _dueDates = new List<LearnerDueDateRow>();
+        var activeLearnerId = _dashboardContext.LearnerUserId ?? _userId;
+        if (activeLearnerId.HasValue)
+        {
+            _dueDates = await DueDateReminderService.GetLearnerDueDatesAsync(activeLearnerId.Value, upcomingOnly: false, take: 6);
+        }
+
+        NormalizeLearnerQuery();
+    }
+
+    private void NormalizeLearnerQuery()
+    {
+        if (!_isAdminViewer || _dashboardContext is null)
+        {
+            return;
+        }
+
+        if (_dashboardContext.LearnerUserId.HasValue)
+        {
+            if (LearnerId != _dashboardContext.LearnerUserId.Value)
+            {
+                NavigationManager.NavigateTo(BuildLearnerUri(_dashboardContext.LearnerUserId.Value), replace: true);
+            }
+            return;
+        }
+
+        if (LearnerId.HasValue)
+        {
+            NavigationManager.NavigateTo("/learner", replace: true);
+        }
+    }
+
+    private Task OnLearnerSelectionChanged(ChangeEventArgs eventArgs)
+    {
+        if (!_isAdminViewer)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (!Guid.TryParse(eventArgs.Value?.ToString(), out var selectedLearnerId))
+        {
+            return Task.CompletedTask;
+        }
+
+        NavigationManager.NavigateTo(BuildLearnerUri(selectedLearnerId), replace: true);
+        return Task.CompletedTask;
+    }
+
+    private string GetEmptyStateMessage()
+    {
+        if (_dashboardContext?.IsAdminViewer == true)
+        {
+            return _dashboardContext.LearnerUserId.HasValue
+                ? "Selected learner is not enrolled in any courses yet."
+                : "No learner accounts available.";
+        }
+
+        return "You are not enrolled in any courses yet.";
+    }
+
+    private Guid? GetActiveLearnerId()
+    {
+        return _dashboardContext?.IsAdminViewer == true ? _dashboardContext.LearnerUserId : null;
+    }
+
+    private static string BuildLearnerUri(Guid learnerUserId)
+    {
+        return $"/learner?learnerId={Uri.EscapeDataString(learnerUserId.ToString())}";
+    }
+
+    private static string FormatDueDate(DateTime dueAtUtc)
+    {
+        return dueAtUtc.ToLocalTime().ToString("yyyy-MM-dd");
+    }
+}

@@ -1,0 +1,482 @@
+@page "/instructor"
+@attribute [Authorize(Roles = "Admin,Instructor")]
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@inject ICourseService CourseService
+
+<PageTitle>Instructor</PageTitle>
+
+<h1>Instructor Dashboard</h1>
+
+<div class="dashboard-grid">
+	<section class="card">
+		<h2>Editable courses</h2>
+
+		@if (_courses.Count == 0)
+		{
+			<p>No courses are available to edit.</p>
+		}
+		else
+		{
+			<div class="course-list">
+				@foreach (var course in _courses)
+				{
+					<article class="course-item">
+						<div>
+							<h3>@course.Title</h3>
+							<p>@course.Level | @(course.IsPublished ? "Published" : "Draft")</p>
+							<p>@course.Description</p>
+						</div>
+						<button type="button" @onclick="() => BeginEditing(course)">Edit</button>
+					</article>
+				}
+			</div>
+		}
+	</section>
+
+	<section class="card">
+		<h2>Edit course</h2>
+
+		@if (_editingCourse is null)
+		{
+			<p>Select a course to edit its content and status.</p>
+		}
+		else
+		{
+			<EditForm Model="_editingCourse" OnValidSubmit="SaveCourseAsync">
+				<DataAnnotationsValidator />
+				<ValidationSummary />
+
+				<div class="form-field">
+					<label>Title</label>
+					<InputText @bind-Value="_editingCourse.Title" />
+					<ValidationMessage For="() => _editingCourse.Title" />
+				</div>
+				<div class="form-field">
+					<label>Description</label>
+					<InputTextArea @bind-Value="_editingCourse.Description" />
+				</div>
+				<div class="form-field">
+					<label>Level</label>
+					<InputText @bind-Value="_editingCourse.Level" />
+					<ValidationMessage For="() => _editingCourse.Level" />
+				</div>
+				<div class="form-row">
+					<div class="form-field">
+						<label>Duration Hours</label>
+						<InputNumber @bind-Value="_editingCourse.DurationHours" />
+						<ValidationMessage For="() => _editingCourse.DurationHours" />
+					</div>
+					<div class="form-field">
+						<label>Credit Hours</label>
+						<InputNumber @bind-Value="_editingCourse.CreditHours" />
+						<ValidationMessage For="() => _editingCourse.CreditHours" />
+					</div>
+				</div>
+				<div class="form-field">
+					<label>Jurisdiction</label>
+					<InputText @bind-Value="_editingCourse.Jurisdiction" />
+				</div>
+				<div class="form-row">
+					<div class="form-field">
+						<label>Price</label>
+						<InputNumber @bind-Value="_editingCourse.Price" />
+						<ValidationMessage For="() => _editingCourse.Price" />
+					</div>
+					<div class="form-field checkbox-field">
+						<label>
+							<InputCheckbox @bind-Value="_editingCourse.IsPublished" />
+							Published
+						</label>
+					</div>
+				</div>
+				<div class="form-row">
+					<div class="form-field checkbox-field">
+						<label>
+							<InputCheckbox @bind-Value="_editingCourse.IsArchived" />
+							Archived
+						</label>
+					</div>
+				</div>
+				<div class="course-actions">
+					<button type="submit">Save changes</button>
+					<button type="button" @onclick="ClearSelection">Cancel</button>
+				</div>
+			</EditForm>
+		}
+	</section>
+
+	<section class="card">
+		<h2>Modules</h2>
+
+		@if (_editingCourse is null)
+		{
+			<p>Select a course to manage its modules.</p>
+		}
+		else
+		{
+			<div class="form-field">
+				<label>New module title</label>
+				<InputText @bind-Value="_newModuleTitle" />
+			</div>
+			<button type="button" @onclick="AddModuleAsync">Add module</button>
+
+			@if (_editingCourse.Modules.Count == 0)
+			{
+				<p class="muted-text">No modules yet.</p>
+			}
+			else
+			{
+				<div class="course-list">
+					@foreach (var module in _editingCourse.Modules.OrderBy(module => module.OrderIndex))
+					{
+						<article class="course-item">
+							<div>
+								<h3>@module.OrderIndex. @module.Title</h3>
+								<p>@module.Lessons.Count lessons</p>
+							</div>
+							<button type="button" @onclick="() => BeginEditingModule(module)">Edit module</button>
+						</article>
+					}
+				</div>
+			}
+
+			@if (_editingModule is not null)
+			{
+				<hr />
+				<h3>Edit module</h3>
+				<EditForm Model="_editingModule" OnValidSubmit="SaveModuleAsync">
+					<DataAnnotationsValidator />
+					<ValidationSummary />
+					<div class="form-field">
+						<label>Title</label>
+						<InputText @bind-Value="_editingModule.Title" />
+					</div>
+					<div class="course-actions">
+						<button type="submit">Save module</button>
+						<button type="button" @onclick="ClearModuleSelection">Cancel</button>
+					</div>
+				</EditForm>
+			}
+		}
+	</section>
+
+	<section class="card">
+		<h2>Lessons</h2>
+
+		@if (_editingModule is null)
+		{
+			<p>Select a module to manage its lessons.</p>
+		}
+		else
+		{
+			<div class="form-field">
+				<label>New lesson title</label>
+				<InputText @bind-Value="_newLessonTitle" />
+			</div>
+			<div class="form-field">
+				<label>Lesson content</label>
+				<InputTextArea @bind-Value="_newLessonText" />
+			</div>
+			<div class="form-row">
+				<div class="form-field">
+					<label>Duration Minutes</label>
+					<InputNumber @bind-Value="_newLessonDurationMinutes" />
+				</div>
+				<div class="form-field checkbox-field">
+					<label>
+						<InputCheckbox @bind-Value="_newLessonRequired" />
+						Required
+					</label>
+				</div>
+			</div>
+			<button type="button" @onclick="AddLessonAsync">Add lesson</button>
+
+			@if (_editingModule.Lessons.Count == 0)
+			{
+				<p class="muted-text">No lessons yet.</p>
+			}
+			else
+			{
+				<div class="course-list">
+					@foreach (var lesson in _editingModule.Lessons.OrderBy(lesson => lesson.OrderIndex))
+					{
+						<article class="course-item">
+							<div>
+								<h3>@lesson.OrderIndex. @lesson.Title</h3>
+								<p>@lesson.DurationMinutes minutes | @(lesson.IsRequired ? "Required" : "Optional")</p>
+								<p>@lesson.TextContent</p>
+							</div>
+							<button type="button" @onclick="() => BeginEditingLesson(lesson)">Edit lesson</button>
+						</article>
+					}
+				</div>
+			}
+
+			@if (_editingLesson is not null)
+			{
+				<hr />
+				<h3>Edit lesson</h3>
+				<EditForm Model="_editingLesson" OnValidSubmit="SaveLessonAsync">
+					<DataAnnotationsValidator />
+					<ValidationSummary />
+					<div class="form-field">
+						<label>Title</label>
+						<InputText @bind-Value="_editingLesson.Title" />
+					</div>
+					<div class="form-field">
+						<label>Lesson content</label>
+						<InputTextArea @bind-Value="_editingLesson.TextContent" />
+					</div>
+					<div class="form-field">
+						<label>Duration Minutes</label>
+						<InputNumber @bind-Value="_editingLesson.DurationMinutes" />
+					</div>
+					<div class="form-row">
+						<div class="form-field checkbox-field">
+							<label>
+								<InputCheckbox @bind-Value="_editingLesson.IsRequired" />
+								Required
+							</label>
+						</div>
+					</div>
+					<div class="course-actions">
+						<button type="submit">Save lesson</button>
+						<button type="button" @onclick="ClearLessonSelection">Cancel</button>
+					</div>
+				</EditForm>
+			}
+		}
+	</section>
+</div>
+
+@code {
+	private List<Course> _courses = new();
+	private Course? _editingCourse;
+	private Module? _editingModule;
+	private Lesson? _editingLesson;
+	private string _newModuleTitle = string.Empty;
+	private string _newLessonTitle = string.Empty;
+	private string? _newLessonText;
+	private int _newLessonDurationMinutes;
+	private bool _newLessonRequired = true;
+
+	protected override async Task OnInitializedAsync()
+	{
+		await RefreshCoursesAsync();
+	}
+
+	private void BeginEditing(Course course)
+	{
+		_editingCourse = CloneCourse(course);
+		ClearModuleSelection();
+		ClearLessonSelection();
+	}
+
+	private async Task SaveCourseAsync()
+	{
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		var editedCourseId = _editingCourse.Id;
+
+		if (_editingCourse.IsArchived)
+		{
+			_editingCourse.IsPublished = false;
+		}
+
+		await CourseService.UpdateAsync(_editingCourse);
+		await RefreshCoursesAsync();
+
+		var refreshedCourse = _courses.FirstOrDefault(course => course.Id == editedCourseId);
+		_editingCourse = refreshedCourse is null ? null : CloneCourse(refreshedCourse);
+	}
+
+	private void ClearSelection()
+	{
+		_editingCourse = null;
+		ClearModuleSelection();
+		ClearLessonSelection();
+	}
+
+	private async Task RefreshCoursesAsync()
+	{
+		_courses = await CourseService.GetAllAsync();
+
+		if (_editingCourse is not null)
+		{
+			var refreshedCourse = _courses.FirstOrDefault(course => course.Id == _editingCourse.Id);
+			_editingCourse = refreshedCourse is null ? null : CloneCourse(refreshedCourse);
+		}
+	}
+
+	private async Task AddModuleAsync()
+	{
+		if (_editingCourse is null || string.IsNullOrWhiteSpace(_newModuleTitle))
+		{
+			return;
+		}
+
+		await CourseService.AddModuleAsync(_editingCourse.Id, new Module
+		{
+			Title = _newModuleTitle.Trim()
+		});
+
+		_newModuleTitle = string.Empty;
+		await ReloadSelectedCourseAsync();
+	}
+
+	private void BeginEditingModule(Module module)
+	{
+		_editingModule = CloneModule(module);
+		ClearLessonSelection();
+	}
+
+	private async Task SaveModuleAsync()
+	{
+		if (_editingModule is null)
+		{
+			return;
+		}
+
+		await CourseService.UpdateModuleAsync(_editingModule);
+		await ReloadSelectedCourseAsync();
+		BeginEditingModule(_editingCourse!.Modules.First(module => module.Id == _editingModule.Id));
+	}
+
+	private void ClearModuleSelection()
+	{
+		_editingModule = null;
+		_newModuleTitle = string.Empty;
+	}
+
+	private async Task AddLessonAsync()
+	{
+		if (_editingModule is null || string.IsNullOrWhiteSpace(_newLessonTitle))
+		{
+			return;
+		}
+
+		await CourseService.AddLessonAsync(_editingModule.Id, new Lesson
+		{
+			Title = _newLessonTitle.Trim(),
+			TextContent = _newLessonText,
+			DurationMinutes = _newLessonDurationMinutes,
+			IsRequired = _newLessonRequired
+		});
+
+		_newLessonTitle = string.Empty;
+		_newLessonText = string.Empty;
+		_newLessonDurationMinutes = 0;
+		_newLessonRequired = true;
+		await ReloadSelectedCourseAsync();
+		if (_editingCourse is not null)
+		{
+			var refreshedModule = _editingCourse.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
+			_editingModule = refreshedModule is null ? null : CloneModule(refreshedModule);
+		}
+	}
+
+	private void BeginEditingLesson(Lesson lesson)
+	{
+		_editingLesson = CloneLesson(lesson);
+	}
+
+	private async Task SaveLessonAsync()
+	{
+		if (_editingLesson is null)
+		{
+			return;
+		}
+
+		await CourseService.UpdateLessonAsync(_editingLesson);
+		await ReloadSelectedCourseAsync();
+		if (_editingModule is not null)
+		{
+			var refreshedModule = _editingCourse?.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
+			_editingModule = refreshedModule is null ? null : CloneModule(refreshedModule);
+		}
+		if (_editingModule is not null)
+		{
+			var refreshedLesson = _editingModule.Lessons.FirstOrDefault(lesson => lesson.Id == _editingLesson.Id);
+			_editingLesson = refreshedLesson is null ? null : CloneLesson(refreshedLesson);
+		}
+	}
+
+	private void ClearLessonSelection()
+	{
+		_editingLesson = null;
+		_newLessonTitle = string.Empty;
+		_newLessonText = string.Empty;
+		_newLessonDurationMinutes = 0;
+		_newLessonRequired = true;
+	}
+
+	private async Task ReloadSelectedCourseAsync()
+	{
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		var refreshedCourse = await CourseService.GetByIdAsync(_editingCourse.Id);
+		_editingCourse = refreshedCourse is null ? null : CloneCourse(refreshedCourse);
+	}
+
+	private static Course CloneCourse(Course course)
+	{
+		return new Course
+		{
+			Id = course.Id,
+			Title = course.Title,
+			Slug = course.Slug,
+			Description = course.Description,
+			Level = course.Level,
+			DurationHours = course.DurationHours,
+			CreditHours = course.CreditHours,
+			Jurisdiction = course.Jurisdiction,
+			Price = course.Price,
+			IsPublished = course.IsPublished,
+			IsArchived = course.IsArchived,
+			CreatedAt = course.CreatedAt,
+			UpdatedAt = course.UpdatedAt,
+			Modules = course.Modules
+				.OrderBy(module => module.OrderIndex)
+				.Select(CloneModule)
+				.ToList()
+		};
+	}
+
+	private static Module CloneModule(Module module)
+	{
+		return new Module
+		{
+			Id = module.Id,
+			CourseId = module.CourseId,
+			Title = module.Title,
+			OrderIndex = module.OrderIndex,
+			Lessons = module.Lessons
+				.OrderBy(lesson => lesson.OrderIndex)
+				.Select(CloneLesson)
+				.ToList()
+		};
+	}
+
+	private static Lesson CloneLesson(Lesson lesson)
+	{
+		return new Lesson
+		{
+			Id = lesson.Id,
+			ModuleId = lesson.ModuleId,
+			Title = lesson.Title,
+			ContentType = lesson.ContentType,
+			ContentUrl = lesson.ContentUrl,
+			TextContent = lesson.TextContent,
+			DurationMinutes = lesson.DurationMinutes,
+			OrderIndex = lesson.OrderIndex,
+			IsRequired = lesson.IsRequired
+		};
+	}
+}

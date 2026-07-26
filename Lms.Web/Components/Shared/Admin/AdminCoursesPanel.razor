@@ -1,0 +1,104 @@
+@using Lms.Domain.Entities
+
+<section class="card" id="admin-create-course">
+    <h2>Create course</h2>
+    <EditForm Model="Draft" OnValidSubmit="OnCreateCourse">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-field">
+            <label>Title</label>
+            <InputText @bind-Value="Draft.Title" />
+            <ValidationMessage For="() => Draft.Title" />
+        </div>
+        <div class="form-field">
+            <label>Description</label>
+            <InputTextArea @bind-Value="Draft.Description" />
+        </div>
+        <div class="form-field">
+            <label>Level</label>
+            <InputText @bind-Value="Draft.Level" />
+            <ValidationMessage For="() => Draft.Level" />
+        </div>
+        <div class="form-row">
+            <div class="form-field">
+                <label>Duration Hours</label>
+                <InputNumber @bind-Value="Draft.DurationHours" />
+                <ValidationMessage For="() => Draft.DurationHours" />
+            </div>
+            <div class="form-field">
+                <label>Credit Hours</label>
+                <InputNumber @bind-Value="Draft.CreditHours" />
+                <ValidationMessage For="() => Draft.CreditHours" />
+            </div>
+        </div>
+        <div class="form-field">
+            <label>Jurisdiction</label>
+            <InputText @bind-Value="Draft.Jurisdiction" />
+        </div>
+        <div class="form-row">
+            <div class="form-field">
+                <label>Price</label>
+                <InputNumber @bind-Value="Draft.Price" />
+                <ValidationMessage For="() => Draft.Price" />
+            </div>
+            <div class="form-field checkbox-field">
+                <label>
+                    <InputCheckbox @bind-Value="Draft.IsPublished" />
+                    Published
+                </label>
+            </div>
+        </div>
+        <button type="submit">Create course</button>
+    </EditForm>
+</section>
+
+<section class="card" id="admin-course-catalog">
+    <h2>Course catalog</h2>
+
+    @if (Courses.Count == 0)
+    {
+        <p>No courses have been created yet.</p>
+    }
+    else
+    {
+        <div class="course-list">
+            @foreach (var course in Courses)
+            {
+                <article class="course-item">
+                    <div>
+                        <h3>@course.Title</h3>
+                        <p>@course.Level | @course.DurationHours hours | @course.Price.ToString("C")</p>
+                        <p>@course.Description</p>
+                        <p>Status: @(course.IsArchived ? "Archived" : course.IsPublished ? "Published" : "Draft")</p>
+                    </div>
+                    <div class="course-actions">
+                        <button type="button" @onclick="() => OnTogglePublish.InvokeAsync(course)">
+                            @(course.IsPublished ? "Unpublish" : "Publish")
+                        </button>
+                        <button type="button" @onclick="() => OnToggleArchive.InvokeAsync(course)">
+                            @(course.IsArchived ? "Restore" : "Archive")
+                        </button>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public Course Draft { get; set; } = new();
+
+    [Parameter]
+    public EventCallback OnCreateCourse { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<Course> Courses { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<Course> OnTogglePublish { get; set; }
+
+    [Parameter]
+    public EventCallback<Course> OnToggleArchive { get; set; }
+}

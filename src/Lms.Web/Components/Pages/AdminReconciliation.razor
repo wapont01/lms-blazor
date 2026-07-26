@@ -1,0 +1,160 @@
+@page "/admin/reconciliation"
+@using Microsoft.EntityFrameworkCore
+@using Lms.Application.Data
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@attribute [Authorize(Roles = "Admin")]
+
+@inject ApplicationDbContext DbContext
+@inject IPaymentReportingService PaymentReportingService
+@inject ILogger<AdminReconciliation> Logger
+
+<PageTitle>Payment Reconciliation - Admin</PageTitle>
+
+<div class="admin-reconciliation-container">
+    <h1>Payment Reconciliation</h1>
+
+    <div class="toolbar">
+        <div class="date-field">
+            <label>Start</label>
+            <input type="date" @bind="_startDate" />
+        </div>
+        <div class="date-field">
+            <label>End</label>
+            <input type="date" @bind="_endDate" />
+        </div>
+        <button class="btn-primary" @onclick="LoadAsync">Refresh</button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <p>Loading reconciliation data...</p>
+    }
+    else
+    {
+        <div class="cards">
+            <div class="card stat">
+                <div class="label">Completed Revenue</div>
+                <div class="value">$@_completedRevenue.ToString("F2")</div>
+            </div>
+            <div class="card stat">
+                <div class="label">Pending Amount</div>
+                <div class="value">$@_pendingAmount.ToString("F2")</div>
+            </div>
+            <div class="card stat">
+                <div class="label">Refunded Amount</div>
+                <div class="value">$@_refundedAmount.ToString("F2")</div>
+            </div>
+            <div class="card stat">
+                <div class="label">Net Revenue</div>
+                <div class="value">$@_netRevenue.ToString("F2")</div>
+            </div>
+        </div>
+
+        <section class="card table-card">
+            <h2>Recent Transactions</h2>
+            @if (_recentTransactions.Count == 0)
+            {
+                <p>No transactions found for selected range.</p>
+            }
+            else
+            {
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Created</th>
+                            <th>Learner</th>
+                            <th>Status</th>
+                            <th>Amount</th>
+                            <th>Intent Id</th>
+                            <th>Failure</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var txn in _recentTransactions)
+                        {
+                            <tr>
+                                <td>@txn.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@(txn.Learner?.Email ?? "Unknown")</td>
+                                <td>@txn.Status</td>
+                                <td>$@txn.Amount.ToString("F2")</td>
+                                <td class="mono">@txn.StripePaymentIntentId</td>
+                                <td>@txn.FailureReason</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </section>
+    }
+</div>
+
+@code {
+    private DateTime _startDate = DateTime.UtcNow.AddDays(-30);
+    private DateTime _endDate = DateTime.UtcNow;
+    private bool _isLoading = true;
+    private decimal _completedRevenue;
+    private decimal _pendingAmount;
+    private decimal _refundedAmount;
+    private decimal _netRevenue;
+    private List<PaymentTransaction> _recentTransactions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var from = _startDate.Date;
+            var to = _endDate.Date.AddDays(1).AddTicks(-1);
+
+            var revenue = await PaymentReportingService.GetRevenueReportAsync(from, to);
+            _completedRevenue = revenue.TotalRevenue;
+
+            _pendingAmount = await DbContext.PaymentTransactions
+                .Where(t => t.CreatedAt >= from && t.CreatedAt <= to && t.Status == "Pending")
+                .SumAsync(t => (decimal?)t.Amount) ?? 0m;
+
+            _refundedAmount = await DbContext.PaymentTransactions
+                .Where(t => t.CreatedAt >= from && t.CreatedAt <= to && t.Status == "Refunded")
+                .SumAsync(t => (decimal?)t.Amount) ?? 0m;
+
+            _netRevenue = _completedRevenue - _refundedAmount;
+
+            _recentTransactions = await DbContext.PaymentTransactions
+                .AsNoTracking()
+                .Include(t => t.Learner)
+                .Where(t => t.CreatedAt >= from && t.CreatedAt <= to)
+                .OrderByDescending(t => t.CreatedAt)
+                .Take(100)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load reconciliation data");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}
+
+<style>
+.admin-reconciliation-container { max-width: 1200px; margin: 0 auto; padding: 1rem; }
+.toolbar { display: flex; gap: 1rem; align-items: end; margin-bottom: 1rem; flex-wrap: wrap; }
+.date-field { display: flex; flex-direction: column; gap: 0.35rem; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+.card { background: #fff; border: 1px solid #e6e6e6; border-radius: 8px; padding: 0.9rem; }
+.stat .label { color: #666; font-size: 0.85rem; }
+.stat .value { font-size: 1.45rem; font-weight: 700; }
+.table-card { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { border-bottom: 1px solid #eee; padding: 0.55rem; text-align: left; }
+.mono { font-family: Consolas, "Courier New", monospace; font-size: 0.84rem; }
+.btn-primary { background: #1f7aea; color: #fff; border: none; padding: 0.55rem 0.9rem; border-radius: 6px; cursor: pointer; }
+</style>

@@ -1,0 +1,632 @@
+@page "/admin/payouts"
+@using Lms.Application.Services
+@using Lms.Application.Data
+@using Lms.Domain.Entities
+@using Microsoft.EntityFrameworkCore
+
+@attribute [Authorize(Roles = "Admin")]
+
+@inject IPayoutService PayoutService
+@inject ApplicationDbContext DbContext
+@inject ILogger<AdminPayouts> Logger
+
+<PageTitle>Instructor Payouts - Admin</PageTitle>
+
+<div class="admin-payouts-container">
+    <h1>Instructor Payouts</h1>
+
+    <div class="payouts-toolbar">
+        <div class="search-box">
+            <input type="text" placeholder="Search instructor..." @bind="_searchTerm" @oninput="FilterPayouts" class="form-control" />
+        </div>
+        <div class="filter-status">
+            <label>Status:</label>
+            <select @onchange="FilterPayouts" class="form-control">
+                <option value="">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Scheduled">Scheduled</option>
+                <option value="Paid">Paid</option>
+                <option value="Failed">Failed</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" @onclick="OpenSchedulePayoutModal">Schedule New Payout</button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading payouts...</p>
+        </div>
+    }
+    else if (_filteredPayouts.Count == 0)
+    {
+        <div class="empty-state">
+            <p>No payouts found</p>
+        </div>
+    }
+    else
+    {
+        <div class="payouts-table-container">
+            <table class="payouts-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Instructor</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Scheduled For</th>
+                        <th>Paid Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var payout in _filteredPayouts)
+                    {
+                        <tr>
+                            <td>@payout.CreatedAt.ToString("MMM dd, yyyy")</td>
+                            <td>@GetInstructorName(payout.InstructorId)</td>
+                            <td>${payout.Amount:F2}</td>
+                            <td>
+                                <span class="status-badge @GetStatusClass(payout.Status)">@payout.Status</span>
+                            </td>
+                            <td>@(payout.ScheduledDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                            <td>@(payout.PaidDate?.ToString("MMM dd, yyyy") ?? "—")</td>
+                            <td class="actions">
+                                @if (payout.Status == "Scheduled")
+                                {
+                                    <button class="btn-small btn-success" @onclick="() => ProcessPayoutAsync(payout.Id)">Process</button>
+                                }
+                                @if (payout.Status == "Pending" || payout.Status == "Failed")
+                                {
+                                    <button class="btn-small btn-danger" @onclick="() => CancelPayoutAsync(payout.Id)">Cancel</button>
+                                }
+                                <button class="btn-small btn-info" @onclick="() => ShowPayoutDetails(payout)">Details</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @if (_showScheduleModal)
+    {
+        <div class="modal-overlay" @onclick="CloseSchedulePayoutModal">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>Schedule New Payout</h2>
+                    <button class="close-btn" @onclick="CloseSchedulePayoutModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Instructor:</label>
+                        <select @bind="_selectedInstructor" class="form-control">
+                            <option value="">-- Select Instructor --</option>
+                            @foreach (var instructor in _instructors)
+                            {
+                                <option value="@instructor.Id.ToString()">@instructor.DisplayName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount ($):</label>
+                        <input type="number" step="0.01" min="0" @bind="_payoutAmount" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Payout Date:</label>
+                        <input type="date" @bind="_payoutDate" class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseSchedulePayoutModal">Cancel</button>
+                    <button class="btn btn-primary" @onclick="SchedulePayoutAsync">Schedule Payout</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (_showDetailsModal && _selectedPayout != null)
+    {
+        <div class="modal-overlay" @onclick="CloseDetailsModal">
+            <div class="modal-content modal-large" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>Payout Details</h2>
+                    <button class="close-btn" @onclick="CloseDetailsModal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="details-grid">
+                        <div class="detail-row">
+                            <span class="label">Payout ID:</span>
+                            <span class="value">@_selectedPayout.Id</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Instructor:</span>
+                            <span class="value">@GetInstructorName(_selectedPayout.InstructorId)</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Amount:</span>
+                            <span class="value">${_selectedPayout.Amount:F2}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Status:</span>
+                            <span class="value">
+                                <span class="status-badge @GetStatusClass(_selectedPayout.Status)">@_selectedPayout.Status</span>
+                            </span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Created At:</span>
+                            <span class="value">@_selectedPayout.CreatedAt.ToString("g")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Scheduled For:</span>
+                            <span class="value">@(_selectedPayout.ScheduledDate?.ToString("g") ?? "N/A")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Paid At:</span>
+                            <span class="value">@(_selectedPayout.PaidDate?.ToString("g") ?? "N/A")</span>
+                        </div>
+                        @if (!string.IsNullOrEmpty(_selectedPayout.StripeTransferId))
+                        {
+                            <div class="detail-row">
+                                <span class="label">Transfer ID:</span>
+                                <span class="value">@_selectedPayout.StripeTransferId</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(_selectedPayout.FailureReason))
+                        {
+                            <div class="detail-row error">
+                                <span class="label">Failure Reason:</span>
+                                <span class="value">@_selectedPayout.FailureReason</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseDetailsModal">Close</button>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .admin-payouts-container {
+        max-width: 1400px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .admin-payouts-container h1 {
+        margin-bottom: 30px;
+        color: #333;
+    }
+
+    .payouts-toolbar {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .search-box, .filter-status {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .search-box label, .filter-status label {
+        font-weight: 600;
+        font-size: 13px;
+        color: #333;
+    }
+
+    .form-control {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 14px;
+        min-width: 150px;
+    }
+
+    .btn, .btn-small {
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 14px;
+    }
+
+    .btn {
+        padding: 10px 20px;
+    }
+
+    .btn-small {
+        padding: 5px 10px;
+        font-size: 12px;
+        margin-right: 5px;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .btn-success:hover {
+        background-color: #1e7e34;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background-color: #bd2130;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .btn-info:hover {
+        background-color: #0e5a6f;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .payouts-table-container {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow-x: auto;
+    }
+
+    .payouts-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+    .payouts-table thead {
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .payouts-table th {
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .payouts-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .payouts-table tbody tr:hover {
+        background: #f8f9fa;
+    }
+
+    .payouts-table .actions {
+        display: flex;
+        gap: 5px;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .status-badge.Pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-badge.Scheduled {
+        background: #cfe2ff;
+        color: #084298;
+    }
+
+    .status-badge.Paid {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .status-badge.Failed {
+        background: #f8d7da;
+        color: #842029;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-content.modal-large {
+        max-width: 700px;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 20px;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #666;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 15px 20px;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .details-grid {
+        display: grid;
+        gap: 15px;
+    }
+
+    .detail-row {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .detail-row.error {
+        color: #dc3545;
+    }
+
+    .detail-row .label {
+        font-weight: 600;
+        color: #666;
+    }
+
+    .detail-row .value {
+        color: #333;
+        word-break: break-all;
+    }
+</style>
+
+@code {
+    private List<InstructorPayout> _allPayouts = new();
+    private List<InstructorPayout> _filteredPayouts = new();
+    private List<UserAccount> _instructors = new();
+    private bool _isLoading = true;
+    private bool _showScheduleModal = false;
+    private bool _showDetailsModal = false;
+
+    private string _searchTerm = "";
+    private string _selectedStatus = "";
+    private string _selectedInstructor = "";
+    private decimal _payoutAmount = 0;
+    private DateTime _payoutDate = DateTime.Today.AddDays(7);
+    private InstructorPayout? _selectedPayout;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPayouts();
+    }
+
+    private async Task LoadPayouts()
+    {
+        _isLoading = true;
+
+        try
+        {
+            _allPayouts = await PayoutService.GetPendingPayoutsAsync();
+            var instructors = await DbContext.UserAccounts
+                .Where(u => u.Role == "Instructor")
+                .ToListAsync();
+            _instructors = instructors;
+            FilterPayouts();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading payouts");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void FilterPayouts()
+    {
+        _filteredPayouts = _allPayouts
+            .Where(p => string.IsNullOrEmpty(_searchTerm) || 
+                        GetInstructorName(p.InstructorId).Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))
+            .Where(p => string.IsNullOrEmpty(_selectedStatus) || p.Status == _selectedStatus)
+            .ToList();
+    }
+
+    private string GetInstructorName(Guid instructorId)
+    {
+        var instructor = _instructors.FirstOrDefault(i => i.Id == instructorId);
+        return instructor?.DisplayName ?? "Unknown Instructor";
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status switch
+        {
+            "Paid" => "Paid",
+            "Failed" => "Failed",
+            "Scheduled" => "Scheduled",
+            _ => "Pending"
+        };
+    }
+
+    private void OpenSchedulePayoutModal()
+    {
+        _showScheduleModal = true;
+    }
+
+    private void CloseSchedulePayoutModal()
+    {
+        _showScheduleModal = false;
+        _selectedInstructor = "";
+        _payoutAmount = 0;
+        _payoutDate = DateTime.Today.AddDays(7);
+    }
+
+    private async Task SchedulePayoutAsync()
+    {
+        if (string.IsNullOrEmpty(_selectedInstructor) || _payoutAmount <= 0)
+        {
+            return;
+        }
+
+        try
+        {
+            if (Guid.TryParse(_selectedInstructor, out var instructorId))
+            {
+                await PayoutService.SchedulePayoutAsync(instructorId, _payoutAmount, _payoutDate);
+                await LoadPayouts();
+                CloseSchedulePayoutModal();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error scheduling payout");
+        }
+    }
+
+    private async Task ProcessPayoutAsync(Guid payoutId)
+    {
+        try
+        {
+            await PayoutService.ProcessPayoutAsync(payoutId);
+            await LoadPayouts();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error processing payout");
+        }
+    }
+
+    private async Task CancelPayoutAsync(Guid payoutId)
+    {
+        try
+        {
+            await PayoutService.CancelPayoutAsync(payoutId, "Cancelled by admin");
+            await LoadPayouts();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cancelling payout");
+        }
+    }
+
+    private void ShowPayoutDetails(InstructorPayout payout)
+    {
+        _selectedPayout = payout;
+        _showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal()
+    {
+        _showDetailsModal = false;
+        _selectedPayout = null;
+    }
+}

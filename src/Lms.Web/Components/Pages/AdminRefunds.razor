@@ -1,0 +1,778 @@
+@page "/admin/refunds"
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using Lms.Application.Services
+@using Lms.Application.Data
+@using Lms.Domain.Entities
+
+@attribute [Authorize(Roles = "Admin")]
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ApplicationDbContext DbContext
+@inject IRefundService RefundService
+@inject NavigationManager NavigationManager
+@inject ILogger<AdminRefunds> Logger
+
+<PageTitle>Refund Management - Admin</PageTitle>
+
+<div class="admin-refunds-container">
+    <h1>Refund Management</h1>
+
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <div class="stat-value">@_totalRefunds</div>
+            <div class="stat-label">Total Refunds</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${_totalRefundAmount:F2}</div>
+            <div class="stat-label">Total Refund Amount</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">@_successfulRefunds</div>
+            <div class="stat-label">Successful</div>
+        </div>
+        <div class="stat-card error">
+            <div class="stat-value">@_failedRefunds</div>
+            <div class="stat-label">Failed</div>
+        </div>
+    </div>
+
+    <div class="filters-section">
+        <div class="filter-group">
+            <label>Filter by Status:</label>
+            <select value="@_filterStatus" @onchange="@((ChangeEventArgs e) => { _filterStatus = (string?)e.Value; ApplyFilters(); })" class="form-control">
+                <option value="">All Statuses</option>
+                <option value="Initiated">Initiated</option>
+                <option value="Processing">Processing</option>
+                <option value="Succeeded">Succeeded</option>
+                <option value="Failed">Failed</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>Date Range:</label>
+            <input type="date" value="@_filterStartDate?.ToString("yyyy-MM-dd")" @onchange="@((ChangeEventArgs e) => { DateTime.TryParse((string?)e.Value, out var d); _filterStartDate = d == DateTime.MinValue ? null : d; ApplyFilters(); })" class="form-control" />
+            to
+            <input type="date" value="@_filterEndDate?.ToString("yyyy-MM-dd")" @onchange="@((ChangeEventArgs e) => { DateTime.TryParse((string?)e.Value, out var d); _filterEndDate = d == DateTime.MinValue ? null : d; ApplyFilters(); })" class="form-control" />
+        </div>
+        <button class="btn btn-secondary" @onclick="ResetFilters">Reset Filters</button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading refunds...</p>
+        </div>
+    }
+    else if (_filteredRefunds == null || _filteredRefunds.Count == 0)
+    {
+        <div class="empty-message">
+            <p>No refunds found.</p>
+        </div>
+    }
+    else
+    {
+        <div class="refunds-table">
+            <div class="table-header">
+                <div class="header-cell date">Date</div>
+                <div class="header-cell learner">Learner</div>
+                <div class="header-cell amount">Amount</div>
+                <div class="header-cell reason">Reason</div>
+                <div class="header-cell status">Status</div>
+                <div class="header-cell actions">Actions</div>
+            </div>
+
+            @foreach (var refund in _filteredRefunds)
+            {
+                var payment = _paymentMap.ContainsKey(refund.PaymentTransactionId) ? _paymentMap[refund.PaymentTransactionId] : null;
+                var learner = payment != null && _learnerMap.ContainsKey(payment.LearnerId) ? _learnerMap[payment.LearnerId] : null;
+
+                <div class="table-row">
+                    <div class="cell date">
+                        @refund.CreatedAt.ToString("MMM d, yyyy HH:mm")
+                    </div>
+                    <div class="cell learner">
+                        @if (learner != null)
+                        {
+                            <div class="learner-info">
+                                <strong>@learner.DisplayName</strong>
+                                <small>@learner.Email</small>
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Unknown</span>
+                        }
+                    </div>
+                    <div class="cell amount">
+                        $@refund.Amount.ToString("F2")
+                    </div>
+                    <div class="cell reason">
+                        @if (!string.IsNullOrEmpty(refund.Reason))
+                        {
+                            <span class="badge">@refund.Reason</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </div>
+                    <div class="cell status">
+                        <span class="status-badge @GetStatusClass(refund.Status)">
+                            @refund.Status
+                        </span>
+                    </div>
+                    <div class="cell actions">
+                        <button class="btn btn-sm btn-info" @onclick="() => ShowRefundDetails(refund)">
+                            View
+                        </button>
+                        @if (refund.Status == "Failed")
+                        {
+                            <button class="btn btn-sm btn-warning" @onclick="() => RetryRefund(refund)">
+                                Retry
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Refund Details Modal -->
+@if (_showDetailsModal && _selectedRefund != null)
+{
+    <div class="modal-overlay" @onclick="CloseDetailsModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Refund Details</h2>
+                <button class="close-btn" @onclick="CloseDetailsModal">×</button>
+            </div>
+
+            <div class="modal-body">
+                @{
+                    var payment = _paymentMap.ContainsKey(_selectedRefund.PaymentTransactionId) ? _paymentMap[_selectedRefund.PaymentTransactionId] : null;
+                    var learner = payment != null && _learnerMap.ContainsKey(payment.LearnerId) ? _learnerMap[payment.LearnerId] : null;
+                }
+
+                <div class="details-section">
+                    <h3>Refund Information</h3>
+                    <div class="detail-row">
+                        <span class="label">Refund ID:</span>
+                        <span class="value">@_selectedRefund.Id</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Amount:</span>
+                        <span class="value">$@_selectedRefund.Amount.ToString("F2")</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Status:</span>
+                        <span class="value">
+                            <span class="status-badge @GetStatusClass(_selectedRefund.Status)">
+                                @_selectedRefund.Status
+                            </span>
+                        </span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Reason:</span>
+                        <span class="value">@(_selectedRefund.Reason ?? "Not specified")</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="label">Created:</span>
+                        <span class="value">@_selectedRefund.CreatedAt.ToString("MMM d, yyyy HH:mm:ss")</span>
+                    </div>
+                    @if (_selectedRefund.CompletedAt.HasValue)
+                    {
+                        <div class="detail-row">
+                            <span class="label">Completed:</span>
+                            <span class="value">@_selectedRefund.CompletedAt.Value.ToString("MMM d, yyyy HH:mm:ss")</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="details-section">
+                    <h3>Payment Information</h3>
+                    @if (payment != null)
+                    {
+                        <div class="detail-row">
+                            <span class="label">Payment ID:</span>
+                            <span class="value">@payment.Id</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Payment Amount:</span>
+                            <span class="value">$@payment.Amount.ToString("F2")</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Payment Status:</span>
+                            <span class="value">@payment.Status</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Stripe Intent:</span>
+                            <span class="value monospace">@(payment.StripePaymentIntentId ?? "N/A")</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="details-section">
+                    <h3>Learner Information</h3>
+                    @if (learner != null)
+                    {
+                        <div class="detail-row">
+                            <span class="label">Name:</span>
+                            <span class="value">@learner.DisplayName</span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="label">Email:</span>
+                            <span class="value">@learner.Email</span>
+                        </div>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(_selectedRefund.FailureReason))
+                {
+                    <div class="details-section error">
+                        <h3>Failure Reason</h3>
+                        <p>@_selectedRefund.FailureReason</p>
+                    </div>
+                }
+
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" @onclick="CloseDetailsModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .admin-refunds-container {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .admin-refunds-container h1 {
+        margin-bottom: 30px;
+        color: #333;
+    }
+
+    .dashboard-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .stat-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .stat-card.error {
+        border-left: 4px solid #dc3545;
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: #007bff;
+        margin-bottom: 10px;
+    }
+
+    .stat-card.error .stat-value {
+        color: #dc3545;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .filters-section {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 30px;
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        align-items: flex-end;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .filter-group label {
+        font-weight: 600;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .form-control {
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 14px;
+        min-width: 150px;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .empty-message {
+        text-align: center;
+        padding: 40px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        color: #666;
+    }
+
+    .refunds-table {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .table-header {
+        display: grid;
+        grid-template-columns: 150px 200px 100px 120px 110px 120px;
+        gap: 15px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        padding: 15px;
+        font-weight: 600;
+        color: #495057;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .table-row {
+        display: grid;
+        grid-template-columns: 150px 200px 100px 120px 110px 120px;
+        gap: 15px;
+        padding: 15px;
+        border-bottom: 1px solid #e9ecef;
+        align-items: center;
+        transition: background-color 0.2s;
+    }
+
+    .table-row:hover {
+        background-color: #f8f9fa;
+    }
+
+    .cell {
+        font-size: 14px;
+        color: #212529;
+    }
+
+    .cell.learner .learner-info {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .cell.learner small {
+        font-size: 12px;
+        color: #666;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: capitalize;
+    }
+
+    .status-badge.initiated {
+        background: #e2e3e5;
+        color: #383d41;
+    }
+
+    .status-badge.processing {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-badge.succeeded {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-badge.failed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        background: #e7f3ff;
+        color: #0056b3;
+        border-radius: 4px;
+        font-size: 12px;
+        text-transform: capitalize;
+    }
+
+    .text-muted {
+        color: #adb5bd;
+    }
+
+    .cell.actions {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        font-size: 13px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+        background-color: #545b62;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .btn-info:hover:not(:disabled) {
+        background-color: #138496;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    .btn-warning:hover:not(:disabled) {
+        background-color: #e0a800;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        max-width: 600px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid #dee2e6;
+        background: #f8f9fa;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 20px;
+        color: #333;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #adb5bd;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .close-btn:hover {
+        color: #333;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .details-section {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    .details-section h3 {
+        margin: 0 0 15px 0;
+        font-size: 14px;
+        text-transform: uppercase;
+        color: #495057;
+        letter-spacing: 0.5px;
+    }
+
+    .details-section.error {
+        background: #f8d7da;
+        border-color: #f5c6cb;
+    }
+
+    .details-section.error h3 {
+        color: #721c24;
+    }
+
+    .details-section.error p {
+        color: #721c24;
+        margin: 0;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #e9ecef;
+        font-size: 13px;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-row .label {
+        font-weight: 600;
+        color: #495057;
+        min-width: 150px;
+    }
+
+    .detail-row .value {
+        color: #212529;
+        text-align: right;
+        flex: 1;
+        word-break: break-all;
+    }
+
+    .detail-row .value.monospace {
+        font-family: 'Courier New', monospace;
+        font-size: 11px;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        padding-top: 20px;
+        border-top: 1px solid #dee2e6;
+    }
+
+    @@media (max-width: 768px) {
+        .table-header,
+        .table-row {
+            grid-template-columns: 1fr;
+        }
+
+        .filters-section {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filter-group {
+            width: 100%;
+        }
+
+        .form-control {
+            min-width: 100%;
+        }
+    }
+</style>
+
+@code {
+    private List<Refund>? _allRefunds;
+    private List<Refund>? _filteredRefunds;
+    private bool _isLoading = true;
+    private bool _showDetailsModal;
+    private Refund? _selectedRefund;
+
+    private string? _filterStatus;
+    private DateTime? _filterStartDate;
+    private DateTime? _filterEndDate;
+
+    private Dictionary<Guid, PaymentTransaction> _paymentMap = new();
+    private Dictionary<Guid, UserAccount> _learnerMap = new();
+
+    private int _totalRefunds;
+    private decimal _totalRefundAmount;
+    private int _successfulRefunds;
+    private int _failedRefunds;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Load all refunds with their related data
+            _allRefunds = await DbContext.Refunds
+                .AsNoTracking()
+                .ToListAsync();
+
+            // Load related payments
+            var paymentIds = _allRefunds.Select(r => r.PaymentTransactionId).Distinct();
+            var payments = await DbContext.PaymentTransactions
+                .AsNoTracking()
+                .Where(p => paymentIds.Contains(p.Id))
+                .ToListAsync();
+
+            _paymentMap = payments.ToDictionary(p => p.Id);
+
+            // Load related learners
+            var learnerIds = payments.Select(p => p.LearnerId).Distinct();
+            var learners = await DbContext.UserAccounts
+                .AsNoTracking()
+                .Where(u => learnerIds.Contains(u.Id))
+                .ToListAsync();
+
+            _learnerMap = learners.ToDictionary(u => u.Id);
+
+            // Calculate stats
+            _totalRefunds = _allRefunds.Count;
+            _totalRefundAmount = _allRefunds.Sum(r => r.Amount);
+            _successfulRefunds = _allRefunds.Count(r => r.Status == "Succeeded");
+            _failedRefunds = _allRefunds.Count(r => r.Status == "Failed");
+
+            // Apply initial filter
+            _filteredRefunds = _allRefunds.OrderByDescending(r => r.CreatedAt).ToList();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading refunds");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ApplyFilters()
+    {
+        if (_allRefunds == null) return;
+
+        _filteredRefunds = _allRefunds
+            .Where(r =>
+            {
+                if (!string.IsNullOrEmpty(_filterStatus) && r.Status != _filterStatus)
+                    return false;
+
+                if (_filterStartDate.HasValue && r.CreatedAt.Date < _filterStartDate.Value.Date)
+                    return false;
+
+                if (_filterEndDate.HasValue && r.CreatedAt.Date > _filterEndDate.Value.Date)
+                    return false;
+
+                return true;
+            })
+            .OrderByDescending(r => r.CreatedAt)
+            .ToList();
+    }
+
+    private void ResetFilters()
+    {
+        _filterStatus = null;
+        _filterStartDate = null;
+        _filterEndDate = null;
+        ApplyFilters();
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status.ToLower();
+    }
+
+    private void ShowRefundDetails(Refund refund)
+    {
+        _selectedRefund = refund;
+        _showDetailsModal = true;
+    }
+
+    private void CloseDetailsModal()
+    {
+        _showDetailsModal = false;
+        _selectedRefund = null;
+    }
+
+    private async Task RetryRefund(Refund refund)
+    {
+        // Retry logic would go here
+        Logger.LogInformation("Retry refund: {RefundId}", refund.Id);
+    }
+}

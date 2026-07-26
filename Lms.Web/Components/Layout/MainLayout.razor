@@ -1,0 +1,94 @@
+@inherits LayoutComponentBase
+
+<div class="page">
+    <nav class="sidebar">
+        <h3>LMS Starter</h3>
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/courses">Courses</a></li>
+            <li><a href="/verify-certificate">Verify Certificate</a></li>
+            <AuthorizeView Roles="Admin">
+                <Authorized>
+                    <li class="has-submenu">
+                        <details class="sidebar-details">
+                            <summary>
+                                <span class="sidebar-group-label">Admin</span>
+                            </summary>
+                            <ul class="sidebar-submenu">
+                                <li><NavLink href="/admin/courses" Match="NavLinkMatch.All">Courses</NavLink></li>
+                                <li><NavLink href="/admin/assessments" Match="NavLinkMatch.All">Assessments</NavLink></li>
+                                <li><NavLink href="/admin/users" Match="NavLinkMatch.All">Users</NavLink></li>
+                                <li><NavLink href="/admin/audit" Match="NavLinkMatch.All">Audit</NavLink></li>
+                                <li><NavLink href="/admin/certificates" Match="NavLinkMatch.All">Certificates</NavLink></li>
+                            </ul>
+                        </details>
+                    </li>
+                </Authorized>
+            </AuthorizeView>
+            <AuthorizeView Roles="Admin,Instructor">
+                <Authorized>
+                    <li><a href="/instructor">Instructor</a></li>
+                </Authorized>
+            </AuthorizeView>
+            <AuthorizeView Roles="Admin,Broker">
+                <Authorized>
+                    <li class="has-submenu">
+                        <details class="sidebar-details">
+                            <summary>
+                                <span class="sidebar-group-label">Broker</span>
+                            </summary>
+                            <ul class="sidebar-submenu">
+                                <li><NavLink href="/broker/portfolio" Match="NavLinkMatch.All">Portfolio</NavLink></li>
+                                <li><NavLink href="/broker/compliance" Match="NavLinkMatch.All">Compliance</NavLink></li>
+                                <li><NavLink href="/broker/blocked" Match="NavLinkMatch.All">Assessment Blocked</NavLink></li>
+                                <li><NavLink href="/broker/certificates" Match="NavLinkMatch.All">Certificates</NavLink></li>
+                            </ul>
+                        </details>
+                    </li>
+                </Authorized>
+            </AuthorizeView>
+            <AuthorizeView Roles="Admin,Learner">
+                <Authorized>
+                    <li><a href="/learner">Learner</a></li>
+                </Authorized>
+            </AuthorizeView>
+            <AuthorizeView>
+                <Authorized Context="authState">
+                    @{
+                        var displayName = authState.User.Identity?.Name ?? string.Empty;
+                        if (authState.User.IsInRole("Admin") && displayName.EndsWith(" ADMIN", StringComparison.OrdinalIgnoreCase))
+                        {
+                            displayName = displayName[..^6].TrimEnd();
+                        }
+                        else if (authState.User.IsInRole("Broker") && displayName.EndsWith(" BROKER", StringComparison.OrdinalIgnoreCase))
+                        {
+                            displayName = displayName[..^7].TrimEnd();
+                        }
+                        else if (authState.User.IsInRole("Instructor") && displayName.EndsWith(" INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
+                        {
+                            displayName = displayName[..^11].TrimEnd();
+                        }
+                        else if (authState.User.IsInRole("Learner") && displayName.EndsWith(" LEARNER", StringComparison.OrdinalIgnoreCase))
+                        {
+                            displayName = displayName[..^8].TrimEnd();
+                        }
+                    }
+                    <li><a href="/account">Account</a></li>
+                    <li class="auth-status">@displayName</li>
+                    <li>
+                        <form method="post" action="/auth/logout">
+                            <button type="submit" class="link-button">Logout</button>
+                        </form>
+                    </li>
+                </Authorized>
+                <NotAuthorized>
+                    <li><a href="/login">Login</a></li>
+                </NotAuthorized>
+            </AuthorizeView>
+        </ul>
+    </nav>
+
+    <main class="content">
+        @Body
+    </main>
+</div>

@@ -1,0 +1,671 @@
+@page "/payment-history"
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using Lms.Application.Services
+@using Lms.Application.Data
+@using Lms.Domain.Entities
+
+@attribute [Authorize(Roles = "Learner")]
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject ApplicationDbContext DbContext
+@inject IRefundService RefundService
+@inject NavigationManager NavigationManager
+@inject ILogger<PaymentHistory> Logger
+
+<PageTitle>Payment History - LMS</PageTitle>
+
+<div class="payment-history-container">
+    <h1>Payment History</h1>
+
+    @if (_isLoading)
+    {
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading payment history...</p>
+        </div>
+    }
+    else if (_payments == null || _payments.Count == 0)
+    {
+        <div class="empty-message">
+            <p>No payments found.</p>
+            <a href="/courses" class="btn btn-primary">Browse Courses</a>
+        </div>
+    }
+    else
+    {
+        <div class="payments-table">
+            <div class="table-header">
+                <div class="header-cell date">Date</div>
+                <div class="header-cell amount">Amount</div>
+                <div class="header-cell status">Status</div>
+                <div class="header-cell invoice">Invoice</div>
+                <div class="header-cell actions">Actions</div>
+            </div>
+
+            @foreach (var payment in _payments)
+            {
+                <div class="table-row">
+                    <div class="cell date">
+                        @payment.CreatedAt.ToString("MMM d, yyyy")
+                    </div>
+                    <div class="cell amount">
+                        $@payment.Amount.ToString("F2")
+                    </div>
+                    <div class="cell status">
+                        <span class="status-badge @GetStatusClass(payment.Status)">
+                            @payment.Status
+                        </span>
+                    </div>
+                    <div class="cell invoice">
+                        @if (payment.Invoices.Any())
+                        {
+                            var invoice = payment.Invoices.FirstOrDefault();
+                            if (invoice != null && !string.IsNullOrEmpty(invoice.InvoiceNumber))
+                            {
+                                <a href="/invoice/@invoice.InvoiceNumber" class="link">@invoice.InvoiceNumber</a>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">-</span>
+                        }
+                    </div>
+                    <div class="cell actions">
+                        @if (payment.Status == "Completed" && payment.RefundedAt == null)
+                        {
+                            <button class="btn btn-sm btn-refund" @onclick="() => ShowRefundModal(payment)">
+                                Request Refund
+                            </button>
+                        }
+                        @if (payment.Status == "Refunded")
+                        {
+                            <span class="badge-refunded">Refunded @payment.RefundedAt?.ToString("MMM d, yyyy")</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Refund Modal -->
+@if (_showRefundModal && _selectedPayment != null)
+{
+    <div class="modal-overlay" @onclick="CloseRefundModal">
+        <div class="modal-content" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h2>Request Refund</h2>
+                <button class="close-btn" @onclick="CloseRefundModal">×</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="refund-info">
+                    <p>
+                        <strong>Payment Amount:</strong> $@_selectedPayment.Amount.ToString("F2")
+                    </p>
+                    <p>
+                        <strong>Payment Date:</strong> @_selectedPayment.CreatedAt.ToString("MMM d, yyyy")
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label for="refund-reason">Refund Reason (Optional):</label>
+                    <select id="refund-reason" @bind="_refundReason" class="form-control">
+                        <option value="">-- Select a reason --</option>
+                        <option value="duplicate">Duplicate Charge</option>
+                        <option value="fraudulent">Fraudulent Transaction</option>
+                        <option value="requested_by_customer">Requested by Customer</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="refund-amount">Refund Amount:</label>
+                    <div class="amount-input">
+                        <span class="currency">$</span>
+                        <input type="number" id="refund-amount" @bind="_refundAmount" 
+                               min="0.01" step="0.01" max="@_selectedPayment.Amount" 
+                               class="form-control" placeholder="0.00" />
+                    </div>
+                    <small>Maximum: $@_selectedPayment.Amount.ToString("F2")</small>
+                </div>
+
+                @if (!string.IsNullOrEmpty(_refundMessage))
+                {
+                    <div class="message @(_refundIsError ? "error" : "success")">
+                        @_refundMessage
+                    </div>
+                }
+
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" @onclick="CloseRefundModal" disabled="@_isProcessingRefund">
+                        Cancel
+                    </button>
+                    <button class="btn btn-primary" @onclick="ProcessRefund" disabled="@_isProcessingRefund">
+                        @if (_isProcessingRefund)
+                        {
+                            <span>Processing...</span>
+                        }
+                        else
+                        {
+                            <span>Request Refund</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .payment-history-container {
+        max-width: 1000px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .payment-history-container h1 {
+        margin-bottom: 30px;
+        color: #333;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 40px;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #007bff;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 20px;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .empty-message {
+        text-align: center;
+        padding: 40px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .empty-message p {
+        color: #666;
+        margin-bottom: 20px;
+    }
+
+    .payments-table {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .table-header {
+        display: grid;
+        grid-template-columns: 120px 100px 110px 120px 150px;
+        gap: 15px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        padding: 15px;
+        font-weight: 600;
+        color: #495057;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .table-row {
+        display: grid;
+        grid-template-columns: 120px 100px 110px 120px 150px;
+        gap: 15px;
+        padding: 15px;
+        border-bottom: 1px solid #e9ecef;
+        align-items: center;
+        transition: background-color 0.2s;
+    }
+
+    .table-row:hover {
+        background-color: #f8f9fa;
+    }
+
+    .cell {
+        font-size: 14px;
+        color: #212529;
+    }
+
+    .cell.date {
+        color: #666;
+    }
+
+    .cell.amount {
+        font-weight: 600;
+        color: #28a745;
+        font-size: 16px;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: capitalize;
+    }
+
+    .status-badge.completed {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-badge.pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-badge.failed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .status-badge.refunded {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+
+    .cell.invoice {
+        text-align: center;
+    }
+
+    .cell.invoice .link {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .cell.invoice .link:hover {
+        text-decoration: underline;
+    }
+
+    .cell.invoice .text-muted {
+        color: #adb5bd;
+    }
+
+    .cell.actions {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+    }
+
+    .btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        font-size: 13px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background-color: #0056b3;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+        background-color: #545b62;
+    }
+
+    .btn-refund {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .btn-refund:hover:not(:disabled) {
+        background-color: #138496;
+    }
+
+    .badge-refunded {
+        display: inline-block;
+        padding: 6px 12px;
+        background: #d1ecf1;
+        color: #0c5460;
+        border-radius: 4px;
+        font-size: 12px;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        max-width: 500px;
+        width: 90%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid #dee2e6;
+        background: #f8f9fa;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 20px;
+        color: #333;
+    }
+
+    .close-btn {
+        background: none;
+        border: none;
+        font-size: 28px;
+        cursor: pointer;
+        color: #adb5bd;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .close-btn:hover {
+        color: #333;
+    }
+
+    .modal-body {
+        padding: 20px;
+    }
+
+    .refund-info {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .refund-info p {
+        margin: 8px 0;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
+    .amount-input {
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+
+    .amount-input .currency {
+        position: absolute;
+        left: 10px;
+        font-weight: 600;
+        color: #666;
+    }
+
+    .amount-input .form-control {
+        padding-left: 25px;
+    }
+
+    .form-group small {
+        display: block;
+        margin-top: 5px;
+        color: #666;
+        font-size: 12px;
+    }
+
+    .message {
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        font-size: 14px;
+    }
+
+    .message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        padding-top: 20px;
+        border-top: 1px solid #dee2e6;
+    }
+
+    .modal-actions .btn {
+        min-width: 100px;
+    }
+
+    @@media (max-width: 768px) {
+        .table-header,
+        .table-row {
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .header-cell,
+        .cell {
+            display: none;
+        }
+
+        .table-row {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .table-row .cell {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .table-row .cell:before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #495057;
+            min-width: 100px;
+        }
+
+        .modal-content {
+            width: 95%;
+        }
+    }
+</style>
+
+@code {
+    private List<PaymentTransaction>? _payments;
+    private bool _isLoading = true;
+    private string? _userId;
+    private bool _showRefundModal;
+    private PaymentTransaction? _selectedPayment;
+    private string? _refundReason;
+    private decimal _refundAmount;
+    private string? _refundMessage;
+    private bool _refundIsError;
+    private bool _isProcessingRefund;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            _userId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!string.IsNullOrEmpty(_userId) && Guid.TryParse(_userId, out var userId))
+            {
+                _payments = await DbContext.PaymentTransactions
+                    .Where(p => p.LearnerId == userId)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .ToListAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading payment history");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private string GetStatusClass(string status)
+    {
+        return status.ToLower() switch
+        {
+            "completed" => "completed",
+            "pending" => "pending",
+            "failed" => "failed",
+            "refunded" => "refunded",
+            _ => "pending"
+        };
+    }
+
+    private void ShowRefundModal(PaymentTransaction payment)
+    {
+        _selectedPayment = payment;
+        _refundAmount = payment.Amount;
+        _refundReason = null;
+        _refundMessage = null;
+        _refundIsError = false;
+        _showRefundModal = true;
+    }
+
+    private void CloseRefundModal()
+    {
+        _showRefundModal = false;
+        _selectedPayment = null;
+        _refundReason = null;
+        _refundAmount = 0;
+        _refundMessage = null;
+    }
+
+    private async Task ProcessRefund()
+    {
+        if (_selectedPayment == null || _refundAmount <= 0)
+        {
+            _refundMessage = "Please enter a valid refund amount.";
+            _refundIsError = true;
+            return;
+        }
+
+        _isProcessingRefund = true;
+        _refundMessage = null;
+
+        try
+        {
+            var result = await RefundService.RefundPaymentAsync(_selectedPayment, _refundAmount, _refundReason);
+
+            if (result.Success)
+            {
+                // Navigate to refund result page with success parameters
+                var queryParams = $"?RefundId={result.RefundId}&Success=true&RefundAmount={result.RefundedAmount:F2}&Status={result.Status}&Reason={Uri.EscapeDataString(_refundReason ?? "")}&StripeRefundId={result.StripeRefundId ?? ""}";
+                NavigationManager.NavigateTo($"/refund-result{queryParams}");
+            }
+            else
+            {
+                _refundMessage = result.Message;
+                _refundIsError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error processing refund");
+            _refundMessage = "An error occurred while processing the refund. Please try again.";
+            _refundIsError = true;
+        }
+        finally
+        {
+            _isProcessingRefund = false;
+        }
+    }
+}

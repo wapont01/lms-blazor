@@ -1,0 +1,249 @@
+@page "/payment-declined"
+@using Microsoft.AspNetCore.Authorization
+@using Lms.Application.Services
+
+@attribute [Authorize(Roles = "Learner")]
+
+@inject NavigationManager NavigationManager
+@inject IShoppingCartService ShoppingCartService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Payment Declined - LMS</PageTitle>
+
+<div class="payment-declined-container">
+    <div class="error-card">
+        <div class="error-header">
+            <span class="error-icon">❌</span>
+            <h1>Payment Declined</h1>
+        </div>
+
+        <div class="error-body">
+            <p class="error-message">
+                @if (string.IsNullOrEmpty(ErrorReason))
+                {
+                    <span>Your payment could not be processed. Please try another payment method.</span>
+                }
+                else
+                {
+                    <span>@ErrorReason</span>
+                }
+            </p>
+
+            <div class="error-details">
+                <h3>Common reasons:</h3>
+                <ul>
+                    <li>Card was declined by the bank</li>
+                    <li>Insufficient funds</li>
+                    <li>Incorrect card details</li>
+                    <li>Card has expired</li>
+                    <li>Card issuer flagged the transaction as suspicious</li>
+                </ul>
+            </div>
+
+            <div class="tips-section">
+                <h3>💡 What you can do:</h3>
+                <ul>
+                    <li>Try using a different payment method or card</li>
+                    <li>Contact your bank to ensure the card isn't blocked</li>
+                    <li>Verify all card details are correct</li>
+                    <li>Try again in a few moments</li>
+                </ul>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-primary" @onclick="RetryPayment">Retry Payment</button>
+                <button class="btn btn-secondary" @onclick="ReturnToCart">Return to Cart</button>
+                <button class="btn btn-secondary" @onclick="ContinueShopping">Continue Shopping</button>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(TransactionId))
+        {
+            <div class="transaction-id">
+                <small>Transaction ID: @TransactionId</small>
+            </div>
+        }
+    </div>
+
+    <style>
+        .payment-declined-container {
+            max-width: 600px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .error-card {
+            border: 1px solid #fee;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .error-header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .error-header h1 {
+            margin: 10px 0 0 0;
+            font-size: 28px;
+        }
+
+        .error-icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .error-body {
+            padding: 30px;
+        }
+
+        .error-message {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .error-details {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .error-details h3,
+        .tips-section h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .error-details ul,
+        .tips-section ul {
+            margin: 10px 0;
+            padding-left: 20px;
+        }
+
+        .error-details li,
+        .tips-section li {
+            margin: 8px 0;
+            color: #666;
+        }
+
+        .tips-section {
+            background: #e8f4f8;
+            border-left: 4px solid #17a2b8;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #28a745;
+            color: white;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .btn-primary:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40,167,69,0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            flex: 1;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .transaction-id {
+            text-align: center;
+            color: #999;
+            padding: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        @@media (max-width: 768px) {
+            .payment-declined-container {
+                margin: 20px;
+                padding: 10px;
+            }
+
+            .error-header {
+                padding: 20px;
+            }
+
+            .error-header h1 {
+                font-size: 20px;
+            }
+
+            .error-icon {
+                font-size: 40px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? ErrorReason { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? TransactionId { get; set; }
+
+    private Task RetryPayment()
+    {
+        NavigationManager.NavigateTo("/checkout");
+        return Task.CompletedTask;
+    }
+
+    private Task ReturnToCart()
+    {
+        NavigationManager.NavigateTo("/cart");
+        return Task.CompletedTask;
+    }
+
+    private Task ContinueShopping()
+    {
+        NavigationManager.NavigateTo("/courses");
+        return Task.CompletedTask;
+    }
+}
