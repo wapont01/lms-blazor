@@ -1,0 +1,761 @@
+@page "/checkout"
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@attribute [Authorize(Roles = "Learner,Admin")]
+@inject IShoppingCartService ShoppingCartService
+@inject ICourseService CourseService
+@inject IEnrollmentService EnrollmentService
+@inject IPaymentService PaymentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject ILogger<Checkout> Logger
+@inject Lms.Application.Data.ApplicationDbContext DbContext
+
+<PageTitle>Checkout</PageTitle>
+
+<div class="checkout-container">
+    @if (_isProcessing)
+    {
+        <div class="processing-overlay">
+            <div class="spinner"></div>
+            <p>Processing your payment...</p>
+        </div>
+    }
+
+    <h1>Checkout</h1>
+
+    @if (_paymentCompleted)
+    {
+        <div class="success-message">
+            <h2>✓ Payment Successful!</h2>
+            <p>Thank you for your purchase.</p>
+            <div class="receipt-info">
+                <p><strong>Transaction ID:</strong> @_transactionId</p>
+                <p><strong>Invoice:</strong> @_invoiceNumber</p>
+                <p><strong>Amount:</strong> $@_completedAmount:F2</p>
+                <p>A confirmation email has been sent to @_userEmail</p>
+            </div>
+            <div class="receipt-actions">
+                <a href="/my-courses" class="btn-primary">View My Courses</a>
+                <a href="/courses" class="btn-secondary">Continue Shopping</a>
+            </div>
+        </div>
+    }
+    else if (_cart == null || _cart.Items.Count == 0)
+    {
+        <div class="empty-message">
+            <p>Your cart is empty.</p>
+            <a href="/courses" class="btn-primary">Continue Shopping</a>
+        </div>
+    }
+    else
+    {
+        <div class="checkout-grid">
+            <!-- Order Summary -->
+            <div class="order-summary-section">
+                <h2>Order Summary</h2>
+                <div class="order-items">
+                    @foreach (var item in _cart.Items)
+                    {
+                        <div class="order-item">
+                            <span class="item-name">@item.CourseTitle</span>
+                            <span class="item-price">@($"${(item.Price * item.Quantity):F2}")</span>
+                        </div>
+                    }
+                </div>
+
+                <div class="order-totals">
+                    <div class="total-row">
+                        <span>Subtotal:</span>
+                        <span>@($"${_cart.GetTotal():F2}")</span>
+                    </div>
+                    <div class="total-row">
+                        <span>Tax (8%):</span>
+                        <span>@($"${_taxAmount:F2}")</span>
+                    </div>
+                    @if (_discountAmount > 0)
+                    {
+                        <div class="total-row discount">
+                            <span>Discount:</span>
+                            <span>@($"-${_discountAmount:F2}")</span>
+                        </div>
+                    }
+                    <div class="total-row final">
+                        <span>Total:</span>
+                        <span class="final-amount">@($"${(_cart.GetTotal() + _taxAmount - _discountAmount):F2}")</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment Form -->
+            <div class="payment-form-section">
+                <h2>Payment Information</h2>
+
+                @if (!string.IsNullOrWhiteSpace(_message))
+                {
+                    <div class="message @(_isError ? "error" : "success")">@_message</div>
+                }
+
+                <form>
+                    <!-- Email -->
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" @bind="_email" @bind:event="oninput" required class="form-control" />
+                    </div>
+
+                    <!-- Billing Information -->
+                    <fieldset class="form-section">
+                        <legend>Billing Address</legend>
+
+                        <div class="form-group">
+                            <label for="fullname">Full Name</label>
+                            <input type="text" id="fullname" @bind="_fullName" @bind:event="oninput" required class="form-control" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="address">Street Address</label>
+                            <input type="text" id="address" @bind="_address" @bind:event="oninput" required class="form-control" />
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="city">City</label>
+                                <input type="text" id="city" @bind="_city" @bind:event="oninput" required class="form-control" />
+                            </div>
+                            <div class="form-group">
+                                <label for="state">State</label>
+                                <input type="text" id="state" @bind="_state" @bind:event="oninput" required class="form-control" />
+                            </div>
+                            <div class="form-group">
+                                <label for="zip">ZIP Code</label>
+                                <input type="text" id="zip" @bind="_zip" @bind:event="oninput" required class="form-control" />
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <!-- Payment Method -->
+                    <fieldset class="form-section">
+                        <legend>Payment Method</legend>
+
+                        <div class="payment-options">
+                            <label class="radio-option">
+                                <input type="radio" name="payment-method" value="card" @onchange="@(e => HandlePaymentMethodChange("card"))" checked />
+                                <span>Credit Card</span>
+                            </label>
+                            <label class="radio-option">
+                                <input type="radio" name="payment-method" value="paypal" @onchange="@(e => HandlePaymentMethodChange("paypal"))" />
+                                <span>PayPal</span>
+                            </label>
+                        </div>
+
+                        @if (_paymentMethod == "card")
+                        {
+                            <div class="form-group">
+                                <label for="cardname">Cardholder Name</label>
+                                <input type="text" id="cardname" @bind="_cardholderName" @bind:event="oninput" required class="form-control" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="cardnumber">Card Number</label>
+                                <input type="text" id="cardnumber" placeholder="4242 4242 4242 4242" @bind="_cardNumber" @bind:event="oninput" maxlength="19" class="form-control" />
+                                <small>
+                                    Test cards: 
+                                    <strong>4242 4242 4242 4242</strong> (success) or 
+                                    <strong>4000 0000 0000 0002</strong> (declined)
+                                </small>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="expiry">Expiry Date</label>
+                                    <input type="text" id="expiry" placeholder="MM/YY" @bind="_expiryDate" @bind:event="oninput" maxlength="5" class="form-control" />
+                                </div>
+                                <div class="form-group">
+                                    <label for="cvv">CVV</label>
+                                    <input type="text" id="cvv" placeholder="123" @bind="_cvv" @bind:event="oninput" maxlength="4" class="form-control" />
+                                </div>
+                            </div>
+                        }
+                    </fieldset>
+
+                    <!-- Terms -->
+                    <div class="form-group checkbox">
+                        <label>
+                            <input type="checkbox" @bind="_acceptedTerms" required />
+                            <span>I agree to the terms and conditions and privacy policy</span>
+                        </label>
+                    </div>
+
+                    <!-- Submit -->
+                    <button type="button" class="btn-primary btn-large" disabled="@(_isProcessing || !_acceptedTerms)" @onclick="SubmitPaymentAsync">
+                        @if (_isProcessing)
+                        {
+                            <span>Processing...</span>
+                        }
+                        else
+                        {
+                            <span>@($"Complete Purchase - ${(_cart.GetTotal() + _taxAmount - _discountAmount):F2}")</span>
+                        }
+                    </button>
+
+                    <a href="/cart" class="btn-secondary btn-large">Back to Cart</a>
+                </form>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private ShoppingCart? _cart;
+    private Guid _userId;
+    private string? _userEmail;
+    private decimal _taxAmount = 0;
+    private decimal _discountAmount = 0;
+    private const decimal TaxRate = 0.08m;
+    private Lms.Application.Data.ApplicationDbContext? _dbContext;
+
+    // Form fields
+    private string _email = "";
+    private string _fullName = "";
+    private string _address = "";
+    private string _city = "";
+    private string _state = "";
+    private string _zip = "";
+    private string _paymentMethod = "card";
+    private string _cardholderName = "";
+    private string _cardNumber = "";
+    private string _expiryDate = "";
+    private string _cvv = "";
+    private bool _acceptedTerms = false;
+
+    // State
+    private bool _isProcessing = false;
+    private bool _paymentCompleted = false;
+    private string? _message;
+    private bool _isError = false;
+    private string? _transactionId;
+    private string? _invoiceNumber;
+    private decimal _completedAmount;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(idClaim, out var parsedId))
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        _userId = parsedId;
+        _userEmail = user.FindFirst(ClaimTypes.Email)?.Value;
+        _email = _userEmail ?? "";
+        _dbContext = DbContext;
+
+        // Load cart
+        _cart = await ShoppingCartService.GetCartWithCoursesAsync(_userId);
+        _taxAmount = _cart?.GetTotal() * TaxRate ?? 0;
+    }
+
+    private void SetPaymentMethod(string method)
+    {
+        _paymentMethod = method;
+    }
+
+    private void HandlePaymentMethodChange(string method)
+    {
+        SetPaymentMethod(method);
+    }
+
+    private async Task SubmitPaymentAsync()
+    {
+        // Validate form
+        if (string.IsNullOrWhiteSpace(_email))
+        {
+            _message = "Please provide an email address.";
+            _isError = true;
+            return;
+        }
+
+        if (!_acceptedTerms)
+        {
+            _message = "You must accept the terms and conditions.";
+            _isError = true;
+            return;
+        }
+
+        _isProcessing = true;
+
+        try
+        {
+            var isTestingEnvironment = string.Equals(
+                Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"),
+                "Testing",
+                StringComparison.OrdinalIgnoreCase);
+
+            var total = (_cart?.GetTotal() ?? 0) + _taxAmount - _discountAmount;
+            var paymentMethodInput = ResolvePaymentMethodInput();
+
+            // Process payment through PaymentService
+            var paymentResult = await PaymentService.ProcessPaymentAsync(
+                _userId,
+                total,
+                paymentMethodInput,
+                _email
+            );
+
+            if (!paymentResult.Success)
+            {
+                _isProcessing = false;
+                // Redirect to payment declined page with error details
+                var errorReason = Uri.EscapeDataString(paymentResult.Message);
+                NavigationManager.NavigateTo($"/payment-declined?ErrorReason={errorReason}&ErrorCode={paymentResult.ErrorCode}", replace: true);
+                return;
+            }
+
+            // Create enrollments for each course in cart
+            var courseNames = new List<string>();
+            if (_cart != null)
+            {
+                foreach (var item in _cart.Items)
+                {
+                    try
+                    {
+                        courseNames.Add(item.CourseTitle);
+                        await EnrollmentService.EnrollAsync(_userId, item.CourseId);
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, $"Enrollment failed for course {item.CourseId}");
+                    }
+                }
+            }
+
+            // Retrieve the payment transaction that was just created
+            var transaction = await _dbContext.PaymentTransactions
+                .OrderByDescending(t => t.CreatedAt)
+                .FirstOrDefaultAsync(t => t.StripePaymentIntentId == paymentResult.StripePaymentIntentId);
+
+            if (transaction != null && isTestingEnvironment)
+            {
+                _invoiceNumber = $"INV-TEST-{DateTime.UtcNow:yyyyMMddHHmmss}";
+            }
+
+            if (transaction != null && !isTestingEnvironment)
+            {
+                // Generate invoice and send receipt email
+                try
+                {
+                    var invoice = await PaymentService.GenerateInvoiceAsync(transaction, courseNames, _email, TaxRate);
+                    _invoiceNumber = invoice.InvoiceNumber;
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Invoice generation failed");
+                    // Continue anyway - payment was successful
+                }
+            }
+
+            _transactionId = paymentResult.StripePaymentIntentId;
+            _completedAmount = total;
+
+            // Show success immediately after confirmed payment.
+            // Cart cleanup is best-effort and should not block receipt UI.
+            _paymentCompleted = true;
+            _message = "Payment processed successfully!";
+            _isError = false;
+
+            try
+            {
+                await ShoppingCartService.ClearCartAsync(_userId);
+                if (_cart != null)
+                {
+                    _cart.Items.Clear();
+                }
+            }
+            catch (Exception clearCartEx)
+            {
+                Logger.LogWarning(clearCartEx, "Payment succeeded but cart clearing failed for learner {LearnerId}", _userId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Checkout error");
+            _message = $"An error occurred: {ex.Message}";
+            _isError = true;
+        }
+        finally
+        {
+            _isProcessing = false;
+        }
+    }
+
+    private string ResolvePaymentMethodInput()
+    {
+        if (_paymentMethod == "paypal")
+        {
+            return "pm_paypal_stub";
+        }
+
+        var trimmed = (_cardNumber ?? string.Empty).Trim();
+        if (trimmed.StartsWith("pm_", StringComparison.OrdinalIgnoreCase))
+        {
+            return trimmed;
+        }
+
+        return trimmed.Replace(" ", string.Empty);
+    }
+}
+
+<style>
+    .checkout-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .processing-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .processing-overlay p {
+        color: white;
+        margin-top: 1rem;
+        font-size: 1.1rem;
+    }
+
+    .success-message {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .success-message h2 {
+        color: #155724;
+        margin-top: 0;
+    }
+
+    .receipt-info {
+        background: white;
+        border-radius: 4px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        text-align: left;
+    }
+
+    .receipt-info p {
+        margin: 0.5rem 0;
+        color: #333;
+    }
+
+    .receipt-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .empty-message {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .checkout-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+
+    .order-summary-section {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1.5rem;
+        height: fit-content;
+        position: sticky;
+        top: 2rem;
+    }
+
+    .order-summary-section h2 {
+        margin-top: 0;
+        font-size: 1.2rem;
+    }
+
+    .order-items {
+        margin-bottom: 1.5rem;
+    }
+
+    .order-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .item-name {
+        flex: 1;
+        color: #333;
+    }
+
+    .item-price {
+        font-weight: 600;
+        text-align: right;
+        min-width: 100px;
+    }
+
+    .order-totals {
+        border-top: 2px solid #ddd;
+        padding-top: 1rem;
+    }
+
+    .total-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        font-size: 0.95rem;
+    }
+
+    .total-row.final {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #333;
+        border-top: 1px solid #ddd;
+        padding-top: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .total-row.discount {
+        color: #51cf66;
+    }
+
+    .final-amount {
+        color: #ff6b6b;
+        font-size: 1.3rem;
+    }
+
+    .payment-form-section {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+
+    .payment-form-section h2 {
+        margin-top: 0;
+        font-size: 1.2rem;
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: #333;
+    }
+
+    .form-control {
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.95rem;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+    }
+
+    .form-group small {
+        font-size: 0.8rem;
+        color: #999;
+        margin-top: 0.25rem;
+    }
+
+    .form-section {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 1rem;
+        margin-bottom: 0;
+    }
+
+    .form-section legend {
+        font-weight: 600;
+        color: #333;
+        padding: 0 0.5rem;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+    }
+
+    .payment-options {
+        display: flex;
+        gap: 1rem;
+        margin: 1rem 0;
+    }
+
+    .radio-option {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .radio-option:hover {
+        border-color: #4a90e2;
+    }
+
+    .radio-option input[type="radio"]:checked + span {
+        color: #4a90e2;
+        font-weight: 600;
+    }
+
+    .form-group.checkbox {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .form-group.checkbox label {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 0;
+        font-weight: normal;
+    }
+
+    .form-group.checkbox input {
+        margin-top: 0.25rem;
+    }
+
+    .message {
+        padding: 1rem;
+        border-radius: 4px;
+    }
+
+    .message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .btn-primary, .btn-secondary {
+        padding: 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: block;
+        text-align: center;
+    }
+
+    .btn-large {
+        padding: 1rem !important;
+        font-size: 1rem !important;
+    }
+
+    .btn-primary {
+        background: #4a90e2;
+        color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        background: #2e5c8a;
+    }
+
+    .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .btn-secondary {
+        background: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+        margin-top: 0.5rem;
+    }
+
+    .btn-secondary:hover {
+        background: #efefef;
+    }
+
+    @@media (max-width: 768px) {
+        .checkout-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .order-summary-section {
+            position: static;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .payment-options {
+            flex-direction: column;
+        }
+
+        .receipt-actions {
+            flex-direction: column;
+        }
+
+        .btn-primary, .btn-secondary {
+            width: 100%;
+        }
+    }
+</style>

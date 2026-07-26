@@ -1,0 +1,391 @@
+@page "/courses"
+@using System.Security.Claims
+@using Lms.Application.Services
+@inject ICourseService CourseService
+@inject IEnrollmentService EnrollmentService
+@inject IShoppingCartService ShoppingCartService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>Courses</PageTitle>
+
+<div class="courses-container">
+    <h1>Available Courses</h1>
+
+    @if (_courses is null)
+    {
+        <p>Loading courses...</p>
+    }
+    else
+    {
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <p class="auth-help">@_message</p>
+        }
+
+        <div class="courses-header">
+            <div class="search-bar">
+                <input type="text" placeholder="Search courses..." @oninput="FilterCourses" />
+            </div>
+            @if (_canPurchase)
+            {
+                <a href="/cart" class="cart-link">🛒 View Cart (@_cartItemCount)</a>
+            }
+        </div>
+
+        <div class="course-grid">
+            @foreach (var course in _filteredCourses)
+            {
+                <div class="course-card">
+                    <div class="card-header">
+                        <h3>@course.Title</h3>
+                        <span class="course-level">@course.Level</span>
+                    </div>
+                    <p class="description">@course.Description</p>
+                    <div class="course-details">
+                        <span class="duration">⏱️ @course.DurationHours hours</span>
+                        @if (course.CreditHours > 0)
+                        {
+                            <span class="credits">📚 @course.CreditHours credits</span>
+                        }
+                    </div>
+                    <div class="course-footer">
+                        <div class="price-section">
+                            @if (course.Price > 0)
+                            {
+                                <span class="price">@($"${course.Price:F2}")</span>
+                            }
+                            else
+                            {
+                                <span class="price free">Free</span>
+                            }
+                        </div>
+                        <div class="course-actions">
+                            @if (_enrolledCourseIds.Contains(course.Id))
+                            {
+                                <span class="enrolled-badge">✓ Enrolled</span>
+                                <a href="/courses/@course.Id" class="btn-secondary">Open Course</a>
+                            }
+                            else if (_canPurchase && course.Price > 0)
+                            {
+                                <button type="button" class="btn-primary" @onclick="() => AddToCartAsync(course)">Add to Cart</button>
+                                <a href="/courses/@course.Id" class="btn-secondary">Preview</a>
+                            }
+                            else if (_canEnroll && course.Price == 0)
+                            {
+                                <button type="button" class="btn-primary" @onclick="() => EnrollAsync(course.Id)">Enroll Free</button>
+                                <a href="/courses/@course.Id" class="btn-secondary">Open Course</a>
+                            }
+                            else
+                            {
+                                <a href="/login?returnUrl=@Uri.EscapeDataString($"/courses")" class="btn-primary">Sign In to Enroll</a>
+                                <a href="/courses/@course.Id" class="btn-secondary">Preview</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Lms.Domain.Entities.Course> _courses = new();
+    private List<Lms.Domain.Entities.Course> _filteredCourses = new();
+    private readonly HashSet<Guid> _enrolledCourseIds = new();
+    private Guid? _userId;
+    private bool _canEnroll;
+    private bool _canPurchase;
+    private int _cartItemCount = 0;
+    private string? _message;
+    private string _searchTerm = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _courses = await CourseService.GetPublishedCoursesAsync();
+        _filteredCourses = _courses;
+
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _canEnroll = state.User.IsInRole("Learner") || state.User.IsInRole("Admin");
+        _canPurchase = state.User.IsInRole("Learner") || state.User.IsInRole("Admin");
+
+        var userIdClaim = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (Guid.TryParse(userIdClaim, out var userId))
+        {
+            _userId = userId;
+
+            var enrollments = await EnrollmentService.GetEnrollmentsForLearnerAsync(userId);
+            foreach (var enrollment in enrollments)
+            {
+                _enrolledCourseIds.Add(enrollment.CourseId);
+            }
+
+            var cart = await ShoppingCartService.GetCartWithCoursesAsync(userId);
+            _cartItemCount = cart.Items.Sum(item => item.Quantity);
+        }
+    }
+
+    private void FilterCourses(ChangeEventArgs e)
+    {
+        _searchTerm = e.Value?.ToString() ?? "";
+        if (string.IsNullOrWhiteSpace(_searchTerm))
+        {
+            _filteredCourses = _courses;
+        }
+        else
+        {
+            _filteredCourses = _courses
+                .Where(c => c.Title.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                           c.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    private async Task AddToCartAsync(Lms.Domain.Entities.Course course)
+    {
+        if (!_userId.HasValue)
+        {
+            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/courses")}");
+            return;
+        }
+
+        await ShoppingCartService.AddToCartAsync(
+            _userId.Value,
+            course.Id,
+            course.Title,
+            course.Price);
+
+        var cart = await ShoppingCartService.GetCartWithCoursesAsync(_userId.Value);
+        _cartItemCount = cart.Items.Sum(item => item.Quantity);
+        _message = $"'{course.Title}' added to cart.";
+    }
+
+    private async Task EnrollAsync(Guid courseId)
+    {
+        if (!_userId.HasValue)
+        {
+            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/courses")}");
+            return;
+        }
+
+        try
+        {
+            await EnrollmentService.EnrollAsync(_userId.Value, courseId);
+            _enrolledCourseIds.Add(courseId);
+            _message = "Enrollment completed.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _message = ex.Message;
+
+            if (ex.Message.Contains("sign in again", StringComparison.OrdinalIgnoreCase))
+            {
+                NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/courses")}", true);
+            }
+        }
+    }
+}
+
+<style>
+    .courses-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .courses-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 2rem 0;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .search-bar input {
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        min-width: 300px;
+    }
+
+    .cart-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: #4a90e2;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .cart-link:hover {
+        background: #2e5c8a;
+    }
+
+    .course-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .course-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        transition: box-shadow 0.2s;
+    }
+
+    .course-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .card-header {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #333;
+        flex: 1;
+    }
+
+    .course-level {
+        background: #e8f1ff;
+        color: #4a90e2;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .description {
+        padding: 0 1rem;
+        margin-top: 0.75rem;
+        color: #666;
+        font-size: 0.9rem;
+        line-height: 1.4;
+        flex: 1;
+    }
+
+    .course-details {
+        padding: 0 1rem;
+        display: flex;
+        gap: 1rem;
+        font-size: 0.85rem;
+        color: #888;
+        margin-bottom: 1rem;
+    }
+
+    .course-footer {
+        padding: 1rem;
+        border-top: 1px solid #eee;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .price-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .price {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #ff6b6b;
+    }
+
+    .price.free {
+        color: #51cf66;
+        font-size: 1.1rem;
+    }
+
+    .course-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        flex: 1;
+    }
+
+    .btn-primary, .btn-secondary {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: #4a90e2;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2e5c8a;
+    }
+
+    .btn-secondary {
+        background: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+        background: #efefef;
+    }
+
+    .enrolled-badge {
+        background: #51cf66;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-align: center;
+        font-size: 0.9rem;
+        font-weight: 600;
+    }
+
+    .auth-help {
+        padding: 1rem;
+        background: #e8f1ff;
+        color: #2e5c8a;
+        border-radius: 4px;
+    }
+
+    @@media (max-width: 768px) {
+        .course-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .search-bar input {
+            min-width: 100%;
+        }
+
+        .courses-header {
+            flex-direction: column;
+        }
+
+        .cart-link {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>

@@ -1,0 +1,511 @@
+@page "/cart"
+@using System.Security.Claims
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@attribute [Authorize(Roles = "Learner,Admin")]
+@inject IShoppingCartService ShoppingCartService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>Shopping Cart</PageTitle>
+
+<div class="cart-container">
+    <h1>Shopping Cart</h1>
+
+    @if (_cart == null)
+    {
+        <p>Loading cart...</p>
+    }
+    else if (_cart.Items.Count == 0)
+    {
+        <div class="empty-cart">
+            <p>Your cart is empty</p>
+            <a href="/courses" class="btn-primary">Continue Shopping</a>
+        </div>
+    }
+    else
+    {
+        <div class="cart-grid">
+            <div class="cart-items-section">
+                <table class="cart-table">
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th class="price-col">Price</th>
+                            <th class="qty-col">Quantity</th>
+                            <th class="total-col">Total</th>
+                            <th class="action-col"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in _cart.Items)
+                        {
+                            <tr class="cart-item-row">
+                                <td>
+                                    <div class="item-info">
+                                        <h4>@item.CourseTitle</h4>
+                                    </div>
+                                </td>
+                                <td class="price-col">@($"${item.Price:F2}")</td>
+                                <td class="qty-col">
+                                    <div class="qty-control">
+                                        <input type="number" min="1" max="100" value="@item.Quantity" @onchange="(ChangeEventArgs e) => HandleQuantityChange(item.CourseId, e)" class="qty-input" />
+                                    </div>
+                                </td>
+                                <td class="total-col">@($"${(item.Price * item.Quantity):F2}")</td>
+                                <td class="action-col">
+                                    <button type="button" class="btn-remove" @onclick="() => RemoveFromCartAsync(item.CourseId)" title="Remove from cart">×</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="cart-summary-section">
+                <div class="summary-card">
+                    <h3>Order Summary</h3>
+                    
+                    <div class="summary-row">
+                        <span>Subtotal:</span>
+                        <span class="amount">@($"${_cart.GetTotal():F2}")</span>
+                    </div>
+
+                    @if (_showTax)
+                    {
+                        <div class="summary-row">
+                            <span>Tax:</span>
+                            <span class="amount">@($"${_taxAmount:F2}")</span>
+                        </div>
+                    }
+
+                    <div class="summary-row total-row">
+                        <span>Total:</span>
+                        <span class="amount">@($"${(_cart.GetTotal() + _taxAmount):F2}")</span>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(_discountCode))
+                    {
+                        <div class="summary-row discount-row">
+                            <span>Discount:</span>
+                            <span class="amount discount">@($"-${_discountAmount:F2}")</span>
+                        </div>
+                    }
+
+                    <div class="promo-section">
+                        <input type="text" placeholder="Promo code" @bind="_promoInput" class="promo-input" />
+                        <button type="button" @onclick="ApplyPromoAsync" class="btn-secondary btn-small">Apply</button>
+                    </div>
+
+                    <div class="checkout-actions">
+                        <button type="button" @onclick="CheckoutAsync" class="btn-primary btn-large">Proceed to Checkout</button>
+                        <a href="/courses" class="btn-secondary btn-large">Continue Shopping</a>
+                    </div>
+
+                    <div class="trust-badges">
+                        <span class="badge">🔒 Secure Payment</span>
+                        <span class="badge">✓ Money-Back Guarantee</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <div class="message @(_isError ? "error" : "success")">@_message</div>
+    }
+</div>
+
+@code {
+    private ShoppingCart? _cart;
+    private Guid _userId;
+    private decimal _taxAmount = 0;
+    private decimal _discountAmount = 0;
+    private bool _showTax = true;
+    private string _promoInput = "";
+    private string _discountCode = "";
+    private string? _message;
+    private bool _isError = false;
+    private const decimal TaxRate = 0.08m; // 8% tax
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(idClaim, out var parsedId))
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        _userId = parsedId;
+        await LoadCartAsync();
+    }
+
+    private async Task LoadCartAsync()
+    {
+        _cart = await ShoppingCartService.GetCartWithCoursesAsync(_userId);
+        CalculateTax();
+    }
+
+    private void CalculateTax()
+    {
+        if (_cart == null) return;
+        _taxAmount = _cart.GetTotal() * TaxRate;
+    }
+
+    private async Task RemoveFromCartAsync(Guid courseId)
+    {
+        await ShoppingCartService.RemoveFromCartAsync(_userId, courseId);
+        await LoadCartAsync();
+        _message = "Item removed from cart.";
+        _isError = false;
+    }
+
+    private async Task UpdateQuantityAsync(Guid courseId, int quantity)
+    {
+        if (quantity < 1) quantity = 1;
+        if (quantity > 100) quantity = 100;
+
+        // For now, just reload (full update logic would be in service)
+        await LoadCartAsync();
+    }
+
+    private async Task HandleQuantityChange(Guid courseId, ChangeEventArgs e)
+    {
+        var valueStr = e.Value?.ToString();
+        if (string.IsNullOrEmpty(valueStr) || !int.TryParse(valueStr, out int quantity))
+        {
+            return;
+        }
+        await UpdateQuantityAsync(courseId, quantity);
+    }
+
+    private async Task ApplyPromoAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_promoInput))
+        {
+            _message = "Please enter a promo code.";
+            _isError = true;
+            return;
+        }
+
+        // Stub promo code validation
+        if (_promoInput.Equals("WELCOME10", StringComparison.OrdinalIgnoreCase))
+        {
+            _discountCode = _promoInput;
+            _discountAmount = _cart!.GetTotal() * 0.10m; // 10% off
+            _message = "Promo code applied! 10% discount saved.";
+            _isError = false;
+            _promoInput = "";
+        }
+        else if (_promoInput.Equals("SUMMER20", StringComparison.OrdinalIgnoreCase))
+        {
+            _discountCode = _promoInput;
+            _discountAmount = _cart!.GetTotal() * 0.20m; // 20% off
+            _message = "Promo code applied! 20% discount saved.";
+            _isError = false;
+            _promoInput = "";
+        }
+        else
+        {
+            _message = "Invalid promo code.";
+            _isError = true;
+        }
+
+        CalculateTax();
+    }
+
+    private async Task CheckoutAsync()
+    {
+        if (_cart == null || _cart.Items.Count == 0)
+        {
+            _message = "Your cart is empty.";
+            _isError = true;
+            return;
+        }
+
+        // Navigate to checkout with cart summary
+        NavigationManager.NavigateTo("/checkout");
+    }
+}
+
+<style>
+    .cart-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .empty-cart {
+        text-align: center;
+        padding: 3rem;
+        background: #f9f9f9;
+        border-radius: 8px;
+    }
+
+    .empty-cart p {
+        font-size: 1.2rem;
+        color: #666;
+        margin-bottom: 1.5rem;
+    }
+
+    .cart-grid {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 2rem;
+    }
+
+    .cart-items-section {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .cart-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .cart-table thead {
+        background: #f5f5f5;
+        border-bottom: 2px solid #ddd;
+    }
+
+    .cart-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .cart-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .cart-item-row:hover {
+        background: #fafafa;
+    }
+
+    .item-info h4 {
+        margin: 0;
+        color: #333;
+    }
+
+    .price-col, .qty-col, .total-col, .action-col {
+        text-align: center;
+    }
+
+    .qty-control {
+        display: flex;
+        justify-content: center;
+    }
+
+    .qty-input {
+        width: 70px;
+        padding: 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .btn-remove {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #ff6b6b;
+        cursor: pointer;
+        padding: 0;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: background 0.2s;
+    }
+
+    .btn-remove:hover {
+        background: #ffe0e0;
+    }
+
+    .cart-summary-section {
+        height: fit-content;
+        position: sticky;
+        top: 2rem;
+    }
+
+    .summary-card {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+
+    .summary-card h3 {
+        margin: 0 0 1.5rem 0;
+        font-size: 1.2rem;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 0;
+        font-size: 0.95rem;
+        color: #666;
+    }
+
+    .summary-row .amount {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .summary-row.total-row {
+        border-top: 2px solid #ddd;
+        border-bottom: 2px solid #ddd;
+        padding: 1rem 0;
+        margin: 1rem 0;
+        font-size: 1.1rem;
+        color: #333;
+    }
+
+    .summary-row.total-row .amount {
+        font-size: 1.3rem;
+        color: #ff6b6b;
+    }
+
+    .summary-row.discount-row .amount.discount {
+        color: #51cf66;
+    }
+
+    .promo-section {
+        display: flex;
+        gap: 0.5rem;
+        margin: 1.5rem 0;
+    }
+
+    .promo-input {
+        flex: 1;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.9rem;
+    }
+
+    .btn-small {
+        padding: 0.75rem 1rem !important;
+        font-size: 0.9rem;
+    }
+
+    .checkout-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+
+    .btn-primary, .btn-secondary {
+        padding: 1rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 600;
+        transition: all 0.2s;
+        text-decoration: none;
+        display: block;
+        text-align: center;
+    }
+
+    .btn-large {
+        padding: 1rem !important;
+        font-size: 1rem !important;
+    }
+
+    .btn-primary {
+        background: #4a90e2;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: #2e5c8a;
+    }
+
+    .btn-secondary {
+        background: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+
+    .btn-secondary:hover {
+        background: #efefef;
+    }
+
+    .trust-badges {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #eee;
+    }
+
+    .badge {
+        font-size: 0.85rem;
+        color: #666;
+        text-align: center;
+    }
+
+    .message {
+        margin-top: 1rem;
+        padding: 1rem;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    .message.success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .message.error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    @@media (max-width: 768px) {
+        .cart-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .cart-summary-section {
+            position: static;
+        }
+
+        .cart-table {
+            font-size: 0.9rem;
+        }
+
+        .cart-table th,
+        .cart-table td {
+            padding: 0.75rem 0.5rem;
+        }
+
+        .promo-section {
+            flex-direction: column;
+        }
+
+        .btn-small {
+            width: 100%;
+        }
+    }
+</style>
