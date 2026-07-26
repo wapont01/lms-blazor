@@ -1,0 +1,436 @@
+@page "/refund-result"
+@using Microsoft.AspNetCore.Authorization
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+
+@attribute [Authorize(Roles = "Learner")]
+
+@inject NavigationManager NavigationManager
+@inject ILogger<RefundResult> Logger
+
+<PageTitle>Refund Result - LMS</PageTitle>
+
+<div class="refund-result-container">
+    @if (_isSuccess)
+    {
+        <div class="success-card">
+            <div class="success-header">
+                <span class="success-icon">✓</span>
+                <h1>Refund Processed</h1>
+            </div>
+
+            <div class="success-body">
+                <p class="success-message">
+                    Your refund has been successfully processed and will appear in your account within 3-5 business days.
+                </p>
+
+                <div class="refund-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Refund Amount:</span>
+                        <span class="detail-value amount">${_refundAmount:F2}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Refund Status:</span>
+                        <span class="detail-value status-succeeded">@_refundStatus</span>
+                    </div>
+                    @if (!string.IsNullOrEmpty(_refundReason))
+                    {
+                        <div class="detail-row">
+                            <span class="detail-label">Reason:</span>
+                            <span class="detail-value">@_refundReason</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(_refundId))
+                    {
+                        <div class="detail-row">
+                            <span class="detail-label">Refund ID:</span>
+                            <span class="detail-value transaction-id">@_refundId</span>
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(_stripeRefundId))
+                    {
+                        <div class="detail-row">
+                            <span class="detail-label">Reference:</span>
+                            <span class="detail-value transaction-id">@_stripeRefundId</span>
+                        </div>
+                    }
+                    <div class="detail-row">
+                        <span class="detail-label">Processed:</span>
+                        <span class="detail-value">@_processedDate</span>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <h3>📧 What's Next?</h3>
+                    <ul>
+                        <li>A confirmation email has been sent to your email address</li>
+                        <li>The refund will be credited to your original payment method</li>
+                        <li>Processing typically takes 3-5 business days</li>
+                        <li>Contact support if you don't see the refund within 7 days</li>
+                    </ul>
+                </div>
+
+                <div class="action-buttons">
+                    <a href="/payment-history" class="btn btn-primary">View Payment History</a>
+                    <a href="/my-courses" class="btn btn-secondary">Return to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="error-card">
+            <div class="error-header">
+                <span class="error-icon">❌</span>
+                <h1>Refund Failed</h1>
+            </div>
+
+            <div class="error-body">
+                <p class="error-message">
+                    @if (string.IsNullOrEmpty(_errorMessage))
+                    {
+                        <span>Your refund could not be processed at this time. Please try again or contact support.</span>
+                    }
+                    else
+                    {
+                        <span>@_errorMessage</span>
+                    }
+                </p>
+
+                @if (!string.IsNullOrEmpty(_failureReason))
+                {
+                    <div class="error-details">
+                        <h3>Error Details:</h3>
+                        <p>@_failureReason</p>
+                    </div>
+                }
+
+                <div class="tips-section">
+                    <h3>💡 What you can do:</h3>
+                    <ul>
+                        <li>Verify the payment is in "Completed" status</li>
+                        <li>Check that you haven't already refunded this payment</li>
+                        <li>Ensure the refund amount is valid (between $0 and the full payment amount)</li>
+                        <li>Try again in a few moments</li>
+                        <li>Contact support if the problem persists</li>
+                    </ul>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" @onclick="RetryRefund">Retry Refund</button>
+                    <a href="/payment-history" class="btn btn-secondary">View Payment History</a>
+                    <a href="/my-courses" class="btn btn-secondary">Return to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .refund-result-container {
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 20px;
+    }
+
+    .success-card,
+    .error-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+    }
+
+    .success-header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .error-header {
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .success-header h1,
+    .error-header h1 {
+        margin: 10px 0 0 0;
+        font-size: 28px;
+    }
+
+    .success-icon,
+    .error-icon {
+        font-size: 48px;
+        display: block;
+        margin-bottom: 10px;
+    }
+
+    .success-body,
+    .error-body {
+        padding: 30px;
+    }
+
+    .success-message,
+    .error-message {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 20px;
+        line-height: 1.6;
+    }
+
+    .refund-details {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #e9ecef;
+        font-size: 14px;
+    }
+
+    .detail-row:last-child {
+        border-bottom: none;
+    }
+
+    .detail-label {
+        font-weight: 600;
+        color: #495057;
+        min-width: 120px;
+    }
+
+    .detail-value {
+        color: #212529;
+        text-align: right;
+        flex: 1;
+    }
+
+    .detail-value.amount {
+        font-size: 18px;
+        font-weight: 700;
+        color: #28a745;
+    }
+
+    .detail-value.status-succeeded {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .detail-value.status-failed {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .detail-value.transaction-id {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        word-break: break-all;
+    }
+
+    .error-details {
+        background: #fee;
+        border-left: 4px solid #dc3545;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+    }
+
+    .error-details h3,
+    .tips-section h3,
+    .info-section h3 {
+        margin-top: 0;
+        color: #333;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .error-details p {
+        margin: 0;
+        color: #666;
+    }
+
+    .error-details ul,
+    .tips-section ul,
+    .info-section ul {
+        margin: 10px 0;
+        padding-left: 20px;
+    }
+
+    .error-details li,
+    .tips-section li,
+    .info-section li {
+        margin: 8px 0;
+        color: #666;
+    }
+
+    .tips-section {
+        background: #e8f4f8;
+        border-left: 4px solid #17a2b8;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+    }
+
+    .info-section {
+        background: #e8f4f8;
+        border-left: 4px solid #17a2b8;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 30px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+        text-align: center;
+        transition: all 0.3s ease;
+        flex: 1;
+        min-width: 150px;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background-color: #545b62;
+    }
+
+    @@media (max-width: 600px) {
+        .refund-result-container {
+            margin: 20px auto;
+            padding: 10px;
+        }
+
+        .success-header,
+        .error-header {
+            padding: 20px;
+        }
+
+        .success-body,
+        .error-body {
+            padding: 20px;
+        }
+
+        .detail-row {
+            flex-direction: column;
+            padding: 8px 0;
+        }
+
+        .detail-label {
+            min-width: auto;
+            margin-bottom: 4px;
+        }
+
+        .detail-value {
+            text-align: left;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn {
+            min-width: 100%;
+        }
+    }
+</style>
+
+@code {
+    [SupplyParameterFromQuery]
+    public Guid? RefundId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public bool Success { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Message { get; set; }
+
+    [SupplyParameterFromQuery]
+    public decimal RefundAmount { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Status { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? Reason { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? StripeRefundId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? ErrorCode { get; set; }
+
+    private bool _isSuccess;
+    private string? _refundId;
+    private decimal _refundAmount;
+    private string? _refundStatus = "Processing";
+    private string? _refundReason;
+    private string? _stripeRefundId;
+    private string? _errorMessage;
+    private string? _failureReason;
+    private string _processedDate = "";
+
+    protected override void OnInitialized()
+    {
+        _isSuccess = Success;
+        _refundId = RefundId?.ToString();
+        _refundAmount = RefundAmount;
+        _refundStatus = Status ?? "Processing";
+        _refundReason = Reason;
+        _stripeRefundId = StripeRefundId;
+        _errorMessage = Message;
+        _processedDate = DateTime.Now.ToString("MMMM d, yyyy 'at' h:mm tt");
+
+        // Map error codes to user-friendly messages
+        if (!_isSuccess && !string.IsNullOrEmpty(ErrorCode))
+        {
+            _failureReason = ErrorCode switch
+            {
+                "INVALID_PAYMENT_STATUS" => "The payment is not in a completed status. Only completed payments can be refunded.",
+                "NO_STRIPE_INTENT" => "The payment does not have a valid Stripe payment intent ID.",
+                "INVALID_AMOUNT" => "The refund amount is invalid. It must be greater than $0 and less than or equal to the payment amount.",
+                "ALREADY_REFUNDED" => "This payment has already been fully refunded.",
+                "INTERNAL_ERROR" => "An internal error occurred while processing the refund. Please try again.",
+                _ => _errorMessage
+            };
+        }
+    }
+
+    private void RetryRefund()
+    {
+        NavigationManager.NavigateTo("/payment-history");
+    }
+}

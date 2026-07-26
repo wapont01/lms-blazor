@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.11">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Lms.Application\Lms.Application.csproj" />
+    <ProjectReference Include="..\src\Lms.Domain\Lms.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Components\**\*.razor" />
+    <Content Remove="Components\**\*.razor" />
+    <RazorComponent Remove="Components\**\*.razor" />
+    <RazorComponent Include="..\src\Lms.Web\Components\**\*.razor" Link="Components\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\app.css" />
+    <Content Include="..\src\Lms.Web\wwwroot\app.css" Link="wwwroot\app.css" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

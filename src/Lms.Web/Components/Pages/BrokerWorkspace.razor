@@ -1,0 +1,710 @@
+@attribute [Authorize(Roles = "Admin,Broker")]
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@using Lms.Web.Components.Shared
+@using System.Security.Claims
+@inject IEnrollmentService EnrollmentService
+@inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Broker</PageTitle>
+
+<h1>@PageHeading</h1>
+
+<div class="dashboard-grid">
+	@if (IsSectionVisible("portfolio"))
+	{
+		<section class="card">
+			<h2>Portfolio Snapshot</h2>
+			<div class="stats-grid">
+				<article class="stat-card">
+					<h3>Learners</h3>
+					<p>@_summary.Learners</p>
+				</article>
+				<article class="stat-card">
+					<h3>Active Enrollments</h3>
+					<p>@_summary.ActiveEnrollments</p>
+				</article>
+				<article class="stat-card">
+					<h3>Completed</h3>
+					<p>@_summary.CompletedEnrollments</p>
+				</article>
+				<article class="stat-card">
+					<h3>At Risk</h3>
+					<p>@_summary.AtRiskEnrollments</p>
+				</article>
+				<article class="stat-card">
+					<h3>Cert Expiring Soon</h3>
+					<p>@_certificateSummary.ExpiringSoonCertificates</p>
+				</article>
+				<article class="stat-card">
+					<h3>Cert Expired</h3>
+					<p>@_certificateSummary.ExpiredCertificates</p>
+				</article>
+			</div>
+		</section>
+	}
+
+	@if (IsSectionVisible("compliance"))
+	{
+		<section class="card">
+			<h2>Learner Compliance</h2>
+
+			@if (_rows.Count == 0)
+			{
+				<p>No enrollments found yet.</p>
+			}
+			else
+			{
+				<table class="simple-table">
+					<thead>
+						<tr>
+							<th>Learner</th>
+							<th>Course</th>
+							<th>Progress</th>
+							<th>Status</th>
+							<th>Enrolled</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var row in _rows)
+						{
+							<tr>
+								<td>
+									<strong>@row.LearnerName</strong>
+									<div class="muted-text">@row.LearnerEmail</div>
+								</td>
+								<td>@row.CourseTitle</td>
+								<td>@row.ProgressPercent.ToString("0")%</td>
+								<td><span class="@(row.Completed ? "status-completed" : null)">@(row.Completed ? "Completed" : "In Progress")</span></td>
+								<td>@row.EnrolledAt.ToLocalTime().ToString("yyyy-MM-dd")</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</section>
+	}
+
+	@if (IsSectionVisible("blocked"))
+	{
+		<section class="card">
+			<h2>Assessment-Blocked Learners</h2>
+
+			@if (_blockedRows.Count == 0)
+			{
+				<p class="muted-text">No learners are currently blocked by assessment policy.</p>
+			}
+			else
+			{
+				<table class="simple-table">
+					<thead>
+						<tr>
+							<th>Learner</th>
+							<th>Course</th>
+							<th>Latest Score</th>
+							<th>Reason</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var row in _blockedRows)
+						{
+							<tr>
+								<td>@row.LearnerDisplay</td>
+								<td>@row.CourseTitle</td>
+								<td>@(row.LatestScorePercent?.ToString("0.##") ?? "-")</td>
+								<td>@row.Reason</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</section>
+	}
+
+	@if (IsSectionVisible("certificates"))
+	{
+		<section class="card">
+			<h2>Certificate Compliance</h2>
+
+			@if (_certificateRows.Count == 0)
+			{
+				<p>No completion certificates generated yet.</p>
+			}
+			else
+			{
+				<table class="simple-table">
+					<thead>
+						<tr>
+							<th>Learner</th>
+							<th>Course</th>
+							<th>Certificate</th>
+							<th>Verification</th>
+							<th>Issued</th>
+							<th>Expires</th>
+							<th>Status</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var row in _certificateRows)
+						{
+							<tr>
+								<td>
+									<strong>@row.LearnerName</strong>
+									<div class="muted-text">@row.LearnerEmail</div>
+								</td>
+								<td>@row.CourseTitle</td>
+								<td>@row.CertificateNumber</td>
+								<td><code>@row.VerificationCode</code></td>
+								<td>@row.IssuedAt.ToString("yyyy-MM-dd")</td>
+								<td>@row.ExpiresAt.ToString("yyyy-MM-dd")</td>
+								<td>@row.Status</td>
+								<td>
+									<div class="action-stack">
+										<a href="/certificates/@row.CertificateId/download">Download PDF</a>
+										<a href="@BuildVerifyLink(row.CertificateNumber, row.VerificationCode)">Verify</a>
+									</div>
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</section>
+	}
+
+	@if (IsSectionVisible("support"))
+	{
+		<section class="card support-ownership-card">
+			<h3>Broker enrolled courses</h3>
+			<p class="muted-text">Courses this broker can enroll learners into.</p>
+
+			@if (_brokerPurchasedCourses.Count > 0)
+			{
+				<ul>
+					@foreach (var purchasedCourse in _brokerPurchasedCourses)
+					{
+						<li>@purchasedCourse.Title</li>
+					}
+				</ul>
+			}
+			else
+			{
+				<p class="muted-text">No broker enrolled courses yet.</p>
+			}
+		</section>
+
+		@if (_allLearners.Count == 0)
+		{
+			<section class="card">
+				<h2>Enrollment Support</h2>
+				<p class="muted-text">No learners are assigned to this broker.</p>
+			</section>
+		}
+		else
+		{
+			var canEnroll = CanEnroll();
+			var canUnenroll = CanUnenroll();
+
+			<section class="card support-action-card">
+				<div class="support-header-row">
+					<div>
+						<h2>Enrollment Support</h2>
+						<p class="muted-text">Broker enrolled courses only.</p>
+					</div>
+				</div>
+
+				<div class="support-learner-row">
+					<label for="Support-learner">Learner</label>
+					<select id="Support-learner" @bind="_selectedLearnerIdText" @bind:after="OnSelectedLearnerChangedAsync">
+						@foreach (var learner in _allLearners)
+						{
+							<option value="@learner.LearnerId">@learner.LearnerName (@learner.LearnerEmail)</option>
+						}
+					</select>
+				</div>
+
+				<div class="support-learner-row">
+					<label for="Support-course">Course</label>
+					<select id="Support-course" @bind="_selectedCourseId">
+						<option value="">Select course</option>
+						@foreach (var course in _availableCourses)
+						{
+							<option value="@course.Id">@course.Title</option>
+						}
+					</select>
+				</div>
+
+				@if (_availableCourses.Count == 0)
+				{
+					<p class="muted-text">No broker enrolled courses are available for this learner. Enroll and Unenroll actions are disabled.</p>
+				}
+
+				<div class="support-op-actions">
+					<button class="primary-btn" @onclick="EnrollSelectedLearnerAsync" disabled="@(!canEnroll)">Enroll</button>
+					<button class="secondary-btn" @onclick="UnenrollSelectedLearnerAsync" disabled="@(!canUnenroll)">Unenroll</button>
+				</div>
+
+				@if (!string.IsNullOrWhiteSpace(_SupportStatus))
+				{
+					<p class="@GetSupportStatusClass()">@_SupportStatus</p>
+				}
+			</section>
+
+			<section class="card support-ownership-card">
+				<h3>Broker enrolled learner courses</h3>
+				<p class="muted-text">Assigned learners and the courses broker enrolled for them.</p>
+
+				@if (_brokerSponsoredLearnerCourses.Count > 0)
+				{
+					<ul class="course-list">
+						@foreach (var learnerCourses in _brokerSponsoredLearnerCourses)
+						{
+							<li>
+								<strong>@learnerCourses.LearnerName</strong>
+								<div class="muted-text">@learnerCourses.LearnerEmail</div>
+								<ul>
+									@foreach (var courseTitle in learnerCourses.CourseTitles)
+									{
+										<li>
+											<span>@courseTitle</span>
+											<span class="source-badge source-badge-broker">Broker enrolled</span>
+										</li>
+									}
+								</ul>
+							</li>
+						}
+					</ul>
+				}
+				else
+				{
+					<p class="muted-text">No broker enrolled courses are assigned yet.</p>
+				}
+			</section>
+
+			<section class="card support-ownership-card">
+				<h3>Learner enrolled courses</h3>
+				<p class="muted-text">Courses the selected learner enrolled in directly.</p>
+
+				@{
+					var selectedLearner = _allLearners.FirstOrDefault(learner => learner.LearnerId == _selectedLearnerId)
+						?? _allLearners.FirstOrDefault();
+					var selectedLearnerLabel = selectedLearner is null
+						? "Current learner"
+						: $"{selectedLearner.LearnerName} ({selectedLearner.LearnerEmail})";
+					var learnerOwnedCourses = GetSelectedLearnerEnrolledCourses();
+				}
+
+				<p><strong>@selectedLearnerLabel</strong></p>
+
+				@if (learnerOwnedCourses.Count > 0)
+				{
+					<ul class="course-list">
+						@foreach (var course in learnerOwnedCourses)
+						{
+							<li>
+								<span>@course.Title</span>
+								<span class="@course.SourceCssClass">@course.SourceLabel</span>
+							</li>
+						}
+					</ul>
+				}
+				else
+				{
+					<p class="muted-text">This learner has no learner enrolled courses.</p>
+				}
+			</section>
+		}
+	}
+
+	@if (IsSectionVisible("logs"))
+	{
+		<section class="card">
+			<h2>Learner 360 Logs</h2>
+
+			@if (_logs.Count == 0)
+			{
+				<p class="muted-text">No log events available for the selected learner.</p>
+			}
+			else
+			{
+				<table class="simple-table">
+					<thead>
+						<tr>
+							<th>When</th>
+							<th>Type</th>
+							<th>Title</th>
+							<th>Details</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var item in _logs)
+						{
+							<tr>
+								<td>@item.TimestampUtc.ToString("yyyy-MM-dd HH:mm")</td>
+								<td>@item.Type</td>
+								<td>@item.Title</td>
+								<td>@item.Details</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</section>
+	}
+</div>
+
+@code {
+	[Parameter]
+	public string? Section { get; set; } = "dashboard";
+
+	private string NormalizedSection { get; set; } = "dashboard";
+
+	private bool IsDashboardView => string.Equals(NormalizedSection, "dashboard", StringComparison.Ordinal);
+
+	private string PageHeading => IsDashboardView ? "Broker Dashboard" : ToHeadingCase(NormalizedSection);
+
+	private BrokerDashboardSummary _summary = new(0, 0, 0, 0);
+	private List<BrokerLearnerRow> _rows = new();
+	private List<BrokerAssignedLearnerRow> _allLearners = new();
+	private CertificateComplianceSummary _certificateSummary = new(0, 0, 0, 0, 0);
+	private List<CertificateComplianceRow> _certificateRows = new();
+	private List<AssessmentBlockedLearnerRow> _blockedRows = new();
+	private List<Enrollment> _currentEnrollments = new();
+	private List<Course> _availableCourses = new();
+	private List<Course> _brokerPurchasedCourses = new();
+	private List<BrokerSponsoredLearnerCourses> _brokerSponsoredLearnerCourses = new();
+	private List<LearnerLogItem> _logs = new();
+	private Guid? _selectedLearnerId;
+	private string _selectedLearnerIdText = string.Empty;
+	private Guid? _selectedCourseId;
+	private string _actorEmail = string.Empty;
+	private string? _SupportStatus;
+	private bool? _SupportSucceeded;
+	private Guid _brokerUserId;
+
+	protected override async Task OnInitializedAsync()
+	{
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+		if (!Guid.TryParse(userIdClaim, out _brokerUserId))
+		{
+			return;
+		}
+
+		_actorEmail = authState.User.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty;
+
+		await RefreshBrokerDataAsync();
+		await RefreshLearnerDirectoryAsync();
+
+		if (_allLearners.Count > 0)
+		{
+			SetSelectedLearner(_allLearners[0].LearnerId);
+			await RefreshSupportContextAsync();
+		}
+	}
+
+	private async Task RefreshBrokerDataAsync()
+	{
+
+		_summary = await EnrollmentService.GetBrokerSummaryAsync(_brokerUserId);
+		_rows = await EnrollmentService.GetBrokerLearnerRowsAsync(_brokerUserId);
+		_certificateSummary = await EnrollmentService.GetCertificateComplianceSummaryAsync(_brokerUserId);
+		_certificateRows = await EnrollmentService.GetCertificateComplianceRowsAsync(_brokerUserId);
+		_blockedRows = await EnrollmentService.GetAssessmentBlockedLearnersAsync(_brokerUserId);
+		await RefreshBrokerPurchasedCoursesAsync();
+	}
+
+	private async Task OnSelectedLearnerChangedAsync()
+	{
+		if (Guid.TryParse(_selectedLearnerIdText, out var learnerId))
+		{
+			SetSelectedLearner(learnerId);
+		}
+		else
+		{
+			SetSelectedLearner(null);
+		}
+
+		_selectedCourseId = null;
+		_SupportStatus = null;
+		_SupportSucceeded = null;
+		await RefreshSupportContextAsync();
+	}
+
+	private void SetSelectedLearner(Guid? learnerId)
+	{
+		_selectedLearnerId = learnerId;
+		_selectedLearnerIdText = learnerId?.ToString() ?? string.Empty;
+	}
+
+	private async Task RefreshSupportContextAsync()
+	{
+		if (!_selectedLearnerId.HasValue)
+		{
+			_currentEnrollments = new();
+			_availableCourses = new();
+			_brokerSponsoredLearnerCourses = new();
+			_logs = new();
+			_selectedCourseId = null;
+			return;
+		}
+
+		_currentEnrollments = await EnrollmentService.GetEnrollmentsForLearnerAsync(_selectedLearnerId.Value);
+		var brokerEnrollments = await EnrollmentService.GetEnrollmentsForLearnerAsync(_brokerUserId);
+		var brokerPurchasedCourses = brokerEnrollments
+			.Where(enrollment => string.Equals(enrollment.EnrollmentSource, "LearnerPurchase", StringComparison.Ordinal) && enrollment.Course is not null)
+			.Select(enrollment => enrollment.Course!)
+			.GroupBy(course => course.Id)
+			.Select(group => group.First())
+			.ToList();
+		_availableCourses = brokerPurchasedCourses
+			.Where(course =>
+			{
+				var learnerEnrollment = _currentEnrollments.FirstOrDefault(item => item.CourseId == course.Id);
+				return learnerEnrollment is null || IsBrokerEnrolledByCurrentBroker(learnerEnrollment);
+			})
+			.OrderBy(course => course.Title)
+			.ToList();
+		_logs = await EnrollmentService.GetLearnerLogsAsync(_selectedLearnerId.Value, _brokerUserId);
+		await RefreshBrokerSponsoredLearnerCoursesAsync();
+
+		if (_availableCourses.Count == 0)
+		{
+			_selectedCourseId = null;
+		}
+		else if (!_selectedCourseId.HasValue || !_availableCourses.Any(item => item.Id == _selectedCourseId.Value))
+		{
+			_selectedCourseId = _availableCourses[0].Id;
+		}
+	}
+
+	private async Task RefreshLearnerDirectoryAsync()
+	{
+		_allLearners = await EnrollmentService.GetAssignedLearnersAsync(_brokerUserId);
+		await RefreshBrokerSponsoredLearnerCoursesAsync();
+	}
+
+	private async Task RefreshBrokerPurchasedCoursesAsync()
+	{
+		var brokerEnrollments = await EnrollmentService.GetEnrollmentsForLearnerAsync(_brokerUserId);
+		_brokerPurchasedCourses = brokerEnrollments
+			.Where(enrollment => string.Equals(enrollment.EnrollmentSource, "LearnerPurchase", StringComparison.Ordinal) && enrollment.Course is not null)
+			.Select(enrollment => enrollment.Course!)
+			.GroupBy(course => course.Id)
+			.Select(group => group.First())
+			.OrderBy(course => course.Title)
+			.ToList();
+	}
+
+	private async Task RefreshBrokerSponsoredLearnerCoursesAsync()
+	{
+		if (_allLearners.Count == 0)
+		{
+			_brokerSponsoredLearnerCourses = new();
+			return;
+		}
+
+		var learnerCourses = new List<BrokerSponsoredLearnerCourses>();
+		foreach (var learner in _allLearners)
+		{
+			var enrollments = await EnrollmentService.GetEnrollmentsForLearnerAsync(learner.LearnerId);
+			var brokerSponsoredCourses = enrollments
+				.Where(enrollment => string.Equals(enrollment.EnrollmentSource, "BrokerSponsored", StringComparison.Ordinal)
+					&& enrollment.SponsoredByBrokerUserId == _brokerUserId)
+				.Select(enrollment => enrollment.Course?.Title)
+				.Where(title => !string.IsNullOrWhiteSpace(title))
+				.Select(title => title!)
+				.Distinct(StringComparer.Ordinal)
+				.OrderBy(title => title)
+				.ToList();
+
+			if (brokerSponsoredCourses.Count == 0)
+			{
+				continue;
+			}
+
+			learnerCourses.Add(new BrokerSponsoredLearnerCourses(
+				learner.LearnerId,
+				learner.LearnerName,
+				learner.LearnerEmail,
+				brokerSponsoredCourses));
+		}
+
+		_brokerSponsoredLearnerCourses = learnerCourses
+			.OrderBy(item => item.LearnerName)
+			.ToList();
+	}
+
+	private async Task EnrollSelectedLearnerAsync()
+	{
+		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue)
+		{
+			_SupportStatus = "Select learner and course before enrolling.";
+			_SupportSucceeded = false;
+			return;
+		}
+
+		var result = await EnrollmentService.EnrollLearnerByBrokerAsync(_brokerUserId, _selectedLearnerId.Value, _selectedCourseId.Value, _brokerUserId, _actorEmail);
+		_SupportStatus = result.Message;
+		_SupportSucceeded = result.Succeeded;
+		await RefreshBrokerDataAsync();
+		await RefreshSupportContextAsync();
+	}
+
+	private bool CanEnroll()
+	{
+		return HasValidSelection() && !IsSelectedLearnerEnrolledInSelectedCourse();
+	}
+
+	private bool CanUnenroll()
+	{
+		return HasValidSelection() && IsSelectedCourseBrokerEnrolledForLearner();
+	}
+
+	private bool HasValidSelection()
+	{
+		return _selectedLearnerId.HasValue
+			&& _selectedCourseId.HasValue
+			&& _availableCourses.Any(item => item.Id == _selectedCourseId.Value);
+	}
+
+	private bool IsSelectedLearnerEnrolledInSelectedCourse()
+	{
+		if (!_selectedCourseId.HasValue)
+		{
+			return false;
+		}
+
+		return _currentEnrollments.Any(item => item.CourseId == _selectedCourseId.Value);
+	}
+
+	private bool IsSelectedCourseBrokerEnrolledForLearner()
+	{
+		if (!_selectedCourseId.HasValue)
+		{
+			return false;
+		}
+
+		var enrollment = _currentEnrollments.FirstOrDefault(item => item.CourseId == _selectedCourseId.Value);
+		return enrollment is not null && IsBrokerEnrolledByCurrentBroker(enrollment);
+	}
+
+	private bool IsBrokerEnrolledByCurrentBroker(Enrollment enrollment)
+	{
+		return string.Equals(enrollment.EnrollmentSource, "BrokerSponsored", StringComparison.Ordinal)
+			&& enrollment.SponsoredByBrokerUserId == _brokerUserId;
+	}
+
+	private async Task UnenrollSelectedLearnerAsync()
+	{
+		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue)
+		{
+			_SupportStatus = "Select learner and course before unenrolling.";
+			_SupportSucceeded = false;
+			return;
+		}
+
+		var selectedEnrollment = _currentEnrollments.FirstOrDefault(item => item.CourseId == _selectedCourseId.Value);
+		if (selectedEnrollment is null)
+		{
+			_SupportStatus = "Selected learner is not enrolled in this course.";
+			_SupportSucceeded = false;
+			return;
+		}
+
+		if (!IsBrokerEnrolledByCurrentBroker(selectedEnrollment))
+		{
+			_SupportStatus = "This course is learner enrolled and cannot be removed by broker support.";
+			_SupportSucceeded = false;
+			return;
+		}
+
+		var currentCourse = selectedEnrollment;
+		if (!await ConfirmAsync($"Unenroll learner from {currentCourse?.Course?.Title ?? "the selected course"}?"))
+		{
+			_SupportStatus = "Unenroll action cancelled.";
+			_SupportSucceeded = false;
+			return;
+		}
+
+		var result = await EnrollmentService.UnenrollLearnerByBrokerAsync(_brokerUserId, _selectedLearnerId.Value, _selectedCourseId.Value, _brokerUserId, _actorEmail);
+		_SupportStatus = result.Message;
+		_SupportSucceeded = result.Succeeded;
+		await RefreshBrokerDataAsync();
+		await RefreshSupportContextAsync();
+	}
+
+	private string GetSupportStatusClass()
+	{
+		return _SupportSucceeded == true ? "status-badge status-success" : "status-badge status-error";
+	}
+
+	private List<Enrollment> GetBrokerSponsoredEnrollments()
+	{
+		return _currentEnrollments
+			.Where(enrollment => string.Equals(enrollment.EnrollmentSource, "BrokerSponsored", StringComparison.Ordinal) && enrollment.SponsoredByBrokerUserId.HasValue)
+			.ToList();
+	}
+
+	private List<SupportEnrollmentCourseDisplay> GetSelectedLearnerEnrolledCourses()
+	{
+		return SupportEnrollmentDisplay.BuildCourseDisplays(
+			_currentEnrollments.Where(enrollment => string.Equals(enrollment.EnrollmentSource, "LearnerPurchase", StringComparison.Ordinal)),
+			_brokerUserId);
+	}
+
+	private async Task<bool> ConfirmAsync(string message)
+	{
+		return await JS.InvokeAsync<bool>("confirm", message);
+	}
+
+	protected override void OnParametersSet()
+	{
+		NormalizedSection = NormalizeSection(Section);
+	}
+
+	private bool IsSectionVisible(string sectionName)
+	{
+		return IsDashboardView || string.Equals(NormalizedSection, sectionName, StringComparison.Ordinal);
+	}
+
+	private static string NormalizeSection(string? section)
+	{
+		return (section ?? string.Empty).Trim().ToLowerInvariant() switch
+		{
+			"" => "dashboard",
+			"dashboard" => "dashboard",
+			"portfolio" => "portfolio",
+			"compliance" => "compliance",
+			"blocked" => "blocked",
+			"certificates" => "certificates",
+			"support" => "support",
+			"logs" => "logs",
+			_ => "dashboard"
+		};
+	}
+
+	private static string ToHeadingCase(string section)
+	{
+		return section switch
+		{
+			"portfolio" => "Portfolio",
+			"compliance" => "Compliance",
+			"blocked" => "Assessment Blocked",
+			"certificates" => "Certificates",
+			"support" => "Enrollment Support",
+			"logs" => "Learner Logs",
+			_ => "Broker Dashboard"
+		};
+	}
+
+	public sealed record BrokerSponsoredLearnerCourses(Guid LearnerId, string LearnerName, string LearnerEmail, IReadOnlyList<string> CourseTitles);
+
+	private static string BuildVerifyLink(string certificateNumber, string verificationCode)
+	{
+		return $"/verify-certificate?certificateNumber={Uri.EscapeDataString(certificateNumber)}&verificationCode={Uri.EscapeDataString(verificationCode)}";
+	}
+}

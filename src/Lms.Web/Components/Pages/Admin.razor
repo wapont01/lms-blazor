@@ -1,0 +1,12 @@
+@page "/admin"
+@attribute [Authorize(Roles = "Admin")]
+@inject NavigationManager Navigation
+
+<PageTitle>Admin</PageTitle>
+
+@code {
+	protected override void OnInitialized()
+	{
+		Navigation.NavigateTo("/admin/courses", replace: true);
+	}
+}

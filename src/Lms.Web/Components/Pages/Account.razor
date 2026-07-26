@@ -1,0 +1,119 @@
+@page "/account"
+@attribute [Authorize]
+@using System.Security.Claims
+@using Lms.Application.Services
+@inject IUserAccountService UserAccountService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Account</PageTitle>
+
+<h1>Account Security</h1>
+
+<div class="dashboard-grid">
+    <section class="card auth-card">
+        <h2>Change Password</h2>
+
+        @if (_forceChangeRequired)
+        {
+            <p class="auth-error">Your password was reset by an administrator. You must set a new password to continue.</p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <p class="auth-help">@_message</p>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(_error))
+        {
+            <p class="auth-error">@_error</p>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="ChangePasswordAsync" FormName="change-password-form">
+            <AntiforgeryToken />
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-field">
+                <label>Current Password</label>
+                <InputText @bind-Value="_model.CurrentPassword" type="password" />
+            </div>
+            <div class="form-field">
+                <label>New Password</label>
+                <InputText @bind-Value="_model.NewPassword" type="password" />
+            </div>
+            <div class="form-field">
+                <label>Confirm New Password</label>
+                <InputText @bind-Value="_model.ConfirmNewPassword" type="password" />
+            </div>
+
+            <button type="submit">Update Password</button>
+        </EditForm>
+    </section>
+</div>
+
+@code {
+    private Guid? _userId;
+    private string? _message;
+    private string? _error;
+    private bool _forceChangeRequired;
+    [SupplyParameterFromForm(FormName = "change-password-form")]
+    private ChangePasswordModel _model { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    public string? ForceChange { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (Guid.TryParse(userIdClaim, out var parsedUserId))
+        {
+            _userId = parsedUserId;
+        }
+
+        _forceChangeRequired = string.Equals(ForceChange, "1", StringComparison.Ordinal);
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        _message = null;
+        _error = null;
+
+        if (!_userId.HasValue)
+        {
+            _error = "Unable to identify your account.";
+            return;
+        }
+
+        if (!string.Equals(_model.NewPassword, _model.ConfirmNewPassword, StringComparison.Ordinal))
+        {
+            _error = "New password and confirmation do not match.";
+            return;
+        }
+
+        try
+        {
+            await UserAccountService.ChangePasswordAsync(_userId.Value, _model.CurrentPassword, _model.NewPassword);
+            _model = new ChangePasswordModel();
+            _message = "Password updated successfully.";
+        }
+        catch (InvalidOperationException exception)
+        {
+            _error = exception.Message;
+        }
+    }
+
+    private sealed class ChangePasswordModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.MinLength(10)]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string ConfirmNewPassword { get; set; } = string.Empty;
+    }
+}

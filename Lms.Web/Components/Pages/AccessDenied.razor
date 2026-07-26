@@ -1,0 +1,11 @@
+@page "/access-denied"
+@attribute [AllowAnonymous]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Access denied</PageTitle>
+
+<div class="card auth-card">
+    <h1>Access denied</h1>
+    <p>You are signed in, but your role does not allow access to this page.</p>
+    <a href="/">Return home</a>
+</div>

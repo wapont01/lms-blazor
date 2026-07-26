@@ -1,0 +1,104 @@
+@page "/verify-certificate"
+@using Lms.Application.Services
+@inject IEnrollmentService EnrollmentService
+
+<PageTitle>Verify Certificate</PageTitle>
+
+<h1>Certificate Verification</h1>
+
+<p class="muted-text">Enter the certificate number and verification code shown on the certificate PDF.</p>
+
+<div class="card auth-card">
+    <EditForm Model="_form" OnValidSubmit="VerifyAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="form-field">
+            <label>Certificate Number</label>
+            <InputText @bind-Value="_form.CertificateNumber" />
+        </div>
+
+        <div class="form-field">
+            <label>Verification Code</label>
+            <InputText @bind-Value="_form.VerificationCode" />
+        </div>
+
+        <button type="submit">Verify Certificate</button>
+    </EditForm>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_resultMessage))
+{
+    <p class="@(_isValid ? "auth-help" : "auth-error")">@_resultMessage</p>
+}
+
+@if (_result is not null)
+{
+    <section class="card" style="margin-top: 1rem;">
+        <h2>Verification Result</h2>
+        <table class="simple-table">
+            <tbody>
+                <tr><th>Certificate Number</th><td>@_result.CertificateNumber</td></tr>
+                <tr><th>Verification Code</th><td><code>@_result.VerificationCode</code></td></tr>
+                <tr><th>Learner</th><td>@_result.LearnerName</td></tr>
+                <tr><th>Course</th><td>@_result.CourseTitle</td></tr>
+                <tr><th>Issued (UTC)</th><td>@_result.IssuedAt.ToString("u")</td></tr>
+                <tr><th>Expires (UTC)</th><td>@_result.ExpiresAt.ToString("u")</td></tr>
+                <tr><th>Status</th><td>@_result.Status</td></tr>
+                <tr><th>Revoked</th><td>@(_result.IsRevoked ? "Yes" : "No")</td></tr>
+                @if (!string.IsNullOrWhiteSpace(_result.RevocationReason))
+                {
+                    <tr><th>Revocation Reason</th><td>@_result.RevocationReason</td></tr>
+                }
+            </tbody>
+        </table>
+    </section>
+}
+
+@code {
+    [SupplyParameterFromQuery] private string? CertificateNumber { get; set; }
+    [SupplyParameterFromQuery] private string? VerificationCode { get; set; }
+
+    private VerifyForm _form = new();
+    private CertificateDownloadPayload? _result;
+    private string? _resultMessage;
+    private bool _isValid;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrWhiteSpace(CertificateNumber) && !string.IsNullOrWhiteSpace(VerificationCode))
+        {
+            _form.CertificateNumber = CertificateNumber;
+            _form.VerificationCode = VerificationCode;
+            await VerifyAsync();
+        }
+    }
+
+    private async Task VerifyAsync()
+    {
+        _result = null;
+        _isValid = false;
+        _resultMessage = null;
+
+        var payload = await EnrollmentService.VerifyCertificateAsync(_form.CertificateNumber, _form.VerificationCode);
+
+        if (payload is null)
+        {
+            _resultMessage = "Certificate could not be verified. Check the number and verification code.";
+            return;
+        }
+
+        _result = payload;
+        _isValid = true;
+        _resultMessage = "Certificate verified successfully.";
+    }
+
+    private sealed class VerifyForm
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string CertificateNumber { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string VerificationCode { get; set; } = string.Empty;
+    }
+}

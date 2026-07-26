@@ -1,0 +1,63 @@
+@page "/login"
+@attribute [AllowAnonymous]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Login</PageTitle>
+
+<div class="card auth-card">
+    <h1>Sign in</h1>
+
+    @if (_hasError)
+    {
+        <p class="auth-error">@GetErrorMessage()</p>
+    }
+
+    <form method="post" action="/auth/login" class="auth-form">
+        <input type="hidden" name="returnUrl" value="@GetReturnUrl()" />
+
+        <div class="form-field">
+            <label>Email</label>
+            <input type="email" name="email" autocomplete="username" value="learner@lms.com" />
+        </div>
+
+        <div class="form-field">
+            <label>Password</label>
+            <input type="password" name="password" autocomplete="current-password" value="Learner123!" />
+        </div>
+
+        <button type="submit">Sign in</button>
+    </form>
+
+    <p class="auth-help">
+        Seeded users: admin@lms.com / Admin123!, instructor@lms.com / Instructor123!, broker@lms.com / Broker123!, learner@lms.com / Learner123!, learner2@lms.com / Learner234!
+    </p>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    [SupplyParameterFromQuery]
+    public int? LockoutMinutes { get; set; }
+
+    private bool _hasError => !string.IsNullOrWhiteSpace(Error);
+
+    private string GetReturnUrl()
+    {
+        return string.IsNullOrWhiteSpace(ReturnUrl) ? "/" : ReturnUrl!;
+    }
+
+    private string GetErrorMessage()
+    {
+        return Error?.ToLowerInvariant() switch
+        {
+            "inactive" => "This account is disabled. Contact an administrator.",
+            "locked" => $"Too many failed attempts. Try again in {Math.Max(LockoutMinutes ?? 15, 1)} minute(s).",
+            "expired" => "Your password has expired. Contact an administrator for a reset.",
+            _ => "Invalid email or password."
+        };
+    }
+}

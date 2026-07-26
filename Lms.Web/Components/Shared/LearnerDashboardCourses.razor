@@ -1,0 +1,49 @@
+@using Lms.Application.Services
+
+@if (Courses.Count > 0)
+{
+    <div class="course-grid">
+        @foreach (var course in Courses)
+        {
+            <div class="card">
+                <h3>@course.Title</h3>
+                <p>@course.Description</p>
+                <p><strong>Duration:</strong> @course.DurationHours.ToString("0.##") hours</p>
+                <p><strong>Progress:</strong> @course.ProgressPercent.ToString("0")%</p>
+                <p><strong>Status:</strong> <span class="@(IsCompletedStatus(course.Status) ? "status-completed" : null)">@course.Status</span></p>
+
+                <div class="course-actions">
+                    <a href="@BuildCourseUri(course.CourseId)">Open</a>
+                    @if (course.CertificateId.HasValue)
+                    {
+                        <a href="/certificates/@course.CertificateId.Value/download">Download Certificate</a>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter]
+    public IReadOnlyList<LearnerDashboardCourseCard> Courses { get; set; } = [];
+
+    [Parameter]
+    public Guid? LearnerId { get; set; }
+
+    private string BuildCourseUri(Guid courseId)
+    {
+        var courseUri = $"/courses/{courseId}";
+        if (!LearnerId.HasValue)
+        {
+            return courseUri;
+        }
+
+        return $"{courseUri}?learnerId={Uri.EscapeDataString(LearnerId.Value.ToString())}";
+    }
+
+    private static bool IsCompletedStatus(string status)
+    {
+        return string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase);
+    }
+}

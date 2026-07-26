@@ -1,0 +1,243 @@
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+
+<section class="card" id="admin-assessment-editor">
+    <h2>Assessment Editor</h2>
+
+    @if (!string.IsNullOrWhiteSpace(AssessmentError))
+    {
+        <p class="auth-error">@AssessmentError</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(AssessmentMessage))
+    {
+        <p class="auth-help">@AssessmentMessage</p>
+    }
+
+    <div class="form-row">
+        <div class="form-field">
+            <label>Course</label>
+            <select value="@AssessmentCourseIdText" @onchange="OnAssessmentCourseChanged">
+                <option value="">Select a course</option>
+                @foreach (var course in Courses)
+                {
+                    <option value="@course.Id">@course.Title</option>
+                }
+            </select>
+        </div>
+        <div class="form-field">
+            <label>&nbsp;</label>
+            <button type="button" @onclick="OnLoadAssessmentEditor">Load Assessment</button>
+        </div>
+    </div>
+
+    @if (AssessmentEditor is not null)
+    {
+        <div class="form-field">
+            <label>Assessment Title</label>
+            <InputText @bind-Value="AssessmentEditor.Title" />
+        </div>
+        <div class="form-field">
+            <label>Pass Percent</label>
+            <InputNumber @bind-Value="AssessmentEditor.PassPercent" />
+        </div>
+        <div class="form-row">
+            <div class="form-field">
+                <label>Learner Attempt Policy</label>
+                <p class="muted-text">Base limit is fixed at 1 attempt, or 2 if the first attempt fails. Use retake grants below to allow additional attempts.</p>
+            </div>
+            <div class="form-field">
+                <label>Retake Cooldown Minutes</label>
+                <InputNumber @bind-Value="AssessmentEditor.RetakeCooldownMinutes" />
+            </div>
+        </div>
+
+        <h3>Questions</h3>
+        @for (var index = 0; index < AssessmentEditor.Questions.Count; index++)
+        {
+            var question = AssessmentEditor.Questions[index];
+            <article class="course-item">
+                <div class="form-field">
+                    <label>Question @(index + 1)</label>
+                    <InputTextArea @bind-Value="question.Prompt" />
+                </div>
+                <div class="form-field">
+                    <label>Option A</label>
+                    <InputText @bind-Value="question.OptionA" />
+                </div>
+                <div class="form-field">
+                    <label>Option B</label>
+                    <InputText @bind-Value="question.OptionB" />
+                </div>
+                <div class="form-field">
+                    <label>Option C</label>
+                    <InputText @bind-Value="question.OptionC" />
+                </div>
+                <div class="form-field">
+                    <label>Option D</label>
+                    <InputText @bind-Value="question.OptionD" />
+                </div>
+                <div class="form-field">
+                    <label>Feedback Text (optional remediation tip)</label>
+                    <InputTextArea @bind-Value="question.FeedbackText" />
+                </div>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label>Correct Option</label>
+                        <InputSelect @bind-Value="question.CorrectOption">
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                        </InputSelect>
+                    </div>
+                    <div class="form-field">
+                        <label>&nbsp;</label>
+                        <button type="button" @onclick="() => OnRemoveAssessmentQuestion.InvokeAsync(index)">Remove Question</button>
+                    </div>
+                </div>
+            </article>
+        }
+
+        <div class="course-actions">
+            <button type="button" @onclick="OnAddAssessmentQuestion">Add Question</button>
+            <button type="button" @onclick="OnSaveAssessmentEditor">Save Assessment</button>
+        </div>
+
+        <h3>Grant Retake Attempts</h3>
+        <div class="form-row">
+            <div class="form-field">
+                <label>Learner</label>
+                <select @onchange="OnRetakeLearnerChanged">
+                    <option value="">Select learner</option>
+                    @foreach (var learner in Users.Where(user => user.Role == "Learner"))
+                    {
+                        <option value="@learner.Id">@learner.DisplayName (@learner.Email)</option>
+                    }
+                </select>
+            </div>
+            <div class="form-field">
+                <label>Additional Attempts</label>
+                <InputNumber Value="RetakeGrantAttempts" ValueChanged="RetakeGrantAttemptsChanged" ValueExpression="() => RetakeGrantAttempts" />
+            </div>
+        </div>
+        <div class="form-field checkbox-field">
+            <label>
+                <InputCheckbox Value="ResetCooldownTimerOnRetakeGrant" ValueChanged="ResetCooldownTimerOnRetakeGrantChanged" ValueExpression="() => ResetCooldownTimerOnRetakeGrant" />
+                Reset cooldown timer immediately
+            </label>
+        </div>
+        <button type="button" @onclick="OnGrantRetake">Grant Retake</button>
+
+        <h3>Existing Retake Grants</h3>
+        @if (RetakeGrants.Count == 0)
+        {
+            <p class="muted-text">No retake grants configured for this course.</p>
+        }
+        else
+        {
+            <table class="simple-table">
+                <thead>
+                    <tr>
+                        <th>Learner</th>
+                        <th>Attempts</th>
+                        <th>Last Updated</th>
+                        <th>Updated By</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var grant in RetakeGrants)
+                    {
+                        <tr>
+                            <td>@grant.LearnerDisplay</td>
+                            <td>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value="@GetRetakeGrantDraft(grant.LearnerUserId, grant.GrantedAttempts)"
+                                    @oninput="@(args => SetRetakeGrantDraft(grant.LearnerUserId, args.Value?.ToString()))" />
+                            </td>
+                            <td>@grant.GrantedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@grant.GrantedByAdminDisplay</td>
+                            <td>
+                                <div class="action-stack">
+                                    <button type="button" @onclick="() => OnUpdateRetakeGrant.InvokeAsync(grant)">Save</button>
+                                    <button type="button" @onclick="() => OnRevokeRetakeGrant.InvokeAsync(grant)">Revoke</button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+</section>
+
+@code {
+    [Parameter]
+    public string? AssessmentError { get; set; }
+
+    [Parameter]
+    public string? AssessmentMessage { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<Course> Courses { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<UserAccount> Users { get; set; } = [];
+
+    [Parameter]
+    public string AssessmentCourseIdText { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<ChangeEventArgs> OnAssessmentCourseChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnLoadAssessmentEditor { get; set; }
+
+    [Parameter]
+    public AssessmentEditorModel? AssessmentEditor { get; set; }
+
+    [Parameter]
+    public EventCallback OnAddAssessmentQuestion { get; set; }
+
+    [Parameter]
+    public EventCallback<int> OnRemoveAssessmentQuestion { get; set; }
+
+    [Parameter]
+    public EventCallback OnSaveAssessmentEditor { get; set; }
+
+    [Parameter]
+    public EventCallback<ChangeEventArgs> OnRetakeLearnerChanged { get; set; }
+
+    [Parameter]
+    public int RetakeGrantAttempts { get; set; }
+
+    [Parameter]
+    public EventCallback<int> RetakeGrantAttemptsChanged { get; set; }
+
+    [Parameter]
+    public bool ResetCooldownTimerOnRetakeGrant { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> ResetCooldownTimerOnRetakeGrantChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnGrantRetake { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<RetakeGrantView> RetakeGrants { get; set; } = [];
+
+    [Parameter]
+    public Func<Guid, int, int> GetRetakeGrantDraft { get; set; } = (_, fallback) => fallback;
+
+    [Parameter]
+    public Action<Guid, string?> SetRetakeGrantDraft { get; set; } = (_, _) => { };
+
+    [Parameter]
+    public EventCallback<RetakeGrantView> OnUpdateRetakeGrant { get; set; }
+
+    [Parameter]
+    public EventCallback<RetakeGrantView> OnRevokeRetakeGrant { get; set; }
+}

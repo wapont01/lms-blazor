@@ -1,0 +1,674 @@
+@attribute [Authorize(Roles = "Admin")]
+@using System.Security.Claims
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@using Lms.Web.Components.Shared.Admin
+@inject ICourseService CourseService
+@inject IUserAccountService UserAccountService
+@inject IAuditLogService AuditLogService
+@inject IEnrollmentService EnrollmentService
+@inject IAssessmentService AssessmentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Admin</PageTitle>
+
+<h1>@PageHeading</h1>
+
+<div class="dashboard-grid">
+	@if (IsSectionVisible("courses"))
+	{
+		<AdminCoursesPanel
+			Draft="_draft"
+			OnCreateCourse="CreateCourseAsync"
+			Courses="_courses"
+			OnTogglePublish="TogglePublishAsync"
+			OnToggleArchive="ToggleArchiveAsync" />
+	}
+
+	@if (IsSectionVisible("assessments"))
+	{
+		<AdminAssessmentsPanel
+			AssessmentError="@_assessmentError"
+			AssessmentMessage="@_assessmentMessage"
+			Courses="_courses"
+			Users="_users"
+			AssessmentCourseIdText="@_assessmentCourseIdText"
+			OnAssessmentCourseChanged="OnAssessmentCourseChanged"
+			OnLoadAssessmentEditor="LoadAssessmentEditorAsync"
+			AssessmentEditor="_assessmentEditor"
+			OnAddAssessmentQuestion="AddAssessmentQuestion"
+			OnRemoveAssessmentQuestion="RemoveAssessmentQuestion"
+			OnSaveAssessmentEditor="SaveAssessmentEditorAsync"
+			OnRetakeLearnerChanged="OnRetakeLearnerChanged"
+			RetakeGrantAttempts="_retakeGrantAttempts"
+			RetakeGrantAttemptsChanged="OnRetakeGrantAttemptsChanged"
+			ResetCooldownTimerOnRetakeGrant="_resetCooldownTimerOnRetakeGrant"
+			ResetCooldownTimerOnRetakeGrantChanged="OnResetCooldownTimerOnRetakeGrantChanged"
+			OnGrantRetake="GrantRetakeAsync"
+			RetakeGrants="_retakeGrants"
+			GetRetakeGrantDraft="GetRetakeGrantDraft"
+			SetRetakeGrantDraft="SetRetakeGrantDraft"
+			OnUpdateRetakeGrant="UpdateRetakeGrantAsync"
+			OnRevokeRetakeGrant="RevokeRetakeGrantAsync" />
+	}
+
+	@if (IsSectionVisible("users"))
+	{
+		<AdminUsersPanel
+			UserError="@_userError"
+			NewUser="_newUser"
+			OnCreateUser="CreateUserAsync"
+			Users="_users"
+			Roles="_roles"
+			GetResetPassword="GetResetPassword"
+			SetResetPassword="SetResetPassword"
+			OnToggleUser="ToggleUserAsync"
+			OnResetPassword="ResetPasswordAsync"
+			ChangeRole="ChangeRoleAsync" />
+	}
+
+	@if (IsSectionVisible("audit"))
+	{
+		<AdminAuditPanel
+			@bind-AuditFilterActor="_auditFilterActor"
+			@bind-AuditFilterAction="_auditFilterAction"
+			@bind-AuditFromUtc="_auditFromUtc"
+			@bind-AuditToUtc="_auditToUtc"
+			AuditLogs="_auditLogs"
+			AuditCsvDataUrl="@_auditCsvDataUrl"
+			OnApplyFilter="ApplyAuditFilterAsync"
+			OnClearFilter="ClearAuditFilterAsync"
+			OnExportCsv="ExportAuditAsync" />
+	}
+
+	@if (IsSectionVisible("certificates"))
+	{
+		<AdminCertificatesPanel
+			CertificateSummary="_certificateSummary"
+			CertificateRows="_certificateRows"
+			BuildVerifyLink="BuildVerifyLink"
+			OnRenewCertificate="RenewCertificateAsync" />
+	}
+	
+	@if (IsSectionVisible("logs"))
+	{
+		<section class="card">
+			<h2>Learner Logs</h2>
+
+			<div class="form-row">
+				<div class="form-field">
+					<label>Learner</label>
+					<select value="@(_selectedLogsLearnerId?.ToString() ?? string.Empty)" @onchange="OnLogsLearnerChangedAsync">
+						<option value="">Select learner</option>
+						@foreach (var learner in _users.Where(user => user.Role == "Learner"))
+						{
+							<option value="@learner.Id">@learner.DisplayName (@learner.Email)</option>
+						}
+					</select>
+				</div>
+			</div>
+
+			@if (_adminLogs.Count == 0)
+			{
+				<p class="muted-text">No log events available for the selected learner.</p>
+			}
+			else
+			{
+				<table class="simple-table">
+					<thead>
+						<tr>
+							<th>Timestamp (UTC)</th>
+							<th>Type</th>
+							<th>Title</th>
+							<th>Details</th>
+						</tr>
+					</thead>
+					<tbody>
+						@foreach (var item in _adminLogs)
+						{
+							<tr>
+								<td>@item.TimestampUtc.ToString("yyyy-MM-dd HH:mm")</td>
+								<td>@item.Type</td>
+								<td>@item.Title</td>
+								<td>@item.Details</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			}
+		</section>
+	}
+</div>
+
+@code {
+	[Parameter]
+	public string? Section { get; set; } = "dashboard";
+
+	private string NormalizedSection { get; set; } = "dashboard";
+
+	private bool IsDashboardView => string.Equals(NormalizedSection, "dashboard", StringComparison.Ordinal);
+
+	private string PageHeading => IsDashboardView ? "Admin" : ToHeadingCase(NormalizedSection);
+
+	private List<Course> _courses = new();
+	private List<UserAccount> _users = new();
+	private List<AuditLog> _auditLogs = new();
+	private CertificateComplianceSummary _certificateSummary = new(0, 0, 0, 0, 0);
+	private List<CertificateComplianceRow> _certificateRows = new();
+	private readonly Dictionary<Guid, string> _resetPasswords = new();
+	private AssessmentEditorModel? _assessmentEditor;
+	private Guid? _assessmentCourseId;
+	private string _assessmentCourseIdText = string.Empty;
+	private string? _assessmentError;
+	private string? _assessmentMessage;
+	private Guid? _retakeLearnerId;
+	private int _retakeGrantAttempts = 1;
+	private bool _resetCooldownTimerOnRetakeGrant = true;
+	private List<RetakeGrantView> _retakeGrants = new();
+	private readonly Dictionary<Guid, int> _retakeGrantDraftAttempts = new();
+	private string _auditFilterActor = string.Empty;
+	private string _auditFilterAction = string.Empty;
+	private DateTime? _auditFromUtc;
+	private DateTime? _auditToUtc;
+	private string? _auditCsvDataUrl;
+	private Guid? _selectedLogsLearnerId;
+	private List<LearnerLogItem> _adminLogs = new();
+	private readonly string[] _roles = ["Admin", "Instructor", "Broker", "Learner"];
+	private string? _userError;
+	private Guid? _actorUserId;
+	private string _actorEmail = "admin@lms.local";
+	private Course _draft = new()
+	{
+		Level = "Beginner",
+		Jurisdiction = "General",
+		DurationHours = 0,
+		CreditHours = 0,
+		Price = 0m
+	};
+	private AdminCreateUserModel _newUser = new();
+
+	protected override async Task OnInitializedAsync()
+	{
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var user = authState.User;
+
+		var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+		if (Guid.TryParse(idClaim, out var parsedId))
+		{
+			_actorUserId = parsedId;
+		}
+
+		_actorEmail = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? _actorEmail;
+
+		await RefreshCoursesAsync();
+		await RefreshUsersAsync();
+		await RefreshAuditAsync();
+		await RefreshCertificatesAsync();
+
+		if (_selectedLogsLearnerId is null)
+		{
+			_selectedLogsLearnerId = _users.FirstOrDefault(user => user.Role == "Learner")?.Id;
+		}
+
+		if (_selectedLogsLearnerId.HasValue)
+		{
+			_adminLogs = await EnrollmentService.GetLearnerLogsAsync(_selectedLogsLearnerId.Value);
+		}
+	}
+
+	protected override void OnParametersSet()
+	{
+		NormalizedSection = NormalizeSection(Section);
+	}
+
+	private bool IsSectionVisible(string sectionName)
+	{
+		return IsDashboardView || string.Equals(NormalizedSection, sectionName, StringComparison.Ordinal);
+	}
+
+	private static string NormalizeSection(string? section)
+	{
+		return (section ?? string.Empty).Trim().ToLowerInvariant() switch
+		{
+			"" => "dashboard",
+			"dashboard" => "dashboard",
+			"courses" => "courses",
+			"assessments" => "assessments",
+			"users" => "users",
+			"audit" => "audit",
+			"certificates" => "certificates",
+			"logs" => "logs",
+			_ => "dashboard"
+		};
+	}
+
+	private static string ToHeadingCase(string section)
+	{
+		return section switch
+		{
+			"courses" => "Courses",
+			"assessments" => "Assessments",
+			"users" => "Users",
+			"audit" => "Audit",
+			"certificates" => "Certificates",
+			"logs" => "Learner Logs",
+			_ => "Dashboard"
+		};
+	}
+
+	private async Task OnLogsLearnerChangedAsync(ChangeEventArgs args)
+	{
+		if (!Guid.TryParse(args.Value?.ToString(), out var learnerId))
+		{
+			_selectedLogsLearnerId = null;
+			_adminLogs = new();
+			return;
+		}
+
+		_selectedLogsLearnerId = learnerId;
+		_adminLogs = await EnrollmentService.GetLearnerLogsAsync(learnerId);
+	}
+
+	private async Task CreateCourseAsync()
+	{
+		_draft.Slug = CreateSlug(_draft.Title);
+		_draft.IsArchived = false;
+
+		await CourseService.CreateAsync(_draft);
+
+		_draft = new Course
+		{
+			Level = "Beginner",
+			Jurisdiction = "General",
+			DurationHours = 0,
+			CreditHours = 0,
+			Price = 0m
+		};
+
+		await RefreshCoursesAsync();
+	}
+
+	private async Task TogglePublishAsync(Course course)
+	{
+		course.IsPublished = !course.IsPublished;
+		await CourseService.UpdateAsync(course);
+		await RefreshCoursesAsync();
+	}
+
+	private async Task ToggleArchiveAsync(Course course)
+	{
+		course.IsArchived = !course.IsArchived;
+		if (course.IsArchived)
+		{
+			course.IsPublished = false;
+		}
+
+		await CourseService.UpdateAsync(course);
+		await RefreshCoursesAsync();
+	}
+
+	private async Task RefreshCoursesAsync()
+	{
+		_courses = await CourseService.GetAllAsync();
+
+		if (_courses.Count > 0 && _assessmentCourseId is null)
+		{
+			_assessmentCourseId = _courses[0].Id;
+			_assessmentCourseIdText = _assessmentCourseId.Value.ToString();
+		}
+	}
+
+	private Task OnAssessmentCourseChanged(ChangeEventArgs args)
+	{
+		_assessmentCourseIdText = args.Value?.ToString() ?? string.Empty;
+		_assessmentCourseId = Guid.TryParse(_assessmentCourseIdText, out var parsed) ? parsed : null;
+		_assessmentEditor = null;
+		_assessmentError = null;
+		_assessmentMessage = null;
+		_retakeGrants.Clear();
+		_retakeGrantDraftAttempts.Clear();
+		return Task.CompletedTask;
+	}
+
+	private async Task LoadAssessmentEditorAsync()
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (!_assessmentCourseId.HasValue)
+		{
+			_assessmentError = "Select a course first.";
+			return;
+		}
+
+		_assessmentEditor = await AssessmentService.GetAssessmentEditorAsync(_assessmentCourseId.Value);
+		_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+		_retakeGrantDraftAttempts.Clear();
+		_assessmentMessage = _assessmentEditor is null
+			? "No assessment is available for this course."
+			: "Assessment loaded.";
+	}
+
+	private void AddAssessmentQuestion()
+	{
+		_assessmentEditor ??= new AssessmentEditorModel();
+
+		_assessmentEditor.Questions.Add(new AssessmentQuestionEditorItem
+		{
+			OrderIndex = _assessmentEditor.Questions.Count + 1,
+			CorrectOption = "A",
+			Prompt = "",
+			OptionA = "",
+			OptionB = "",
+			OptionC = "",
+			OptionD = ""
+		});
+	}
+
+	private void RemoveAssessmentQuestion(int index)
+	{
+		if (_assessmentEditor is null || index < 0 || index >= _assessmentEditor.Questions.Count)
+		{
+			return;
+		}
+
+		_assessmentEditor.Questions.RemoveAt(index);
+		for (var i = 0; i < _assessmentEditor.Questions.Count; i++)
+		{
+			_assessmentEditor.Questions[i].OrderIndex = i + 1;
+		}
+	}
+
+	private async Task SaveAssessmentEditorAsync()
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (!_assessmentCourseId.HasValue || _assessmentEditor is null)
+		{
+			_assessmentError = "Load an assessment before saving.";
+			return;
+		}
+
+		if (!_actorUserId.HasValue)
+		{
+			_assessmentError = "Unable to identify the signed in admin account.";
+			return;
+		}
+
+		try
+		{
+			await AssessmentService.SaveAssessmentEditorAsync(_assessmentCourseId.Value, _assessmentEditor, _actorUserId.Value, _actorEmail);
+			_assessmentMessage = "Assessment saved. Existing attempts were reset for this course.";
+			await RefreshCertificatesAsync();
+			await RefreshAuditAsync();
+			await LoadAssessmentEditorAsync();
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
+	}
+
+	private Task OnRetakeLearnerChanged(ChangeEventArgs args)
+	{
+		_retakeLearnerId = Guid.TryParse(args.Value?.ToString(), out var parsed) ? parsed : null;
+		return Task.CompletedTask;
+	}
+
+	private Task OnRetakeGrantAttemptsChanged(int value)
+	{
+		_retakeGrantAttempts = value;
+		return Task.CompletedTask;
+	}
+
+	private Task OnResetCooldownTimerOnRetakeGrantChanged(bool value)
+	{
+		_resetCooldownTimerOnRetakeGrant = value;
+		return Task.CompletedTask;
+	}
+
+	private async Task GrantRetakeAsync()
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (!_assessmentCourseId.HasValue || !_retakeLearnerId.HasValue)
+		{
+			_assessmentError = "Select both course and learner before granting retake.";
+			return;
+		}
+
+		if (!_actorUserId.HasValue)
+		{
+			_assessmentError = "Unable to identify the signed in admin account.";
+			return;
+		}
+
+		try
+		{
+			await AssessmentService.GrantRetakeAsync(_assessmentCourseId.Value, _retakeLearnerId.Value, Math.Max(_retakeGrantAttempts, 1), _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			_retakeGrantDraftAttempts.Clear();
+			_assessmentMessage = _resetCooldownTimerOnRetakeGrant
+				? "Retake attempts granted and cooldown timer reset successfully."
+				: "Retake attempts granted successfully.";
+			await RefreshAuditAsync();
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
+	}
+
+	private int GetRetakeGrantDraft(Guid learnerUserId, int fallback)
+	{
+		return _retakeGrantDraftAttempts.TryGetValue(learnerUserId, out var value) ? value : fallback;
+	}
+
+	private void SetRetakeGrantDraft(Guid learnerUserId, string? rawValue)
+	{
+		if (!int.TryParse(rawValue, out var parsed) || parsed < 1)
+		{
+			_retakeGrantDraftAttempts.Remove(learnerUserId);
+			return;
+		}
+
+		_retakeGrantDraftAttempts[learnerUserId] = parsed;
+	}
+
+	private async Task UpdateRetakeGrantAsync(RetakeGrantView grant)
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (!_assessmentCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_assessmentError = "Select a course and ensure an admin account is active.";
+			return;
+		}
+
+		var attempts = GetRetakeGrantDraft(grant.LearnerUserId, grant.GrantedAttempts);
+
+		try
+		{
+			await AssessmentService.SetRetakeGrantAttemptsAsync(_assessmentCourseId.Value, grant.LearnerUserId, attempts, _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			_retakeGrantDraftAttempts.Clear();
+			_assessmentMessage = _resetCooldownTimerOnRetakeGrant
+				? "Retake grant updated and cooldown timer reset."
+				: "Retake grant updated.";
+			await RefreshAuditAsync();
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
+	}
+
+	private async Task RevokeRetakeGrantAsync(RetakeGrantView grant)
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (!_assessmentCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_assessmentError = "Select a course and ensure an admin account is active.";
+			return;
+		}
+
+		try
+		{
+			await AssessmentService.RevokeRetakeGrantAsync(_assessmentCourseId.Value, grant.LearnerUserId, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			_retakeGrantDraftAttempts.Clear();
+			_assessmentMessage = "Retake grant revoked.";
+			await RefreshAuditAsync();
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
+	}
+
+	private async Task CreateUserAsync()
+	{
+		_userError = null;
+
+		try
+		{
+			await UserAccountService.CreateAsync(_newUser.Email, _newUser.DisplayName, _newUser.Password, _newUser.Role, _actorUserId, _actorEmail);
+			_newUser = new AdminCreateUserModel();
+			await RefreshUsersAsync();
+			await RefreshAuditAsync();
+		}
+		catch (InvalidOperationException exception)
+		{
+			_userError = exception.Message;
+		}
+	}
+
+	private async Task ChangeRoleAsync(Guid userId, string role)
+	{
+		await UserAccountService.UpdateRoleAsync(userId, role, _actorUserId, _actorEmail);
+		await RefreshUsersAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task ToggleUserAsync(Guid userId)
+	{
+		await UserAccountService.ToggleActiveAsync(userId, _actorUserId, _actorEmail);
+		await RefreshUsersAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task ResetPasswordAsync(Guid userId)
+	{
+		_userError = null;
+		var candidatePassword = GetResetPassword(userId);
+
+		try
+		{
+			if (!_actorUserId.HasValue)
+			{
+				throw new InvalidOperationException("Unable to identify the signed in admin account.");
+			}
+
+			await UserAccountService.AdminResetPasswordAsync(_actorUserId.Value, _actorEmail, userId, candidatePassword);
+			_resetPasswords[userId] = string.Empty;
+			await RefreshAuditAsync();
+		}
+		catch (InvalidOperationException exception)
+		{
+			_userError = exception.Message;
+		}
+	}
+
+	private string GetResetPassword(Guid userId)
+	{
+		return _resetPasswords.TryGetValue(userId, out var value) ? value : string.Empty;
+	}
+
+	private void SetResetPassword(Guid userId, string value)
+	{
+		_resetPasswords[userId] = value;
+	}
+
+	private async Task RefreshUsersAsync()
+	{
+		_users = await UserAccountService.GetAllAsync();
+	}
+
+	private async Task RefreshAuditAsync()
+	{
+		_auditLogs = await AuditLogService.GetRecentAsync(25);
+		_auditCsvDataUrl = null;
+	}
+
+	private async Task RefreshCertificatesAsync()
+	{
+		_certificateSummary = await EnrollmentService.GetCertificateComplianceSummaryAsync();
+		_certificateRows = await EnrollmentService.GetCertificateComplianceRowsAsync();
+	}
+
+	private async Task RenewCertificateAsync(Guid certificateId)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await EnrollmentService.RenewCertificateAsync(certificateId, _actorUserId.Value, _actorEmail);
+		await RefreshCertificatesAsync();
+		await RefreshAuditAsync();
+	}
+
+	private static string BuildVerifyLink(string certificateNumber, string verificationCode)
+	{
+		return $"/verify-certificate?certificateNumber={Uri.EscapeDataString(certificateNumber)}&verificationCode={Uri.EscapeDataString(verificationCode)}";
+	}
+
+	private async Task ApplyAuditFilterAsync()
+	{
+		_auditLogs = await AuditLogService.GetFilteredAsync(_auditFilterActor, _auditFilterAction, _auditFromUtc, _auditToUtc, 300);
+		_auditCsvDataUrl = null;
+	}
+
+	private async Task ClearAuditFilterAsync()
+	{
+		_auditFilterActor = string.Empty;
+		_auditFilterAction = string.Empty;
+		_auditFromUtc = null;
+		_auditToUtc = null;
+		await RefreshAuditAsync();
+	}
+
+	private Task ExportAuditAsync()
+	{
+		var csv = new System.Text.StringBuilder();
+		csv.AppendLine("CreatedAtUtc,ActorEmail,Action,TargetType,Details");
+
+		foreach (var log in _auditLogs)
+		{
+			var details = (log.Details ?? string.Empty).Replace("\"", "\"\"");
+			csv.AppendLine($"{log.CreatedAt:u},{log.ActorEmail},{log.Action},{log.TargetType},\"{details}\"");
+		}
+
+		_auditCsvDataUrl = $"data:text/csv;charset=utf-8,{Uri.EscapeDataString(csv.ToString())}";
+		return Task.CompletedTask;
+	}
+
+	private static string CreateSlug(string? title)
+	{
+		if (string.IsNullOrWhiteSpace(title))
+		{
+			return string.Empty;
+		}
+
+		var slug = title.Trim().ToLowerInvariant();
+		return string.Concat(slug.Select(character => char.IsLetterOrDigit(character) ? character : '-'))
+			.Replace("--", "-")
+			.Trim('-');
+	}
+
+}

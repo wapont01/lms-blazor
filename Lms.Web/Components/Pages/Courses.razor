@@ -1,0 +1,99 @@
+@page "/courses"
+@using System.Security.Claims
+@using Lms.Application.Services
+@inject ICourseService CourseService
+@inject IEnrollmentService EnrollmentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>Courses</PageTitle>
+
+<h1>Available Courses</h1>
+
+@if (_courses is null)
+{
+    <p>Loading courses...</p>
+}
+else
+{
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <p class="auth-help">@_message</p>
+    }
+
+    <div class="course-grid">
+        @foreach (var course in _courses)
+        {
+            <div class="card">
+                <h3>@course.Title</h3>
+                <p>@course.Description</p>
+                <p><strong>Duration:</strong> @course.DurationHours hours</p>
+                <div class="course-actions">
+                    @if (_canEnroll && !_enrolledCourseIds.Contains(course.Id))
+                    {
+                        <button type="button" @onclick="() => EnrollAsync(course.Id)">Enroll</button>
+                    }
+                    else if (_enrolledCourseIds.Contains(course.Id))
+                    {
+                        <span class="muted-text">Enrolled</span>
+                    }
+
+                    <a href="/courses/@course.Id">Open</a>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Lms.Domain.Entities.Course> _courses = new();
+    private readonly HashSet<Guid> _enrolledCourseIds = new();
+    private Guid? _userId;
+    private bool _canEnroll;
+    private string? _message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _courses = await CourseService.GetPublishedCoursesAsync();
+
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _canEnroll = state.User.IsInRole("Learner") || state.User.IsInRole("Admin");
+
+        var userIdClaim = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (Guid.TryParse(userIdClaim, out var userId))
+        {
+            _userId = userId;
+
+            var enrollments = await EnrollmentService.GetEnrollmentsForLearnerAsync(userId);
+            foreach (var enrollment in enrollments)
+            {
+                _enrolledCourseIds.Add(enrollment.CourseId);
+            }
+        }
+    }
+
+    private async Task EnrollAsync(Guid courseId)
+    {
+        if (!_userId.HasValue)
+        {
+            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/courses")}");
+            return;
+        }
+
+        try
+        {
+            await EnrollmentService.EnrollAsync(_userId.Value, courseId);
+            _enrolledCourseIds.Add(courseId);
+            _message = "Enrollment completed.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            _message = ex.Message;
+
+            if (ex.Message.Contains("sign in again", StringComparison.OrdinalIgnoreCase))
+            {
+                NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/courses")}", true);
+            }
+        }
+    }
+}

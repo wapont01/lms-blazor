@@ -1,0 +1,45 @@
+# Build output
+bin/
+obj/
+out/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE folders
+.vs/
+.vscode/
+
+# Logs and diagnostics
+*.log
+*.tlog
+*.tmp
+*.temp
+
+# Test output and coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+
+# Runtime data
+Lms.Web/App_Data/*.db
+Lms.Web/App_Data/*.db-*
+src/Lms.Web/App_Data/*.db
+src/Lms.Web/App_Data/*.db-*
+
+# Playwright artifacts
+playwright-report/
+.trace/
+
+# OS files
+.DS_Store
+Thumbs.db

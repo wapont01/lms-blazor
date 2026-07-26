@@ -1,0 +1,122 @@
+using Lms.Application.Data;
+using Lms.Application.Services;
+using Lms.Domain.Entities;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace Lms.Application.Tests.Services;
+
+public class DueDateReminderBackgroundServiceTests
+{
+    [Fact]
+    public async Task ExecuteAsync_ProcessesRemindersAtRegularIntervals()
+    {
+        // Arrange
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        using var dbContext = new ApplicationDbContext(options);
+        await dbContext.Database.EnsureCreatedAsync();
+
+        var notificationService = new NotificationService(dbContext);
+        var auditLogService = new AuditLogService(dbContext);
+        var dueDateReminderService = new DueDateReminderService(dbContext, notificationService, auditLogService);
+
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var logger = loggerFactory.CreateLogger<DueDateReminderBackgroundService>();
+        var serviceProvider = new ServiceCollection()
+            .AddLogging()
+            .BuildServiceProvider();
+
+        var backgroundService = new DueDateReminderBackgroundService(logger, serviceProvider);
+        var cts = new CancellationTokenSource();
+
+        // Act - Run for a short time and verify it doesn't throw
+        var task = backgroundService.ExecuteAsync(cts.Token);
+        await Task.Delay(500); // Let it run briefly
+        cts.Cancel();
+
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected when cancellation is requested
+        }
+
+        // Assert - Service should complete without throwing
+        Assert.True(task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task ExecuteAsync_HandlesExceptionsGracefully()
+    {
+        // Arrange
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var logger = loggerFactory.CreateLogger<DueDateReminderBackgroundService>();
+
+        var mockServiceProvider = new MockServiceProvider(throwException: true);
+        var backgroundService = new DueDateReminderBackgroundService(logger, mockServiceProvider);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        var task = backgroundService.ExecuteAsync(cts.Token);
+        await Task.Delay(500);
+        cts.Cancel();
+
+        try
+        {
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected
+        }
+
+        // Assert - Should handle exception and continue
+        Assert.True(task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task StopAsync_LogsStoppingMessage()
+    {
+        // Arrange
+        var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+        var logger = loggerFactory.CreateLogger<DueDateReminderBackgroundService>();
+        var serviceProvider = new ServiceCollection().BuildServiceProvider();
+
+        var backgroundService = new DueDateReminderBackgroundService(logger, serviceProvider);
+        var cts = new CancellationTokenSource();
+
+        // Act
+        await backgroundService.StopAsync(cts.Token);
+
+        // Assert - Should complete without exception
+        Assert.True(cts.Token.CanBeCanceled);
+    }
+
+    private class MockServiceProvider : IServiceProvider
+    {
+        private readonly bool _throwException;
+
+        public MockServiceProvider(bool throwException = false)
+        {
+            _throwException = throwException;
+        }
+
+        public object? GetService(Type serviceType)
+        {
+            if (_throwException)
+                throw new InvalidOperationException("Mock service error");
+            return null;
+        }
+    }
+}

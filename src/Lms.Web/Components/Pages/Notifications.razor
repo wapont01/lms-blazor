@@ -1,0 +1,136 @@
+@page "/notifications"
+@attribute [Authorize]
+@using System.Security.Claims
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject INotificationService NotificationService
+
+<PageTitle>Notifications</PageTitle>
+
+<h1>Notifications</h1>
+
+<div class="card">
+    <div class="notification-toolbar">
+        <label class="notification-toggle">
+            <input type="checkbox" checked="@_unreadOnly" @onchange="OnUnreadOnlyChanged" />
+            Unread only
+        </label>
+        <button type="button" class="secondary-btn" @onclick="MarkAllAsReadAsync" disabled="@(!_notifications.Any(notification => notification.ReadAt is null))">Mark all as read</button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <p>Loading notifications...</p>
+    }
+    else if (!string.IsNullOrWhiteSpace(_errorMessage))
+    {
+        <p class="assessment-failure-inline">@_errorMessage</p>
+    }
+    else if (_notifications.Count == 0)
+    {
+        <p>No notifications found for this view.</p>
+    }
+    else
+    {
+        <ul class="notification-list">
+            @foreach (var notification in _notifications)
+            {
+                <li class="notification-item @(notification.ReadAt is null ? "notification-item-unread" : "notification-item-read")">
+                    <div class="notification-head">
+                        <h3>@notification.Title</h3>
+                        <span class="muted-text">@FormatTimestamp(notification.CreatedAt)</span>
+                    </div>
+                    <p>@notification.Message</p>
+                    <div class="notification-meta-row">
+                        <span class="source-badge source-badge-neutral">@notification.Category</span>
+                        @if (notification.ReadAt is null)
+                        {
+                            <button type="button" class="secondary-btn" @onclick="() => MarkAsReadAsync(notification.Id)">Mark as read</button>
+                        }
+                        else
+                        {
+                            <span class="muted-text">Read @FormatTimestamp(notification.ReadAt.Value)</span>
+                        }
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    private readonly List<SystemNotification> _notifications = new();
+    private Guid? _userId;
+    private bool _unreadOnly;
+    private bool _isLoading;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (Guid.TryParse(userIdClaim, out var parsedUserId))
+        {
+            _userId = parsedUserId;
+        }
+
+        await LoadNotificationsAsync();
+    }
+
+    private async Task OnUnreadOnlyChanged(ChangeEventArgs eventArgs)
+    {
+        _unreadOnly = eventArgs.Value is bool value && value;
+        await LoadNotificationsAsync();
+    }
+
+    private async Task MarkAsReadAsync(Guid notificationId)
+    {
+        if (!_userId.HasValue)
+        {
+            return;
+        }
+
+        await NotificationService.MarkAsReadAsync(_userId.Value, notificationId);
+        await LoadNotificationsAsync();
+    }
+
+    private async Task MarkAllAsReadAsync()
+    {
+        if (!_userId.HasValue)
+        {
+            return;
+        }
+
+        await NotificationService.MarkAllAsReadAsync(_userId.Value);
+        await LoadNotificationsAsync();
+    }
+
+    private async Task LoadNotificationsAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        try
+        {
+            _notifications.Clear();
+
+            if (!_userId.HasValue)
+            {
+                _errorMessage = "Unable to resolve user context for notifications.";
+                return;
+            }
+
+            var rows = await NotificationService.GetForUserAsync(_userId.Value, _unreadOnly, 100);
+            _notifications.AddRange(rows);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private static string FormatTimestamp(DateTime value)
+    {
+        return value.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+    }
+}

@@ -1,0 +1,107 @@
+@using Lms.Domain.Entities
+
+<section class="card" id="admin-audit-log">
+    <h2>Recent Audit Log</h2>
+
+    <div class="form-row">
+        <div class="form-field">
+            <label>Actor contains</label>
+            <InputText @bind-Value="AuditFilterActor" />
+        </div>
+        <div class="form-field">
+            <label>Action contains</label>
+            <InputText @bind-Value="AuditFilterAction" />
+        </div>
+    </div>
+    <div class="form-row">
+        <div class="form-field">
+            <label>From (UTC date)</label>
+            <InputDate @bind-Value="AuditFromUtc" />
+        </div>
+        <div class="form-field">
+            <label>To (UTC date)</label>
+            <InputDate @bind-Value="AuditToUtc" />
+        </div>
+    </div>
+    <div class="course-actions">
+        <button type="button" @onclick="OnApplyFilter">Apply Filter</button>
+        <button type="button" @onclick="OnClearFilter">Clear Filter</button>
+        <button type="button" @onclick="OnExportCsv">Export CSV</button>
+        @if (!string.IsNullOrWhiteSpace(AuditCsvDataUrl))
+        {
+            <a href="@AuditCsvDataUrl" download="lms-audit-log.csv">Download CSV</a>
+        }
+    </div>
+
+    @if (AuditLogs.Count == 0)
+    {
+        <p class="muted-text">No audit events recorded yet.</p>
+    }
+    else
+    {
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>When (UTC)</th>
+                    <th>Actor</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var log in AuditLogs)
+                {
+                    <tr>
+                        <td>@log.CreatedAt.ToString("u")</td>
+                        <td>@log.ActorEmail</td>
+                        <td>@log.Action</td>
+                        <td>@log.TargetType</td>
+                        <td>@log.Details</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public string AuditFilterActor { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> AuditFilterActorChanged { get; set; }
+
+    [Parameter]
+    public string AuditFilterAction { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> AuditFilterActionChanged { get; set; }
+
+    [Parameter]
+    public DateTime? AuditFromUtc { get; set; }
+
+    [Parameter]
+    public EventCallback<DateTime?> AuditFromUtcChanged { get; set; }
+
+    [Parameter]
+    public DateTime? AuditToUtc { get; set; }
+
+    [Parameter]
+    public EventCallback<DateTime?> AuditToUtcChanged { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<AuditLog> AuditLogs { get; set; } = [];
+
+    [Parameter]
+    public string? AuditCsvDataUrl { get; set; }
+
+    [Parameter]
+    public EventCallback OnApplyFilter { get; set; }
+
+    [Parameter]
+    public EventCallback OnClearFilter { get; set; }
+
+    [Parameter]
+    public EventCallback OnExportCsv { get; set; }
+}

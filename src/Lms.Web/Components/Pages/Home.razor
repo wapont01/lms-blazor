@@ -1,0 +1,36 @@
+@page "/"
+@using Lms.Application.Services
+@inject ICourseService CourseService
+
+<PageTitle>Home</PageTitle>
+
+<h1>Real Estate Certification LMS</h1>
+<p>Welcome to the starter LMS experience.</p>
+
+@if (_courses is null)
+{
+    <p>Loading courses...</p>
+}
+else
+{
+    <div class="course-grid">
+        @foreach (var course in _courses)
+        {
+            <div class="card">
+                <h3>@course.Title</h3>
+                <p>@course.Description</p>
+                <p><strong>Level:</strong> @course.Level</p>
+                <a href="/courses/@course.Id">View details</a>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Lms.Domain.Entities.Course> _courses = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _courses = await CourseService.GetPublishedCoursesAsync();
+    }
+}
