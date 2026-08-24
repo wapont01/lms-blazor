@@ -1,5 +1,6 @@
 @page "/admin/school-profile"
 @attribute [Authorize(Roles = "Admin")]
+@implements IDisposable
 @using System.Security.Claims
 @using Lms.Application.Services
 @using Lms.Domain.Entities
@@ -21,7 +22,7 @@
 }
 else
 {
-    <EditForm Model="_profile" OnValidSubmit="SaveAsync" FormName="school-profile">
+    <EditForm EditContext="_editContext" OnValidSubmit="SaveAsync" FormName="school-profile">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
@@ -205,13 +206,56 @@ else
             </div>
             <div class="form-row">
                 <div class="form-field">
-                    <label for="support-hours">Support hours and time zone</label>
-                    <InputText id="support-hours" @bind-Value="_profile.SupportHours" />
+                    <label for="support-time-zone">Support time zone</label>
+                    <InputSelect id="support-time-zone" @bind-Value="_profile.SupportTimeZoneId">
+                        <option value="America/New_York">Eastern Time (ET)</option>
+                        <option value="America/Chicago">Central Time (CT)</option>
+                        <option value="America/Denver">Mountain Time (MT)</option>
+                        <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                    </InputSelect>
                 </div>
                 <div class="form-field">
                     <label for="school-website">Website URL</label>
                     <InputText id="school-website" type="url" @bind-Value="_profile.WebsiteUrl" />
                 </div>
+            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="weekday-support-hours">Monday-Friday hours</label>
+                    <InputText id="weekday-support-hours" @bind-Value="_profile.WeekdaySupportHours" />
+                </div>
+                <div class="form-field">
+                    <label for="weekday-extended-hours">Monday-Friday extended support</label>
+                    <InputText id="weekday-extended-hours" @bind-Value="_profile.WeekdayExtendedSupportHours" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="saturday-support-hours">Saturday hours</label>
+                    <InputText id="saturday-support-hours" @bind-Value="_profile.SaturdaySupportHours" />
+                </div>
+                <div class="form-field">
+                    <label for="saturday-extended-hours">Saturday extended support</label>
+                    <InputText id="saturday-extended-hours" @bind-Value="_profile.SaturdayExtendedSupportHours" />
+                </div>
+            </div>
+            <div class="form-field">
+                <label for="sunday-support-hours">Sunday availability</label>
+                <InputTextArea id="sunday-support-hours" rows="2" @bind-Value="_profile.SundaySupportHours" />
+            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="support-effective-date">Schedule effective date</label>
+                    <InputDate id="support-effective-date" @bind-Value="_profile.SupportScheduleEffectiveDate" />
+                </div>
+                <div class="form-field">
+                    <label for="support-response-target">Response target</label>
+                    <InputText id="support-response-target" @bind-Value="_profile.SupportResponseTarget" />
+                </div>
+            </div>
+            <div class="form-field">
+                <label for="support-schedule-exceptions">Closures and date-specific exceptions</label>
+                <InputTextArea id="support-schedule-exceptions" rows="2" @bind-Value="_profile.SupportScheduleExceptions" />
             </div>
         </section>
 
@@ -228,8 +272,15 @@ else
             </div>
         </section>
 
-        <div class="course-actions">
+        <div class="course-actions school-profile-save-row">
             <button type="submit" class="primary-btn" disabled="@_isSaving">@(_isSaving ? "Saving..." : "Save School Profile")</button>
+            @if (!string.IsNullOrWhiteSpace(_profileSaveMessage))
+            {
+                <div class="school-profile-save-status is-@_profileSaveTone" role="status" aria-live="polite">
+                    <strong>@GetProfileSaveStatusHeading()</strong>
+                    <span>@_profileSaveMessage</span>
+                </div>
+            }
         </div>
     </EditForm>
 }
@@ -242,6 +293,9 @@ else
     private bool _isSaving;
     private bool _saveSucceeded;
     private string? _message;
+    private EditContext? _editContext;
+    private string _profileSaveTone = "saved";
+    private string? _profileSaveMessage;
 
     protected override async Task OnInitializedAsync()
     {
@@ -250,6 +304,8 @@ else
         Guid.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out _actorUserId);
         _actorEmail = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? _actorEmail;
         _profile = await SchoolProfileService.GetAsync();
+        ConfigureProfileEditContext();
+        SetSavedStatus();
     }
 
     private async Task SaveAsync()
@@ -265,12 +321,13 @@ else
         {
             _profile = await SchoolProfileService.UpdateAsync(_profile, _actorUserId, _actorEmail);
             _saveSucceeded = true;
-            _message = "School profile saved.";
+            SetSavedStatus();
         }
         catch (Exception exception)
         {
             _saveSucceeded = false;
-            _message = exception.Message;
+            _profileSaveTone = "error";
+            _profileSaveMessage = exception.Message;
         }
         finally
         {
@@ -320,6 +377,44 @@ else
         finally
         {
             _isSaving = false;
+        }
+    }
+
+    private void ConfigureProfileEditContext()
+    {
+        if (_editContext is not null)
+        {
+            _editContext.OnFieldChanged -= HandleProfileFieldChanged;
+        }
+
+        _editContext = new EditContext(_profile!);
+        _editContext.OnFieldChanged += HandleProfileFieldChanged;
+    }
+
+    private void HandleProfileFieldChanged(object? sender, FieldChangedEventArgs args)
+    {
+        _profileSaveTone = "pending";
+        _profileSaveMessage = "Changes on this page have not been saved yet.";
+    }
+
+    private void SetSavedStatus()
+    {
+        _profileSaveTone = "saved";
+        _profileSaveMessage = $"Saved to the database at {_profile!.UpdatedAtUtc.ToLocalTime():h:mm:ss tt}.";
+    }
+
+    private string GetProfileSaveStatusHeading() => _profileSaveTone switch
+    {
+        "saved" => "Saved",
+        "pending" => "Unsaved changes",
+        _ => "Save failed"
+    };
+
+    public void Dispose()
+    {
+        if (_editContext is not null)
+        {
+            _editContext.OnFieldChanged -= HandleProfileFieldChanged;
         }
     }
 }

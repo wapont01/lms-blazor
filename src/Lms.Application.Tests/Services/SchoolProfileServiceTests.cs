@@ -62,6 +62,11 @@ public class SchoolProfileServiceTests
         Assert.Equal("wapont01@hotmail.com", profile.PrimaryInstructorEmail);
         Assert.Equal("7865530222", profile.PrimaryInstructorTelephone);
         Assert.Equal("7865530222", profile.SupportTelephone);
+        Assert.Equal("https://www.WilliamsLandRealty.com", profile.WebsiteUrl);
+        Assert.Equal("America/New_York", profile.SupportTimeZoneId);
+        Assert.Equal("7:00 AM-9:00 PM", profile.WeekdaySupportHours);
+        Assert.Equal("9:00 AM-4:30 PM", profile.SaturdaySupportHours);
+        Assert.Contains("scheduled examination-proctoring support", profile.SundaySupportHours);
         Assert.Contains(profile.StaffMembers, member => member.Name == "William A. Aponte" && member.Role == SchoolStaffRoles.Instructor);
         Assert.Contains(profile.StaffMembers, member => member.Name == "Clara M. Aponte"
             && member.Role == SchoolStaffRoles.Instructor
@@ -72,6 +77,10 @@ public class SchoolProfileServiceTests
         profile.State = "nc";
         profile.ProviderLicenseNumber = "  EP-123  ";
         profile.PrimaryInstructorTelephone = "  786-553-0222  ";
+        profile.WeekdaySupportHours = "  8:00 AM-6:00 PM  ";
+        profile.SupportScheduleEffectiveDate = new DateOnly(2026, 8, 23);
+        profile.SupportScheduleExceptions = "  Closed on federal holidays.  ";
+        profile.SupportResponseTarget = "  Replies within one business day.  ";
         var actorId = Guid.NewGuid();
         var updated = await service.UpdateAsync(profile, actorId, "ADMIN@EXAMPLE.COM");
 
@@ -79,6 +88,11 @@ public class SchoolProfileServiceTests
         Assert.Equal("NC", updated.State);
         Assert.Equal("EP-123", updated.ProviderLicenseNumber);
         Assert.Equal("786-553-0222", updated.PrimaryInstructorTelephone);
+        Assert.Equal("8:00 AM-6:00 PM", updated.WeekdaySupportHours);
+        Assert.Contains("Monday-Friday: 8:00 AM-6:00 PM ET", updated.SupportHours);
+        Assert.Contains("Effective August 23, 2026", updated.SupportHours);
+        Assert.Contains("Exceptions: Closed on federal holidays.", updated.SupportHours);
+        Assert.Contains("Response target: Replies within one business day.", updated.SupportHours);
         Assert.Equal(1, await dbContext.SchoolProfiles.CountAsync());
         var audit = await dbContext.AuditLogs.SingleAsync();
         Assert.Equal("school-profile.updated", audit.Action);

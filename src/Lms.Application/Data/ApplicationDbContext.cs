@@ -79,7 +79,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(profile => profile.InstructorLicenseNumber).HasMaxLength(80);
             entity.Property(profile => profile.SupportEmail).HasMaxLength(160).IsRequired();
             entity.Property(profile => profile.SupportTelephone).HasMaxLength(40).IsRequired();
-            entity.Property(profile => profile.SupportHours).HasMaxLength(200);
+            entity.Property(profile => profile.SupportHours).HasMaxLength(1200);
+            entity.Property(profile => profile.SupportTimeZoneId).HasMaxLength(80).IsRequired();
+            entity.Property(profile => profile.WeekdaySupportHours).HasMaxLength(100).IsRequired();
+            entity.Property(profile => profile.WeekdayExtendedSupportHours).HasMaxLength(200);
+            entity.Property(profile => profile.SaturdaySupportHours).HasMaxLength(100).IsRequired();
+            entity.Property(profile => profile.SaturdayExtendedSupportHours).HasMaxLength(200);
+            entity.Property(profile => profile.SundaySupportHours).HasMaxLength(300).IsRequired();
+            entity.Property(profile => profile.SupportScheduleExceptions).HasMaxLength(500);
+            entity.Property(profile => profile.SupportResponseTarget).HasMaxLength(300);
             entity.Property(profile => profile.WebsiteUrl).HasMaxLength(300);
             entity.Property(profile => profile.LicenseExaminationPerformanceRecord).HasMaxLength(1000).IsRequired();
             entity.Property(profile => profile.AnnualSummaryReportData).HasMaxLength(1000).IsRequired();

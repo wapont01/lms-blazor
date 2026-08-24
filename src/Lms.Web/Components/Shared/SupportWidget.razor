@@ -33,9 +33,34 @@
             <strong>Technical Support</strong>
             <a href="mailto:@_profile.SupportEmail">@_profile.SupportEmail</a>
             <a href="tel:@_profile.SupportTelephone">@_profile.SupportTelephone</a>
-            @if (!string.IsNullOrWhiteSpace(_profile.SupportHours))
+            <strong class="support-schedule-heading">Hours (@_profile.SupportTimeZoneLabel)</strong>
+            <dl class="support-schedule muted-text">
+                <dt>Monday-Friday</dt>
+                <dd>
+                    <span>@_profile.WeekdaySupportHours</span>
+                    @if (!string.IsNullOrWhiteSpace(_profile.WeekdayExtendedSupportHours))
+                    {
+                        <small>@_profile.WeekdayExtendedSupportHours</small>
+                    }
+                </dd>
+                <dt>Saturday</dt>
+                <dd>
+                    <span>@_profile.SaturdaySupportHours</span>
+                    @if (!string.IsNullOrWhiteSpace(_profile.SaturdayExtendedSupportHours))
+                    {
+                        <small>@_profile.SaturdayExtendedSupportHours</small>
+                    }
+                </dd>
+                <dt>Sunday</dt>
+                <dd>@_profile.SundaySupportHours</dd>
+            </dl>
+            @if (!string.IsNullOrWhiteSpace(_profile.SupportScheduleExceptions))
             {
-                <span class="muted-text">@_profile.SupportHours</span>
+                <span class="muted-text">Exceptions: @_profile.SupportScheduleExceptions</span>
+            }
+            @if (!string.IsNullOrWhiteSpace(_profile.SupportResponseTarget))
+            {
+                <span class="muted-text">Response target: @_profile.SupportResponseTarget</span>
             }
         </div>
     }
@@ -91,6 +116,28 @@
 
     .support-person + .support-person {
         margin-top: 0.5rem;
+    }
+
+    .support-schedule-heading {
+        margin-top: 0.5rem;
+    }
+
+    .support-schedule {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr);
+        gap: 0.2rem 0.6rem;
+        margin: 0;
+    }
+
+    .support-schedule dt {
+        font-weight: 600;
+    }
+
+    .support-schedule dd {
+        display: grid;
+        gap: 0.1rem;
+        margin: 0;
+        overflow-wrap: anywhere;
     }
 
     .support-widget a {

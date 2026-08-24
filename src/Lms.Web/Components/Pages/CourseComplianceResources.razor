@@ -83,9 +83,25 @@ else
                 <div>
                     <a href="mailto:@_profile.SupportEmail">@_profile.SupportEmail</a>
                     <a href="tel:@_profile.SupportTelephone">@_profile.SupportTelephone</a>
-                    @if (!string.IsNullOrWhiteSpace(_profile.SupportHours))
+                    <strong>Hours (@_profile.SupportTimeZoneLabel)</strong>
+                    <span>Monday-Friday: @_profile.WeekdaySupportHours</span>
+                    @if (!string.IsNullOrWhiteSpace(_profile.WeekdayExtendedSupportHours))
                     {
-                        <span>@_profile.SupportHours</span>
+                        <span>@_profile.WeekdayExtendedSupportHours</span>
+                    }
+                    <span>Saturday: @_profile.SaturdaySupportHours</span>
+                    @if (!string.IsNullOrWhiteSpace(_profile.SaturdayExtendedSupportHours))
+                    {
+                        <span>@_profile.SaturdayExtendedSupportHours</span>
+                    }
+                    <span>Sunday: @_profile.SundaySupportHours</span>
+                    @if (!string.IsNullOrWhiteSpace(_profile.SupportScheduleExceptions))
+                    {
+                        <span>Exceptions: @_profile.SupportScheduleExceptions</span>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(_profile.SupportResponseTarget))
+                    {
+                        <span>Response target: @_profile.SupportResponseTarget</span>
                     }
                 </div>
             </div>

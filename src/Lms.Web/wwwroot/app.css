@@ -166,6 +166,39 @@ body {
   color: var(--muted);
 }
 
+.school-profile-save-row {
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.school-profile-save-status {
+  display: grid;
+  gap: 0.1rem;
+  min-width: min(100%, 280px);
+  padding: 0.65rem 0.8rem;
+  border: 1px solid;
+  border-left-width: 4px;
+  border-radius: 6px;
+}
+
+.school-profile-save-status.is-saved {
+  color: #166534;
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.school-profile-save-status.is-pending {
+  color: #92400e;
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+
+.school-profile-save-status.is-error {
+  color: #991b1b;
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
 .assessment-failure-banner {
   background: #fff1f2;
   border: 1px solid #fecdd3;

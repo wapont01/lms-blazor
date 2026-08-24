@@ -3,7 +3,7 @@
 17214 Belmont Stakes Lane
 Charlotte, NC 28278-8147
 704-914-5824 | wapont01@hotmail.com
-Website: [REQUIRED BEFORE PUBLICATION]
+Website: https://www.WilliamsLandRealty.com
 
 ## Policies & Procedures Disclosure
 
@@ -143,7 +143,13 @@ Students need a supported desktop or laptop computer, a current browser with Jav
 
 **Technical and administrative support email:** wapont01@hotmail.com
 **Support telephone:** 704-914-5824
-**Normal support hours and response target:** [REQUIRED BEFORE PUBLICATION]
+**Support hours by day:**
+
+- Monday-Friday: 7:00 AM-9:00 PM ET, with extended technical and examination support often available until 10:00 PM ET.
+- Saturday: 9:00 AM-4:30 PM ET, with extended technical and examination support often available until 7:00 PM ET.
+- Sunday: Limited or scheduled examination-proctoring support is available until 7:00 PM ET. General telephone support queues are otherwise closed.
+
+**Response target:** [REQUIRED BEFORE PUBLICATION]
 
 ### Student Conduct
 
@@ -192,7 +198,7 @@ Course: ______________________________________________________________
 
 - [ ] Confirm Commission certification and enter the Education Provider number.
 - [ ] Enter the instructor license number.
-- [ ] Enter the website, support hours, response target, and publication date.
+- [ ] Enter the response target and publication date. Website and support hours are complete.
 - [ ] Enter each approved Commission course number and delivery method.
 - [ ] Verify that only courses with current Commission approval are described as approved.
 - [ ] Approve and insert complete cancellation, withdrawal, transfer, and refund terms.

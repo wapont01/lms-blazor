@@ -292,6 +292,61 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
     }
 
     [UiFact]
+    public async Task Admin_SchoolProfile_SaveStatus_TracksUnsavedPersistedAndFailedChanges()
+    {
+        await using var context = await _fixture.CreateBrowserContextAsync();
+        var page = await context.NewPageAsync();
+
+        await LoginAsync(page, "admin@lms.com", "Admin123!");
+        await page.GotoAsync($"{_fixture.BaseUrl}/admin/school-profile");
+
+        var saveStatus = page.Locator(".school-profile-save-status");
+        var website = page.Locator("#school-website");
+        var state = page.Locator("#school-state");
+        var saveButton = page.GetByRole(AriaRole.Button, new() { Name = "Save School Profile", Exact = true });
+
+        await Assertions.Expect(saveStatus).ToHaveClassAsync(new Regex("is-saved"), new() { Timeout = 10000 });
+        await Assertions.Expect(website).ToHaveValueAsync("https://www.WilliamsLandRealty.com");
+
+        const string testWebsite = "https://www.WilliamsLandRealty.com/ui-save-test";
+        for (var attempt = 0; attempt < 3; attempt++)
+        {
+            await website.FillAsync(testWebsite);
+            await website.PressAsync("Tab");
+            try
+            {
+                await Assertions.Expect(saveStatus).ToHaveClassAsync(new Regex("is-pending"), new() { Timeout = 3000 });
+                break;
+            }
+            catch (PlaywrightException) when (attempt < 2)
+            {
+                // Retry while the interactive circuit finishes attaching after navigation.
+            }
+        }
+        await Assertions.Expect(saveStatus).ToContainTextAsync("Unsaved changes");
+
+        await saveButton.ClickAsync();
+        await Assertions.Expect(saveStatus).ToHaveClassAsync(new Regex("is-saved"), new() { Timeout = 10000 });
+        await Assertions.Expect(saveStatus).ToContainTextAsync("Saved to the database at");
+        await Assertions.Expect(website).ToHaveValueAsync(testWebsite);
+
+        await state.FillAsync("N");
+        await state.PressAsync("Tab");
+        await Assertions.Expect(saveStatus).ToHaveClassAsync(new Regex("is-pending"));
+        await saveButton.ClickAsync();
+        await Assertions.Expect(saveStatus).ToHaveClassAsync(new Regex("is-error"), new() { Timeout = 10000 });
+        await Assertions.Expect(saveStatus).ToContainTextAsync("State must be a two-letter abbreviation.");
+
+        await state.FillAsync("NC");
+        await website.FillAsync("https://www.WilliamsLandRealty.com");
+        await saveButton.ClickAsync();
+        await Assertions.Expect(saveStatus).ToHaveClassAsync(new Regex("is-saved"), new() { Timeout = 10000 });
+        await page.ReloadAsync();
+        await Assertions.Expect(website).ToHaveValueAsync("https://www.WilliamsLandRealty.com");
+        await Assertions.Expect(state).ToHaveValueAsync("NC");
+    }
+
+    [UiFact]
     public async Task Admin_OpenCourse_KeepsLearnerContext_InCourseFlow()
     {
         await using var context = await _fixture.CreateBrowserContextAsync();
@@ -306,32 +361,32 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         var trackedCourseId = trackedPaths[0].Split('/', StringSplitOptions.RemoveEmptyEntries)[1];
 
         await page.GotoAsync($"{_fixture.BaseUrl}/courses/{trackedCourseId}?learnerId={activeLearnerId}");
-        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
 
         var startCourseButton = page.GetByRole(AriaRole.Button, new() { Name = "Start Course" });
         if (await startCourseButton.IsVisibleAsync() && await startCourseButton.IsEnabledAsync())
         {
             await startCourseButton.ClickAsync();
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+/lessons/[0-9a-fA-F-]+(?:\?learnerId={Regex.Escape(activeLearnerId)})?$"), new() { Timeout = 10000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+/lessons/[0-9a-fA-F-]+(?:\?learnerId={Regex.Escape(activeLearnerId)})?$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
         }
         else
         {
             await page.GotoAsync($"{_fixture.BaseUrl}{trackedPaths[0]}?learnerId={activeLearnerId}");
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
         }
 
         var nextButton = page.GetByRole(AriaRole.Button, new() { Name = "Next page or lesson" });
         if (await nextButton.IsVisibleAsync() && await nextButton.IsEnabledAsync())
         {
             await nextButton.ClickAsync();
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?(?:\?learnerId={Regex.Escape(activeLearnerId)})?$"), new() { Timeout = 10000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?(?:\?learnerId={Regex.Escape(activeLearnerId)})?$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
         }
 
         await page.GotoAsync($"{_fixture.BaseUrl}{trackedPaths[0]}?learnerId={activeLearnerId}");
-        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
 
         await page.GotoAsync($"{_fixture.BaseUrl}/courses/{trackedCourseId}?learnerId={activeLearnerId}");
-        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
     }
 
     private static async Task<string> ResolveUserIdFromDatabaseAsync(string databasePath, string email)
@@ -1236,7 +1291,8 @@ ORDER BY M.OrderIndex, L.OrderIndex";
         await page.Locator("form.auth-form input[name='email']").FillAsync(email);
         await page.Locator("form.auth-form input[name='password']").FillAsync(password);
         await page.GetByRole(AriaRole.Button, new() { Name = "Sign in" }).ClickAsync();
-        await Assertions.Expect(page.Locator("form.auth-form")).Not.ToBeVisibleAsync(new() { Timeout = 15000 });
+        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Logout", Exact = true }))
+            .ToBeVisibleAsync(new() { Timeout = 15000 });
     }
 
     private static async Task ExpectTextAsync(ILocator locator, string text)

@@ -1,6 +1,7 @@
 using Lms.Application.Data;
 using Lms.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace Lms.Application.Services;
 
@@ -114,7 +115,16 @@ public sealed class SchoolProfileService : ISchoolProfileService
         profile.InstructorLicenseNumber = NormalizeOptional(input.InstructorLicenseNumber);
         profile.SupportEmail = input.SupportEmail.Trim();
         profile.SupportTelephone = input.SupportTelephone.Trim();
-        profile.SupportHours = NormalizeOptional(input.SupportHours);
+        profile.SupportTimeZoneId = input.SupportTimeZoneId.Trim();
+        profile.WeekdaySupportHours = input.WeekdaySupportHours.Trim();
+        profile.WeekdayExtendedSupportHours = NormalizeOptional(input.WeekdayExtendedSupportHours);
+        profile.SaturdaySupportHours = input.SaturdaySupportHours.Trim();
+        profile.SaturdayExtendedSupportHours = NormalizeOptional(input.SaturdayExtendedSupportHours);
+        profile.SundaySupportHours = input.SundaySupportHours.Trim();
+        profile.SupportScheduleExceptions = NormalizeOptional(input.SupportScheduleExceptions);
+        profile.SupportResponseTarget = NormalizeOptional(input.SupportResponseTarget);
+        profile.SupportScheduleEffectiveDate = input.SupportScheduleEffectiveDate;
+        profile.SupportHours = BuildSupportHoursSummary(profile);
         profile.WebsiteUrl = NormalizeOptional(input.WebsiteUrl);
         profile.LicenseExaminationPerformanceRecord = input.LicenseExaminationPerformanceRecord.Trim();
         profile.AnnualSummaryReportData = input.AnnualSummaryReportData.Trim();
@@ -142,6 +152,10 @@ public sealed class SchoolProfileService : ISchoolProfileService
             input.PrimaryInstructorTelephone,
             input.SupportEmail,
             input.SupportTelephone,
+            input.SupportTimeZoneId,
+            input.WeekdaySupportHours,
+            input.SaturdaySupportHours,
+            input.SundaySupportHours,
             input.LicenseExaminationPerformanceRecord,
             input.AnnualSummaryReportData
         };
@@ -154,6 +168,38 @@ public sealed class SchoolProfileService : ISchoolProfileService
         {
             throw new InvalidOperationException("State must be a two-letter abbreviation.");
         }
+    }
+
+    private static string BuildSupportHoursSummary(SchoolProfile profile)
+    {
+        var timeZone = profile.SupportTimeZoneLabel;
+        var lines = new List<string>
+        {
+            BuildScheduleLine("Monday-Friday", profile.WeekdaySupportHours, profile.WeekdayExtendedSupportHours, timeZone),
+            BuildScheduleLine("Saturday", profile.SaturdaySupportHours, profile.SaturdayExtendedSupportHours, timeZone),
+            $"Sunday ({timeZone}): {profile.SundaySupportHours.Trim()}"
+        };
+
+        if (profile.SupportScheduleEffectiveDate.HasValue)
+        {
+            lines.Add($"Effective {profile.SupportScheduleEffectiveDate.Value.ToString("MMMM d, yyyy", CultureInfo.InvariantCulture)}");
+        }
+        if (!string.IsNullOrWhiteSpace(profile.SupportScheduleExceptions))
+        {
+            lines.Add($"Exceptions: {profile.SupportScheduleExceptions.Trim()}");
+        }
+        if (!string.IsNullOrWhiteSpace(profile.SupportResponseTarget))
+        {
+            lines.Add($"Response target: {profile.SupportResponseTarget.Trim()}");
+        }
+
+        return string.Join("; ", lines);
+    }
+
+    private static string BuildScheduleLine(string dayLabel, string hours, string? extendedHours, string timeZone)
+    {
+        var line = $"{dayLabel}: {hours.Trim()} {timeZone}";
+        return string.IsNullOrWhiteSpace(extendedHours) ? line : $"{line}, {extendedHours.Trim()}";
     }
 
     private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
