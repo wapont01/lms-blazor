@@ -20,6 +20,7 @@ public interface IEnrollmentService
     Task<List<Course>> GetBrokerPurchasedCoursesAsync(Guid brokerUserId);
     Task<List<Course>> GetBrokerPurchasableCoursesForLearnerAsync(Guid brokerUserId, Guid learnerUserId);
     Task UpdateProgressAsync(Guid userId, Guid courseId, decimal progressPercent);
+    Task ReconcileCompletionAsync(Guid userId, Guid courseId);
     Task<Dictionary<Guid, bool>> GetLessonCompletionMapAsync(Guid userId, Guid courseId);
     Task SetLessonCompletionAsync(Guid userId, Guid lessonId, bool completed);
     Task<List<LearnerCertificateRow>> GetCertificatesForLearnerAsync(Guid userId);
@@ -265,6 +266,19 @@ public class EnrollmentService : IEnrollmentService
         await EnsureCertificateStateAsync(userId, enrollment, actorEmail);
 
         await _auditLogService.WriteAsync(userId, actorEmail, "enrollment.progress.updated", "Enrollment", enrollment.Id, $"Progress={clampedProgress:0.##}");
+    }
+
+    public async Task ReconcileCompletionAsync(Guid userId, Guid courseId)
+    {
+        var enrollment = await _dbContext.Enrollments.FirstOrDefaultAsync(existing =>
+            existing.UserAccountId == userId && existing.CourseId == courseId);
+
+        if (enrollment is null)
+        {
+            throw new InvalidOperationException("Enrollment not found.");
+        }
+
+        await RecalculateEnrollmentProgressAsync(userId, courseId, enrollment);
     }
 
     public async Task<Dictionary<Guid, bool>> GetLessonCompletionMapAsync(Guid userId, Guid courseId)
@@ -1303,7 +1317,7 @@ public class EnrollmentService : IEnrollmentService
 
         if (certificateEligible)
         {
-            var completedAtUtc = DateTime.UtcNow;
+            var completedAtUtc = enrollment.CompletedAtUtc ?? certificate?.CompletedAtUtc ?? DateTime.UtcNow;
             enrollment.CompletedAtUtc = completedAtUtc;
             if (certificate is null)
             {

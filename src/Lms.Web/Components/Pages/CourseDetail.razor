@@ -505,7 +505,7 @@ else
 
         var answers = _assessmentInputs.ToDictionary(item => item.QuestionId, item => item.SelectedOption ?? string.Empty);
         var attempt = await AssessmentService.SubmitAttemptAsync(_course.Id, _userId.Value, answers);
-        await EnrollmentService.UpdateProgressAsync(_userId.Value, _course.Id, _enrollmentProgressPercent);
+        await EnrollmentService.ReconcileCompletionAsync(_userId.Value, _course.Id);
 
         _latestAttempt = attempt;
         _message = attempt.Passed

@@ -762,6 +762,13 @@ public class EnrollmentServiceTests
         Assert.Null(beforePass);
 
         await fixture.PassAssessmentAsync(seed.CourseId, learner.Id);
+
+        var afterPassBeforeCompletion = await fixture.DbContext.CompletionCertificates
+            .AsNoTracking()
+            .SingleOrDefaultAsync(certificate => certificate.EnrollmentId == seed.EnrollmentId);
+
+        Assert.Null(afterPassBeforeCompletion);
+
         await fixture.EnrollmentService.SetLessonCompletionAsync(learner.Id, seed.RequiredLessonIds[1], true);
 
         var afterPass = await fixture.DbContext.CompletionCertificates
@@ -770,6 +777,53 @@ public class EnrollmentServiceTests
 
         Assert.NotNull(afterPass);
         Assert.False(afterPass!.IsRevoked);
+    }
+
+    [Fact]
+    public async Task ReconcileCompletionAsync_AfterAssessmentPass_UsesPersistedLessonProgressAndIssuesCertificate()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Reconciled Completion Course");
+
+        await fixture.CompleteAllRequiredLessonsAsync(learner.Id, seed.RequiredLessonIds);
+
+        var staleEnrollment = await fixture.DbContext.Enrollments.SingleAsync(existing => existing.Id == seed.EnrollmentId);
+        staleEnrollment.ProgressPercent = 35m;
+        staleEnrollment.Completed = false;
+        staleEnrollment.CompletedAtUtc = null;
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.PassAssessmentAsync(seed.CourseId, learner.Id);
+        await fixture.EnrollmentService.ReconcileCompletionAsync(learner.Id, seed.CourseId);
+
+        var enrollment = await fixture.DbContext.Enrollments
+            .AsNoTracking()
+            .SingleAsync(existing => existing.Id == seed.EnrollmentId);
+        var certificate = await fixture.DbContext.CompletionCertificates
+            .AsNoTracking()
+            .SingleOrDefaultAsync(existing => existing.EnrollmentId == seed.EnrollmentId);
+
+        Assert.Equal(100m, enrollment.ProgressPercent);
+        Assert.True(enrollment.Completed);
+        Assert.NotNull(enrollment.CompletedAtUtc);
+        Assert.NotNull(certificate);
+        Assert.False(certificate!.IsRevoked);
+        Assert.Equal(enrollment.CompletedAtUtc, certificate.CompletedAtUtc);
+
+        var originalCompletedAtUtc = enrollment.CompletedAtUtc;
+        await fixture.EnrollmentService.ReconcileCompletionAsync(learner.Id, seed.CourseId);
+
+        var reconciledAgain = await fixture.DbContext.Enrollments
+            .AsNoTracking()
+            .SingleAsync(existing => existing.Id == seed.EnrollmentId);
+
+        Assert.Equal(originalCompletedAtUtc, reconciledAgain.CompletedAtUtc);
+        Assert.Single(await fixture.DbContext.CompletionCertificates
+            .AsNoTracking()
+            .Where(existing => existing.EnrollmentId == seed.EnrollmentId)
+            .ToListAsync());
     }
 
     private sealed class TestFixture : IAsyncDisposable

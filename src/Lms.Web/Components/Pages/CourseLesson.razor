@@ -1658,8 +1658,7 @@ else
 			}
 
 			_finalAssessmentEligibility = await AssessmentService.GetEligibilityAsync(CourseId, _userId.Value);
-			// Re-run enrollment progress persistence so certificate issuance is evaluated after passing assessment.
-			await EnrollmentService.UpdateProgressAsync(_userId.Value, CourseId, _enrollmentProgressPercent);
+			await EnrollmentService.ReconcileCompletionAsync(_userId.Value, CourseId);
 			correctCount = attempt.CorrectAnswers;
 			totalQuestions = attempt.TotalQuestions;
 		}
