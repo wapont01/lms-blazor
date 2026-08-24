@@ -1,276 +1,1473 @@
 @page "/instructor"
+@page "/instructor/courses/{CourseId:guid}"
+@page "/instructor/courses/{CourseId:guid}/{Step}"
+@page "/instructor/courses/{CourseId:guid}/{Step}/{SubId:guid}"
 @attribute [Authorize(Roles = "Admin,Instructor")]
+@using System.Security.Claims
+@using System.Text
+@using System.Text.Json
 @using Lms.Application.Services
 @using Lms.Domain.Entities
+@using Lms.Web.Components.Shared.Admin
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
 @inject ICourseService CourseService
+@inject IUserAccountService UserAccountService
+@inject IAssessmentService AssessmentService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 
 <PageTitle>Instructor</PageTitle>
 
-<h1>Instructor Dashboard</h1>
+@if (_editingCourse is not null && CourseId != Guid.Empty)
+{
+	var readiness = CourseAuthoringProgressHelper.Evaluate(_editingCourse, _checkpoints);
+	<div class="instructor-hero card instructor-editor-hero">
+		<a class="course-kicker back-to-library-link" href="/instructor">&larr; Back to course library</a>
 
-<div class="dashboard-grid">
-	<section class="card">
-		<h2>Editable courses</h2>
+		<div class="instructor-hero-main">
+			<h1>@_editingCourse.Title</h1>
 
-		@if (_courses.Count == 0)
-		{
-			<p>No courses are available to edit.</p>
-		}
-		else
-		{
-			<div class="course-list">
-				@foreach (var course in _courses)
-				{
-					<article class="course-item">
-						<div>
-							<h3>@course.Title</h3>
-							<p>@course.Level | @(course.IsPublished ? "Published" : "Draft")</p>
-							<p>@course.Description</p>
+			<section class="course-summary-strip" aria-label="Course editor summary">
+				<div class="summary-chip">
+					<span class="summary-label">@(_editingCourse.UsesUnitBasedStructure ? "Units" : "Modules")</span>
+					<strong>@_editingCourse.Modules.Count</strong>
+				</div>
+				<div class="summary-chip">
+					<span class="summary-label">Status</span>
+					<strong>@GetCourseStatusLabel(_editingCourse)</strong>
+				</div>
+			</section>
+		</div>
+	</div>
+
+	<div class="lesson-layout instructor-editor-layout">
+		<aside class="card lesson-menu-column" aria-label="Course editor menu">
+					<div class="lesson-menu-list" aria-label="Course readiness @(readiness.PercentComplete)% complete">
+						<div class="menu-progress-rail" aria-hidden="true">
+							<div class="menu-progress-rail-fill" style="height: @(readiness.PercentComplete)%;"></div>
 						</div>
-						<button type="button" @onclick="() => BeginEditing(course)">Edit</button>
-					</article>
+						<section class="lesson-menu-module">
+							<a class="menu-module-toggle @(GetEditorStepLabel(_activeEditorStep) is "Overview" or "Modules" ? "is-current-step" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.Overview)">
+								<span class="module-toggle-label">@_editingCourse.Title</span>
+								<span class="module-toggle-icon" aria-hidden="true">▸</span>
+							</a>
+							@if (_editingCourse.Modules.Count > 0)
+							{
+								<ul class="menu-sublist">
+									@foreach (var module in _editingCourse.Modules.OrderBy(module => module.OrderIndex))
+									{
+										<li>
+											<div class="menu-subsection">
+												<a class="menu-item-link @(_activeEditorStep == CourseEditorStep.Modules && _editingModule?.Id == module.Id ? "active-lesson-link" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules, module.Id)">@module.OrderIndex. @module.Title</a>
+												<ul class="menu-sublist">
+													@{
+														var moduleCheckpoints = GetOrderedModuleCheckpoints(module);
+													}
+													@foreach (var checkpoint in moduleCheckpoints.Where(candidate => candidate.LessonId == CourseCheckpointDefinition.StartOfModuleAnchor))
+													{
+														<li>
+															<a class="menu-item-link @(_activeEditorStep == CourseEditorStep.Checkpoints && _editingCheckpoint?.Id == checkpoint.Id ? "active-lesson-link" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints, checkpoint.Id)">@GetModuleItemNumber(module, checkpoint.Id). @checkpoint.Title</a>
+														</li>
+													}
+													@foreach (var lesson in module.Lessons.OrderBy(lesson => lesson.OrderIndex))
+													{
+														<li>
+															<a class="menu-item-link @(_activeEditorStep == CourseEditorStep.Lessons && _editingLesson?.Id == lesson.Id ? "active-lesson-link" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.Lessons, lesson.Id)">@GetModuleItemNumber(module, lesson.Id). @lesson.Title</a>
+														</li>
+														@foreach (var checkpoint in moduleCheckpoints.Where(candidate => candidate.LessonId == lesson.Id))
+														{
+															<li>
+																<a class="menu-item-link @(_activeEditorStep == CourseEditorStep.Checkpoints && _editingCheckpoint?.Id == checkpoint.Id ? "active-lesson-link" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints, checkpoint.Id)">@GetModuleItemNumber(module, checkpoint.Id). @checkpoint.Title</a>
+															</li>
+														}
+													}
+													@foreach (var checkpoint in moduleCheckpoints.Where(candidate => candidate.LessonId is null))
+													{
+														<li>
+															<a class="menu-item-link @(_activeEditorStep == CourseEditorStep.Checkpoints && _editingCheckpoint?.Id == checkpoint.Id ? "active-lesson-link" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints, checkpoint.Id)">@GetModuleItemNumber(module, checkpoint.Id). @checkpoint.Title</a>
+														</li>
+													}
+												</ul>
+											</div>
+										</li>
+									}
+								</ul>
+							}
+						</section>
+
+						<section class="lesson-menu-module">
+							<a class="menu-module-toggle @(GetEditorStepLabel(_activeEditorStep) == "Assessment" ? "is-current-step" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.Assessment)">
+								<span class="module-toggle-label">Assessment</span>
+								<span class="module-toggle-icon" aria-hidden="true">▸</span>
+							</a>
+							<p class="menu-subprompt">Review the assessment flow and publish once the course is ready.</p>
+						</section>
+					</div>
+				</aside>
+
+				<section class="lesson-main-column">
+					@if (readiness.Items.Any(item => !item.IsComplete))
+					{
+						<section class="card readiness-checklist-card">
+							<p class="muted-text">Still needed before this course is ready for review:</p>
+							<ul class="progress-list">
+								@foreach (var item in readiness.Items)
+								{
+									<li class="@(item.IsComplete ? "complete" : string.Empty)">@(item.IsComplete ? "✓" : "•") @item.Label</li>
+								}
+							</ul>
+						</section>
+					}
+
+					<section class="card lesson-content-card editor-step-content">
+				@if (_activeEditorStep == CourseEditorStep.Overview)
+				{
+					<EditForm Model="_editingCourse" OnValidSubmit="SaveCourseAsync">
+						<DataAnnotationsValidator />
+						<ValidationSummary />
+
+						<div class="form-field">
+							<label>Title</label>
+							<InputText @bind-Value="_editingCourse.Title" />
+							<ValidationMessage For="() => _editingCourse.Title" />
+						</div>
+						<div class="form-field">
+							<label>Description</label>
+							<InputTextArea @bind-Value="_editingCourse.Description" />
+						</div>
+						<div class="form-field">
+							<label>Level</label>
+							<InputText @bind-Value="_editingCourse.Level" />
+							<ValidationMessage For="() => _editingCourse.Level" />
+						</div>
+						<div class="form-field">
+							<label>Compliance type</label>
+							<InputSelect @bind-Value="_editingCourse.ComplianceType">
+								<option value="">Select compliance type</option>
+								<option value="@CourseComplianceTypes.Prelicensing">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.Prelicensing)</option>
+								<option value="@CourseComplianceTypes.Postlicensing">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.Postlicensing)</option>
+								<option value="@CourseComplianceTypes.ContinuingEducation">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.ContinuingEducation)</option>
+							</InputSelect>
+						</div>
+						<div class="form-row">
+							<div class="form-field">
+								<label>Delivery method</label>
+								<InputSelect @bind-Value="_editingCourse.DeliveryMethod">
+									<option value="@CourseDeliveryMethods.DistanceEducation">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.DistanceEducation)</option>
+									<option value="@CourseDeliveryMethods.SynchronousDistanceLearning">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.SynchronousDistanceLearning)</option>
+									<option value="@CourseDeliveryMethods.InPerson">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.InPerson)</option>
+									<option value="@CourseDeliveryMethods.Blended">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.Blended)</option>
+								</InputSelect>
+							</div>
+							<div class="form-field">
+								<label>Commission course number</label>
+								<InputText @bind-Value="_editingCourse.CommissionCourseNumber" />
+								<ValidationMessage For="() => _editingCourse.CommissionCourseNumber" />
+							</div>
+						</div>
+						@if (_editingCourse.ComplianceType == CourseComplianceTypes.ContinuingEducation)
+						{
+							<div class="form-field">
+								<label>Continuing education type</label>
+								<InputSelect @bind-Value="_editingCourse.ContinuingEducationType">
+									@foreach (var type in ContinuingEducationTypes.All)
+									{
+										<option value="@type">@ContinuingEducationTypes.ToDisplayText(type)</option>
+									}
+								</InputSelect>
+							</div>
+						}
+						<div class="form-row">
+							<div class="form-field">
+								<label>Duration Hours</label>
+								<InputNumber @bind-Value="_editingCourse.DurationHours" />
+								<ValidationMessage For="() => _editingCourse.DurationHours" />
+							</div>
+							<div class="form-field">
+								<label>Credit Hours</label>
+								<InputNumber @bind-Value="_editingCourse.CreditHours" />
+								<ValidationMessage For="() => _editingCourse.CreditHours" />
+							</div>
+						</div>
+						<div class="form-field">
+							<label>Jurisdiction</label>
+							<InputText @bind-Value="_editingCourse.Jurisdiction" />
+						</div>
+						<div class="form-row">
+							<div class="form-field">
+								<label>Price</label>
+								<InputNumber @bind-Value="_editingCourse.Price" />
+								<ValidationMessage For="() => _editingCourse.Price" />
+							</div>
+						</div>
+						@if (_editingCourse.UsesUnitBasedStructure)
+						{
+							<div class="form-row">
+								<div class="form-field">
+									<label>Required instructional minutes</label>
+									<InputNumber @bind-Value="_editingCourse.RequiredInstructionalMinutes" />
+								</div>
+								<div class="form-field">
+									<label>Minimum pass %</label>
+									<InputNumber @bind-Value="_editingCourse.MinimumPassingPercent" />
+								</div>
+								<div class="form-field">
+									<label>Minimum attendance %</label>
+									<InputNumber @bind-Value="_editingCourse.MinimumAttendancePercent" />
+								</div>
+							</div>
+						}
+						@if (CourseComplianceTypes.IsRegulated(_editingCourse.ComplianceType))
+						{
+							<div class="form-row">
+								<div class="form-field">
+									<label>Completion window (days)</label>
+									<InputNumber @bind-Value="_editingCourse.CompletionWindowDays" />
+								</div>
+								<div class="form-field checkbox-field">
+									<label>
+										<InputCheckbox @bind-Value="_editingCourse.RequiresProctoredExam" />
+										Requires proctored exam
+									</label>
+								</div>
+							</div>
+						}
+						<div class="form-row">
+							<div class="form-field checkbox-field">
+								<label>
+									<InputCheckbox @bind-Value="_editingCourse.IsArchived" />
+									Archived
+								</label>
+							</div>
+						</div>
+						<div class="form-field">
+							<label>Review status</label>
+							<p><strong>@CourseReviewStatuses.ToDisplayText(_editingCourse.ReviewStatus)</strong></p>
+							@if (!string.IsNullOrWhiteSpace(_editingCourse.ReviewNote))
+							{
+								<p class="muted-text">Admin note: @_editingCourse.ReviewNote</p>
+							}
+							@if (_editingCourse.ReviewStatus == CourseReviewStatuses.Rejected && !CourseReviewStatuses.CanResubmitAfterRejection(_editingCourse.ReviewedAt, DateTime.UtcNow))
+							{
+								<p class="muted-text">This course was rejected and the resubmission window has closed. Contact an admin to proceed.</p>
+							}
+						</div>
+
+						<div class="course-actions editor-step-actions">
+							<button type="submit">Save changes</button>
+							<button type="button" @onclick="@(() => NavigationManager.NavigateTo("/instructor"))">Cancel</button>
+							@if (!_isAdmin && CanSubmitForReview(_editingCourse) && readiness.Items.All(item => item.IsComplete))
+							{
+								<button type="button" @onclick="SubmitCourseForReviewAsync">Submit for review</button>
+							}
+							<button type="button" @onclick="NextEditorStep">Next</button>
+						</div>
+						@if (!_isAdmin && CanSubmitForReview(_editingCourse) && !readiness.Items.All(item => item.IsComplete))
+						{
+							<p class="muted-text">Complete all required items above before this course can be submitted for review.</p>
+						}
+						@if (!string.IsNullOrWhiteSpace(_reviewStatusMessage))
+						{
+							<p class="muted-text">@_reviewStatusMessage</p>
+						}
+					</EditForm>
 				}
+				else if (_activeEditorStep == CourseEditorStep.Modules)
+				{
+					@if (_editingModule is null)
+					{
+						<section class="card instructor-structure-card">
+							<div class="course-item-header">
+								<h3 class="structure-section-title">Modules</h3>
+							</div>
+							<p class="muted-text">Open each module to manage lessons and checkpoints.</p>
+
+							@if (_editingCourse.Modules.Count == 0)
+							{
+								<p class="muted-text">No modules yet. Add one below to start the structure.</p>
+							}
+							else
+							{
+								<div class="course-list">
+									@foreach (var module in _editingCourse.Modules.OrderBy(module => module.OrderIndex))
+									{
+										<article class="course-item">
+											<div>
+												<h3>@module.OrderIndex. @module.Title</h3>
+												<p>@GetModuleLessonsSummary(module)</p>
+												<p class="muted-text">@GetModuleCheckpointSummary(module.Id)</p>
+											</div>
+											<div class="course-actions">
+												<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules, module.Id))">Edit module</button>
+												<button type="button" @onclick="() => DeleteModuleAsync(module)">Delete module</button>
+												<div class="course-move-actions">
+													<select class="course-position-select" title="Move to position" @onchange="e => MoveModuleToSelectedPositionAsync(module, e)">
+														@for (var position = 1; position <= _editingCourse.Modules.Count; position++)
+														{
+															<option value="@position" selected="@(position == module.OrderIndex)">@position</option>
+														}
+													</select>
+													<button type="button" title="Move up" disabled="@(module.OrderIndex <= 1)" @onclick="() => MoveModuleAsync(module, true)">↑</button>
+													<button type="button" title="Move down" disabled="@(module.OrderIndex >= _editingCourse.Modules.Count)" @onclick="() => MoveModuleAsync(module, false)">↓</button>
+												</div>
+											</div>
+										</article>
+									}
+								</div>
+							}
+						</section>
+
+						<section class="card instructor-structure-card instructor-structure-inline-card">
+							<div class="course-item-header">
+								<h3>Add a module</h3>
+							</div>
+							<div class="course-actions">
+								<button type="button" @onclick="StartNewModule">Add module</button>
+							</div>
+						</section>
+
+						<div class="card instructor-structure-card instructor-structure-inline-card">
+							<div class="course-item-header">
+								<h3>Assessment handoff</h3>
+							</div>
+							<p class="muted-text">Move to the final assessment once the course structure is ready.</p>
+							<div class="course-actions">
+								<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Assessment))">Edit final assessment</button>
+							</div>
+						</div>
+
+						<hr />
+						<h3>Import course structure</h3>
+						<p class="muted-text">Use a .txt file or paste content with [module], [lesson], [checkpoint], [option], and [assessment] markers. Lesson duration and required flags are optional and default when omitted. Checkpoint metadata supports title, prompt, description, module, lesson, and gatesprogression. Assessment blocks support title and passpercent; each [question] block can include optionA/B/C/D, correct, and feedback.</p>
+						<div class="form-field">
+							<label>Upload a text file</label>
+							<InputFile OnChange="HandleImportFileSelection" accept=".txt,text/plain" />
+						</div>
+						<div class="form-field">
+							<label>Or paste import text</label>
+							<InputTextArea Value="@_importText" ValueChanged="HandleImportTextChanged" ValueExpression="() => _importText" />
+						</div>
+						<button type="button" @onclick="ImportCourseStructureAsync">Import structure</button>
+						@if (!string.IsNullOrWhiteSpace(_importStatusMessage))
+						{
+							<p class="muted-text">@_importStatusMessage</p>
+						}
+					}
+					else
+					{
+						<h3>@(string.IsNullOrWhiteSpace(_editingModule.Title) ? "New module" : _editingModule.Title)</h3>
+						<p class="muted-text">
+							@(_isCreatingModule
+								? "Save this module to create it and start adding lessons and checkpoints."
+								: "This dedicated module page keeps lesson and checkpoint management focused on one module at a time.")
+						</p>
+
+						<EditForm Model="_editingModule" OnValidSubmit="SaveModuleAsync">
+							<DataAnnotationsValidator />
+							<ValidationSummary />
+							<div class="form-field">
+								<label>Module title</label>
+								<InputText @bind-Value="_editingModule.Title" />
+							</div>
+							<div class="course-actions">
+								<button type="submit">Save module</button>
+								<button type="button" @onclick="GoToModulesList">Cancel</button>
+							</div>
+						</EditForm>
+
+						@if (!_isCreatingModule)
+						{
+							<hr />
+							<p class="muted-text">Lessons and checkpoints are shown in the order learners will encounter them. Add either one at any point to build the sequence you want, or use the ↑/↓ buttons to reorder existing ones.</p>
+							<div class="course-list">
+								@{
+									var moduleCheckpointsInOrder = GetOrderedModuleCheckpoints(_editingModule);
+								}
+								@foreach (var moduleCheckpoint in moduleCheckpointsInOrder.Where(candidate => candidate.LessonId == CourseCheckpointDefinition.StartOfModuleAnchor))
+								{
+									<article class="course-item checkpoint-item">
+										<div>
+											<h3>@GetModuleItemNumber(_editingModule, moduleCheckpoint.Id). @moduleCheckpoint.Title</h3>
+											<p class="muted-text">Placement: @GetCheckpointAnchorLabel(moduleCheckpoint)</p>
+										</div>
+										<div class="course-actions">
+											<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints, moduleCheckpoint.Id))">Edit checkpoint</button>
+											<button type="button" @onclick="() => DeleteModuleCheckpointAsync(moduleCheckpoint.Id)">Delete checkpoint</button>
+											<label class="course-gate-toggle">
+												<input type="checkbox" checked="@moduleCheckpoint.GatesProgression" @onchange="e => ToggleCheckpointGatesProgressionAsync(moduleCheckpoint, e)" />
+												Pass grade required
+											</label>
+											<div class="course-move-actions">
+												@{ var startAnchoredItemCount = GetOrderedModuleItemIds(_editingModule).Count; var startAnchoredPosition = GetModuleItemNumber(_editingModule, moduleCheckpoint.Id); }
+												<select class="course-position-select" title="Move to position" @onchange="e => MoveCheckpointToSelectedPositionAsync(moduleCheckpoint, e)">
+													@for (var position = 1; position <= startAnchoredItemCount; position++)
+													{
+														<option value="@position" selected="@(position == startAnchoredPosition)">@position</option>
+													}
+												</select>
+												<button type="button" title="Move up" disabled="@(GetModuleItemNumber(_editingModule, moduleCheckpoint.Id) <= 1)" @onclick="() => MoveCheckpointAsync(moduleCheckpoint, true)">↑</button>
+												<button type="button" title="Move down" disabled="@(GetModuleItemNumber(_editingModule, moduleCheckpoint.Id) >= GetOrderedModuleItemIds(_editingModule).Count)" @onclick="() => MoveCheckpointAsync(moduleCheckpoint, false)">↓</button>
+											</div>
+										</div>
+									</article>
+								}
+								@foreach (var lesson in _editingModule.Lessons.OrderBy(lesson => lesson.OrderIndex))
+								{
+									<article class="course-item">
+										<div>
+											<h3>@GetModuleItemNumber(_editingModule, lesson.Id). @lesson.Title</h3>
+											<p class="muted-text">@lesson.DurationMinutes min</p>
+										</div>
+										<div class="course-actions">
+											<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Lessons, lesson.Id))">Edit lesson</button>
+											<button type="button" @onclick="() => DeleteLessonAsync(lesson.Id)">Delete lesson</button>
+											<div class="course-move-actions">
+												@{ var lessonItemCount = GetOrderedModuleItemIds(_editingModule).Count; var lessonItemPosition = GetModuleItemNumber(_editingModule, lesson.Id); }
+												<select class="course-position-select" title="Move to position" @onchange="e => MoveLessonToSelectedPositionAsync(lesson, e)">
+													@for (var position = 1; position <= lessonItemCount; position++)
+													{
+														<option value="@position" selected="@(position == lessonItemPosition)">@position</option>
+													}
+												</select>
+												<button type="button" title="Move up" disabled="@(lesson.OrderIndex <= 1)" @onclick="() => MoveLessonAsync(lesson, true)">↑</button>
+												<button type="button" title="Move down" disabled="@(lesson.OrderIndex >= _editingModule.Lessons.Count)" @onclick="() => MoveLessonAsync(lesson, false)">↓</button>
+											</div>
+										</div>
+									</article>
+									@foreach (var moduleCheckpoint in moduleCheckpointsInOrder.Where(candidate => candidate.LessonId == lesson.Id))
+									{
+										<article class="course-item checkpoint-item">
+											<div>
+												<h3>@GetModuleItemNumber(_editingModule, moduleCheckpoint.Id). @moduleCheckpoint.Title</h3>
+												<p class="muted-text">Placement: @GetCheckpointAnchorLabel(moduleCheckpoint)</p>
+											</div>
+											<div class="course-actions">
+												<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints, moduleCheckpoint.Id))">Edit checkpoint</button>
+												<button type="button" @onclick="() => DeleteModuleCheckpointAsync(moduleCheckpoint.Id)">Delete checkpoint</button>
+												<label class="course-gate-toggle">
+													<input type="checkbox" checked="@moduleCheckpoint.GatesProgression" @onchange="e => ToggleCheckpointGatesProgressionAsync(moduleCheckpoint, e)" />
+													Pass grade required
+												</label>
+												<div class="course-move-actions">
+													@{ var lessonCheckpointItemCount = GetOrderedModuleItemIds(_editingModule).Count; var lessonCheckpointPosition = GetModuleItemNumber(_editingModule, moduleCheckpoint.Id); }
+													<select class="course-position-select" title="Move to position" @onchange="e => MoveCheckpointToSelectedPositionAsync(moduleCheckpoint, e)">
+														@for (var position = 1; position <= lessonCheckpointItemCount; position++)
+														{
+															<option value="@position" selected="@(position == lessonCheckpointPosition)">@position</option>
+														}
+													</select>
+													<button type="button" title="Move up" disabled="@(GetModuleItemNumber(_editingModule, moduleCheckpoint.Id) <= 1)" @onclick="() => MoveCheckpointAsync(moduleCheckpoint, true)">↑</button>
+													<button type="button" title="Move down" disabled="@(GetModuleItemNumber(_editingModule, moduleCheckpoint.Id) >= GetOrderedModuleItemIds(_editingModule).Count)" @onclick="() => MoveCheckpointAsync(moduleCheckpoint, false)">↓</button>
+												</div>
+											</div>
+										</article>
+									}
+								}
+								@foreach (var moduleCheckpoint in moduleCheckpointsInOrder.Where(candidate => candidate.LessonId == null))
+								{
+									<article class="course-item checkpoint-item">
+										<div>
+											<h3>@GetModuleItemNumber(_editingModule, moduleCheckpoint.Id). @moduleCheckpoint.Title</h3>
+											<p class="muted-text">Placement: @GetCheckpointAnchorLabel(moduleCheckpoint)</p>
+										</div>
+										<div class="course-actions">
+											<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints, moduleCheckpoint.Id))">Edit checkpoint</button>
+											<button type="button" @onclick="() => DeleteModuleCheckpointAsync(moduleCheckpoint.Id)">Delete checkpoint</button>
+											<label class="course-gate-toggle">
+												<input type="checkbox" checked="@moduleCheckpoint.GatesProgression" @onchange="e => ToggleCheckpointGatesProgressionAsync(moduleCheckpoint, e)" />
+												Pass grade required
+											</label>
+											<div class="course-move-actions">
+												@{ var endAnchoredItemCount = GetOrderedModuleItemIds(_editingModule).Count; var endAnchoredPosition = GetModuleItemNumber(_editingModule, moduleCheckpoint.Id); }
+												<select class="course-position-select" title="Move to position" @onchange="e => MoveCheckpointToSelectedPositionAsync(moduleCheckpoint, e)">
+													@for (var position = 1; position <= endAnchoredItemCount; position++)
+													{
+														<option value="@position" selected="@(position == endAnchoredPosition)">@position</option>
+													}
+												</select>
+												<button type="button" title="Move up" disabled="@(GetModuleItemNumber(_editingModule, moduleCheckpoint.Id) <= 1)" @onclick="() => MoveCheckpointAsync(moduleCheckpoint, true)">↑</button>
+												<button type="button" title="Move down" disabled="@(GetModuleItemNumber(_editingModule, moduleCheckpoint.Id) >= GetOrderedModuleItemIds(_editingModule).Count)" @onclick="() => MoveCheckpointAsync(moduleCheckpoint, false)">↓</button>
+											</div>
+										</div>
+									</article>
+								}
+							</div>
+
+							<div class="course-actions module-list-add-actions">
+								<button type="button" @onclick="() => StartNewLesson(_editingModule)">Add lesson</button>
+								<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints, _editingModule.Id))">Add checkpoint</button>
+							</div>
+						}
+					}
+
+					<div class="course-actions editor-step-actions">
+						<button type="button" @onclick="PreviousEditorStep">Previous</button>
+						<button type="button" @onclick="NextEditorStep">Next</button>
+					</div>
+				}
+				else if (_activeEditorStep == CourseEditorStep.Lessons)
+				{
+					@if (_editingLesson is not null)
+					{
+						var currentItem = GetCurrentAuthoringItem();
+						<div class="course-actions lesson-pager-actions">
+							<button type="button" @onclick="() => GoToAdjacentAuthoringItem(-1)" disabled="@(GetAdjacentAuthoringItem(-1) is null)">Previous</button>
+							<button type="button" @onclick="() => GoToAdjacentAuthoringItem(1)" disabled="@(GetAdjacentAuthoringItem(1) is null)">Next</button>
+						</div>
+
+						<h3>@(_isCreatingLesson ? "New lesson" : currentItem?.Label ?? "Edit lesson")</h3>
+						<EditForm Model="_editingLesson" OnValidSubmit="SaveLessonAsync">
+							<DataAnnotationsValidator />
+							<ValidationSummary />
+							<div class="form-field">
+								<label>Title</label>
+								<InputText @bind-Value="_editingLesson.Title" />
+							</div>
+							<div class="form-field">
+								<label>Lesson content</label>
+								<InputTextArea @bind-Value="_editingLesson.TextContent" />
+							</div>
+							<div class="form-field">
+								<label>Duration Minutes</label>
+								<InputNumber @bind-Value="_editingLesson.DurationMinutes" />
+							</div>
+							<div class="form-row">
+								<div class="form-field checkbox-field">
+									<label>
+										<InputCheckbox @bind-Value="_editingLesson.IsRequired" />
+										Required
+									</label>
+								</div>
+							</div>
+							<div class="course-actions">
+								<button type="submit">Save lesson</button>
+								<button type="button" @onclick="GoToLessonsList">Cancel</button>
+							</div>
+						</EditForm>
+					}
+					else
+					{
+						<h3>Lessons</h3>
+						<p class="muted-text">Select a lesson from the menu to open it on its own page, or add a new lesson to a module below.</p>
+
+						@if (_editingCourse.Modules.Count == 0)
+						{
+							<p class="muted-text">Add a module first before adding lessons.</p>
+						}
+						else
+						{
+							<div class="course-list">
+								@foreach (var module in _editingCourse.Modules.OrderBy(module => module.OrderIndex))
+								{
+									<article class="course-item">
+										<div>
+											<h3>@module.OrderIndex. @module.Title</h3>
+											<p>@GetModuleLessonsSummary(module)</p>
+										</div>
+										<button type="button" @onclick="() => StartNewLesson(module)">Add lesson</button>
+									</article>
+								}
+							</div>
+						}
+					}
+
+					<div class="course-actions editor-step-actions">
+						<button type="button" @onclick="PreviousEditorStep">Previous</button>
+						<button type="button" @onclick="NextEditorStep">Next</button>
+					</div>
+				}
+				else if (_activeEditorStep == CourseEditorStep.Checkpoints)
+				{
+					var currentItem = GetCurrentAuthoringItem();
+					<div class="course-actions lesson-pager-actions">
+						<button type="button" @onclick="() => GoToAdjacentAuthoringItem(-1)" disabled="@(GetAdjacentAuthoringItem(-1) is null)">Previous</button>
+						<span class="muted-text">@(currentItem?.Label ?? "Current checkpoint")</span>
+						<button type="button" @onclick="() => GoToAdjacentAuthoringItem(1)" disabled="@(GetAdjacentAuthoringItem(1) is null)">Next</button>
+					</div>
+
+					@if (_editingCheckpoint is null)
+					{
+						<h3>Edit checkpoint</h3>
+						<p class="muted-text">Open a module to add or edit its checkpoints.</p>
+						<div class="course-actions">
+							<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules))">Back to modules</button>
+						</div>
+					}
+
+					@if (_editingCheckpoint is not null)
+					{
+						<hr />
+						<h3>Edit checkpoint for @GetModuleTitle(_editingCheckpoint.ModuleId)</h3>
+
+						@if (!string.IsNullOrWhiteSpace(_checkpointError))
+						{
+							<p class="auth-error">@_checkpointError</p>
+						}
+						@if (!string.IsNullOrWhiteSpace(_checkpointMessage))
+						{
+							<p class="auth-help">@_checkpointMessage</p>
+						}
+
+						<div class="form-field">
+							<label>Title</label>
+							<InputText @bind-Value="_editingCheckpoint.Title" />
+						</div>
+						<div class="form-field">
+							<label>Prompt</label>
+							<InputTextArea @bind-Value="_editingCheckpoint.Prompt" />
+						</div>
+						<div class="form-field">
+							<label>Description</label>
+							<InputTextArea @bind-Value="_editingCheckpoint.Description" />
+						</div>
+
+						<h4>Options</h4>
+						@for (var optionIndex = 0; optionIndex < _editingCheckpoint.Options.Count; optionIndex++)
+						{
+							var capturedIndex = optionIndex;
+							var option = _editingCheckpoint.Options[capturedIndex];
+							<div class="form-row">
+								<div class="form-field">
+									<label>Option @(capturedIndex + 1)</label>
+									<InputText @bind-Value="option.Label" />
+								</div>
+								<div class="form-field checkbox-field">
+									<label>
+										<InputCheckbox @bind-Value="option.IsCorrect" />
+										Correct
+									</label>
+								</div>
+								<div class="form-field">
+									<label>&nbsp;</label>
+									<button type="button" @onclick="() => RemoveCheckpointOption(capturedIndex)">Remove</button>
+								</div>
+							</div>
+						}
+
+						<div class="course-actions">
+							<button type="button" @onclick="AddCheckpointOption">Add option</button>
+							<button type="button" @onclick="SaveCheckpointAsync">Save checkpoint</button>
+							<button type="button" @onclick="CancelCheckpointEditingAndNavigateAsync">Cancel</button>
+						</div>
+					}
+
+					<div class="course-actions editor-step-actions">
+						<button type="button" @onclick="PreviousEditorStep">Previous</button>
+						<button type="button" @onclick="NextEditorStep">Next</button>
+					</div>
+				}
+				else
+				{
+					var currentItem = GetCurrentAuthoringItem();
+					<div class="course-actions lesson-pager-actions">
+						<button type="button" @onclick="() => GoToAdjacentAuthoringItem(-1)" disabled="@(GetAdjacentAuthoringItem(-1) is null)">Previous</button>
+						<span class="muted-text">@(currentItem?.Label ?? "Final assessment")</span>
+						<button type="button" @onclick="() => GoToAdjacentAuthoringItem(1)" disabled="@(GetAdjacentAuthoringItem(1) is null)">Next</button>
+					</div>
+
+					<div class="editor-step-summary">
+						<p class="muted-text">Review the assessment flow and finalize the course before sending it for review.</p>
+					</div>
+					<AdminAssessmentsPanel
+						AssessmentError="@_assessmentError"
+						AssessmentMessage="@_assessmentMessage"
+						Courses="_courses"
+						Users="_users"
+						AssessmentCourseIdText="@_assessmentCourseIdText"
+						ActiveCourseTitle="@(_editingCourse?.Title ?? "Current course")"
+						OnLoadAssessmentEditor="LoadAssessmentEditorAsync"
+						AssessmentEditor="_assessmentEditor"
+						OnAddAssessmentQuestion="AddAssessmentQuestion"
+						OnRemoveAssessmentQuestion="RemoveAssessmentQuestion"
+						OnSaveAssessmentEditor="SaveAssessmentEditorAsync"
+						OnRetakeLearnerChanged="OnRetakeLearnerChanged"
+						RetakeLearnerIdText="@GetRetakeLearnerIdText()"
+						RetakeGrantAttempts="_retakeGrantAttempts"
+						RetakeGrantAttemptsChanged="OnRetakeGrantAttemptsChanged"
+						ResetCooldownTimerOnRetakeGrant="_resetCooldownTimerOnRetakeGrant"
+						ResetCooldownTimerOnRetakeGrantChanged="OnResetCooldownTimerOnRetakeGrantChanged"
+						OnGrantRetake="GrantRetakeAsync"
+						RetakeGrants="_retakeGrants"
+						GetRetakeGrantDraft="GetRetakeGrantDraft"
+						SetRetakeGrantDraft="SetRetakeGrantDraft"
+						OnUpdateRetakeGrant="UpdateRetakeGrantAsync"
+						OnRevokeRetakeGrant="RevokeRetakeGrantAsync" />
+
+					<div class="course-actions editor-step-actions">
+						<button type="button" @onclick="PreviousEditorStep">Previous</button>
+					</div>
+				}
+					</section>
+				</section>
 			</div>
-		}
-	</section>
+}
+else
+{
+	<div class="instructor-panels-row">
+		<section class="card instructor-course-list-panel">
+			<div class="instructor-panel-header">
+				<div>
+					<h2>Edit course</h2>
+				</div>
+			</div>
+			<div class="course-list-toolbar">
+				<input class="filter-input" placeholder="Search courses" @bind="_courseSearchText" @bind:event="oninput" />
+				<select @bind="_courseStatusFilter">
+					<option value="all">All statuses</option>
+					<option value="draft">Draft</option>
+					<option value="pending">Pending review</option>
+					<option value="changes">Changes requested</option>
+					<option value="approved">Approved</option>
+					<option value="published">Published</option>
+					<option value="rejected">Rejected</option>
+					<option value="archived">Archived</option>
+				</select>
+				<select @bind="_courseSortOption">
+					<option value="updated">Most recently updated</option>
+					<option value="title">Title</option>
+					<option value="status">Status</option>
+				</select>
+			</div>
 
-	<section class="card">
-		<h2>Edit course</h2>
+			@if (GetVisibleCourses().Count == 0)
+			{
+				<p>No matching courses are available to edit.</p>
+			}
+			else
+			{
+				<div class="course-list">
+					@foreach (var course in GetVisibleCourses())
+					{
+						<article class="course-item">
+							<div>
+								<div class="course-item-header">
+									<h3>@course.Title</h3>
+									<span class="status-pill @GetCourseStatusClass(course)">@GetCourseStatusLabel(course)</span>
+								</div>
+								<p>@course.Level | @(course.IsPublished ? "Published" : "Unpublished") | Review: @CourseReviewStatuses.ToDisplayText(course.ReviewStatus)</p>
+								<p>@course.Description</p>
+								<p class="muted-text">Last updated: @(course.UpdatedAt?.ToLocalTime().ToString("MMM d, yyyy h:mm tt") ?? "Not yet saved")</p>
+							</div>
+							<div class="course-actions">
+								<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(course.Id, CourseEditorStep.Overview))">Edit</button>
+								<button type="button" class="secondary-button course-preview-action" @onclick="() => NavigationManager.NavigateTo(BuildPreviewUri(course.Id))">Preview</button>
+							</div>
+						</article>
+					}
+				</div>
+			}
+		</section>
 
-		@if (_editingCourse is null)
-		{
-			<p>Select a course to edit its content and status.</p>
-		}
-		else
-		{
-			<EditForm Model="_editingCourse" OnValidSubmit="SaveCourseAsync">
+		<section class="card instructor-create-panel">
+			<h2>Create course</h2>
+			<p class="muted-text">Start with the essentials, then continue editing to add modules, lessons, and checkpoints.</p>
+
+			<EditForm Model="_newCourseDraft" OnValidSubmit="CreateCourseAsync">
 				<DataAnnotationsValidator />
 				<ValidationSummary />
 
 				<div class="form-field">
 					<label>Title</label>
-					<InputText @bind-Value="_editingCourse.Title" />
-					<ValidationMessage For="() => _editingCourse.Title" />
+					<InputText @bind-Value="_newCourseDraft.Title" @bind-Value:after="SaveCreateDraftAsync" required />
+					<ValidationMessage For="() => _newCourseDraft.Title" />
 				</div>
 				<div class="form-field">
 					<label>Description</label>
-					<InputTextArea @bind-Value="_editingCourse.Description" />
+					<InputTextArea @bind-Value="_newCourseDraft.Description" @bind-Value:after="SaveCreateDraftAsync" required />
 				</div>
 				<div class="form-field">
 					<label>Level</label>
-					<InputText @bind-Value="_editingCourse.Level" />
-					<ValidationMessage For="() => _editingCourse.Level" />
+					<InputText @bind-Value="_newCourseDraft.Level" @bind-Value:after="SaveCreateDraftAsync" required />
+					<ValidationMessage For="() => _newCourseDraft.Level" />
+				</div>
+				<div class="form-row">
+					<div class="form-field">
+						<label>Compliance type</label>
+						<InputSelect @bind-Value="_newCourseDraft.ComplianceType" @bind-Value:after="SaveCreateDraftAsync">
+							<option value="">Select compliance type</option>
+							<option value="@CourseComplianceTypes.Prelicensing">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.Prelicensing)</option>
+							<option value="@CourseComplianceTypes.Postlicensing">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.Postlicensing)</option>
+							<option value="@CourseComplianceTypes.ContinuingEducation">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.ContinuingEducation)</option>
+						</InputSelect>
+					</div>
+					<div class="form-field">
+						<label>Delivery method</label>
+						<InputSelect @bind-Value="_newCourseDraft.DeliveryMethod" @bind-Value:after="SaveCreateDraftAsync">
+							<option value="@CourseDeliveryMethods.DistanceEducation">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.DistanceEducation)</option>
+							<option value="@CourseDeliveryMethods.SynchronousDistanceLearning">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.SynchronousDistanceLearning)</option>
+							<option value="@CourseDeliveryMethods.InPerson">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.InPerson)</option>
+							<option value="@CourseDeliveryMethods.Blended">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.Blended)</option>
+						</InputSelect>
+					</div>
+				</div>
+				@if (_newCourseDraft.ComplianceType == CourseComplianceTypes.ContinuingEducation)
+				{
+					<div class="form-field">
+						<label>Continuing education type</label>
+						<InputSelect @bind-Value="_newCourseDraft.ContinuingEducationType" @bind-Value:after="SaveCreateDraftAsync">
+							@foreach (var type in ContinuingEducationTypes.All)
+							{
+								<option value="@type">@ContinuingEducationTypes.ToDisplayText(type)</option>
+							}
+						</InputSelect>
+					</div>
+				}
+				<div class="form-row">
+					<div class="form-field">
+						<label>Commission course number</label>
+						<InputText @bind-Value="_newCourseDraft.CommissionCourseNumber" @bind-Value:after="SaveCreateDraftAsync" />
+					</div>
+					<div class="form-field">
+						<label>Completion window (days)</label>
+						<InputNumber @bind-Value="_newCourseDraft.CompletionWindowDays" @bind-Value:after="SaveCreateDraftAsync" />
+					</div>
 				</div>
 				<div class="form-row">
 					<div class="form-field">
 						<label>Duration Hours</label>
-						<InputNumber @bind-Value="_editingCourse.DurationHours" />
-						<ValidationMessage For="() => _editingCourse.DurationHours" />
+						<InputNumber @bind-Value="_newCourseDraft.DurationHours" @bind-Value:after="SaveCreateDraftAsync" required />
 					</div>
 					<div class="form-field">
 						<label>Credit Hours</label>
-						<InputNumber @bind-Value="_editingCourse.CreditHours" />
-						<ValidationMessage For="() => _editingCourse.CreditHours" />
+						<InputNumber @bind-Value="_newCourseDraft.CreditHours" @bind-Value:after="SaveCreateDraftAsync" required />
 					</div>
 				</div>
 				<div class="form-field">
 					<label>Jurisdiction</label>
-					<InputText @bind-Value="_editingCourse.Jurisdiction" />
+					<InputText @bind-Value="_newCourseDraft.Jurisdiction" @bind-Value:after="SaveCreateDraftAsync" required />
 				</div>
-				<div class="form-row">
-					<div class="form-field">
-						<label>Price</label>
-						<InputNumber @bind-Value="_editingCourse.Price" />
-						<ValidationMessage For="() => _editingCourse.Price" />
-					</div>
-					<div class="form-field checkbox-field">
-						<label>
-							<InputCheckbox @bind-Value="_editingCourse.IsPublished" />
-							Published
-						</label>
-					</div>
-				</div>
-				<div class="form-row">
-					<div class="form-field checkbox-field">
-						<label>
-							<InputCheckbox @bind-Value="_editingCourse.IsArchived" />
-							Archived
-						</label>
-					</div>
-				</div>
-				<div class="course-actions">
-					<button type="submit">Save changes</button>
-					<button type="button" @onclick="ClearSelection">Cancel</button>
-				</div>
-			</EditForm>
-		}
-	</section>
-
-	<section class="card">
-		<h2>Modules</h2>
-
-		@if (_editingCourse is null)
-		{
-			<p>Select a course to manage its modules.</p>
-		}
-		else
-		{
-			<div class="form-field">
-				<label>New module title</label>
-				<InputText @bind-Value="_newModuleTitle" />
-			</div>
-			<button type="button" @onclick="AddModuleAsync">Add module</button>
-
-			@if (_editingCourse.Modules.Count == 0)
-			{
-				<p class="muted-text">No modules yet.</p>
-			}
-			else
-			{
-				<div class="course-list">
-					@foreach (var module in _editingCourse.Modules.OrderBy(module => module.OrderIndex))
-					{
-						<article class="course-item">
-							<div>
-								<h3>@module.OrderIndex. @module.Title</h3>
-								<p>@module.Lessons.Count lessons</p>
-							</div>
-							<button type="button" @onclick="() => BeginEditingModule(module)">Edit module</button>
-						</article>
-					}
-				</div>
-			}
-
-			@if (_editingModule is not null)
-			{
-				<hr />
-				<h3>Edit module</h3>
-				<EditForm Model="_editingModule" OnValidSubmit="SaveModuleAsync">
-					<DataAnnotationsValidator />
-					<ValidationSummary />
-					<div class="form-field">
-						<label>Title</label>
-						<InputText @bind-Value="_editingModule.Title" />
-					</div>
-					<div class="course-actions">
-						<button type="submit">Save module</button>
-						<button type="button" @onclick="ClearModuleSelection">Cancel</button>
-					</div>
-				</EditForm>
-			}
-		}
-	</section>
-
-	<section class="card">
-		<h2>Lessons</h2>
-
-		@if (_editingModule is null)
-		{
-			<p>Select a module to manage its lessons.</p>
-		}
-		else
-		{
-			<div class="form-field">
-				<label>New lesson title</label>
-				<InputText @bind-Value="_newLessonTitle" />
-			</div>
-			<div class="form-field">
-				<label>Lesson content</label>
-				<InputTextArea @bind-Value="_newLessonText" />
-			</div>
-			<div class="form-row">
 				<div class="form-field">
-					<label>Duration Minutes</label>
-					<InputNumber @bind-Value="_newLessonDurationMinutes" />
+					<label>Price</label>
+					<InputNumber @bind-Value="_newCourseDraft.Price" @bind-Value:after="SaveCreateDraftAsync" required />
 				</div>
-				<div class="form-field checkbox-field">
-					<label>
-						<InputCheckbox @bind-Value="_newLessonRequired" />
-						Required
-					</label>
-				</div>
-			</div>
-			<button type="button" @onclick="AddLessonAsync">Add lesson</button>
-
-			@if (_editingModule.Lessons.Count == 0)
-			{
-				<p class="muted-text">No lessons yet.</p>
-			}
-			else
-			{
-				<div class="course-list">
-					@foreach (var lesson in _editingModule.Lessons.OrderBy(lesson => lesson.OrderIndex))
-					{
-						<article class="course-item">
-							<div>
-								<h3>@lesson.OrderIndex. @lesson.Title</h3>
-								<p>@lesson.DurationMinutes minutes | @(lesson.IsRequired ? "Required" : "Optional")</p>
-								<p>@lesson.TextContent</p>
-							</div>
-							<button type="button" @onclick="() => BeginEditingLesson(lesson)">Edit lesson</button>
-						</article>
-					}
-				</div>
-			}
-
-			@if (_editingLesson is not null)
-			{
-				<hr />
-				<h3>Edit lesson</h3>
-				<EditForm Model="_editingLesson" OnValidSubmit="SaveLessonAsync">
-					<DataAnnotationsValidator />
-					<ValidationSummary />
-					<div class="form-field">
-						<label>Title</label>
-						<InputText @bind-Value="_editingLesson.Title" />
-					</div>
-					<div class="form-field">
-						<label>Lesson content</label>
-						<InputTextArea @bind-Value="_editingLesson.TextContent" />
-					</div>
-					<div class="form-field">
-						<label>Duration Minutes</label>
-						<InputNumber @bind-Value="_editingLesson.DurationMinutes" />
-					</div>
+				@if (_newCourseDraft.UsesUnitBasedStructure)
+				{
 					<div class="form-row">
-						<div class="form-field checkbox-field">
-							<label>
-								<InputCheckbox @bind-Value="_editingLesson.IsRequired" />
-								Required
-							</label>
+						<div class="form-field">
+							<label>Required instructional minutes</label>
+							<InputNumber @bind-Value="_newCourseDraft.RequiredInstructionalMinutes" @bind-Value:after="SaveCreateDraftAsync" />
+						</div>
+						<div class="form-field">
+							<label>Minimum pass %</label>
+							<InputNumber @bind-Value="_newCourseDraft.MinimumPassingPercent" @bind-Value:after="SaveCreateDraftAsync" />
+						</div>
+						<div class="form-field">
+							<label>Minimum attendance %</label>
+							<InputNumber @bind-Value="_newCourseDraft.MinimumAttendancePercent" @bind-Value:after="SaveCreateDraftAsync" />
 						</div>
 					</div>
-					<div class="course-actions">
-						<button type="submit">Save lesson</button>
-						<button type="button" @onclick="ClearLessonSelection">Cancel</button>
+				}
+				@if (CourseComplianceTypes.IsRegulated(_newCourseDraft.ComplianceType))
+				{
+					<div class="form-field checkbox-field">
+						<label>
+							<InputCheckbox @bind-Value="_newCourseDraft.RequiresProctoredExam" @bind-Value:after="SaveCreateDraftAsync" />
+							Requires proctored exam
+						</label>
 					</div>
-				</EditForm>
+				}
+				<div class="course-actions">
+					<button type="submit">Create course</button>
+				</div>
+			</EditForm>
+			<p class="muted-text">Drafts are auto-saved locally so you can return to the same setup later.</p>
+			@if (!string.IsNullOrWhiteSpace(_createCourseMessage))
+			{
+				<p class="muted-text">@_createCourseMessage</p>
 			}
-		}
-	</section>
-</div>
+		</section>
+	</div>
+}
+
+@if (_confirmDialogMessage is not null)
+{
+	<div class="confirm-dialog-overlay">
+		<div class="confirm-dialog" role="alertdialog" aria-modal="true">
+			<p>@_confirmDialogMessage</p>
+			<div class="confirm-dialog-actions">
+				@if (_confirmDialogShowCancel)
+				{
+					<button type="button" class="secondary-button" @onclick="() => ResolveConfirmDialog(false)">Cancel</button>
+					<button type="button" @onclick="() => ResolveConfirmDialog(true)">Delete</button>
+				}
+				else
+				{
+					<button type="button" @onclick="() => ResolveConfirmDialog(true)">OK</button>
+				}
+			</div>
+		</div>
+	</div>
+}
 
 @code {
+	[Parameter] public Guid CourseId { get; set; }
+	[Parameter] public string? Step { get; set; }
+	[Parameter] public Guid? SubId { get; set; }
+
 	private List<Course> _courses = new();
+	private string? _confirmDialogMessage;
+	private bool _confirmDialogShowCancel;
+	private TaskCompletionSource<bool>? _confirmDialogTcs;
+	private enum CourseAuthoringItemKind
+	{
+		Lesson,
+		Checkpoint,
+		Assessment
+	}
+
+	private sealed class CourseAuthoringNavigationItem
+	{
+		public CourseAuthoringItemKind Kind { get; init; }
+		public string Label { get; init; } = string.Empty;
+		public Guid? LessonId { get; init; }
+		public Guid? CheckpointId { get; init; }
+		public Guid? ModuleId { get; init; }
+	}
+	private List<UserAccount> _users = new();
 	private Course? _editingCourse;
+	private string _courseSearchText = string.Empty;
+	private string _courseStatusFilter = "all";
+	private string _courseSortOption = "updated";
 	private Module? _editingModule;
+	private bool _isCreatingModule;
 	private Lesson? _editingLesson;
-	private string _newModuleTitle = string.Empty;
-	private string _newLessonTitle = string.Empty;
-	private string? _newLessonText;
-	private int _newLessonDurationMinutes;
-	private bool _newLessonRequired = true;
+	private bool _isCreatingLesson;
+
+	private string _importText = string.Empty;
+	private string _importStatusMessage = string.Empty;
+	private Course _newCourseDraft = new()
+	{
+		Level = "Beginner",
+		Jurisdiction = "General",
+		DurationHours = 0,
+		CreditHours = 0,
+		Price = 0m
+	};
+	private string? _createCourseMessage;
+	private Guid? _actorUserId;
+	private string _actorEmail = "instructor@lms.local";
+	private bool _isAdmin;
+	private string? _reviewStatusMessage;
+	private CourseEditorStep _activeEditorStep = CourseEditorStep.Overview;
+	private readonly CourseEditorStep[] _editorSteps = { CourseEditorStep.Overview, CourseEditorStep.Modules, CourseEditorStep.Lessons, CourseEditorStep.Checkpoints, CourseEditorStep.Assessment };
+
+	private enum CourseEditorStep
+	{
+		Overview = 1,
+		Modules = 2,
+		Lessons = 3,
+		Checkpoints = 4,
+		Assessment = 5
+	}
+
+	private List<CourseCheckpointDefinition> _checkpoints = new();
+	private CheckpointDefinitionEditorModel? _editingCheckpoint;
+	private string? _checkpointError;
+	private string? _checkpointMessage;
+
+	private AssessmentEditorModel? _assessmentEditor;
+	private Guid? _assessmentCourseId;
+	private string _assessmentCourseIdText = string.Empty;
+	private string? _assessmentError;
+	private string? _assessmentMessage;
+	private Guid? _retakeLearnerId;
+	private int _retakeGrantAttempts = 1;
+	private bool _resetCooldownTimerOnRetakeGrant = true;
+	private List<RetakeGrantView> _retakeGrants = new();
+	private readonly Dictionary<Guid, int> _retakeGrantDraftAttempts = new();
+
+	private const string CreateDraftStorageKey = "instructor-create-draft";
+	private const string EditingCourseDraftPrefix = "instructor-edit-draft-";
+
+	private sealed class InstructorCourseDraftState
+	{
+		public string Title { get; set; } = string.Empty;
+		public string Description { get; set; } = string.Empty;
+		public string Level { get; set; } = string.Empty;
+		public int DurationHours { get; set; }
+		public int CreditHours { get; set; }
+		public string ComplianceType { get; set; } = CourseComplianceTypes.Unspecified;
+		public string DeliveryMethod { get; set; } = CourseDeliveryMethods.DistanceEducation;
+		public string? ContinuingEducationType { get; set; }
+		public string? CommissionCourseNumber { get; set; }
+		public int? CompletionWindowDays { get; set; }
+		public bool RequiresProctoredExam { get; set; }
+		public int RequiredInstructionalMinutes { get; set; }
+		public int MinimumPassingPercent { get; set; } = 75;
+		public int MinimumAttendancePercent { get; set; } = 80;
+		public string Jurisdiction { get; set; } = string.Empty;
+		public decimal Price { get; set; }
+	}
 
 	protected override async Task OnInitializedAsync()
 	{
+		var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+		var user = authState.User;
+
+		var idClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+		if (Guid.TryParse(idClaim, out var parsedId))
+		{
+			_actorUserId = parsedId;
+		}
+
+		_actorEmail = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? _actorEmail;
+		_isAdmin = user.IsInRole("Admin");
+
+		await RefreshCoursesAsync();
+		_users = await UserAccountService.GetAllAsync();
+		await RestoreCreateDraftAsync();
+	}
+
+	protected override async Task OnParametersSetAsync()
+	{
+		if (CourseId == Guid.Empty)
+		{
+			if (_editingCourse is not null)
+			{
+				ClearSelection();
+			}
+
+			return;
+		}
+
+		if (_editingCourse is null || _editingCourse.Id != CourseId)
+		{
+			var course = _courses.FirstOrDefault(candidate => candidate.Id == CourseId);
+			if (course is null)
+			{
+				await RefreshCoursesAsync();
+				course = _courses.FirstOrDefault(candidate => candidate.Id == CourseId);
+			}
+
+			if (course is null)
+			{
+				NavigationManager.NavigateTo("/instructor");
+				return;
+			}
+
+			await BeginEditing(course);
+		}
+
+		_activeEditorStep = ParseEditorStep(Step);
+
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		if (_activeEditorStep == CourseEditorStep.Modules)
+		{
+			if (SubId.HasValue)
+			{
+				if (_editingModule?.Id != SubId.Value)
+				{
+					var module = _editingCourse.Modules.FirstOrDefault(candidate => candidate.Id == SubId.Value);
+					if (module is not null)
+					{
+						BeginEditingModule(module);
+					}
+				}
+			}
+			else if (_editingModule is not null)
+			{
+				ClearModuleSelection();
+			}
+		}
+		else if (_activeEditorStep == CourseEditorStep.Lessons)
+		{
+			if (SubId.HasValue)
+			{
+				if (_editingLesson?.Id != SubId.Value)
+				{
+					var module = _editingCourse.Modules.FirstOrDefault(candidate => candidate.Lessons.Any(lesson => lesson.Id == SubId.Value));
+					var lesson = module?.Lessons.FirstOrDefault(candidate => candidate.Id == SubId.Value);
+					if (module is not null && lesson is not null)
+					{
+						BeginEditingModule(module);
+						BeginEditingLesson(lesson);
+					}
+				}
+			}
+			else
+			{
+				// The bare Lessons list duplicates the module list on the Modules step, so jump straight to a real lesson (or back to Modules if none exist).
+				var firstLesson = GetCourseAuthoringNavigationItems().FirstOrDefault(item => item.Kind == CourseAuthoringItemKind.Lesson);
+				NavigationManager.NavigateTo(firstLesson is not null
+					? BuildEditorUri(_editingCourse.Id, CourseEditorStep.Lessons, firstLesson.LessonId!.Value)
+					: BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules));
+				return;
+			}
+		}
+		else if (_activeEditorStep == CourseEditorStep.Checkpoints)
+		{
+			if (SubId.HasValue)
+			{
+				var checkpoint = _checkpoints.FirstOrDefault(candidate => candidate.Id == SubId.Value);
+				if (checkpoint is not null)
+				{
+					BeginEditingCheckpoint(checkpoint.ModuleId, checkpoint.Id);
+				}
+				else
+				{
+					var module = _editingCourse.Modules.FirstOrDefault(candidate => candidate.Id == SubId.Value);
+					BeginEditingCheckpoint(module?.Id);
+				}
+			}
+			else
+			{
+				CancelCheckpointEditing();
+			}
+		}
+	}
+
+
+	private string GetEditorStepLabel(CourseEditorStep step)
+	{
+		return step switch
+		{
+			CourseEditorStep.Modules => "Modules",
+			CourseEditorStep.Lessons => "Lessons",
+			CourseEditorStep.Checkpoints => "Checkpoints",
+			CourseEditorStep.Assessment => "Assessment",
+			_ => "Overview"
+		};
+	}
+
+	private static int GetEditorStepOrder(CourseEditorStep step)
+	{
+		return step switch
+		{
+			CourseEditorStep.Overview => 1,
+			CourseEditorStep.Modules => 2,
+			CourseEditorStep.Lessons => 3,
+			CourseEditorStep.Checkpoints => 4,
+			CourseEditorStep.Assessment => 5,
+			_ => 1
+		};
+	}
+
+	private static CourseEditorStep ParseEditorStep(string? step)
+	{
+		return step?.ToLowerInvariant() switch
+		{
+			"modules" => CourseEditorStep.Modules,
+			"lessons" => CourseEditorStep.Lessons,
+			"checkpoints" => CourseEditorStep.Checkpoints,
+			"assessment" => CourseEditorStep.Assessment,
+			_ => CourseEditorStep.Overview
+		};
+	}
+
+	private static string GetEditorStepSlug(CourseEditorStep step)
+	{
+		return step switch
+		{
+			CourseEditorStep.Modules => "modules",
+			CourseEditorStep.Lessons => "lessons",
+			CourseEditorStep.Checkpoints => "checkpoints",
+			CourseEditorStep.Assessment => "assessment",
+			_ => "overview"
+		};
+	}
+
+	private string BuildEditorUri(Guid courseId, CourseEditorStep step, Guid? subId = null)
+	{
+		var uri = $"/instructor/courses/{courseId}/{GetEditorStepSlug(step)}";
+		return subId.HasValue ? $"{uri}/{subId.Value}" : uri;
+	}
+
+	private static string BuildPreviewUri(Guid courseId)
+	{
+		return $"/courses/{courseId}?preview=1&previewSession={Uri.EscapeDataString(Guid.NewGuid().ToString("N"))}";
+	}
+
+	private void NextEditorStep()
+	{
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		if (_activeEditorStep is CourseEditorStep.Lessons or CourseEditorStep.Checkpoints or CourseEditorStep.Assessment
+			&& GetCurrentAuthoringItem() is not null)
+		{
+			GoToAdjacentAuthoringItem(1);
+			return;
+		}
+
+		if (_activeEditorStep < CourseEditorStep.Assessment)
+		{
+			NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, _activeEditorStep + 1));
+		}
+	}
+
+	private void PreviousEditorStep()
+	{
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		if (_activeEditorStep is CourseEditorStep.Lessons or CourseEditorStep.Checkpoints or CourseEditorStep.Assessment
+			&& GetCurrentAuthoringItem() is not null)
+		{
+			GoToAdjacentAuthoringItem(-1);
+			return;
+		}
+
+		if (_activeEditorStep > CourseEditorStep.Overview)
+		{
+			NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, _activeEditorStep - 1));
+		}
+	}
+
+	private List<Course> GetVisibleCourses()
+	{
+		var visible = _courses.AsEnumerable();
+
+		if (!string.IsNullOrWhiteSpace(_courseSearchText))
+		{
+			var search = _courseSearchText.Trim();
+			visible = visible.Where(course => course.Title.Contains(search, StringComparison.OrdinalIgnoreCase)
+				|| course.Description.Contains(search, StringComparison.OrdinalIgnoreCase));
+		}
+
+		visible = _courseStatusFilter switch
+		{
+			"draft" => visible.Where(course => course.ReviewStatus == CourseReviewStatuses.Draft && !course.IsPublished && !course.IsArchived),
+			"pending" => visible.Where(course => course.ReviewStatus == CourseReviewStatuses.PendingReview && !course.IsArchived),
+			"changes" => visible.Where(course => course.ReviewStatus == CourseReviewStatuses.ChangesRequested && !course.IsArchived),
+			"approved" => visible.Where(course => course.ReviewStatus == CourseReviewStatuses.Approved && !course.IsArchived),
+			"published" => visible.Where(course => course.IsPublished && !course.IsArchived),
+			"rejected" => visible.Where(course => course.ReviewStatus == CourseReviewStatuses.Rejected),
+			"archived" => visible.Where(course => course.IsArchived),
+			// archived courses are hidden by default so retired drafts don't clutter the list
+			_ => visible.Where(course => !course.IsArchived)
+		};
+
+		return _courseSortOption switch
+		{
+			"title" => visible.OrderBy(course => course.Title, StringComparer.OrdinalIgnoreCase).ToList(),
+			"status" => visible.OrderBy(course => GetCourseStatusLabel(course), StringComparer.OrdinalIgnoreCase).ToList(),
+			_ => visible.OrderByDescending(course => course.UpdatedAt ?? course.CreatedAt).ToList()
+		};
+	}
+
+	private string GetCourseStatusLabel(Course course)
+	{
+		if (course.IsArchived)
+		{
+			return "Archived";
+		}
+
+		if (course.ReviewStatus == CourseReviewStatuses.PendingReview)
+		{
+			return "Pending review";
+		}
+
+		if (course.ReviewStatus == CourseReviewStatuses.ChangesRequested)
+		{
+			return "Changes requested";
+		}
+
+		if (course.ReviewStatus == CourseReviewStatuses.Approved)
+		{
+			return "Approved";
+		}
+
+		if (course.ReviewStatus == CourseReviewStatuses.Rejected)
+		{
+			return "Rejected";
+		}
+
+		return course.IsPublished ? "Published" : "Draft";
+	}
+
+	private string GetCourseStatusClass(Course course)
+	{
+		if (course.IsArchived)
+		{
+			return "status-pill-archived";
+		}
+
+		return course.ReviewStatus switch
+		{
+			CourseReviewStatuses.PendingReview => "status-pill-pending",
+			CourseReviewStatuses.ChangesRequested => "status-pill-changes",
+			CourseReviewStatuses.Approved => "status-pill-approved",
+			CourseReviewStatuses.Rejected => "status-pill-rejected",
+			_ => course.IsPublished ? "status-pill-published" : "status-pill-draft"
+		};
+	}
+
+	private static bool CanSubmitForReview(Course course)
+	{
+		if (course.ReviewStatus is CourseReviewStatuses.Draft or CourseReviewStatuses.ChangesRequested)
+		{
+			return true;
+		}
+
+		return course.ReviewStatus == CourseReviewStatuses.Rejected
+			&& CourseReviewStatuses.CanResubmitAfterRejection(course.ReviewedAt, DateTime.UtcNow);
+	}
+
+	private async Task SaveCreateDraftAsync()
+	{
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("localStorage.setItem", CreateDraftStorageKey, JsonSerializer.Serialize(new InstructorCourseDraftState
+			{
+				Title = _newCourseDraft.Title,
+				Description = _newCourseDraft.Description,
+				Level = _newCourseDraft.Level,
+				DurationHours = _newCourseDraft.DurationHours,
+				CreditHours = _newCourseDraft.CreditHours,
+				ComplianceType = _newCourseDraft.ComplianceType,
+				DeliveryMethod = _newCourseDraft.DeliveryMethod,
+				ContinuingEducationType = _newCourseDraft.ContinuingEducationType,
+				CommissionCourseNumber = _newCourseDraft.CommissionCourseNumber,
+				CompletionWindowDays = _newCourseDraft.CompletionWindowDays,
+				RequiresProctoredExam = _newCourseDraft.RequiresProctoredExam,
+				RequiredInstructionalMinutes = _newCourseDraft.RequiredInstructionalMinutes,
+				MinimumPassingPercent = _newCourseDraft.MinimumPassingPercent,
+				MinimumAttendancePercent = _newCourseDraft.MinimumAttendancePercent,
+				Jurisdiction = _newCourseDraft.Jurisdiction,
+				Price = _newCourseDraft.Price
+			}));
+		}
+		catch (InvalidOperationException)
+		{
+			// Ignore when browser storage is unavailable during prerendering.
+		}
+	}
+
+	private async Task RestoreCreateDraftAsync()
+	{
+		try
+		{
+			var savedDraft = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", CreateDraftStorageKey);
+			if (string.IsNullOrWhiteSpace(savedDraft))
+			{
+				return;
+			}
+
+			var restoredDraft = JsonSerializer.Deserialize<InstructorCourseDraftState>(savedDraft);
+			if (restoredDraft is null)
+			{
+				return;
+			}
+
+			_newCourseDraft.Title = restoredDraft.Title;
+			_newCourseDraft.Description = restoredDraft.Description;
+			_newCourseDraft.Level = restoredDraft.Level;
+			_newCourseDraft.DurationHours = restoredDraft.DurationHours;
+			_newCourseDraft.CreditHours = restoredDraft.CreditHours;
+			_newCourseDraft.ComplianceType = restoredDraft.ComplianceType;
+			_newCourseDraft.DeliveryMethod = restoredDraft.DeliveryMethod;
+			_newCourseDraft.ContinuingEducationType = restoredDraft.ContinuingEducationType;
+			_newCourseDraft.CommissionCourseNumber = restoredDraft.CommissionCourseNumber;
+			_newCourseDraft.CompletionWindowDays = restoredDraft.CompletionWindowDays;
+			_newCourseDraft.RequiresProctoredExam = restoredDraft.RequiresProctoredExam;
+			_newCourseDraft.RequiredInstructionalMinutes = restoredDraft.RequiredInstructionalMinutes;
+			_newCourseDraft.MinimumPassingPercent = restoredDraft.MinimumPassingPercent;
+			_newCourseDraft.MinimumAttendancePercent = restoredDraft.MinimumAttendancePercent;
+			_newCourseDraft.Jurisdiction = restoredDraft.Jurisdiction;
+			_newCourseDraft.Price = restoredDraft.Price;
+		}
+		catch (InvalidOperationException)
+		{
+			// Ignore when browser storage is unavailable during prerendering.
+		}
+	}
+
+	private async Task ClearCreateDraftAsync()
+	{
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("localStorage.removeItem", CreateDraftStorageKey);
+		}
+		catch (InvalidOperationException)
+		{
+			// Ignore when browser storage is unavailable during prerendering.
+		}
+	}
+
+	private async Task PersistEditingDraftAsync()
+	{
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"{EditingCourseDraftPrefix}{_editingCourse.Id}", JsonSerializer.Serialize(_editingCourse));
+		}
+		catch (InvalidOperationException)
+		{
+			// Ignore when browser storage is unavailable during prerendering.
+		}
+	}
+
+	private async Task RestoreEditingDraftAsync(Course course)
+	{
+		try
+		{
+			var savedDraft = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", $"{EditingCourseDraftPrefix}{course.Id}");
+			if (string.IsNullOrWhiteSpace(savedDraft))
+			{
+				_editingCourse = CloneCourse(course);
+				return;
+			}
+
+			var restoredDraft = JsonSerializer.Deserialize<Course>(savedDraft);
+
+			// If the server record has moved on since this draft was captured (e.g. an admin
+			// approved/rejected the course, or it was saved from another tab), the draft is
+			// stale — discard it rather than silently overwriting live review-workflow state.
+			// UpdatedAt can be null (never modified since creation), so fall back to CreatedAt
+			// as a timestamp source rather than letting a null comparison silently pass.
+			var draftTimestamp = restoredDraft?.UpdatedAt ?? restoredDraft?.CreatedAt ?? DateTime.MinValue;
+			var serverTimestamp = course.UpdatedAt ?? course.CreatedAt;
+			if (restoredDraft is null || draftTimestamp < serverTimestamp)
+			{
+				await JSRuntime.InvokeVoidAsync("localStorage.removeItem", $"{EditingCourseDraftPrefix}{course.Id}");
+				_editingCourse = CloneCourse(course);
+				return;
+			}
+
+			_editingCourse = CloneCourse(restoredDraft);
+		}
+		catch (InvalidOperationException)
+		{
+			_editingCourse = CloneCourse(course);
+		}
+	}
+
+	private async Task SubmitCourseForReviewAsync()
+	{
+		if (_editingCourse is null || !_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		var succeeded = await CourseService.SubmitForReviewAsync(_editingCourse.Id, _actorUserId.Value);
+		_reviewStatusMessage = succeeded ? "Course submitted for admin review." : "Unable to submit this course for review.";
+
 		await RefreshCoursesAsync();
 	}
 
-	private void BeginEditing(Course course)
+	private async Task BeginEditing(Course course)
 	{
-		_editingCourse = CloneCourse(course);
+		await RestoreEditingDraftAsync(course);
+		_activeEditorStep = CourseEditorStep.Overview;
 		ClearModuleSelection();
 		ClearLessonSelection();
+		CancelCheckpointEditing();
+		await ReloadCheckpointsAsync();
+		await LoadAssessmentEditorAsync();
 	}
 
 	private async Task SaveCourseAsync()
@@ -288,6 +1485,7 @@
 		}
 
 		await CourseService.UpdateAsync(_editingCourse);
+		await PersistEditingDraftAsync();
 		await RefreshCoursesAsync();
 
 		var refreshedCourse = _courses.FirstOrDefault(course => course.Id == editedCourseId);
@@ -297,13 +1495,21 @@
 	private void ClearSelection()
 	{
 		_editingCourse = null;
+		_activeEditorStep = CourseEditorStep.Overview;
+		_assessmentCourseId = null;
+		_assessmentCourseIdText = string.Empty;
+		_assessmentEditor = null;
+		_retakeGrants.Clear();
+		_retakeGrantDraftAttempts.Clear();
 		ClearModuleSelection();
 		ClearLessonSelection();
 	}
 
 	private async Task RefreshCoursesAsync()
 	{
-		_courses = await CourseService.GetAllAsync();
+		_courses = _isAdmin || !_actorUserId.HasValue
+			? await CourseService.GetAllAsync()
+			: await CourseService.GetCoursesForInstructorAsync(_actorUserId.Value);
 
 		if (_editingCourse is not null)
 		{
@@ -312,106 +1518,1094 @@
 		}
 	}
 
-	private async Task AddModuleAsync()
+	private void StartNewModule()
 	{
-		if (_editingCourse is null || string.IsNullOrWhiteSpace(_newModuleTitle))
+		if (_editingCourse is null)
 		{
 			return;
 		}
 
-		await CourseService.AddModuleAsync(_editingCourse.Id, new Module
-		{
-			Title = _newModuleTitle.Trim()
-		});
+		_editingModule = new Module { Title = string.Empty };
+		_isCreatingModule = true;
+		ClearLessonSelection();
+	}
 
-		_newModuleTitle = string.Empty;
+	private async Task HandleImportFileSelection(InputFileChangeEventArgs e)
+	{
+		var file = e.File;
+		if (file is null)
+		{
+			return;
+		}
+
+		await using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+		using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
+		_importText = await reader.ReadToEndAsync();
+		_importStatusMessage = $"Loaded {file.Name} ({file.Size} bytes).";
+	}
+
+	private Task HandleImportTextChanged(string? value)
+	{
+		_importText = value ?? string.Empty;
+		return Task.CompletedTask;
+	}
+
+	private async Task ImportCourseStructureAsync()
+	{
+		if (_editingCourse is null || string.IsNullOrWhiteSpace(_importText))
+		{
+			_importStatusMessage = "Enter some import text before importing.";
+			return;
+		}
+
+		await CourseService.ImportCourseStructureAsync(_editingCourse.Id, _importText);
+		_importText = string.Empty;
+		_importStatusMessage = "Course structure imported.";
+		CancelCheckpointEditing();
 		await ReloadSelectedCourseAsync();
+		await ReloadCheckpointsAsync();
+	}
+
+	private async Task CreateCourseAsync()
+	{
+		_createCourseMessage = null;
+
+		_newCourseDraft.Slug = CreateSlug(_newCourseDraft.Title);
+		_newCourseDraft.IsArchived = false;
+		_newCourseDraft.OwnerInstructorId = _actorUserId;
+
+		var created = await CourseService.CreateAsync(_newCourseDraft);
+
+		_newCourseDraft = new Course
+		{
+			Level = "Beginner",
+			Jurisdiction = "General",
+			DurationHours = 0,
+			CreditHours = 0,
+			Price = 0m
+		};
+
+		await ClearCreateDraftAsync();
+		await RefreshCoursesAsync();
+		_createCourseMessage = "Course created.";
+
+		var createdCourse = _courses.FirstOrDefault(course => course.Id == created.Id);
+		if (createdCourse is not null)
+		{
+			NavigationManager.NavigateTo(BuildEditorUri(createdCourse.Id, CourseEditorStep.Overview));
+		}
+	}
+
+	private static string CreateSlug(string? title)
+	{
+		if (string.IsNullOrWhiteSpace(title))
+		{
+			return string.Empty;
+		}
+
+		var slug = title.Trim().ToLowerInvariant();
+		return string.Concat(slug.Select(character => char.IsLetterOrDigit(character) ? character : '-'))
+			.Replace("--", "-")
+			.Trim('-');
+	}
+
+	private bool HasModuleCheckpoint(Guid moduleId)
+	{
+		return _checkpoints.Any(checkpoint => checkpoint.ModuleId == moduleId);
+	}
+
+	private string GetModuleCheckpointSummary(Guid moduleId)
+	{
+		var moduleCheckpoints = _checkpoints.Where(checkpoint => checkpoint.ModuleId == moduleId).ToList();
+		return moduleCheckpoints.Count switch
+		{
+			0 => "No checkpoint configured.",
+			1 => $"Checkpoint: {moduleCheckpoints[0].Title}",
+			_ => $"{moduleCheckpoints.Count} checkpoints configured"
+		};
+	}
+
+	private string GetModuleLessonsSummary(Module module)
+	{
+		if (module.Lessons.Count == 0)
+		{
+			return "0 lessons";
+		}
+
+		var lessonTitles = string.Join(", ", module.Lessons.OrderBy(lesson => lesson.OrderIndex).Select(lesson => lesson.Title));
+		return $"{module.Lessons.Count} lessons: {lessonTitles}";
+	}
+
+	private string GetModuleTitle(Guid? moduleId)
+	{
+		return _editingCourse?.Modules.FirstOrDefault(module => module.Id == moduleId)?.Title ?? "module";
+	}
+
+	private string GetCheckpointAnchorLabel(CourseCheckpointDefinition checkpoint)
+	{
+		if (checkpoint.LessonId is null)
+		{
+			return "End of module";
+		}
+
+		if (checkpoint.LessonId == CourseCheckpointDefinition.StartOfModuleAnchor)
+		{
+			return "Start of module";
+		}
+
+		var module = _editingCourse?.Modules.FirstOrDefault(candidate => candidate.Id == checkpoint.ModuleId);
+		var lesson = module?.Lessons.FirstOrDefault(candidate => candidate.Id == checkpoint.LessonId.Value);
+		return lesson is null ? "After a lesson" : $"After \"{lesson.Title}\"";
+	}
+
+	// Orders a module's checkpoints the same way they're rendered (start-of-module first, then lesson-anchored
+	// in lesson order, then end-of-module), so numbering matches display.
+	private List<CourseCheckpointDefinition> GetOrderedModuleCheckpoints(Module module)
+	{
+		var lessonOrder = module.Lessons
+			.OrderBy(lesson => lesson.OrderIndex)
+			.Select(lesson => lesson.Id)
+			.ToList();
+
+		return _checkpoints
+			.Where(checkpoint => checkpoint.ModuleId == module.Id)
+			.OrderBy(checkpoint => checkpoint.LessonId == CourseCheckpointDefinition.StartOfModuleAnchor
+				? -1
+				: checkpoint.LessonId.HasValue ? lessonOrder.IndexOf(checkpoint.LessonId.Value) : int.MaxValue)
+			.ThenBy(checkpoint => checkpoint.OrderIndex)
+			.ThenBy(checkpoint => checkpoint.Title, StringComparer.OrdinalIgnoreCase)
+			.ToList();
+	}
+
+	// Flattens a module's lessons and checkpoints into the single sequence learners actually encounter
+	// (start-of-module checkpoints, lesson, its anchored checkpoints, next lesson, ..., end-of-module
+	// checkpoints last), so numbering is one continuous count rather than separate counts.
+	private List<Guid> GetOrderedModuleItemIds(Module module)
+	{
+		var orderedCheckpoints = GetOrderedModuleCheckpoints(module);
+		var itemIds = new List<Guid>();
+
+		itemIds.AddRange(orderedCheckpoints.Where(checkpoint => checkpoint.LessonId == CourseCheckpointDefinition.StartOfModuleAnchor).Select(checkpoint => checkpoint.Id));
+
+		foreach (var lesson in module.Lessons.OrderBy(lesson => lesson.OrderIndex))
+		{
+			itemIds.Add(lesson.Id);
+			itemIds.AddRange(orderedCheckpoints.Where(checkpoint => checkpoint.LessonId == lesson.Id).Select(checkpoint => checkpoint.Id));
+		}
+
+		itemIds.AddRange(orderedCheckpoints.Where(checkpoint => checkpoint.LessonId is null).Select(checkpoint => checkpoint.Id));
+
+		return itemIds;
+	}
+
+	private int GetModuleItemNumber(Module module, Guid itemId)
+	{
+		var index = GetOrderedModuleItemIds(module).IndexOf(itemId);
+		return index >= 0 ? index + 1 : 1;
+	}
+
+	private string BuildDefaultCheckpointTitle(Guid? moduleId)
+	{
+		var moduleTitle = GetModuleTitle(moduleId);
+		var existingCount = moduleId.HasValue
+			? _checkpoints.Count(checkpoint => checkpoint.ModuleId == moduleId.Value)
+			: 0;
+
+		return existingCount == 0 ? $"{moduleTitle} Checkpoint" : $"{moduleTitle} Checkpoint {existingCount + 1}";
+	}
+
+	private void BeginEditingCheckpoint(Guid? moduleId, Guid? checkpointId = null)
+	{
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		_checkpointError = null;
+		_checkpointMessage = null;
+
+		var existing = checkpointId.HasValue
+			? _checkpoints.FirstOrDefault(checkpoint => checkpoint.Id == checkpointId.Value)
+			: null;
+
+		if (existing is not null)
+		{
+			_editingCheckpoint = new CheckpointDefinitionEditorModel
+			{
+				Id = existing.Id,
+				CourseId = existing.CourseId,
+				ModuleId = existing.ModuleId,
+				LessonId = existing.LessonId,
+				GatesProgression = existing.GatesProgression,
+				Title = existing.Title,
+				Prompt = existing.Prompt,
+				Description = existing.Description,
+				Options = existing.Options
+					.OrderBy(option => option.OrderIndex)
+					.Select(option => new CheckpointOptionEditorItem
+					{
+						Id = option.Id,
+						Label = option.Label,
+						IsCorrect = option.IsCorrect
+					})
+					.ToList()
+			};
+		}
+		else
+		{
+			_editingCheckpoint = new CheckpointDefinitionEditorModel
+			{
+				CourseId = _editingCourse.Id,
+				ModuleId = moduleId,
+				GatesProgression = true,
+				Title = BuildDefaultCheckpointTitle(moduleId),
+				Prompt = string.Empty,
+				Description = string.Empty,
+				Options = new List<CheckpointOptionEditorItem>
+				{
+					new() { Label = string.Empty, IsCorrect = true },
+					new() { Label = string.Empty, IsCorrect = false },
+					new() { Label = string.Empty, IsCorrect = false },
+					new() { Label = string.Empty, IsCorrect = false },
+					new() { Label = string.Empty, IsCorrect = false }
+				}
+			};
+		}
+	}
+
+	private void AddCheckpointOption()
+	{
+		_editingCheckpoint?.Options.Add(new CheckpointOptionEditorItem { Label = string.Empty, IsCorrect = false });
+	}
+
+	private void RemoveCheckpointOption(int index)
+	{
+		if (_editingCheckpoint is null || index < 0 || index >= _editingCheckpoint.Options.Count)
+		{
+			return;
+		}
+
+		_editingCheckpoint.Options.RemoveAt(index);
+	}
+
+	private async Task SaveCheckpointAsync()
+	{
+		_checkpointError = null;
+		_checkpointMessage = null;
+
+		if (_editingCheckpoint is null)
+		{
+			return;
+		}
+
+		if (string.IsNullOrWhiteSpace(_editingCheckpoint.Title) || string.IsNullOrWhiteSpace(_editingCheckpoint.Prompt) || string.IsNullOrWhiteSpace(_editingCheckpoint.Description))
+		{
+			_checkpointError = "Title, prompt, and description are required.";
+			return;
+		}
+
+		if (_editingCheckpoint.Options.Count < 2)
+		{
+			_checkpointError = "Add at least two options.";
+			return;
+		}
+
+		if (_editingCheckpoint.Options.Any(option => string.IsNullOrWhiteSpace(option.Label)))
+		{
+			_checkpointError = "Every option needs a description.";
+			return;
+		}
+
+		if (_editingCheckpoint.Options.All(option => !option.IsCorrect))
+		{
+			_checkpointError = "Check at least one option as correct.";
+			return;
+		}
+
+		await CourseService.SaveCheckpointDefinitionAsync(_editingCheckpoint);
+
+		// SPA-style navigate (no forceLoad): forceLoad triggers a full page reload that
+		// was crashing the live circuit ("No interop methods are registered for renderer").
+		if (_editingCourse is not null)
+		{
+			// A module checkpoint's home is that module's page (where lessons + the checkpoint are managed together);
+			// the final checkpoint isn't tied to a module, so it falls back to the Lessons step instead.
+			var moduleId = _editingCheckpoint.ModuleId;
+			var targetUri = moduleId.HasValue
+				? BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules, moduleId.Value)
+				: BuildEditorUri(_editingCourse.Id, CourseEditorStep.Lessons);
+			NavigationManager.NavigateTo(targetUri);
+			await ReloadCheckpointsAsync();
+			return;
+		}
+
+		_checkpointMessage = "Checkpoint saved.";
+		await ReloadCheckpointsAsync();
+	}
+
+	private async Task DeleteModuleCheckpointAsync(Guid checkpointId)
+	{
+		await CourseService.DeleteCheckpointDefinitionAsync(checkpointId);
+		await ReloadCheckpointsAsync();
+	}
+
+	private async Task ToggleCheckpointGatesProgressionAsync(CourseCheckpointDefinition checkpoint, ChangeEventArgs e)
+	{
+		if (e.Value is bool gatesProgression)
+		{
+			if (gatesProgression)
+			{
+				await ShowAlertDialogAsync("Learners will need to pass this checkpoint before they can continue to the next lesson or module.");
+			}
+			else
+			{
+				await ShowAlertDialogAsync("Learners will be able to move past this checkpoint without passing it. Use this only if the checkpoint is informational and shouldn't block progress.");
+			}
+
+			await CourseService.SetCheckpointGatesProgressionAsync(checkpoint.Id, gatesProgression);
+			await ReloadCheckpointsAsync();
+		}
+	}
+
+	private async Task MoveModuleAsync(Module module, bool moveUp)
+	{
+		await CourseService.MoveModuleAsync(module.Id, moveUp);
+		await ReloadSelectedCourseAsync();
+	}
+
+	private async Task MoveModuleToSelectedPositionAsync(Module module, ChangeEventArgs e)
+	{
+		if (e.Value is string value && int.TryParse(value, out var targetPosition))
+		{
+			await CourseService.MoveModuleToPositionAsync(module.Id, targetPosition);
+			await ReloadSelectedCourseAsync();
+		}
+	}
+
+	private async Task MoveLessonAsync(Lesson lesson, bool moveUp)
+	{
+		await CourseService.MoveLessonAsync(lesson.Id, moveUp);
+		await ReloadSelectedCourseAsync();
+
+		if (_editingCourse is not null && _editingModule is not null)
+		{
+			var refreshedModule = _editingCourse.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
+			if (refreshedModule is not null)
+			{
+				BeginEditingModule(refreshedModule);
+			}
+		}
+	}
+
+	private async Task MoveLessonToSelectedPositionAsync(Lesson lesson, ChangeEventArgs e)
+	{
+		if (e.Value is string value && int.TryParse(value, out var targetPosition))
+		{
+			await CourseService.MoveLessonToPositionAsync(lesson.Id, targetPosition);
+			await ReloadSelectedCourseAsync();
+
+			if (_editingCourse is not null && _editingModule is not null)
+			{
+				var refreshedModule = _editingCourse.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
+				if (refreshedModule is not null)
+				{
+					BeginEditingModule(refreshedModule);
+				}
+			}
+		}
+	}
+
+	private async Task MoveCheckpointAsync(CourseCheckpointDefinition checkpoint, bool moveUp)
+	{
+		await CourseService.MoveCheckpointAsync(checkpoint.Id, moveUp);
+		await ReloadCheckpointsAsync();
+	}
+
+	private async Task MoveCheckpointToSelectedPositionAsync(CourseCheckpointDefinition checkpoint, ChangeEventArgs e)
+	{
+		if (e.Value is string value && int.TryParse(value, out var targetPosition))
+		{
+			await CourseService.MoveCheckpointToPositionAsync(checkpoint.Id, targetPosition);
+			await ReloadCheckpointsAsync();
+		}
+	}
+
+	private async Task DeleteLessonAsync(Guid lessonId)
+	{
+		var confirmed = await ShowConfirmDialogAsync("Delete this lesson? This cannot be undone.");
+		if (!confirmed)
+		{
+			return;
+		}
+
+		await CourseService.DeleteLessonAsync(lessonId);
+		await ReloadSelectedCourseAsync();
+		await ReloadCheckpointsAsync();
+
+		if (_editingCourse is not null && _editingModule is not null)
+		{
+			var refreshedModule = _editingCourse.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
+			if (refreshedModule is not null)
+			{
+				BeginEditingModule(refreshedModule);
+			}
+		}
+	}
+
+	private async Task DeleteModuleAsync(Module module)
+	{
+		if (module.Lessons.Count > 0 || _checkpoints.Any(checkpoint => checkpoint.ModuleId == module.Id))
+		{
+			await ShowAlertDialogAsync("Delete all lessons and checkpoints in this module before deleting it.");
+			return;
+		}
+
+		var confirmed = await ShowConfirmDialogAsync("Delete this module? This cannot be undone.");
+		if (!confirmed)
+		{
+			return;
+		}
+
+		var deleted = await CourseService.DeleteModuleAsync(module.Id);
+		if (!deleted)
+		{
+			await ShowAlertDialogAsync("Delete all lessons and checkpoints in this module before deleting it.");
+			return;
+		}
+
+		await ReloadSelectedCourseAsync();
+		await ReloadCheckpointsAsync();
+	}
+
+	private Task<bool> ShowConfirmDialogAsync(string message)
+	{
+		_confirmDialogMessage = message;
+		_confirmDialogShowCancel = true;
+		_confirmDialogTcs = new TaskCompletionSource<bool>();
+		StateHasChanged();
+		return _confirmDialogTcs.Task;
+	}
+
+	private Task ShowAlertDialogAsync(string message)
+	{
+		_confirmDialogMessage = message;
+		_confirmDialogShowCancel = false;
+		_confirmDialogTcs = new TaskCompletionSource<bool>();
+		StateHasChanged();
+		return _confirmDialogTcs.Task;
+	}
+
+	private void ResolveConfirmDialog(bool result)
+	{
+		_confirmDialogTcs?.TrySetResult(result);
+		_confirmDialogTcs = null;
+		_confirmDialogMessage = null;
+	}
+
+	private void CancelCheckpointEditing()
+	{
+		_editingCheckpoint = null;
+		_checkpointError = null;
+		_checkpointMessage = null;
+	}
+
+	private Task CancelCheckpointEditingAndNavigateAsync()
+	{
+		if (_editingCourse is null)
+		{
+			CancelCheckpointEditing();
+			return Task.CompletedTask;
+		}
+
+		// Same module-vs-final destination logic as SaveCheckpointAsync, so Cancel returns
+		// to the module page a module checkpoint was opened from (or Lessons for the final one).
+		var moduleId = _editingCheckpoint?.ModuleId;
+		var targetUri = moduleId.HasValue
+			? BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules, moduleId.Value)
+			: BuildEditorUri(_editingCourse.Id, CourseEditorStep.Lessons);
+
+		CancelCheckpointEditing();
+		NavigationManager.NavigateTo(targetUri);
+		return Task.CompletedTask;
+	}
+
+	private async Task ReloadCheckpointsAsync()
+	{
+		_checkpoints = _editingCourse is null
+			? new List<CourseCheckpointDefinition>()
+			: await CourseService.GetCheckpointDefinitionsForEditingAsync(_editingCourse.Id);
+	}
+
+	private Task OnAssessmentCourseChanged(ChangeEventArgs args)
+	{
+		_assessmentCourseIdText = args.Value?.ToString() ?? string.Empty;
+		_assessmentCourseId = Guid.TryParse(_assessmentCourseIdText, out var parsed) ? parsed : null;
+		_assessmentEditor = null;
+		_assessmentError = null;
+		_assessmentMessage = null;
+		_retakeGrants.Clear();
+		_retakeGrantDraftAttempts.Clear();
+		return Task.CompletedTask;
+	}
+
+	private async Task LoadAssessmentEditorAsync()
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (_editingCourse is null)
+		{
+			_assessmentCourseId = null;
+			_assessmentCourseIdText = string.Empty;
+			_assessmentEditor = null;
+			_retakeGrants.Clear();
+			_retakeGrantDraftAttempts.Clear();
+			_assessmentMessage = "Select a course to manage its final assessment.";
+			return;
+		}
+
+		_assessmentCourseId = _editingCourse.Id;
+		_assessmentCourseIdText = _assessmentCourseId.Value.ToString();
+		_assessmentEditor = await AssessmentService.GetAssessmentEditorAsync(_assessmentCourseId.Value);
+		_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+		_retakeGrantDraftAttempts.Clear();
+		_assessmentMessage = _assessmentEditor is null
+			? "No assessment is available for this course."
+			: "Assessment loaded.";
+
+		if (_retakeLearnerId is null && _users.Any(user => user.Role == "Learner"))
+		{
+			_retakeLearnerId = _users.First(user => user.Role == "Learner").Id;
+		}
+	}
+
+	private void AddAssessmentQuestion()
+	{
+		_assessmentEditor ??= new AssessmentEditorModel();
+
+		_assessmentEditor.Questions.Add(new AssessmentQuestionEditorItem
+		{
+			OrderIndex = _assessmentEditor.Questions.Count + 1,
+			CorrectOption = "A",
+			Prompt = "",
+			OptionA = "",
+			OptionB = "",
+			OptionC = "",
+			OptionD = ""
+		});
+	}
+
+	private void RemoveAssessmentQuestion(int index)
+	{
+		if (_assessmentEditor is null || index < 0 || index >= _assessmentEditor.Questions.Count)
+		{
+			return;
+		}
+
+		_assessmentEditor.Questions.RemoveAt(index);
+		for (var i = 0; i < _assessmentEditor.Questions.Count; i++)
+		{
+			_assessmentEditor.Questions[i].OrderIndex = i + 1;
+		}
+	}
+
+	private async Task SaveAssessmentEditorAsync()
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (!_assessmentCourseId.HasValue || _assessmentEditor is null)
+		{
+			_assessmentError = "Load an assessment before saving.";
+			return;
+		}
+
+		if (!_actorUserId.HasValue)
+		{
+			_assessmentError = "Unable to identify the signed in account.";
+			return;
+		}
+
+		try
+		{
+			await AssessmentService.SaveAssessmentEditorAsync(_assessmentCourseId.Value, _assessmentEditor, _actorUserId.Value, _actorEmail);
+			_assessmentMessage = "Assessment saved. Existing attempts were reset for this course.";
+			await LoadAssessmentEditorAsync();
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
+	}
+
+	private Task OnRetakeLearnerChanged(ChangeEventArgs args)
+	{
+		_retakeLearnerId = Guid.TryParse(args.Value?.ToString(), out var parsed) ? parsed : null;
+		return Task.CompletedTask;
+	}
+
+	private string GetRetakeLearnerIdText()
+	{
+		return _retakeLearnerId?.ToString("D") ?? string.Empty;
+	}
+
+	private Task OnRetakeGrantAttemptsChanged(int value)
+	{
+		_retakeGrantAttempts = value;
+		return Task.CompletedTask;
+	}
+
+	private Task OnResetCooldownTimerOnRetakeGrantChanged(bool value)
+	{
+		_resetCooldownTimerOnRetakeGrant = value;
+		return Task.CompletedTask;
+	}
+
+	private async Task GrantRetakeAsync()
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (!_assessmentCourseId.HasValue || !_retakeLearnerId.HasValue)
+		{
+			_assessmentError = "Select both course and learner before granting retake.";
+			return;
+		}
+
+		if (!_actorUserId.HasValue)
+		{
+			_assessmentError = "Unable to identify the signed in account.";
+			return;
+		}
+
+		try
+		{
+			await AssessmentService.GrantRetakeAsync(_assessmentCourseId.Value, _retakeLearnerId.Value, Math.Max(_retakeGrantAttempts, 1), _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			_retakeGrantDraftAttempts.Clear();
+			_assessmentMessage = _resetCooldownTimerOnRetakeGrant
+				? "Retake attempts granted and cooldown timer reset successfully."
+				: "Retake attempts granted successfully.";
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
+	}
+
+	private int GetRetakeGrantDraft(Guid learnerUserId, int fallback)
+	{
+		return _retakeGrantDraftAttempts.TryGetValue(learnerUserId, out var value) ? value : fallback;
+	}
+
+	private void SetRetakeGrantDraft(Guid learnerUserId, string? rawValue)
+	{
+		if (!int.TryParse(rawValue, out var parsed) || parsed < 1)
+		{
+			_retakeGrantDraftAttempts.Remove(learnerUserId);
+			return;
+		}
+
+		_retakeGrantDraftAttempts[learnerUserId] = parsed;
+	}
+
+	private async Task UpdateRetakeGrantAsync(RetakeGrantView grant)
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (!_assessmentCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_assessmentError = "Select a course and ensure an instructor account is active.";
+			return;
+		}
+
+		var attempts = GetRetakeGrantDraft(grant.LearnerUserId, grant.GrantedAttempts);
+
+		try
+		{
+			await AssessmentService.SetRetakeGrantAttemptsAsync(_assessmentCourseId.Value, grant.LearnerUserId, attempts, _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			_retakeGrantDraftAttempts.Clear();
+			_assessmentMessage = _resetCooldownTimerOnRetakeGrant
+				? "Retake grant updated and cooldown timer reset."
+				: "Retake grant updated.";
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
+	}
+
+	private async Task RevokeRetakeGrantAsync(RetakeGrantView grant)
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (!_assessmentCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_assessmentError = "Select a course and ensure an instructor account is active.";
+			return;
+		}
+
+		try
+		{
+			await AssessmentService.RevokeRetakeGrantAsync(_assessmentCourseId.Value, grant.LearnerUserId, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			_retakeGrantDraftAttempts.Clear();
+			_assessmentMessage = "Retake grant revoked.";
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
 	}
 
 	private void BeginEditingModule(Module module)
 	{
 		_editingModule = CloneModule(module);
+		_isCreatingModule = false;
 		ClearLessonSelection();
 	}
 
 	private async Task SaveModuleAsync()
 	{
-		if (_editingModule is null)
+		if (_editingModule is null || _editingCourse is null)
 		{
 			return;
 		}
 
-		await CourseService.UpdateModuleAsync(_editingModule);
+		if (_isCreatingModule)
+		{
+			await CourseService.AddModuleAsync(_editingCourse.Id, new Module
+			{
+				Title = _editingModule.Title
+			});
+		}
+		else
+		{
+			await CourseService.UpdateModuleAsync(_editingModule);
+		}
+
 		await ReloadSelectedCourseAsync();
-		BeginEditingModule(_editingCourse!.Modules.First(module => module.Id == _editingModule.Id));
+		GoToModulesList();
 	}
 
 	private void ClearModuleSelection()
 	{
 		_editingModule = null;
-		_newModuleTitle = string.Empty;
+		_isCreatingModule = false;
 	}
 
-	private async Task AddLessonAsync()
+	private void GoToLessonsList()
 	{
-		if (_editingModule is null || string.IsNullOrWhiteSpace(_newLessonTitle))
+		if (_editingCourse is null)
 		{
 			return;
 		}
 
-		await CourseService.AddLessonAsync(_editingModule.Id, new Lesson
+		ClearLessonSelection();
+		var moduleId = _editingModule?.Id;
+		var targetUri = moduleId.HasValue
+			? BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules, moduleId.Value)
+			: BuildEditorUri(_editingCourse.Id, CourseEditorStep.Lessons);
+		NavigationManager.NavigateTo(targetUri);
+	}
+
+	private void GoToModulesList()
+	{
+		if (_editingCourse is null)
 		{
-			Title = _newLessonTitle.Trim(),
-			TextContent = _newLessonText,
-			DurationMinutes = _newLessonDurationMinutes,
-			IsRequired = _newLessonRequired
+			return;
+		}
+
+		ClearModuleSelection();
+		ClearLessonSelection();
+		NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules));
+	}
+
+	private void StartNewLesson(Module? module)
+	{
+		if (module is null || _editingCourse is null)
+		{
+			return;
+		}
+
+		BeginEditingModule(module);
+		_editingLesson = new Lesson { ModuleId = module.Id };
+		_isCreatingLesson = true;
+		_activeEditorStep = CourseEditorStep.Lessons;
+	}
+
+	private void NavigateToModuleLessons(Module module)
+	{
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		BeginEditingModule(module);
+		NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Lessons));
+	}
+
+	private void ToggleAddLessonForModule(Module module)
+	{
+		if (_editingModule?.Id == module.Id)
+		{
+			ClearModuleSelection();
+			return;
+		}
+
+		BeginEditingModule(module);
+	}
+
+	private List<(Module Module, Lesson Lesson)> GetOrderedLessonsWithModules()
+	{
+		if (_editingCourse is null)
+		{
+			return new List<(Module, Lesson)>();
+		}
+
+		return _editingCourse.Modules
+			.OrderBy(module => module.OrderIndex)
+			.SelectMany(module => module.Lessons
+				.OrderBy(lesson => lesson.OrderIndex)
+				.Select(lesson => (Module: module, Lesson: lesson)))
+			.ToList();
+	}
+
+	private (Module Module, Lesson Lesson)? GetAdjacentLesson(int offset)
+	{
+		if (_editingLesson is null)
+		{
+			return null;
+		}
+
+		var ordered = GetOrderedLessonsWithModules();
+		var currentIndex = ordered.FindIndex(entry => entry.Lesson.Id == _editingLesson.Id);
+		var targetIndex = currentIndex + offset;
+		if (currentIndex < 0 || targetIndex < 0 || targetIndex >= ordered.Count)
+		{
+			return null;
+		}
+
+		return ordered[targetIndex];
+	}
+
+	private void GoToAdjacentLesson(int offset)
+	{
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		var target = GetAdjacentLesson(offset);
+		if (target is null)
+		{
+			return;
+		}
+
+		NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Lessons, target.Value.Lesson.Id));
+	}
+
+	private List<CourseAuthoringNavigationItem> GetCourseAuthoringNavigationItems()
+	{
+		if (_editingCourse is null)
+		{
+			return new List<CourseAuthoringNavigationItem>();
+		}
+
+		var items = new List<CourseAuthoringNavigationItem>();
+
+		foreach (var module in _editingCourse.Modules.OrderBy(module => module.OrderIndex))
+		{
+			foreach (var lesson in module.Lessons.OrderBy(lesson => lesson.OrderIndex))
+			{
+				items.Add(new CourseAuthoringNavigationItem
+				{
+					Kind = CourseAuthoringItemKind.Lesson,
+					Label = $"{module.OrderIndex}. {module.Title} — Lesson {lesson.OrderIndex}",
+					LessonId = lesson.Id,
+					ModuleId = module.Id
+				});
+			}
+
+			var moduleCheckpoints = _checkpoints.Where(candidate => candidate.ModuleId == module.Id);
+			foreach (var checkpoint in moduleCheckpoints)
+			{
+				items.Add(new CourseAuthoringNavigationItem
+				{
+					Kind = CourseAuthoringItemKind.Checkpoint,
+					Label = $"{module.OrderIndex}. {module.Title} — {checkpoint.Title}",
+					CheckpointId = checkpoint.Id,
+					ModuleId = module.Id
+				});
+			}
+		}
+
+		items.Add(new CourseAuthoringNavigationItem
+		{
+			Kind = CourseAuthoringItemKind.Assessment,
+			Label = "Final assessment"
 		});
 
-		_newLessonTitle = string.Empty;
-		_newLessonText = string.Empty;
-		_newLessonDurationMinutes = 0;
-		_newLessonRequired = true;
-		await ReloadSelectedCourseAsync();
-		if (_editingCourse is not null)
+		return items;
+	}
+
+	private CourseAuthoringNavigationItem? GetCurrentAuthoringItem()
+	{
+		var items = GetCourseAuthoringNavigationItems();
+		if (_activeEditorStep == CourseEditorStep.Lessons && _editingLesson is not null)
 		{
-			var refreshedModule = _editingCourse.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
-			_editingModule = refreshedModule is null ? null : CloneModule(refreshedModule);
+			return items.FirstOrDefault(item => item.Kind == CourseAuthoringItemKind.Lesson && item.LessonId == _editingLesson.Id);
 		}
+
+		if (_activeEditorStep == CourseEditorStep.Checkpoints && _editingCheckpoint is not null)
+		{
+			var existing = items.FirstOrDefault(item => item.Kind == CourseAuthoringItemKind.Checkpoint && item.CheckpointId.HasValue && item.CheckpointId == _editingCheckpoint.Id);
+			if (existing is not null)
+			{
+				return existing;
+			}
+
+			return new CourseAuthoringNavigationItem
+			{
+				Kind = CourseAuthoringItemKind.Checkpoint,
+				Label = $"{GetModuleTitle(_editingCheckpoint.ModuleId)} — checkpoint",
+				CheckpointId = _editingCheckpoint.Id,
+				ModuleId = _editingCheckpoint.ModuleId
+			};
+		}
+
+		if (_activeEditorStep == CourseEditorStep.Assessment)
+		{
+			return items.FirstOrDefault(item => item.Kind == CourseAuthoringItemKind.Assessment);
+		}
+
+		return null;
+	}
+
+	private CourseAuthoringNavigationItem? GetAdjacentAuthoringItem(int offset)
+	{
+		var current = GetCurrentAuthoringItem();
+		if (current is null)
+		{
+			return null;
+		}
+
+		var items = GetCourseAuthoringNavigationItems();
+		var currentIndex = items.FindIndex(item => item.Kind == current.Kind
+			&& item.LessonId == current.LessonId
+			&& item.CheckpointId == current.CheckpointId
+			&& item.ModuleId == current.ModuleId);
+		if (currentIndex < 0)
+		{
+			return null;
+		}
+
+		var targetIndex = currentIndex + offset;
+		if (targetIndex < 0 || targetIndex >= items.Count)
+		{
+			return null;
+		}
+
+		return items[targetIndex];
+	}
+
+	private void GoToAdjacentAuthoringItem(int offset)
+	{
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		var target = GetAdjacentAuthoringItem(offset);
+		if (target is null)
+		{
+			return;
+		}
+
+		if (target.Kind == CourseAuthoringItemKind.Lesson)
+		{
+			NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Lessons, target.LessonId));
+			return;
+		}
+
+		if (target.Kind == CourseAuthoringItemKind.Checkpoint)
+		{
+			NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints, target.CheckpointId ?? target.ModuleId));
+			return;
+		}
+
+		NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Assessment));
 	}
 
 	private void BeginEditingLesson(Lesson lesson)
 	{
 		_editingLesson = CloneLesson(lesson);
+		_isCreatingLesson = false;
 	}
 
 	private async Task SaveLessonAsync()
 	{
-		if (_editingLesson is null)
+		if (_editingLesson is null || _editingCourse is null)
 		{
 			return;
 		}
 
-		await CourseService.UpdateLessonAsync(_editingLesson);
+		var moduleId = _editingModule?.Id;
+
+		if (_isCreatingLesson)
+		{
+			if (moduleId is null)
+			{
+				return;
+			}
+
+			await CourseService.AddLessonAsync(moduleId.Value, new Lesson
+			{
+				Title = _editingLesson.Title,
+				TextContent = _editingLesson.TextContent,
+				DurationMinutes = _editingLesson.DurationMinutes,
+				IsRequired = _editingLesson.IsRequired
+			});
+		}
+		else
+		{
+			await CourseService.UpdateLessonAsync(_editingLesson);
+		}
+
 		await ReloadSelectedCourseAsync();
-		if (_editingModule is not null)
+		if (_editingCourse is null)
 		{
-			var refreshedModule = _editingCourse?.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
-			_editingModule = refreshedModule is null ? null : CloneModule(refreshedModule);
+			return;
 		}
-		if (_editingModule is not null)
+
+		// Refresh the module clone too, otherwise the module page still renders the pre-save lesson list.
+		if (moduleId.HasValue)
 		{
-			var refreshedLesson = _editingModule.Lessons.FirstOrDefault(lesson => lesson.Id == _editingLesson.Id);
-			_editingLesson = refreshedLesson is null ? null : CloneLesson(refreshedLesson);
+			var refreshedModule = _editingCourse.Modules.FirstOrDefault(module => module.Id == moduleId.Value);
+			if (refreshedModule is not null)
+			{
+				BeginEditingModule(refreshedModule);
+			}
 		}
+
+		var targetUri = moduleId.HasValue
+			? BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules, moduleId.Value)
+			: BuildEditorUri(_editingCourse.Id, CourseEditorStep.Lessons);
+		ClearLessonSelection();
+
+		// NavigateTo won't re-run OnParametersSet (and reset _activeEditorStep) when the target
+		// URI matches the current one, e.g. lesson creation never left the module's URL.
+		_activeEditorStep = moduleId.HasValue ? CourseEditorStep.Modules : CourseEditorStep.Lessons;
+		NavigationManager.NavigateTo(targetUri);
 	}
 
 	private void ClearLessonSelection()
 	{
 		_editingLesson = null;
-		_newLessonTitle = string.Empty;
-		_newLessonText = string.Empty;
-		_newLessonDurationMinutes = 0;
-		_newLessonRequired = true;
+		_isCreatingLesson = false;
 	}
 
 	private async Task ReloadSelectedCourseAsync()
@@ -423,6 +2617,7 @@
 
 		var refreshedCourse = await CourseService.GetByIdAsync(_editingCourse.Id);
 		_editingCourse = refreshedCourse is null ? null : CloneCourse(refreshedCourse);
+		await PersistEditingDraftAsync();
 	}
 
 	private static Course CloneCourse(Course course)
@@ -440,6 +2635,11 @@
 			Price = course.Price,
 			IsPublished = course.IsPublished,
 			IsArchived = course.IsArchived,
+			OwnerInstructorId = course.OwnerInstructorId,
+			ReviewStatus = course.ReviewStatus,
+			ReviewNote = course.ReviewNote,
+			ReviewedByUserId = course.ReviewedByUserId,
+			ReviewedAt = course.ReviewedAt,
 			CreatedAt = course.CreatedAt,
 			UpdatedAt = course.UpdatedAt,
 			Modules = course.Modules

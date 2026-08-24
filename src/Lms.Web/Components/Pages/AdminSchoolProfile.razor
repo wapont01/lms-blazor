@@ -1,0 +1,325 @@
+@page "/admin/school-profile"
+@attribute [Authorize(Roles = "Admin")]
+@using System.Security.Claims
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@inject ISchoolProfileService SchoolProfileService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>School Profile</PageTitle>
+
+<div class="page-header-row">
+    <div>
+        <h1>School Profile</h1>
+        <p class="muted-text">Central identity and regulatory information used by disclosures, certificates, and support contacts.</p>
+    </div>
+</div>
+
+@if (_profile is null)
+{
+    <p>Loading school profile...</p>
+}
+else
+{
+    <EditForm Model="_profile" OnValidSubmit="SaveAsync" FormName="school-profile">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <p class="@(_saveSucceeded ? "auth-help" : "auth-error")">@_message</p>
+        }
+
+        <section class="card">
+            <h2>School Identity</h2>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="school-legal-name">Legal name</label>
+                    <InputText id="school-legal-name" @bind-Value="_profile.LegalName" />
+                </div>
+                <div class="form-field">
+                    <label for="school-advertised-name">Advertised name</label>
+                    <InputText id="school-advertised-name" @bind-Value="_profile.AdvertisedName" />
+                </div>
+            </div>
+            <div class="form-field">
+                <label for="school-address">Street address</label>
+                <InputText id="school-address" @bind-Value="_profile.StreetAddress" />
+            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="school-city">City</label>
+                    <InputText id="school-city" @bind-Value="_profile.City" />
+                </div>
+                <div class="form-field">
+                    <label for="school-state">State</label>
+                    <InputText id="school-state" @bind-Value="_profile.State" maxlength="2" />
+                </div>
+                <div class="form-field">
+                    <label for="school-postal-code">Postal code</label>
+                    <InputText id="school-postal-code" @bind-Value="_profile.PostalCode" />
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Officials and Approvals</h2>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="education-director">Education director</label>
+                    <InputText id="education-director" @bind-Value="_profile.EducationDirectorName" />
+                </div>
+                <div class="form-field">
+                    <label for="corporate-officer">Corporate officer</label>
+                    <InputText id="corporate-officer" @bind-Value="_profile.CorporateOfficerName" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="provider-license">Provider license number</label>
+                    <InputText id="provider-license" @bind-Value="_profile.ProviderLicenseNumber" />
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Instructor Contact</h2>
+            <p class="muted-text">Shown to learners in the distance-course navigation menu.</p>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="primary-instructor">Primary instructor</label>
+                    <InputText id="primary-instructor" @bind-Value="_profile.PrimaryInstructorName" />
+                </div>
+                <div class="form-field">
+                    <label for="instructor-license">Instructor license number</label>
+                    <InputText id="instructor-license" @bind-Value="_profile.InstructorLicenseNumber" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="instructor-email">Instructor email</label>
+                    <InputText id="instructor-email" type="email" @bind-Value="_profile.PrimaryInstructorEmail" />
+                </div>
+                <div class="form-field">
+                    <label for="instructor-phone">Instructor telephone</label>
+                    <InputText id="instructor-phone" type="tel" @bind-Value="_profile.PrimaryInstructorTelephone" />
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Instructor and Officer Roster</h2>
+            @if (_profile.StaffMembers.Count == 0)
+            {
+                <p class="muted-text">No additional instructors or officers have been added.</p>
+            }
+            else
+            {
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Role</th>
+                                <th>Title</th>
+                                <th>License number</th>
+                                <th>Contact</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var member in _profile.StaffMembers.OrderBy(item => item.Role).ThenBy(item => item.Name).ToList())
+                            {
+                                <tr>
+                                    <td>@member.Name</td>
+                                    <td>@member.Role</td>
+                                    <td>@(member.Title ?? "-")</td>
+                                    <td>@(member.LicenseNumber ?? "-")</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(member.Email))
+                                        {
+                                            <div>@member.Email</div>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(member.Telephone))
+                                        {
+                                            <div>@member.Telephone</div>
+                                        }
+                                    </td>
+                                    <td><button type="button" class="secondary-btn" @onclick="() => RemoveStaffMemberAsync(member.Id)" disabled="@_isSaving">Remove</button></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <h3>Add Staff Member</h3>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="staff-name">Name</label>
+                    <InputText id="staff-name" @bind-Value="_newStaffMember.Name" />
+                </div>
+                <div class="form-field">
+                    <label for="staff-role">Role</label>
+                    <InputSelect id="staff-role" @bind-Value="_newStaffMember.Role">
+                        @foreach (var role in SchoolStaffRoles.All)
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="form-field">
+                    <label for="staff-title">Title</label>
+                    <InputText id="staff-title" @bind-Value="_newStaffMember.Title" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="staff-license">License number</label>
+                    <InputText id="staff-license" @bind-Value="_newStaffMember.LicenseNumber" />
+                </div>
+                <div class="form-field">
+                    <label for="staff-email">Email</label>
+                    <InputText id="staff-email" type="email" @bind-Value="_newStaffMember.Email" />
+                </div>
+                <div class="form-field">
+                    <label for="staff-telephone">Telephone</label>
+                    <InputText id="staff-telephone" type="tel" @bind-Value="_newStaffMember.Telephone" />
+                </div>
+            </div>
+            <button type="button" class="secondary-btn" @onclick="AddStaffMemberAsync" disabled="@_isSaving">Add Staff Member</button>
+        </section>
+
+        <section class="card">
+            <h2>Technical Support</h2>
+            <p class="muted-text">Shown to learners in the distance-course navigation menu and policy disclosure.</p>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="support-email">Technical support email</label>
+                    <InputText id="support-email" type="email" @bind-Value="_profile.SupportEmail" />
+                </div>
+                <div class="form-field">
+                    <label for="support-phone">Technical support telephone</label>
+                    <InputText id="support-phone" type="tel" @bind-Value="_profile.SupportTelephone" />
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-field">
+                    <label for="support-hours">Support hours and time zone</label>
+                    <InputText id="support-hours" @bind-Value="_profile.SupportHours" />
+                </div>
+                <div class="form-field">
+                    <label for="school-website">Website URL</label>
+                    <InputText id="school-website" type="url" @bind-Value="_profile.WebsiteUrl" />
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <h2>Commission-Published Data</h2>
+            <p class="muted-text">Enter only information published by the North Carolina Real Estate Commission.</p>
+            <div class="form-field">
+                <label for="performance-record">License Examination Performance Record</label>
+                <InputTextArea id="performance-record" rows="4" @bind-Value="_profile.LicenseExaminationPerformanceRecord" />
+            </div>
+            <div class="form-field">
+                <label for="annual-summary">Annual Summary Report data</label>
+                <InputTextArea id="annual-summary" rows="4" @bind-Value="_profile.AnnualSummaryReportData" />
+            </div>
+        </section>
+
+        <div class="course-actions">
+            <button type="submit" class="primary-btn" disabled="@_isSaving">@(_isSaving ? "Saving..." : "Save School Profile")</button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private SchoolProfile? _profile;
+    private SchoolStaffMember _newStaffMember = new();
+    private Guid _actorUserId;
+    private string _actorEmail = "admin@lms.local";
+    private bool _isSaving;
+    private bool _saveSucceeded;
+    private string? _message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        Guid.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out _actorUserId);
+        _actorEmail = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? _actorEmail;
+        _profile = await SchoolProfileService.GetAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_profile is null)
+        {
+            return;
+        }
+
+        _isSaving = true;
+        _message = null;
+        try
+        {
+            _profile = await SchoolProfileService.UpdateAsync(_profile, _actorUserId, _actorEmail);
+            _saveSucceeded = true;
+            _message = "School profile saved.";
+        }
+        catch (Exception exception)
+        {
+            _saveSucceeded = false;
+            _message = exception.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task AddStaffMemberAsync()
+    {
+        _isSaving = true;
+        _message = null;
+        try
+        {
+            await SchoolProfileService.AddStaffMemberAsync(_newStaffMember, _actorUserId, _actorEmail);
+            _profile = await SchoolProfileService.GetAsync();
+            _newStaffMember = new SchoolStaffMember();
+            _saveSucceeded = true;
+            _message = "Staff member added.";
+        }
+        catch (Exception exception)
+        {
+            _saveSucceeded = false;
+            _message = exception.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task RemoveStaffMemberAsync(Guid staffMemberId)
+    {
+        _isSaving = true;
+        _message = null;
+        try
+        {
+            await SchoolProfileService.RemoveStaffMemberAsync(staffMemberId, _actorUserId, _actorEmail);
+            _profile = await SchoolProfileService.GetAsync();
+            _saveSucceeded = true;
+            _message = "Staff member removed.";
+        }
+        catch (Exception exception)
+        {
+            _saveSucceeded = false;
+            _message = exception.Message;
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

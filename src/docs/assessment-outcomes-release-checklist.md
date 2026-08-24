@@ -64,7 +64,7 @@ Verify these events appear when actions are performed:
 
 ## Sign-Off
 
-- [ ] Engineering sign-off
-- [ ] QA sign-off
+- [x] Engineering sign-off (2026-07-26 19:19:02 -05:00)
+- [x] QA sign-off (2026-07-26 19:19:02 -05:00, application tests + UI suite including retake flows)
 - [ ] Product sign-off
-- [ ] Release timestamp recorded
+- [x] Release timestamp recorded (2026-07-26 19:19:02 -05:00)

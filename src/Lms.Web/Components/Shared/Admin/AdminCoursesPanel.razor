@@ -22,6 +22,75 @@
         </div>
         <div class="form-row">
             <div class="form-field">
+                <label>Compliance type</label>
+                <InputSelect @bind-Value="Draft.ComplianceType">
+                    <option value="">Select compliance type</option>
+                    <option value="@CourseComplianceTypes.Prelicensing">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.Prelicensing)</option>
+                    <option value="@CourseComplianceTypes.Postlicensing">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.Postlicensing)</option>
+                    <option value="@CourseComplianceTypes.ContinuingEducation">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.ContinuingEducation)</option>
+                </InputSelect>
+            </div>
+            <div class="form-field">
+                <label>Delivery method</label>
+                <InputSelect @bind-Value="Draft.DeliveryMethod">
+                    <option value="@CourseDeliveryMethods.DistanceEducation">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.DistanceEducation)</option>
+                    <option value="@CourseDeliveryMethods.SynchronousDistanceLearning">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.SynchronousDistanceLearning)</option>
+                    <option value="@CourseDeliveryMethods.InPerson">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.InPerson)</option>
+                    <option value="@CourseDeliveryMethods.Blended">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.Blended)</option>
+                </InputSelect>
+            </div>
+        </div>
+        @if (Draft.ComplianceType == CourseComplianceTypes.ContinuingEducation)
+        {
+            <div class="form-field">
+                <label>Continuing education type</label>
+                <InputSelect @bind-Value="Draft.ContinuingEducationType">
+                    @foreach (var type in ContinuingEducationTypes.All)
+                    {
+                        <option value="@type">@ContinuingEducationTypes.ToDisplayText(type)</option>
+                    }
+                </InputSelect>
+            </div>
+        }
+        <div class="form-row">
+            <div class="form-field">
+                <label>Commission course number</label>
+                <InputText @bind-Value="Draft.CommissionCourseNumber" />
+                <ValidationMessage For="() => Draft.CommissionCourseNumber" />
+            </div>
+            <div class="form-field">
+                <label>Completion window (days)</label>
+                <InputNumber @bind-Value="Draft.CompletionWindowDays" />
+            </div>
+        </div>
+        @if (Draft.UsesUnitBasedStructure)
+        {
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Required instructional minutes</label>
+                    <InputNumber @bind-Value="Draft.RequiredInstructionalMinutes" />
+                </div>
+                <div class="form-field">
+                    <label>Minimum pass %</label>
+                    <InputNumber @bind-Value="Draft.MinimumPassingPercent" />
+                </div>
+                <div class="form-field">
+                    <label>Minimum attendance %</label>
+                    <InputNumber @bind-Value="Draft.MinimumAttendancePercent" />
+                </div>
+            </div>
+        }
+        @if (CourseComplianceTypes.IsRegulated(Draft.ComplianceType))
+        {
+            <div class="form-field checkbox-field">
+                <label>
+                    <InputCheckbox @bind-Value="Draft.RequiresProctoredExam" />
+                    Requires proctored exam
+                </label>
+            </div>
+        }
+        <div class="form-row">
+            <div class="form-field">
                 <label>Duration Hours</label>
                 <InputNumber @bind-Value="Draft.DurationHours" />
                 <ValidationMessage For="() => Draft.DurationHours" />
@@ -56,6 +125,16 @@
 <section class="card" id="admin-course-catalog">
     <h2>Course catalog</h2>
 
+    @if (!string.IsNullOrWhiteSpace(CourseError))
+    {
+        <p class="error-text">@CourseError</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(CourseMessage))
+    {
+        <p class="success-text">@CourseMessage</p>
+    }
+
     @if (Courses.Count == 0)
     {
         <p>No courses have been created yet.</p>
@@ -70,16 +149,58 @@
                         <h3>@course.Title</h3>
                         <p>@course.Level | @course.DurationHours hours | @course.Price.ToString("C")</p>
                         <p>@course.Description</p>
-                        <p>Status: @(course.IsArchived ? "Archived" : course.IsPublished ? "Published" : "Draft")</p>
+                        <p>Status: @(course.IsArchived ? "Archived" : course.IsPublished ? "Published" : "Draft") | Review: @CourseReviewStatuses.ToDisplayText(course.ReviewStatus)</p>
+                        <dl class="course-regulatory-summary">
+                            <div><dt>Compliance</dt><dd>@CourseComplianceTypes.ToDisplayText(course.ComplianceType)</dd></div>
+                            <div><dt>Delivery</dt><dd>@CourseDeliveryMethods.ToDisplayText(course.DeliveryMethod)</dd></div>
+                            <div><dt>Commission course number</dt><dd>@(course.CommissionCourseNumber ?? "Not set")</dd></div>
+                            <div><dt>Completion window</dt><dd>@(course.CompletionWindowDays.HasValue ? $"{course.CompletionWindowDays} days" : "Not set")</dd></div>
+                            <div><dt>Proctored exam</dt><dd>@(course.RequiresProctoredExam ? "Required" : "Not required")</dd></div>
+                            <div><dt>Instructional time</dt><dd>@course.RequiredInstructionalMinutes minutes</dd></div>
+                            <div><dt>Minimum pass</dt><dd>@course.MinimumPassingPercent%</dd></div>
+                            <div><dt>Minimum attendance</dt><dd>@course.MinimumAttendancePercent%</dd></div>
+                            @if (course.ComplianceType == CourseComplianceTypes.ContinuingEducation)
+                            {
+                                <div><dt>CE type</dt><dd>@ContinuingEducationTypes.ToDisplayText(course.ContinuingEducationType ?? string.Empty)</dd></div>
+                            }
+                        </dl>
+                        @if (!string.IsNullOrWhiteSpace(course.ReviewNote))
+                        {
+                            <p class="muted-text">Note: @course.ReviewNote</p>
+                        }
+                        <div class="course-price-editor">
+                            <label>Price (USD)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value="@GetCoursePriceDraft(course)"
+                                @oninput="args => SetCoursePriceDraft(course.Id, args.Value?.ToString())" />
+                            <button type="button" @onclick="() => SaveCoursePriceAsync(course)">Save Price</button>
+                        </div>
                     </div>
                     <div class="course-actions">
-                        <button type="button" @onclick="() => OnTogglePublish.InvokeAsync(course)">
-                            @(course.IsPublished ? "Unpublish" : "Publish")
-                        </button>
                         <button type="button" @onclick="() => OnToggleArchive.InvokeAsync(course)">
                             @(course.IsArchived ? "Restore" : "Archive")
                         </button>
+                        @if (course.ReviewStatus == CourseReviewStatuses.PendingReview)
+                        {
+                            <button type="button" @onclick="() => OnApproveCourse.InvokeAsync(course)">Approve</button>
+                            <button type="button" @onclick="() => BeginReviewNote(course.Id)">Request changes</button>
+                            <button type="button" @onclick="() => OnRejectCourse.InvokeAsync((course, GetReviewNoteDraft(course.Id)))">Reject</button>
+                        }
                     </div>
+                    @if (_courseIdAwaitingReviewNote == course.Id)
+                    {
+                        <div class="course-price-editor">
+                            <label>Note for instructor</label>
+                            <input
+                                type="text"
+                                value="@GetReviewNoteDraft(course.Id)"
+                                @oninput="args => SetReviewNoteDraft(course.Id, args.Value?.ToString())" />
+                            <button type="button" @onclick="() => OnRequestChanges.InvokeAsync((course, GetReviewNoteDraft(course.Id)))">Send request</button>
+                            <button type="button" @onclick="() => _courseIdAwaitingReviewNote = null">Cancel</button>
+                        </div>
+                    }
                 </article>
             }
         </div>
@@ -97,8 +218,71 @@
     public IReadOnlyList<Course> Courses { get; set; } = [];
 
     [Parameter]
-    public EventCallback<Course> OnTogglePublish { get; set; }
+    public string? CourseError { get; set; }
+
+    [Parameter]
+    public string? CourseMessage { get; set; }
 
     [Parameter]
     public EventCallback<Course> OnToggleArchive { get; set; }
+
+    [Parameter]
+    public EventCallback<Course> OnSavePrice { get; set; }
+
+    [Parameter]
+    public EventCallback<Course> OnApproveCourse { get; set; }
+
+    [Parameter]
+    public EventCallback<(Course Course, string Note)> OnRequestChanges { get; set; }
+
+    [Parameter]
+    public EventCallback<(Course Course, string Note)> OnRejectCourse { get; set; }
+
+    private readonly Dictionary<Guid, string> _coursePriceDrafts = new();
+    private readonly Dictionary<Guid, string> _reviewNoteDrafts = new();
+    private Guid? _courseIdAwaitingReviewNote;
+
+    private void BeginReviewNote(Guid courseId)
+    {
+        _courseIdAwaitingReviewNote = courseId;
+    }
+
+    private string GetReviewNoteDraft(Guid courseId)
+    {
+        return _reviewNoteDrafts.TryGetValue(courseId, out var value) ? value : string.Empty;
+    }
+
+    private void SetReviewNoteDraft(Guid courseId, string? value)
+    {
+        _reviewNoteDrafts[courseId] = value ?? string.Empty;
+    }
+
+    private string GetCoursePriceDraft(Course course)
+    {
+        return _coursePriceDrafts.TryGetValue(course.Id, out var value)
+            ? value
+            : course.Price.ToString("0.##");
+    }
+
+    private void SetCoursePriceDraft(Guid courseId, string? rawValue)
+    {
+        if (string.IsNullOrWhiteSpace(rawValue))
+        {
+            _coursePriceDrafts.Remove(courseId);
+            return;
+        }
+
+        _coursePriceDrafts[courseId] = rawValue;
+    }
+
+    private async Task SaveCoursePriceAsync(Course course)
+    {
+        if (_coursePriceDrafts.TryGetValue(course.Id, out var rawValue)
+            && decimal.TryParse(rawValue, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var parsedPrice))
+        {
+            course.Price = parsedPrice;
+        }
+
+        await OnSavePrice.InvokeAsync(course);
+    }
 }

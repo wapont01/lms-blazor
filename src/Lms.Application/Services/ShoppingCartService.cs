@@ -8,6 +8,7 @@ public interface IShoppingCartService
 {
     Task<ShoppingCart> GetCartAsync(Guid learnerId);
     Task AddToCartAsync(Guid learnerId, Guid courseId, string courseTitle, decimal price);
+    Task UpdateItemQuantityAsync(Guid learnerId, Guid courseId, int quantity);
     Task RemoveFromCartAsync(Guid learnerId, Guid courseId);
     Task ClearCartAsync(Guid learnerId);
     Task<ShoppingCart> GetCartWithCoursesAsync(Guid learnerId);
@@ -99,6 +100,21 @@ public class ShoppingCartService : IShoppingCartService
             });
         }
 
+        cart.LastModifiedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateItemQuantityAsync(Guid learnerId, Guid courseId, int quantity)
+    {
+        var cart = await GetCartAsync(learnerId);
+        var item = cart.Items.FirstOrDefault(i => i.CourseId == courseId);
+
+        if (item == null)
+        {
+            return;
+        }
+
+        item.Quantity = Math.Clamp(quantity, 1, 100);
         cart.LastModifiedAt = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
     }

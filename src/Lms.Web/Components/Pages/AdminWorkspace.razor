@@ -21,8 +21,13 @@
 			Draft="_draft"
 			OnCreateCourse="CreateCourseAsync"
 			Courses="_courses"
-			OnTogglePublish="TogglePublishAsync"
-			OnToggleArchive="ToggleArchiveAsync" />
+			CourseError="@_courseError"
+			CourseMessage="@_courseMessage"
+			OnToggleArchive="ToggleArchiveAsync"
+			OnSavePrice="SaveCoursePriceAsync"
+			OnApproveCourse="ApproveCourseAsync"
+			OnRequestChanges="RequestCourseChangesAsync"
+			OnRejectCourse="RejectCourseAsync" />
 	}
 
 	@if (IsSectionVisible("assessments"))
@@ -33,6 +38,7 @@
 			Courses="_courses"
 			Users="_users"
 			AssessmentCourseIdText="@_assessmentCourseIdText"
+			ActiveCourseTitle="@GetSelectedAssessmentCourseTitle()"
 			OnAssessmentCourseChanged="OnAssessmentCourseChanged"
 			OnLoadAssessmentEditor="LoadAssessmentEditorAsync"
 			AssessmentEditor="_assessmentEditor"
@@ -40,11 +46,21 @@
 			OnRemoveAssessmentQuestion="RemoveAssessmentQuestion"
 			OnSaveAssessmentEditor="SaveAssessmentEditorAsync"
 			OnRetakeLearnerChanged="OnRetakeLearnerChanged"
+			RetakeLearnerIdText="@GetRetakeLearnerIdText()"
 			RetakeGrantAttempts="_retakeGrantAttempts"
 			RetakeGrantAttemptsChanged="OnRetakeGrantAttemptsChanged"
 			ResetCooldownTimerOnRetakeGrant="_resetCooldownTimerOnRetakeGrant"
 			ResetCooldownTimerOnRetakeGrantChanged="OnResetCooldownTimerOnRetakeGrantChanged"
 			OnGrantRetake="GrantRetakeAsync"
+			ProctorCompanyName="@ProctoringDefaults.CompanyName"
+			ProctoringValidForMinutes="_proctoringValidForMinutes"
+			ProctoringValidForMinutesChanged="OnProctoringValidForMinutesChanged"
+			ActiveProctoringSession="_activeProctoringSession"
+			OnRegisterProctoringSession="RegisterProctoringSessionAsync"
+			ProctoringIncidentNotes="_proctoringIncidentNotes"
+			ProctoringIncidentNotesChanged="OnProctoringIncidentNotesChanged"
+			OnExpireProctoringSession="ExpireProctoringSessionAsync"
+			OnReportProctoringIncident="ReportProctoringIncidentAsync"
 			RetakeGrants="_retakeGrants"
 			GetRetakeGrantDraft="GetRetakeGrantDraft"
 			SetRetakeGrantDraft="SetRetakeGrantDraft"
@@ -164,6 +180,9 @@
 	private Guid? _retakeLearnerId;
 	private int _retakeGrantAttempts = 1;
 	private bool _resetCooldownTimerOnRetakeGrant = true;
+	private int _proctoringValidForMinutes = 120;
+	private ExamProctoringSessionView? _activeProctoringSession;
+	private string _proctoringIncidentNotes = string.Empty;
 	private List<RetakeGrantView> _retakeGrants = new();
 	private readonly Dictionary<Guid, int> _retakeGrantDraftAttempts = new();
 	private string _auditFilterActor = string.Empty;
@@ -175,6 +194,8 @@
 	private List<LearnerLogItem> _adminLogs = new();
 	private readonly string[] _roles = ["Admin", "Instructor", "Broker", "Learner"];
 	private string? _userError;
+	private string? _courseError;
+	private string? _courseMessage;
 	private Guid? _actorUserId;
 	private string _actorEmail = "admin@lms.local";
 	private Course _draft = new()
@@ -202,6 +223,7 @@
 
 		await RefreshCoursesAsync();
 		await RefreshUsersAsync();
+		await LoadAssessmentEditorAsync();
 		await RefreshAuditAsync();
 		await RefreshCertificatesAsync();
 
@@ -271,6 +293,9 @@
 
 	private async Task CreateCourseAsync()
 	{
+		_courseError = null;
+		_courseMessage = null;
+
 		_draft.Slug = CreateSlug(_draft.Title);
 		_draft.IsArchived = false;
 
@@ -286,17 +311,14 @@
 		};
 
 		await RefreshCoursesAsync();
-	}
-
-	private async Task TogglePublishAsync(Course course)
-	{
-		course.IsPublished = !course.IsPublished;
-		await CourseService.UpdateAsync(course);
-		await RefreshCoursesAsync();
+		_courseMessage = "Course created.";
 	}
 
 	private async Task ToggleArchiveAsync(Course course)
 	{
+		_courseError = null;
+		_courseMessage = null;
+
 		course.IsArchived = !course.IsArchived;
 		if (course.IsArchived)
 		{
@@ -305,6 +327,95 @@
 
 		await CourseService.UpdateAsync(course);
 		await RefreshCoursesAsync();
+		_courseMessage = course.IsArchived ? "Course archived." : "Course restored.";
+	}
+
+	private async Task ApproveCourseAsync(Course course)
+	{
+		_courseError = null;
+		_courseMessage = null;
+
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await CourseService.ApproveCourseAsync(course.Id, _actorUserId.Value);
+		await RefreshCoursesAsync();
+		_courseMessage = "Course approved and published.";
+	}
+
+	private async Task RequestCourseChangesAsync((Course Course, string Note) request)
+	{
+		_courseError = null;
+		_courseMessage = null;
+
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await CourseService.RequestChangesAsync(request.Course.Id, _actorUserId.Value, request.Note);
+		await RefreshCoursesAsync();
+		_courseMessage = "Change request sent to instructor.";
+	}
+
+	private async Task RejectCourseAsync((Course Course, string Note) request)
+	{
+		_courseError = null;
+		_courseMessage = null;
+
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await CourseService.RejectCourseAsync(request.Course.Id, _actorUserId.Value, request.Note);
+		await RefreshCoursesAsync();
+		_courseMessage = "Course rejected.";
+	}
+
+	private async Task SaveCoursePriceAsync(Course course)
+	{
+		_courseError = null;
+		_courseMessage = null;
+
+		if (!_actorUserId.HasValue)
+		{
+			_courseError = "Unable to identify the signed in admin account.";
+			return;
+		}
+
+		var existing = await CourseService.GetByIdAsync(course.Id);
+		if (existing is null)
+		{
+			_courseError = "Course no longer exists.";
+			await RefreshCoursesAsync();
+			return;
+		}
+
+		var previousPrice = existing.Price;
+		var updatedPrice = Math.Max(0m, course.Price);
+		existing.Price = updatedPrice;
+
+		await CourseService.UpdateAsync(existing);
+
+		if (previousPrice != updatedPrice)
+		{
+			await AuditLogService.WriteAsync(
+				_actorUserId.Value,
+				_actorEmail,
+				"course.price.updated",
+				"Course",
+				existing.Id,
+				$"OldPrice={previousPrice:F2};NewPrice={updatedPrice:F2}");
+			await RefreshAuditAsync();
+		}
+
+		await RefreshCoursesAsync();
+		_courseMessage = previousPrice == updatedPrice
+			? "No price change was detected."
+			: "Course price updated.";
 	}
 
 	private async Task RefreshCoursesAsync()
@@ -318,7 +429,7 @@
 		}
 	}
 
-	private Task OnAssessmentCourseChanged(ChangeEventArgs args)
+	private async Task OnAssessmentCourseChanged(ChangeEventArgs args)
 	{
 		_assessmentCourseIdText = args.Value?.ToString() ?? string.Empty;
 		_assessmentCourseId = Guid.TryParse(_assessmentCourseIdText, out var parsed) ? parsed : null;
@@ -327,7 +438,17 @@
 		_assessmentMessage = null;
 		_retakeGrants.Clear();
 		_retakeGrantDraftAttempts.Clear();
-		return Task.CompletedTask;
+		await RefreshActiveProctoringSessionAsync();
+	}
+
+	private string? GetSelectedAssessmentCourseTitle()
+	{
+		if (!_assessmentCourseId.HasValue)
+		{
+			return null;
+		}
+
+		return _courses.FirstOrDefault(course => course.Id == _assessmentCourseId.Value)?.Title;
 	}
 
 	private async Task LoadAssessmentEditorAsync()
@@ -347,6 +468,18 @@
 		_assessmentMessage = _assessmentEditor is null
 			? "No assessment is available for this course."
 			: "Assessment loaded.";
+
+		if (_retakeLearnerId is null && _users.Any(user => user.Role == "Learner"))
+		{
+			_retakeLearnerId = _users.First(user => user.Role == "Learner").Id;
+		}
+
+		if (_assessmentEditor is not null)
+		{
+			_retakeLearnerId ??= _users.FirstOrDefault(user => user.Role == "Learner")?.Id;
+		}
+
+		await RefreshActiveProctoringSessionAsync();
 	}
 
 	private void AddAssessmentQuestion()
@@ -410,10 +543,15 @@
 		}
 	}
 
-	private Task OnRetakeLearnerChanged(ChangeEventArgs args)
+	private async Task OnRetakeLearnerChanged(ChangeEventArgs args)
 	{
 		_retakeLearnerId = Guid.TryParse(args.Value?.ToString(), out var parsed) ? parsed : null;
-		return Task.CompletedTask;
+		await RefreshActiveProctoringSessionAsync();
+	}
+
+	private string GetRetakeLearnerIdText()
+	{
+		return _retakeLearnerId?.ToString("D") ?? string.Empty;
 	}
 
 	private Task OnRetakeGrantAttemptsChanged(int value)
@@ -426,6 +564,104 @@
 	{
 		_resetCooldownTimerOnRetakeGrant = value;
 		return Task.CompletedTask;
+	}
+
+	private Task OnProctoringValidForMinutesChanged(int value)
+	{
+		_proctoringValidForMinutes = Math.Clamp(value, 5, 240);
+		return Task.CompletedTask;
+	}
+
+	private Task OnProctoringIncidentNotesChanged(string value)
+	{
+		_proctoringIncidentNotes = value;
+		return Task.CompletedTask;
+	}
+
+	private async Task RegisterProctoringSessionAsync()
+	{
+		_assessmentError = null;
+		_assessmentMessage = null;
+
+		if (!_assessmentCourseId.HasValue || !_retakeLearnerId.HasValue)
+		{
+			_assessmentError = "Select both course and learner before opening a proctored exam session.";
+			return;
+		}
+
+		if (!_actorUserId.HasValue)
+		{
+			_assessmentError = "Unable to identify the signed in admin account.";
+			return;
+		}
+
+		try
+		{
+			_activeProctoringSession = await AssessmentService.RegisterProctoringSessionAsync(
+				_assessmentCourseId.Value,
+				_retakeLearnerId.Value,
+				ProctoringDefaults.CompanyName,
+				null,
+				_proctoringValidForMinutes,
+				_actorUserId.Value,
+				_actorEmail);
+			_assessmentMessage = $"Proctored exam session opened with {ProctoringDefaults.CompanyName}.";
+			await RefreshAuditAsync();
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
+	}
+
+	private async Task RefreshActiveProctoringSessionAsync()
+	{
+		_activeProctoringSession = _assessmentCourseId.HasValue && _retakeLearnerId.HasValue
+			? await AssessmentService.GetActiveProctoringSessionAsync(_assessmentCourseId.Value, _retakeLearnerId.Value)
+			: null;
+	}
+
+	private async Task ExpireProctoringSessionAsync()
+	{
+		if (_activeProctoringSession is null || !_actorUserId.HasValue)
+		{
+			_assessmentError = "No active proctoring session is available to expire.";
+			return;
+		}
+
+		try
+		{
+			await AssessmentService.ExpireProctoringSessionAsync(_activeProctoringSession.Id, _actorUserId.Value, _actorEmail);
+			_activeProctoringSession = null;
+			_assessmentMessage = "Proctored exam session expired.";
+			await RefreshAuditAsync();
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
+	}
+
+	private async Task ReportProctoringIncidentAsync()
+	{
+		if (_activeProctoringSession is null || !_actorUserId.HasValue)
+		{
+			_assessmentError = "No active proctoring session is available for incident reporting.";
+			return;
+		}
+
+		try
+		{
+			await AssessmentService.ReportProctoringIncidentAsync(_activeProctoringSession.Id, _proctoringIncidentNotes, _actorUserId.Value, _actorEmail);
+			_activeProctoringSession = null;
+			_proctoringIncidentNotes = string.Empty;
+			_assessmentMessage = "Security incident recorded and the proctored exam session was closed.";
+			await RefreshAuditAsync();
+		}
+		catch (InvalidOperationException exception)
+		{
+			_assessmentError = exception.Message;
+		}
 	}
 
 	private async Task GrantRetakeAsync()

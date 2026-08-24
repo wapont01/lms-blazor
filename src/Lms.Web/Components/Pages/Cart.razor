@@ -167,10 +167,7 @@
 
     private async Task UpdateQuantityAsync(Guid courseId, int quantity)
     {
-        if (quantity < 1) quantity = 1;
-        if (quantity > 100) quantity = 100;
-
-        // For now, just reload (full update logic would be in service)
+        await ShoppingCartService.UpdateItemQuantityAsync(_userId, courseId, quantity);
         await LoadCartAsync();
     }
 

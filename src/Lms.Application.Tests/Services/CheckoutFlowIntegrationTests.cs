@@ -266,4 +266,95 @@ public class CheckoutFlowIntegrationTests
         await dbContext.DisposeAsync();
         await connection.DisposeAsync();
     }
+
+    [Fact]
+    public async Task CheckoutFlow_FreeCourse_CompletesEnrollmentWithoutPaymentMethod()
+    {
+        // Setup
+        var connection = new SqliteConnection("DataSource=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        var dbContext = new ApplicationDbContext(options);
+        await dbContext.Database.EnsureCreatedAsync();
+
+        var auditLogService = new AuditLogService(dbContext);
+        var emailService = new TestEmailService();
+        var pdfService = new TestPDFInvoiceService();
+        var logger = new TestLogger<PaymentService>();
+        var paymentService = new PaymentService(dbContext, logger, auditLogService, emailService, pdfService);
+        var assessmentService = new AssessmentService(dbContext, auditLogService);
+        var enrollmentService = new EnrollmentService(dbContext, auditLogService, assessmentService, new SchoolProfileService(dbContext, auditLogService));
+        var cartService = new ShoppingCartService(dbContext);
+
+        var learnerId = Guid.NewGuid();
+        var courseId = Guid.NewGuid();
+        var learnerEmail = "free-learner@test.local";
+
+        dbContext.UserAccounts.Add(new UserAccount
+        {
+            Id = learnerId,
+            Email = learnerEmail,
+            DisplayName = "Free Course Learner",
+            PasswordHash = "hash",
+            Role = "Learner",
+            CreatedAt = DateTime.UtcNow
+        });
+
+        dbContext.Courses.Add(new Course
+        {
+            Id = courseId,
+            Title = "Free Intro Course",
+            Description = "No cost introductory course",
+            Price = 0m,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        // ACT: Add the free course to the cart and compute the checkout total
+        await cartService.AddToCartAsync(learnerId, courseId, "Free Intro Course", 0m);
+        var cart = await cartService.GetCartWithCoursesAsync(learnerId);
+        var total = cart.GetTotal();
+
+        Assert.Equal(0m, total);
+
+        // ACT: Process payment with no payment method supplied, mirroring the checkout UI's
+        // no-payment path for zero-amount carts
+        var paymentResult = await paymentService.ProcessPaymentAsync(learnerId, total, string.Empty, learnerEmail);
+
+        // ASSERT: Payment succeeds without requiring a payment method
+        Assert.True(paymentResult.Success);
+        Assert.Equal("No payment required.", paymentResult.Message);
+        Assert.NotNull(paymentResult.StripePaymentIntentId);
+
+        var transaction = await dbContext.PaymentTransactions
+            .FirstOrDefaultAsync(t => t.StripePaymentIntentId == paymentResult.StripePaymentIntentId);
+        Assert.NotNull(transaction);
+        Assert.Equal(0m, transaction.Amount);
+        Assert.Equal("Completed", transaction.Status);
+
+        // ACT: Create the enrollment as checkout would after a successful payment
+        await enrollmentService.EnrollAsync(learnerId, courseId);
+
+        // ASSERT: Enrollment created
+        var isEnrolled = await enrollmentService.IsEnrolledAsync(learnerId, courseId);
+        Assert.True(isEnrolled);
+
+        // ASSERT: No invoice/receipt email is generated for a zero-amount enrollment,
+        // matching the checkout page's `total > 0` gate around invoice generation
+        Assert.Empty(emailService.SentEmails);
+
+        // ACT: Clear the cart as checkout does after a completed purchase
+        await cartService.ClearCartAsync(learnerId);
+        var clearedCart = await cartService.GetCartAsync(learnerId);
+        Assert.Empty(clearedCart.Items);
+
+        // Cleanup
+        await dbContext.DisposeAsync();
+        await connection.DisposeAsync();
+    }
 }

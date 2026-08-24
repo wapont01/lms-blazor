@@ -98,6 +98,51 @@ public class AssessmentServiceTests
     }
 
     [Fact]
+    public async Task SubmitAttemptAsync_PrelicensingAllowsOneRetakeByDefault()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Prelicensing Retake Course");
+        var course = await fixture.DbContext.Courses.SingleAsync(existing => existing.Id == seed.CourseId);
+        course.ComplianceType = CourseComplianceTypes.Prelicensing;
+        await fixture.DbContext.SaveChangesAsync();
+
+        var view = await fixture.AssessmentService.GetCourseAssessmentAsync(seed.CourseId);
+        var failingAnswers = view!.Questions.ToDictionary(question => question.Id, _ => "D");
+
+        await fixture.AssessmentService.SubmitAttemptAsync(seed.CourseId, learner.Id, failingAnswers);
+        await fixture.AssessmentService.SubmitAttemptAsync(seed.CourseId, learner.Id, failingAnswers);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.AssessmentService.SubmitAttemptAsync(seed.CourseId, learner.Id, failingAnswers));
+    }
+
+    [Fact]
+    public async Task SubmitAttemptAsync_PostlicensingAllowsUnlimitedRetakesByDefault()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Postlicensing Retake Course");
+        var course = await fixture.DbContext.Courses.SingleAsync(existing => existing.Id == seed.CourseId);
+        course.ComplianceType = CourseComplianceTypes.Postlicensing;
+        await fixture.DbContext.SaveChangesAsync();
+
+        var view = await fixture.AssessmentService.GetCourseAssessmentAsync(seed.CourseId);
+        var failingAnswers = view!.Questions.ToDictionary(question => question.Id, _ => "D");
+
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            await fixture.AssessmentService.SubmitAttemptAsync(seed.CourseId, learner.Id, failingAnswers);
+        }
+
+        var eligibility = await fixture.AssessmentService.GetEligibilityAsync(seed.CourseId, learner.Id);
+        Assert.True(eligibility.HasUnlimitedAttempts);
+        Assert.Equal(5, eligibility.AttemptsUsed);
+    }
+
+    [Fact]
     public async Task GrantRetakeAsync_ResetCooldownTimer_AllowsImmediateRetry()
     {
         await using var fixture = await TestFixture.CreateAsync();
@@ -167,6 +212,33 @@ public class AssessmentServiceTests
     }
 
     [Fact]
+    public async Task GetEligibilityAsync_WhenRetakeGrantExists_OverridesHistoricalPassAndAllowsRetryAccess()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Retake Override Course");
+
+        var view = await fixture.AssessmentService.GetCourseAssessmentAsync(seed.CourseId);
+        Assert.NotNull(view);
+
+        var correctAnswers = await fixture.AssessmentService.GetCorrectAnswerMapAsync(seed.CourseId);
+        var passingAnswers = view!.Questions.ToDictionary(question => question.Id, question => correctAnswers[question.Id]);
+        await fixture.AssessmentService.SubmitAttemptAsync(seed.CourseId, learner.Id, passingAnswers);
+        var historicalPass = await fixture.AssessmentService.HasPassedRequiredAssessmentAsync(seed.CourseId, learner.Id);
+        Assert.True(historicalPass);
+
+        await fixture.AssessmentService.GrantRetakeAsync(seed.CourseId, learner.Id, 1, false, admin.Id, admin.Email);
+
+        var eligibility = await fixture.AssessmentService.GetEligibilityAsync(seed.CourseId, learner.Id);
+        Assert.True(eligibility.HasRetakeGrantOverride);
+        Assert.False(eligibility.HasPassed);
+        Assert.False(await fixture.AssessmentService.HasPassedRequiredAssessmentAsync(seed.CourseId, learner.Id));
+        Assert.NotNull(eligibility.BlockingReason);
+    }
+
+    [Fact]
     public async Task GetAttemptHistoryAsync_ReturnsAttemptsWithAnswerReview()
     {
         await using var fixture = await TestFixture.CreateAsync();
@@ -214,6 +286,67 @@ public class AssessmentServiceTests
         Assert.Empty(grants);
     }
 
+    [Fact]
+    public async Task ProctoringSessionLifecycle_ControlsAssessmentEligibility()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Proctored Course");
+        var course = await fixture.DbContext.Courses.SingleAsync(existing => existing.Id == seed.CourseId);
+        course.RequiresProctoredExam = true;
+        await fixture.DbContext.SaveChangesAsync();
+
+        var blocked = await fixture.AssessmentService.GetEligibilityAsync(seed.CourseId, learner.Id);
+        Assert.Contains("proctoring session", blocked.BlockingReason, StringComparison.OrdinalIgnoreCase);
+        Assert.True(blocked.RequiresProctorVerification);
+
+        var firstSession = await fixture.AssessmentService.RegisterProctoringSessionAsync(
+            seed.CourseId, learner.Id, ProctoringDefaults.CompanyName, null, 120, admin.Id, admin.Email);
+        Assert.Equal(ProctoringDefaults.CompanyName, firstSession.ProctorName);
+        Assert.NotNull(await fixture.AssessmentService.GetActiveProctoringSessionAsync(seed.CourseId, learner.Id));
+        Assert.False((await fixture.AssessmentService.GetEligibilityAsync(seed.CourseId, learner.Id)).RequiresProctorVerification);
+
+        var replacement = await fixture.AssessmentService.RegisterProctoringSessionAsync(
+            seed.CourseId, learner.Id, ProctoringDefaults.CompanyName, "replacement", 120, admin.Id, admin.Email);
+        var expiredFirst = await fixture.DbContext.ExamProctoringSessions.AsNoTracking().SingleAsync(session => session.Id == firstSession.Id);
+        Assert.True(expiredFirst.ExpiresAtUtc <= replacement.IdentityVerifiedAtUtc);
+
+        await fixture.AssessmentService.ReportProctoringIncidentAsync(replacement.Id, "Unauthorized material observed.", admin.Id, admin.Email);
+        Assert.Null(await fixture.AssessmentService.GetActiveProctoringSessionAsync(seed.CourseId, learner.Id));
+
+        var finalSession = await fixture.AssessmentService.RegisterProctoringSessionAsync(
+            seed.CourseId, learner.Id, ProctoringDefaults.CompanyName, null, 120, admin.Id, admin.Email);
+        fixture.DbContext.ExamProctoringSessions.Add(new ExamProctoringSession
+        {
+            CourseId = seed.CourseId,
+            UserAccountId = learner.Id,
+            ProctorName = ProctoringDefaults.CompanyName,
+            IdentityVerifiedAtUtc = DateTime.UtcNow,
+            ClosedBookConfirmed = true,
+            ExpiresAtUtc = DateTime.UtcNow.AddMinutes(120)
+        });
+        await fixture.DbContext.SaveChangesAsync();
+        await fixture.AssessmentService.ExpireProctoringSessionAsync(finalSession.Id, admin.Id, admin.Email);
+        Assert.Null(await fixture.AssessmentService.GetActiveProctoringSessionAsync(seed.CourseId, learner.Id));
+    }
+
+    [Fact]
+    public void GetCompletionTimestampUtc_PrefersPersistedAssessmentTimestamp()
+    {
+        var persistedSubmissionUtc = new DateTime(2026, 08, 21, 17, 30, 00, DateTimeKind.Utc);
+        var queryTimestampUtc = new DateTime(2026, 08, 21, 18, 05, 00, DateTimeKind.Utc);
+        var fallbackUtc = new DateTime(2026, 08, 21, 18, 30, 00, DateTimeKind.Utc);
+
+        var resolvedUtc = AssessmentCompletionTimestampResolver.GetCompletionTimestampUtc(
+            persistedSubmissionUtc,
+            queryTimestampUtc,
+            fallbackUtc);
+
+        Assert.Equal(persistedSubmissionUtc, resolvedUtc);
+    }
+
     private sealed class TestFixture : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;
@@ -247,7 +380,7 @@ public class AssessmentServiceTests
             await userAccountService.EnsureSeedUsersAsync();
 
             var assessmentService = new AssessmentService(dbContext, auditLogService);
-            var enrollmentService = new EnrollmentService(dbContext, auditLogService, assessmentService);
+            var enrollmentService = new EnrollmentService(dbContext, auditLogService, assessmentService, new SchoolProfileService(dbContext, auditLogService));
             return new TestFixture(connection, dbContext, enrollmentService, assessmentService);
         }
 

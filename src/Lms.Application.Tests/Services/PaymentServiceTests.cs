@@ -49,11 +49,11 @@ public class PaymentServiceTests
     }
 
     [Fact]
-    public async Task ProcessPaymentAsync_FailsWithInvalidAmount()
+    public async Task ProcessPaymentAsync_FailsWithNegativeAmount()
     {
         await using var fixture = await TestFixture.CreateAsync();
         var learnerId = Guid.NewGuid();
-        var invalidAmount = 0m;
+        var invalidAmount = -10m;
 
         // Act
         var result = await fixture.PaymentService.ProcessPaymentAsync(learnerId, invalidAmount, "pm_card_test", "learner@test.local");
@@ -61,6 +61,36 @@ public class PaymentServiceTests
         // Assert
         Assert.False(result.Success);
         Assert.Equal("Invalid payment amount.", result.Message);
+    }
+
+    [Fact]
+    public async Task ProcessPaymentAsync_AllowsZeroAmountForFreeEnrollment()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var learnerId = Guid.NewGuid();
+        var email = "learner@test.local";
+
+        fixture.DbContext.UserAccounts.Add(new UserAccount
+        {
+            Id = learnerId,
+            Email = email,
+            DisplayName = "Test Learner",
+            PasswordHash = "hash",
+            Role = "Learner",
+            CreatedAt = DateTime.UtcNow
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await fixture.PaymentService.ProcessPaymentAsync(learnerId, 0m, string.Empty, email);
+
+        Assert.True(result.Success);
+        Assert.Equal("No payment required.", result.Message);
+
+        var transaction = await fixture.DbContext.PaymentTransactions
+            .FirstOrDefaultAsync(t => t.LearnerId == learnerId && t.Amount == 0m);
+
+        Assert.NotNull(transaction);
+        Assert.Equal("Completed", transaction.Status);
     }
 
     [Fact]

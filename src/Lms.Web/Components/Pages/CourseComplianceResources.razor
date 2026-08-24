@@ -1,0 +1,156 @@
+@page "/courses/{CourseId:guid}/compliance-resources"
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@inject ICourseService CourseService
+@inject IPolicyDisclosureService PolicyDisclosureService
+@inject ISchoolProfileService SchoolProfileService
+
+<PageTitle>Compliance Resources</PageTitle>
+
+@if (_course is null || _profile is null)
+{
+    <p>Course compliance resources were not found.</p>
+}
+else
+{
+    <main class="compliance-resources-page">
+        <header class="compliance-resources-header">
+            <p class="muted-text course-kicker">Distance education resources</p>
+            <h1>Compliance Resources</h1>
+            <p>@_course.Title</p>
+            <a href="@($"/courses/{_course.Id}")">Back to course</a>
+        </header>
+
+        <section class="card" aria-labelledby="syllabus-heading">
+            <h2 id="syllabus-heading">Course Syllabus and Schedule</h2>
+            <p>This course follows the North Carolina Real Estate Commission Broker Prelicensing Course Syllabus. Regulatory Units are limited to no more than 60 minutes and require a passing Unit assessment before the subsequent Unit begins.</p>
+            <dl class="compliance-summary-list">
+                <div><dt>Instructional hours</dt><dd>@((_course.RequiredInstructionalMinutes / 60m).ToString("0.#"))</dd></div>
+                <div><dt>Configured Unit minutes</dt><dd>@ConfiguredUnitMinutes of @_course.RequiredInstructionalMinutes</dd></div>
+                <div><dt>Completion period</dt><dd>@_course.CompletionWindowDays days after enrollment</dd></div>
+                <div><dt>Minimum passing score</dt><dd>@_course.MinimumPassingPercent%</dd></div>
+                <div><dt>End-of-course examination</dt><dd>@(_course.RequiresProctoredExam ? "Proctored" : "See course requirements")</dd></div>
+            </dl>
+            @if (ConfiguredUnitMinutes < _course.RequiredInstructionalMinutes)
+            {
+                <p class="compliance-configuration-warning" role="status">The regulatory Unit and assessment structure is active, but the configured instructional content does not yet satisfy the 75-hour requirement. Additional Commission-syllabus Units must be authored before course approval or delivery.</p>
+            }
+            <ol class="compliance-unit-schedule">
+                @foreach (var unit in GetRegulatoryUnits())
+                {
+                    <li>
+                        <strong>@unit.Title</strong>
+                        <span>@unit.Lessons.Sum(lesson => lesson.DurationMinutes) minutes plus mandatory Unit assessment</span>
+                    </li>
+                }
+            </ol>
+        </section>
+
+        <section class="card" aria-labelledby="materials-heading">
+            <h2 id="materials-heading">Required Materials and Resources</h2>
+            <ul>
+                <li>A reliable internet connection and a device capable of using this LMS.</li>
+                <li>The lessons, referenced forms, and resources provided in each Unit.</li>
+                <li>The current Commission Broker Prelicensing Course Syllabus.</li>
+                <li>The Williams Land Realty LLC Policies and Procedures Disclosure below.</li>
+                <li>Continued access to the email address associated with your learner account.</li>
+            </ul>
+        </section>
+
+        <section class="card" aria-labelledby="instructors-heading">
+            <h2 id="instructors-heading">Instructors</h2>
+            <div class="compliance-contact-list">
+                @foreach (var instructor in GetInstructors())
+                {
+                    <div>
+                        <strong>@instructor.Name</strong>
+                        @if (!string.IsNullOrWhiteSpace(instructor.Email))
+                        {
+                            <a href="mailto:@instructor.Email">@instructor.Email</a>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(instructor.Telephone))
+                        {
+                            <a href="tel:@instructor.Telephone">@instructor.Telephone</a>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="support-heading">
+            <h2 id="support-heading">Technical Support</h2>
+            <div class="compliance-contact-list">
+                <div>
+                    <a href="mailto:@_profile.SupportEmail">@_profile.SupportEmail</a>
+                    <a href="tel:@_profile.SupportTelephone">@_profile.SupportTelephone</a>
+                    @if (!string.IsNullOrWhiteSpace(_profile.SupportHours))
+                    {
+                        <span>@_profile.SupportHours</span>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <section class="card" aria-labelledby="ppd-heading">
+            <h2 id="ppd-heading">Policies and Procedures Disclosure</h2>
+            @if (_disclosure is null)
+            {
+                <p>The provider disclosure is not available for this course.</p>
+            }
+            else
+            {
+                <pre class="compliance-disclosure-text">@_disclosure.DisclosureText</pre>
+            }
+        </section>
+    </main>
+}
+
+@code {
+    [Parameter] public Guid CourseId { get; set; }
+
+    private Course? _course;
+    private SchoolProfile? _profile;
+    private PolicyDisclosurePreview? _disclosure;
+    private int ConfiguredUnitMinutes => GetRegulatoryUnits().Sum(unit => unit.Lessons.Sum(lesson => lesson.DurationMinutes));
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _course = await CourseService.GetByIdAsync(CourseId);
+        _profile = await SchoolProfileService.GetAsync();
+        _disclosure = await PolicyDisclosureService.GetCourseDisclosureAsync(CourseId);
+    }
+
+    private IEnumerable<Module> GetRegulatoryUnits()
+    {
+        if (_course is null)
+        {
+            return [];
+        }
+
+        return _course.Modules
+            .Where(module => !string.Equals(module.Title, "Getting Started", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(module => module.OrderIndex);
+    }
+
+    private IEnumerable<SchoolStaffMember> GetInstructors()
+    {
+        if (_profile is null)
+        {
+            return [];
+        }
+
+        var instructors = _profile.StaffMembers
+            .Where(member => string.Equals(member.Role, SchoolStaffRoles.Instructor, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(member => member.Name)
+            .ToList();
+
+        return instructors.Count > 0
+            ? instructors
+            : [new SchoolStaffMember
+            {
+                Name = _profile.PrimaryInstructorName,
+                Email = _profile.PrimaryInstructorEmail,
+                Telephone = _profile.PrimaryInstructorTelephone
+            }];
+    }
+}

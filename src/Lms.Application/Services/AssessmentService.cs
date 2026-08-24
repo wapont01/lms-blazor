@@ -4,6 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Lms.Application.Services;
 
+public static class ProctoringDefaults
+{
+    public const string CompanyName = "WILLIAMS LAND REALTY LLC";
+}
+
 public interface IAssessmentService
 {
     Task EnsureDefaultAssessmentForCourseAsync(Guid courseId);
@@ -19,6 +24,10 @@ public interface IAssessmentService
     Task<List<RetakeGrantView>> GetRetakeGrantsAsync(Guid courseId);
     Task SetRetakeGrantAttemptsAsync(Guid courseId, Guid learnerUserId, int grantedAttempts, bool resetCooldownTimer, Guid adminUserId, string adminEmail);
     Task RevokeRetakeGrantAsync(Guid courseId, Guid learnerUserId, Guid adminUserId, string adminEmail);
+    Task<ExamProctoringSessionView> RegisterProctoringSessionAsync(Guid courseId, Guid learnerUserId, string proctorName, string? externalSessionId, int validForMinutes, Guid actorUserId, string actorEmail);
+    Task<ExamProctoringSessionView?> GetActiveProctoringSessionAsync(Guid courseId, Guid learnerUserId);
+    Task ExpireProctoringSessionAsync(Guid sessionId, Guid actorUserId, string actorEmail);
+    Task ReportProctoringIncidentAsync(Guid sessionId, string notes, Guid actorUserId, string actorEmail);
 }
 
 public sealed record AssessmentQuestionView(Guid Id, string Prompt, string OptionA, string OptionB, string OptionC, string OptionD, int OrderIndex, string? HintText);
@@ -31,10 +40,13 @@ public sealed record AssessmentEligibility(
     string? BlockingReason,
     bool HasRetakeGrantOverride,
     int AttemptsUsed,
-    int AttemptsAllowed);
+    int AttemptsAllowed,
+    bool HasUnlimitedAttempts,
+    bool RequiresProctorVerification);
 public sealed record AssessmentAttemptAnswerReview(string Prompt, string SelectedOption, string CorrectOption, bool IsCorrect, string? FeedbackText);
 public sealed record AssessmentAttemptHistoryItem(int AttemptNumber, DateTime SubmittedAt, decimal ScorePercent, bool Passed, List<AssessmentAttemptAnswerReview> Answers, string? FeedbackSummary);
 public sealed record RetakeGrantView(Guid LearnerUserId, string LearnerDisplay, int GrantedAttempts, DateTime GrantedAt, Guid GrantedByAdminId, string GrantedByAdminDisplay);
+public sealed record ExamProctoringSessionView(Guid Id, string ProctorName, string? ExternalSessionId, DateTime IdentityVerifiedAtUtc, DateTime ExpiresAtUtc, bool ClosedBookConfirmed);
 
 public sealed class AssessmentEditorModel
 {
@@ -82,6 +94,35 @@ public class AssessmentService : IAssessmentService
     {
         _dbContext = dbContext;
         _auditLogService = auditLogService;
+    }
+
+    // Detects whether an assessment's questions still exactly match the auto-seeded defaults from
+    // EnsureDefaultAssessmentForCourseAsync, so course-readiness checks can require an instructor to
+    // actually author their own content rather than submitting the placeholder quiz for review as-is.
+    public static bool MatchesDefaultAssessmentContent(CourseAssessment assessment)
+    {
+        if (assessment.Questions.Count != DefaultAssessmentQuestionSpecs.Length)
+        {
+            return false;
+        }
+
+        var orderedQuestions = assessment.Questions.OrderBy(question => question.OrderIndex).ToList();
+        for (var index = 0; index < DefaultAssessmentQuestionSpecs.Length; index++)
+        {
+            var spec = DefaultAssessmentQuestionSpecs[index];
+            var question = orderedQuestions[index];
+            if (question.Prompt != spec.Prompt
+                || question.OptionA != spec.OptionA
+                || question.OptionB != spec.OptionB
+                || question.OptionC != spec.OptionC
+                || question.OptionD != spec.OptionD
+                || question.CorrectOption != spec.CorrectOption)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public async Task EnsureDefaultAssessmentForCourseAsync(Guid courseId)
@@ -369,16 +410,27 @@ public class AssessmentService : IAssessmentService
     {
         await EnsureDefaultAssessmentForCourseAsync(courseId);
 
+        var course = await _dbContext.Courses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(existing => existing.Id == courseId);
+
+        if (course is null)
+        {
+            return new AssessmentEligibility(false, false, null, "Course not found.", false, 0, 0, false, false);
+        }
+
         var assessment = await _dbContext.CourseAssessments
             .AsNoTracking()
             .Where(existing => existing.CourseId == courseId && existing.IsRequired)
-            .Select(existing => new { existing.Id, existing.IsRequired, existing.MaxRetakesPerLearner, existing.RetakeCooldownMinutes })
+            .Select(existing => new { existing.Id, existing.IsRequired, existing.MaxRetakesPerLearner, existing.RetakeCooldownMinutes, existing.PassPercent })
             .FirstOrDefaultAsync();
 
         if (assessment is null || !assessment.IsRequired)
         {
-            return new AssessmentEligibility(false, true, null, null, false, 0, 0);
+            return new AssessmentEligibility(false, true, null, null, false, 0, 0, false, false);
         }
+
+        var requiredPassPercent = course.UsesUnitBasedStructure ? course.MinimumPassingPercent : assessment.PassPercent;
 
         var latestAttempt = await _dbContext.AssessmentAttempts
             .AsNoTracking()
@@ -408,26 +460,32 @@ public class AssessmentService : IAssessmentService
         var grant = await _dbContext.RetakeGrants
             .AsNoTracking()
             .FirstOrDefaultAsync(existing => existing.CourseAssessmentId == assessment.Id && existing.UserAccountId == userId);
+        var hasRetakeGrantOverride = grant is not null && grant.GrantedAttempts > 0;
+        var effectiveHasPassed = hasPassed && !hasRetakeGrantOverride;
+        var requiresProctoredExam = course.RequiresProctoredExam;
+        var hasActiveProctoringSession = !requiresProctoredExam || await HasActiveProctoringSessionAsync(courseId, userId);
 
-        var baseAttemptsAllowed = firstAttemptPassed switch
-        {
-            null => 1,
-            true => 1,
-            false => 2
-        };
-        var attemptsAllowed = baseAttemptsAllowed + (grant?.GrantedAttempts ?? 0);
+        var baseAttemptsAllowed = GetBaseAttemptsAllowed(course, assessment.MaxRetakesPerLearner, firstAttemptPassed, hasRetakeGrantOverride);
+        var hasUnlimitedAttempts = baseAttemptsAllowed is null;
+        var attemptsAllowed = hasUnlimitedAttempts
+            ? attemptsUsed + 1
+            : baseAttemptsAllowed!.Value + (grant?.GrantedAttempts ?? 0);
 
         string? blockingReason;
 
-        if (hasPassed)
+        if (effectiveHasPassed)
         {
             blockingReason = null;
         }
+        else if (!hasActiveProctoringSession)
+        {
+            blockingReason = "Identity verification and a closed-book proctoring session are required before beginning the final assessment.";
+        }
         else if (latestAttempt is null)
         {
-            blockingReason = "Certificate is gated until the required final assessment is passed.";
+            blockingReason = $"Certificate is gated until the required final assessment is passed at {requiredPassPercent}% or higher.";
         }
-        else if (attemptsUsed >= attemptsAllowed)
+        else if (!hasUnlimitedAttempts && attemptsUsed >= attemptsAllowed)
         {
             blockingReason = "Retake limit reached. Contact an admin for additional attempts.";
         }
@@ -436,18 +494,19 @@ public class AssessmentService : IAssessmentService
             var nextAttemptAtUtc = latestAttempt.SubmittedAt.AddMinutes(Math.Max(assessment.RetakeCooldownMinutes, 0));
             blockingReason = nextAttemptAtUtc > DateTime.UtcNow
                 ? $"Retake available at {nextAttemptAtUtc:u}."
-                : "Latest assessment attempt did not pass. Submit another attempt to unlock certification.";
+                : $"Latest assessment attempt did not pass. Submit another attempt to unlock certification at {requiredPassPercent}% or higher.";
         }
 
-        var hasRetakeGrantOverride = grant is not null && grant.GrantedAttempts > 0;
         return new AssessmentEligibility(
             true,
-            hasPassed,
+            effectiveHasPassed,
             latestAttempt,
             blockingReason,
             hasRetakeGrantOverride,
             attemptsUsed,
-            attemptsAllowed);
+            attemptsAllowed,
+            hasUnlimitedAttempts,
+            requiresProctoredExam && !hasActiveProctoringSession);
     }
 
     public async Task<AssessmentAttemptSummary> SubmitAttemptAsync(Guid courseId, Guid userId, Dictionary<Guid, string> answersByQuestionId)
@@ -461,6 +520,29 @@ public class AssessmentService : IAssessmentService
         if (assessment is null)
         {
             throw new InvalidOperationException("No required assessment was found for this course.");
+        }
+
+        var course = await _dbContext.Courses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(existing => existing.Id == courseId);
+        ExamProctoringSession? proctoringSession = null;
+        if (course?.RequiresProctoredExam == true)
+        {
+            proctoringSession = await _dbContext.ExamProctoringSessions
+                .Where(session =>
+                    session.CourseId == courseId
+                    && session.UserAccountId == userId
+                    && session.UsedAtUtc == null
+                    && session.ClosedBookConfirmed
+                    && !session.SecurityIncidentReported
+                    && session.ExpiresAtUtc >= DateTime.UtcNow)
+                .OrderByDescending(session => session.IdentityVerifiedAtUtc)
+                .FirstOrDefaultAsync();
+
+            if (proctoringSession is null)
+            {
+                throw new InvalidOperationException("A verified, closed-book proctoring session is required before submitting this assessment.");
+            }
         }
 
         var orderedQuestions = assessment.Questions.OrderBy(question => question.OrderIndex).ToList();
@@ -484,15 +566,13 @@ public class AssessmentService : IAssessmentService
             .OrderBy(existing => existing.AttemptNumber)
             .ThenBy(existing => existing.SubmittedAt)
             .FirstOrDefault();
-        var baseAttemptsAllowed = firstAttempt switch
-        {
-            null => 1,
-            { Passed: true } => 1,
-            _ => 2
-        };
-        var maxAttemptsAllowed = baseAttemptsAllowed + (grant?.GrantedAttempts ?? 0);
+        var hasRetakeGrantOverride = grant is not null && grant.GrantedAttempts > 0;
+        var baseAttemptsAllowed = GetBaseAttemptsAllowed(course, assessment.MaxRetakesPerLearner, firstAttempt?.Passed, hasRetakeGrantOverride);
+        var maxAttemptsAllowed = baseAttemptsAllowed is null
+            ? (int?)null
+            : baseAttemptsAllowed.Value + (grant?.GrantedAttempts ?? 0);
 
-        if (attemptCount >= maxAttemptsAllowed)
+        if (maxAttemptsAllowed.HasValue && attemptCount >= maxAttemptsAllowed.Value)
         {
             throw new InvalidOperationException("Retake limit reached. Contact an admin for additional attempts.");
         }
@@ -513,7 +593,8 @@ public class AssessmentService : IAssessmentService
             UserAccountId = userId,
             StartedAt = DateTime.UtcNow,
             SubmittedAt = DateTime.UtcNow,
-            AttemptNumber = attemptCount + 1
+            AttemptNumber = attemptCount + 1,
+            ExamProctoringSessionId = proctoringSession?.Id
         };
 
         var correctAnswers = 0;
@@ -539,15 +620,20 @@ public class AssessmentService : IAssessmentService
 
         var totalQuestions = orderedQuestions.Count;
         var score = Math.Round(100m * correctAnswers / totalQuestions, 2, MidpointRounding.AwayFromZero);
-        var passed = score >= assessment.PassPercent;
+        var requiredPassPercent = course is not null && course.UsesUnitBasedStructure ? course.MinimumPassingPercent : assessment.PassPercent;
+        var passed = score >= requiredPassPercent;
 
         attempt.ScorePercent = score;
         attempt.Passed = passed;
         attempt.FeedbackSummary = passed
             ? "Pass. Assessment requirements are satisfied."
-            : "Not passed yet. Review the hints for missed questions and retake when available.";
+            : $"Not passed yet. You need {requiredPassPercent}% or higher to meet the course requirement.";
 
         _dbContext.AssessmentAttempts.Add(attempt);
+        if (proctoringSession is not null)
+        {
+            proctoringSession.UsedAtUtc = attempt.SubmittedAt;
+        }
         await _dbContext.SaveChangesAsync();
 
         var actorEmail = await _dbContext.UserAccounts
@@ -564,6 +650,23 @@ public class AssessmentService : IAssessmentService
             $"Score={score:0.##}; PassPercent={assessment.PassPercent:0.##}");
 
         return new AssessmentAttemptSummary(attempt.SubmittedAt, score, passed, totalQuestions, correctAnswers);
+    }
+
+    private static int? GetBaseAttemptsAllowed(Course? course, int? maxRetakesPerLearner, bool? firstAttemptPassed, bool hasRetakeGrantOverride)
+    {
+        if (firstAttemptPassed == true && !hasRetakeGrantOverride)
+        {
+            return 1;
+        }
+
+        if (maxRetakesPerLearner.HasValue)
+        {
+            return 1 + maxRetakesPerLearner.Value;
+        }
+
+        return string.Equals(course?.ComplianceType, CourseComplianceTypes.Postlicensing, StringComparison.OrdinalIgnoreCase)
+            ? null
+            : 2;
     }
 
     public async Task<List<AssessmentAttemptHistoryItem>> GetAttemptHistoryAsync(Guid courseId, Guid userId)
@@ -786,12 +889,162 @@ public class AssessmentService : IAssessmentService
             return true;
         }
 
+        var grant = await _dbContext.RetakeGrants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(existing => existing.CourseAssessmentId == assessmentId.Value && existing.UserAccountId == userId);
+
+        if (grant is not null && grant.GrantedAttempts > 0)
+        {
+            return false;
+        }
+
         return await _dbContext.AssessmentAttempts
             .AsNoTracking()
             .AnyAsync(attempt =>
                 attempt.CourseAssessmentId == assessmentId.Value &&
                 attempt.UserAccountId == userId &&
                 attempt.Passed);
+    }
+
+    public async Task<ExamProctoringSessionView> RegisterProctoringSessionAsync(
+        Guid courseId,
+        Guid learnerUserId,
+        string proctorName,
+        string? externalSessionId,
+        int validForMinutes,
+        Guid actorUserId,
+        string actorEmail)
+    {
+        if (string.IsNullOrWhiteSpace(proctorName))
+        {
+            throw new InvalidOperationException("Proctor name is required.");
+        }
+
+        var courseExists = await _dbContext.Courses.AnyAsync(course => course.Id == courseId);
+        var learnerExists = await _dbContext.UserAccounts.AnyAsync(user => user.Id == learnerUserId && user.Role == "Learner" && user.IsActive);
+        if (!courseExists || !learnerExists)
+        {
+            throw new InvalidOperationException("Course or learner was not found.");
+        }
+
+        var verifiedAtUtc = DateTime.UtcNow;
+        var priorActiveSessions = await _dbContext.ExamProctoringSessions
+            .Where(existing =>
+                existing.CourseId == courseId
+                && existing.UserAccountId == learnerUserId
+                && existing.UsedAtUtc == null
+                && !existing.SecurityIncidentReported
+                && existing.ExpiresAtUtc >= verifiedAtUtc)
+            .ToListAsync();
+
+        foreach (var priorSession in priorActiveSessions)
+        {
+            priorSession.ExpiresAtUtc = verifiedAtUtc;
+        }
+
+        var session = new ExamProctoringSession
+        {
+            CourseId = courseId,
+            UserAccountId = learnerUserId,
+            ProctorName = proctorName.Trim(),
+            ExternalSessionId = string.IsNullOrWhiteSpace(externalSessionId) ? null : externalSessionId.Trim(),
+            IdentityVerifiedAtUtc = verifiedAtUtc,
+            ClosedBookConfirmed = true,
+            ExpiresAtUtc = verifiedAtUtc.AddMinutes(Math.Clamp(validForMinutes, 5, 240))
+        };
+
+        _dbContext.ExamProctoringSessions.Add(session);
+        await _dbContext.SaveChangesAsync();
+        await _auditLogService.WriteAsync(actorUserId, actorEmail, "assessment.proctoring.verified", "ExamProctoringSession", session.Id, $"CourseId={courseId};Learner={learnerUserId};Proctor={session.ProctorName}");
+        return ToProctoringSessionView(session);
+    }
+
+    public async Task<ExamProctoringSessionView?> GetActiveProctoringSessionAsync(Guid courseId, Guid learnerUserId)
+    {
+        var session = await _dbContext.ExamProctoringSessions
+            .AsNoTracking()
+            .Where(existing =>
+                existing.CourseId == courseId
+                && existing.UserAccountId == learnerUserId
+                && existing.UsedAtUtc == null
+                && existing.ClosedBookConfirmed
+                && !existing.SecurityIncidentReported
+                && existing.ExpiresAtUtc >= DateTime.UtcNow)
+            .OrderByDescending(existing => existing.IdentityVerifiedAtUtc)
+            .FirstOrDefaultAsync();
+
+        return session is null ? null : ToProctoringSessionView(session);
+    }
+
+    public async Task ExpireProctoringSessionAsync(Guid sessionId, Guid actorUserId, string actorEmail)
+    {
+        var session = await _dbContext.ExamProctoringSessions
+            .FirstOrDefaultAsync(existing => existing.Id == sessionId);
+        if (session is null)
+        {
+            throw new InvalidOperationException("Proctoring session was not found.");
+        }
+
+        if (session.UsedAtUtc.HasValue)
+        {
+            throw new InvalidOperationException("A used proctoring session cannot be expired.");
+        }
+
+        var expiredAtUtc = DateTime.UtcNow;
+        var activeSessions = await _dbContext.ExamProctoringSessions
+            .Where(existing =>
+                existing.CourseId == session.CourseId
+                && existing.UserAccountId == session.UserAccountId
+                && existing.UsedAtUtc == null
+                && existing.ExpiresAtUtc >= expiredAtUtc)
+            .ToListAsync();
+
+        foreach (var activeSession in activeSessions)
+        {
+            activeSession.ExpiresAtUtc = expiredAtUtc;
+        }
+
+        await _dbContext.SaveChangesAsync();
+        await _auditLogService.WriteAsync(actorUserId, actorEmail, "assessment.proctoring.expired", "ExamProctoringSession", session.Id, $"CourseId={session.CourseId};Learner={session.UserAccountId};Proctor={session.ProctorName}");
+    }
+
+    public async Task ReportProctoringIncidentAsync(Guid sessionId, string notes, Guid actorUserId, string actorEmail)
+    {
+        if (string.IsNullOrWhiteSpace(notes))
+        {
+            throw new InvalidOperationException("Security incident notes are required.");
+        }
+
+        var session = await _dbContext.ExamProctoringSessions
+            .FirstOrDefaultAsync(existing => existing.Id == sessionId);
+        if (session is null)
+        {
+            throw new InvalidOperationException("Proctoring session was not found.");
+        }
+
+        session.SecurityIncidentReported = true;
+        session.SecurityIncidentNotes = notes.Trim();
+        session.ExpiresAtUtc = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync();
+        await _auditLogService.WriteAsync(actorUserId, actorEmail, "assessment.proctoring.incident-reported", "ExamProctoringSession", session.Id, $"CourseId={session.CourseId};Learner={session.UserAccountId};Proctor={session.ProctorName};Notes={session.SecurityIncidentNotes}");
+    }
+
+    private async Task<bool> HasActiveProctoringSessionAsync(Guid courseId, Guid learnerUserId)
+    {
+        return await _dbContext.ExamProctoringSessions
+            .AsNoTracking()
+            .AnyAsync(session =>
+                session.CourseId == courseId
+                && session.UserAccountId == learnerUserId
+                && session.UsedAtUtc == null
+                && session.ClosedBookConfirmed
+                && !session.SecurityIncidentReported
+                && session.ExpiresAtUtc >= DateTime.UtcNow);
+    }
+
+    private static ExamProctoringSessionView ToProctoringSessionView(ExamProctoringSession session)
+    {
+        return new ExamProctoringSessionView(session.Id, session.ProctorName, session.ExternalSessionId, session.IdentityVerifiedAtUtc, session.ExpiresAtUtc, session.ClosedBookConfirmed);
     }
 
     private async Task ResetRetakeCooldownTimerAsync(Guid assessmentId, Guid learnerUserId, int cooldownMinutes)

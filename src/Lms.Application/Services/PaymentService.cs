@@ -48,11 +48,32 @@ public class PaymentService : IPaymentService
     {
         try
         {
+            if (amount < 0)
+                return new PaymentResult(false, "Invalid payment amount.");
+
+            if (amount == 0)
+            {
+                var freeTransaction = new PaymentTransaction
+                {
+                    LearnerId = learnerId,
+                    Amount = 0m,
+                    Status = "Completed",
+                    StripePaymentIntentId = $"free_{Guid.NewGuid().ToString("N")[..24]}",
+                    CreatedAt = DateTime.UtcNow,
+                    CompletedAt = DateTime.UtcNow
+                };
+
+                _dbContext.PaymentTransactions.Add(freeTransaction);
+                await _dbContext.SaveChangesAsync();
+
+                await _auditLogService.WriteAsync(learnerId, email, "payment.completed", "PaymentTransaction", freeTransaction.Id, $"Amount: ${amount}, Intent: {freeTransaction.StripePaymentIntentId}");
+
+                _logger.LogInformation("Free enrollment completed for learner {LearnerId}: {StripeIntentId}", learnerId, freeTransaction.StripePaymentIntentId);
+                return new PaymentResult(true, "No payment required.", freeTransaction.StripePaymentIntentId);
+            }
+
             if (string.IsNullOrWhiteSpace(paymentMethodId))
                 return new PaymentResult(false, "Payment method is required.");
-
-            if (amount <= 0)
-                return new PaymentResult(false, "Invalid payment amount.");
 
             // Simulate failures for Stripe test decline cards
             // 4000000000000002: Card declined

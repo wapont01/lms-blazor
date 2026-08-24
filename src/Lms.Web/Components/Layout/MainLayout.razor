@@ -22,6 +22,7 @@
                             </summary>
                             <ul class="sidebar-submenu">
                                 <li><NavLink href="/admin/courses" Match="NavLinkMatch.All">Courses</NavLink></li>
+                                <li><NavLink href="/admin/school-profile" Match="NavLinkMatch.All">School Profile</NavLink></li>
                                 <li><NavLink href="/admin/assessments" Match="NavLinkMatch.All">Assessments</NavLink></li>
                                 <li><NavLink href="/admin/users" Match="NavLinkMatch.All">Users</NavLink></li>
                                 <li><NavLink href="/admin/audit" Match="NavLinkMatch.All">Audit</NavLink></li>
@@ -121,6 +122,7 @@
                 <AuthorizeView Roles="Learner">
                     <Authorized>
                         <ReminderWidget />
+                        <SupportWidget />
                     </Authorized>
                 </AuthorizeView>
             </aside>

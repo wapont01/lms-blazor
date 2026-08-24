@@ -14,21 +14,22 @@
         <p class="auth-help">@AssessmentMessage</p>
     }
 
-    <div class="form-row">
-        <div class="form-field">
-            <label>Course</label>
-            <select value="@AssessmentCourseIdText" @onchange="OnAssessmentCourseChanged">
-                <option value="">Select a course</option>
-                @foreach (var course in Courses)
-                {
-                    <option value="@course.Id">@course.Title</option>
-                }
-            </select>
-        </div>
-        <div class="form-field">
-            <label>&nbsp;</label>
-            <button type="button" @onclick="OnLoadAssessmentEditor">Load Assessment</button>
-        </div>
+    <div class="form-field">
+        <label>Active course</label>
+        <select value="@AssessmentCourseIdText" @onchange="OnAssessmentCourseChanged">
+            <option value="">Select course</option>
+            @foreach (var course in Courses.OrderBy(course => course.Title))
+            {
+                <option value="@course.Id">@course.Title</option>
+            }
+        </select>
+        @if (!string.IsNullOrWhiteSpace(AssessmentCourseIdText))
+        {
+            <p class="muted-text"><strong>@(ActiveCourseTitle ?? "Current course")</strong></p>
+        }
+    </div>
+    <div class="course-actions">
+        <button type="button" @onclick="OnLoadAssessmentEditor" disabled="@string.IsNullOrWhiteSpace(AssessmentCourseIdText)">Load Assessment</button>
     </div>
 
     @if (AssessmentEditor is not null)
@@ -43,8 +44,9 @@
         </div>
         <div class="form-row">
             <div class="form-field">
-                <label>Learner Attempt Policy</label>
-                <p class="muted-text">Base limit is fixed at 1 attempt, or 2 if the first attempt fails. Use retake grants below to allow additional attempts.</p>
+                <label>Maximum Retakes Per Learner</label>
+                <InputNumber @bind-Value="AssessmentEditor.MaxRetakesPerLearner" />
+                <p class="muted-text">Leave blank for the provider default: one Prelicensing retake, unlimited Postlicensing retakes, and one retake for other course types. Enter a positive number to override the default.</p>
             </div>
             <div class="form-field">
                 <label>Retake Cooldown Minutes</label>
@@ -104,11 +106,47 @@
             <button type="button" @onclick="OnSaveAssessmentEditor">Save Assessment</button>
         </div>
 
+        @if (OnRegisterProctoringSession.HasDelegate)
+        {
+            <h3>Proctored Exam Session</h3>
+            <p class="muted-text"><strong>Proctor company:</strong> @ProctorCompanyName</p>
+            <div class="form-row">
+                <div class="form-field">
+                    <label>Learner</label>
+                    <select value="@RetakeLearnerIdText" @onchange="OnRetakeLearnerChanged">
+                        <option value="">Select learner</option>
+                        @foreach (var learner in Users.Where(user => user.Role == "Learner"))
+                        {
+                            <option value="@learner.Id">@learner.DisplayName (@learner.Email)</option>
+                        }
+                    </select>
+                </div>
+                <div class="form-field">
+                    <label>Session Validity (Minutes)</label>
+                    <InputNumber Value="ProctoringValidForMinutes" ValueChanged="ProctoringValidForMinutesChanged" ValueExpression="() => ProctoringValidForMinutes" />
+                </div>
+            </div>
+            <p class="muted-text">Opening the session confirms that staff verified the learner's identity and established closed-book examination conditions.</p>
+            <button type="button" @onclick="OnRegisterProctoringSession">@(ActiveProctoringSession is null ? "Verify Identity and Open Session" : "Verify Identity and Replace Session")</button>
+            @if (ActiveProctoringSession is not null)
+            {
+                <p class="auth-help">Active session: @ActiveProctoringSession.ProctorName, expires @ActiveProctoringSession.ExpiresAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm").</p>
+                <div class="form-field">
+                    <label>Security Incident Notes</label>
+                    <InputTextArea Value="ProctoringIncidentNotes" ValueChanged="ProctoringIncidentNotesChanged" ValueExpression="() => ProctoringIncidentNotes" />
+                </div>
+                <div class="course-actions">
+                    <button type="button" @onclick="OnExpireProctoringSession">Expire Session</button>
+                    <button type="button" @onclick="OnReportProctoringIncident" disabled="@string.IsNullOrWhiteSpace(ProctoringIncidentNotes)">Report Incident</button>
+                </div>
+            }
+        }
+
         <h3>Grant Retake Attempts</h3>
         <div class="form-row">
             <div class="form-field">
                 <label>Learner</label>
-                <select @onchange="OnRetakeLearnerChanged">
+                <select value="@RetakeLearnerIdText" @onchange="OnRetakeLearnerChanged">
                     <option value="">Select learner</option>
                     @foreach (var learner in Users.Where(user => user.Role == "Learner"))
                     {
@@ -191,6 +229,9 @@
     public string AssessmentCourseIdText { get; set; } = string.Empty;
 
     [Parameter]
+    public string? ActiveCourseTitle { get; set; }
+
+    [Parameter]
     public EventCallback<ChangeEventArgs> OnAssessmentCourseChanged { get; set; }
 
     [Parameter]
@@ -212,6 +253,9 @@
     public EventCallback<ChangeEventArgs> OnRetakeLearnerChanged { get; set; }
 
     [Parameter]
+    public string RetakeLearnerIdText { get; set; } = string.Empty;
+
+    [Parameter]
     public int RetakeGrantAttempts { get; set; }
 
     [Parameter]
@@ -225,6 +269,33 @@
 
     [Parameter]
     public EventCallback OnGrantRetake { get; set; }
+
+    [Parameter]
+    public string ProctorCompanyName { get; set; } = ProctoringDefaults.CompanyName;
+
+    [Parameter]
+    public int ProctoringValidForMinutes { get; set; } = 120;
+
+    [Parameter]
+    public EventCallback<int> ProctoringValidForMinutesChanged { get; set; }
+
+    [Parameter]
+    public ExamProctoringSessionView? ActiveProctoringSession { get; set; }
+
+    [Parameter]
+    public EventCallback OnRegisterProctoringSession { get; set; }
+
+    [Parameter]
+    public string ProctoringIncidentNotes { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<string> ProctoringIncidentNotesChanged { get; set; }
+
+    [Parameter]
+    public EventCallback OnExpireProctoringSession { get; set; }
+
+    [Parameter]
+    public EventCallback OnReportProctoringIncident { get; set; }
 
     [Parameter]
     public IReadOnlyList<RetakeGrantView> RetakeGrants { get; set; } = [];

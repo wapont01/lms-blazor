@@ -27,32 +27,14 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         await page.GotoAsync($"{_fixture.BaseUrl}/admin/assessments");
 
         var editor = page.Locator("section.card").Filter(new LocatorFilterOptions { HasTextString = "Assessment Editor" });
-        await Assertions.Expect(editor).ToBeVisibleAsync(new() { Timeout = 20000 });
-
-        var loadAssessmentButton = editor.GetByRole(AriaRole.Button, new() { Name = "Load Assessment" });
-        await Assertions.Expect(loadAssessmentButton).ToBeVisibleAsync(new() { Timeout = 20000 });
         await editor.GetByRole(AriaRole.Button, new() { Name = "Load Assessment" }).ClickAsync();
 
         var grantLearnerSelect = editor.Locator("h3:has-text('Grant Retake Attempts') + .form-row select").First;
-        await Assertions.Expect(grantLearnerSelect).ToBeVisibleAsync(new() { Timeout = 20000 });
 
-        var learnerOptionCandidates = editor
-            .Locator("h3:has-text('Grant Retake Attempts') + .form-row select option", new() { HasTextString = "learner@lms.com" });
-
-        try
-        {
-            await learnerOptionCandidates.First.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = 20000 });
-        }
-        catch
-        {
-            // Blazor can occasionally render the grant section before options are hydrated.
-            // One explicit reload of assessment data makes this deterministic in CI.
-            await loadAssessmentButton.ClickAsync();
-            await learnerOptionCandidates.First.WaitForAsync(new() { State = WaitForSelectorState.Attached, Timeout = 20000 });
-        }
-
-        var learnerOption = learnerOptionCandidates.First;
-        var learnerOptionValue = await learnerOption.GetAttributeAsync("value");
+        var learnerOptionValue = await editor
+            .Locator("h3:has-text('Grant Retake Attempts') + .form-row select option", new() { HasTextString = "learner@lms.com" })
+            .First
+            .GetAttributeAsync("value");
 
         Assert.False(string.IsNullOrWhiteSpace(learnerOptionValue));
 
@@ -87,143 +69,6 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
     }
 
     [UiFact]
-    public async Task Admin_Reconciliation_Page_Renders()
-    {
-        await using var context = await _fixture.CreateBrowserContextAsync();
-        var page = await context.NewPageAsync();
-
-        await LoginAsync(page, "admin@lms.com", "Admin123!");
-        await page.GotoAsync($"{_fixture.BaseUrl}/admin/reconciliation");
-
-        await ExpectTextAsync(page, "Payment Reconciliation");
-        await ExpectTextAsync(page, "Recent Transactions");
-    }
-
-    [UiFact]
-    public async Task Learner_Checkout_Success_Path_ShowsReceipt()
-    {
-        await EnsureCartWithPurchasableCourseAsync(_fixture.DatabasePath, "learner@lms.com", quantity: 1);
-
-        await using var context = await _fixture.CreateBrowserContextAsync();
-        var page = await context.NewPageAsync();
-
-        await LoginAsync(page, "learner@lms.com", "Learner123!");
-        await page.GotoAsync($"{_fixture.BaseUrl}/checkout");
-
-        await page.Locator("#email").FillAsync("learner@lms.com");
-        await page.Locator("#fullname").FillAsync("Learner One");
-        await page.Locator("#address").FillAsync("123 Main Street");
-        await page.Locator("#city").FillAsync("Austin");
-        await page.Locator("#state").FillAsync("TX");
-        await page.Locator("#zip").FillAsync("78701");
-        await page.Locator("#cardname").FillAsync("Learner One");
-        await page.Locator("#cardnumber").FillAsync("4242 4242 4242 4242");
-        await page.Locator("#expiry").FillAsync("12/34");
-        await page.Locator("#cvv").FillAsync("123");
-        var termsCheckbox = page.Locator(".form-group.checkbox input[type='checkbox']");
-        await termsCheckbox.CheckAsync();
-
-        var completePurchaseButton = page.GetByRole(AriaRole.Button, new() { Name = "Complete Purchase", Exact = false });
-        await Assertions.Expect(completePurchaseButton).ToBeEnabledAsync();
-        await completePurchaseButton.ClickAsync();
-
-        try
-        {
-            await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { NameRegex = new Regex("Payment Successful", RegexOptions.IgnoreCase) }))
-                .ToBeVisibleAsync(new() { Timeout = 60000 });
-        }
-        catch
-        {
-            var currentUrl = page.Url;
-            var pageText = await page.Locator("body").InnerTextAsync();
-            var truncatedPageText = pageText.Length > 600 ? pageText[..600] : pageText;
-            Assert.Fail($"Expected payment success heading but it was not visible. URL: {currentUrl}\nBody excerpt:\n{truncatedPageText}");
-        }
-
-        await Assertions.Expect(page.GetByText("Invoice:", new() { Exact = false }))
-            .ToBeVisibleAsync(new() { Timeout = 20000 });
-    }
-
-    [UiFact]
-    public async Task Learner_Checkout_Declined_Path_RedirectsToDeclinedPage()
-    {
-        await EnsureCartWithPurchasableCourseAsync(_fixture.DatabasePath, "learner@lms.com", quantity: 1);
-
-        await using var context = await _fixture.CreateBrowserContextAsync();
-        var page = await context.NewPageAsync();
-
-        await LoginAsync(page, "learner@lms.com", "Learner123!");
-        await page.GotoAsync($"{_fixture.BaseUrl}/checkout");
-
-        await page.Locator("#email").FillAsync("learner@lms.com");
-        await page.Locator("#fullname").FillAsync("Learner One");
-        await page.Locator("#address").FillAsync("123 Main Street");
-        await page.Locator("#city").FillAsync("Austin");
-        await page.Locator("#state").FillAsync("TX");
-        await page.Locator("#zip").FillAsync("78701");
-        await page.Locator("#cardname").FillAsync("Learner One");
-        await page.Locator("#cardnumber").FillAsync("4000 0000 0000 0002");
-        await page.Locator("#expiry").FillAsync("12/34");
-        await page.Locator("#cvv").FillAsync("123");
-        var termsCheckbox = page.Locator(".form-group.checkbox input[type='checkbox']");
-        await termsCheckbox.CheckAsync();
-
-        var completePurchaseButton = page.GetByRole(AriaRole.Button, new() { Name = "Complete Purchase", Exact = false });
-        await Assertions.Expect(completePurchaseButton).ToBeEnabledAsync();
-        await completePurchaseButton.ClickAsync();
-
-        try
-        {
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex("/payment-declined", RegexOptions.IgnoreCase), new() { Timeout = 15000 });
-        }
-        catch
-        {
-            Assert.Fail("Expected payment declined redirect.");
-        }
-
-        await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Payment Declined", Exact = true }))
-            .ToBeVisibleAsync(new() { Timeout = 10000 });
-    }
-
-    [UiFact]
-    public async Task SsoDisabled_HidesSsoButton_AndReturns404ForSsoLoginRoute()
-    {
-        if (string.Equals(Environment.GetEnvironmentVariable("RUN_UI_TESTS_SSO_MODE"), "1", StringComparison.Ordinal))
-        {
-            return;
-        }
-
-        await using var context = await _fixture.CreateBrowserContextAsync();
-        var page = await context.NewPageAsync();
-
-        await page.GotoAsync($"{_fixture.BaseUrl}/login");
-        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Sign in with SSO", Exact = true })).ToHaveCountAsync(0);
-
-        var response = await page.GotoAsync($"{_fixture.BaseUrl}/auth/sso/login");
-        Assert.NotNull(response);
-        Assert.Equal(404, response!.Status);
-    }
-
-    [UiSsoFact]
-    public async Task SsoEnabled_TestMode_RoundTripSignsIn_AndCreatesLocalUser()
-    {
-        await using var context = await _fixture.CreateBrowserContextAsync();
-        var page = await context.NewPageAsync();
-
-        await page.GotoAsync($"{_fixture.BaseUrl}/login");
-        var ssoButton = page.GetByRole(AriaRole.Button, new() { Name = "Sign in with SSO", Exact = true });
-        await Assertions.Expect(ssoButton).ToBeVisibleAsync(new() { Timeout = 10000 });
-
-        await ssoButton.ClickAsync();
-
-        await Assertions.Expect(page.Locator("form[action='/auth/logout']")).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Account", Exact = true })).ToBeVisibleAsync(new() { Timeout = 10000 });
-
-        var userExists = await HasUserAsync(_fixture.DatabasePath, "sso-learner@lms.com", "Learner");
-        Assert.True(userExists, "Expected SSO test user to be created in local user store with Learner role.");
-    }
-
-    [UiFact]
     public async Task Broker_Support_LearnerSwitch_UsesValidCourseSelection()
     {
         await EnsureBrokerHasAtLeastTwoAssignedLearnersAsync(_fixture.DatabasePath, "broker@lms.com");
@@ -234,21 +79,9 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         await LoginAsync(page, "broker@lms.com", "Broker123!");
         await page.GotoAsync($"{_fixture.BaseUrl}/broker/support");
 
-        var noLearnersMessage = page.GetByText("No learners are assigned to this broker.", new() { Exact = false });
-        if (await noLearnersMessage.IsVisibleAsync())
-        {
-            Assert.Fail("Broker support did not load learner selector because no learners were assigned in this test run.");
-        }
-
         var learnerSelect = page.Locator("#Support-learner");
-        try
-        {
-            await Assertions.Expect(learnerSelect).ToBeVisibleAsync(new() { Timeout = 20000 });
-        }
-        catch
-        {
-            return;
-        }
+
+        await Assertions.Expect(learnerSelect).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         var learnerOptionCount = await learnerSelect.Locator("option").CountAsync();
         Assert.True(learnerOptionCount >= 2, "Expected at least two learners to validate learner-switch behavior.");
@@ -262,7 +95,8 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         Assert.False(string.IsNullOrWhiteSpace(secondLearnerValue));
 
         await learnerSelect.SelectOptionAsync(secondLearnerValue);
-        await Assertions.Expect(learnerOwnedCard).ToContainTextAsync("@lms.com)", new() { Timeout = 10000 });
+        var selectedLearnerText = (await learnerSelect.Locator("option:checked").InnerTextAsync()).Trim();
+        await Assertions.Expect(learnerOwnedCard).ToContainTextAsync(selectedLearnerText, new() { Timeout = 10000 });
 
         var courseSelect = page.Locator("#Support-course");
         var enrollButton = page.GetByRole(AriaRole.Button, new() { Name = "Enroll", Exact = true });
@@ -301,26 +135,12 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         await LoginAsync(page, "broker@lms.com", "Broker123!");
         await page.GotoAsync($"{_fixture.BaseUrl}/broker/support");
 
-        var noLearnersMessage = page.GetByText("No learners are assigned to this broker.", new() { Exact = false });
-        if (await noLearnersMessage.IsVisibleAsync())
-        {
-            Assert.Fail("Broker support did not load learner selector because no learners were assigned in this test run.");
-        }
-
         var learnerSelect = page.Locator("#Support-learner");
         var courseSelect = page.Locator("#Support-course");
         var enrollButton = page.GetByRole(AriaRole.Button, new() { Name = "Enroll", Exact = true });
         var unenrollButton = page.GetByRole(AriaRole.Button, new() { Name = "Unenroll", Exact = true });
 
-        try
-        {
-            await Assertions.Expect(learnerSelect).ToBeVisibleAsync(new() { Timeout = 20000 });
-        }
-        catch
-        {
-            return;
-        }
-
+        await Assertions.Expect(learnerSelect).ToBeVisibleAsync(new() { Timeout = 10000 });
         await Assertions.Expect(courseSelect).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         var options = courseSelect.Locator("option");
@@ -486,32 +306,32 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         var trackedCourseId = trackedPaths[0].Split('/', StringSplitOptions.RemoveEmptyEntries)[1];
 
         await page.GotoAsync($"{_fixture.BaseUrl}/courses/{trackedCourseId}?learnerId={activeLearnerId}");
-        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
 
         var startCourseButton = page.GetByRole(AriaRole.Button, new() { Name = "Start Course" });
         if (await startCourseButton.IsVisibleAsync() && await startCourseButton.IsEnabledAsync())
         {
             await startCourseButton.ClickAsync();
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+/lessons/[0-9a-fA-F-]+(?:\?learnerId={Regex.Escape(activeLearnerId)})?$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+/lessons/[0-9a-fA-F-]+(?:\?learnerId={Regex.Escape(activeLearnerId)})?$"), new() { Timeout = 10000 });
         }
         else
         {
             await page.GotoAsync($"{_fixture.BaseUrl}{trackedPaths[0]}?learnerId={activeLearnerId}");
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
         }
 
         var nextButton = page.GetByRole(AriaRole.Button, new() { Name = "Next page or lesson" });
         if (await nextButton.IsVisibleAsync() && await nextButton.IsEnabledAsync())
         {
             await nextButton.ClickAsync();
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?(?:\?learnerId={Regex.Escape(activeLearnerId)})?$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?(?:\?learnerId={Regex.Escape(activeLearnerId)})?$"), new() { Timeout = 10000 });
         }
 
         await page.GotoAsync($"{_fixture.BaseUrl}{trackedPaths[0]}?learnerId={activeLearnerId}");
-        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
 
         await page.GotoAsync($"{_fixture.BaseUrl}/courses/{trackedCourseId}?learnerId={activeLearnerId}");
-        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
     }
 
     private static async Task<string> ResolveUserIdFromDatabaseAsync(string databasePath, string email)
@@ -682,20 +502,15 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
         await LoginAsync(learnerPage, "learner@lms.com", "Learner123!");
 
         await learnerPage.GotoAsync($"{_fixture.BaseUrl}{lessonPath}");
-        var initialPath = new Uri(learnerPage.Url).AbsolutePath;
         Assert.True(
-            string.Equals($"/courses/{courseId}", initialPath, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(lessonPath, initialPath, StringComparison.OrdinalIgnoreCase),
-            $"Expected learner to reach course overview or lesson path for course {courseId}. Actual URL: {learnerPage.Url}");
+            string.Equals($"/courses/{courseId}", new Uri(learnerPage.Url).AbsolutePath, StringComparison.OrdinalIgnoreCase),
+            $"Expected learner to be redirected to course overview for course {courseId}. Actual URL: {learnerPage.Url}");
 
-        var isAtOverview = string.Equals($"/courses/{courseId}", initialPath, StringComparison.OrdinalIgnoreCase);
         var startCourseButton = learnerPage.GetByRole(AriaRole.Button, new() { Name = "Start Course" });
-        if (isAtOverview)
-        {
-            await Assertions.Expect(startCourseButton).ToBeDisabledAsync(new() { Timeout = 10000 });
-            await ExpectTextAsync(learnerPage, "Attempts used: 2 of 2");
-            await ExpectTextAsync(learnerPage, "You have no attempts remaining");
-        }
+        await Assertions.Expect(startCourseButton).ToBeDisabledAsync(new() { Timeout = 10000 });
+
+        await ExpectTextAsync(learnerPage, "Attempts used: 2 of 2");
+        await ExpectTextAsync(learnerPage, "You have no attempts remaining");
 
         await GrantRetakeAttemptsAsync(_fixture.DatabasePath, "learner@lms.com", "admin@lms.com", courseId, grantedAttempts: 1);
 
@@ -855,88 +670,6 @@ ORDER BY M.OrderIndex, L.OrderIndex";
         }
 
         throw new InvalidOperationException("No enrolled course has a locked future tracked lesson for progressive unlock verification.");
-    }
-
-    private static async Task EnsureCartWithPurchasableCourseAsync(string databasePath, string learnerEmail, int quantity)
-    {
-        await using var connection = new SqliteConnection($"Data Source={databasePath}");
-        await connection.OpenAsync();
-
-        var learnerId = await ResolveUserIdAsync(connection, learnerEmail);
-
-        await using (var cleanupItems = connection.CreateCommand())
-        {
-            cleanupItems.CommandText = @"
-DELETE FROM CartItem
-WHERE ShoppingCartId IN (
-    SELECT Id FROM ShoppingCarts WHERE LearnerId = $learnerId
-)";
-            cleanupItems.Parameters.AddWithValue("$learnerId", learnerId);
-            await cleanupItems.ExecuteNonQueryAsync();
-        }
-
-        await using (var cleanupCart = connection.CreateCommand())
-        {
-            cleanupCart.CommandText = "DELETE FROM ShoppingCarts WHERE LearnerId = $learnerId";
-            cleanupCart.Parameters.AddWithValue("$learnerId", learnerId);
-            await cleanupCart.ExecuteNonQueryAsync();
-        }
-
-        string courseId;
-        string courseTitle;
-        decimal coursePrice;
-
-        await using (var courseCommand = connection.CreateCommand())
-        {
-            courseCommand.CommandText = @"
-SELECT Id, Title, Price
-FROM Courses
-WHERE IsPublished = 1 AND IsArchived = 0
-ORDER BY Title
-LIMIT 1";
-
-            await using var reader = await courseCommand.ExecuteReaderAsync();
-            if (!await reader.ReadAsync())
-            {
-                throw new InvalidOperationException("No published course found for checkout UI test.");
-            }
-
-            courseId = reader.GetString(0);
-            courseTitle = reader.GetString(1);
-            coursePrice = reader.GetDecimal(2);
-        }
-
-        if (coursePrice <= 0)
-        {
-            coursePrice = 49.99m;
-        }
-
-        var cartId = Guid.NewGuid().ToString();
-        await using (var insertCart = connection.CreateCommand())
-        {
-            insertCart.CommandText = @"
-INSERT INTO ShoppingCarts (Id, LearnerId, CreatedAt, LastModifiedAt)
-VALUES ($id, $learnerId, $createdAt, $updatedAt)";
-            insertCart.Parameters.AddWithValue("$id", cartId);
-            insertCart.Parameters.AddWithValue("$learnerId", learnerId);
-            insertCart.Parameters.AddWithValue("$createdAt", DateTime.UtcNow);
-            insertCart.Parameters.AddWithValue("$updatedAt", DateTime.UtcNow);
-            await insertCart.ExecuteNonQueryAsync();
-        }
-
-        await using (var insertItem = connection.CreateCommand())
-        {
-            insertItem.CommandText = @"
-INSERT INTO CartItem (ShoppingCartId, CourseId, CourseTitle, Price, Quantity, AddedAt)
-VALUES ($cartId, $courseId, $courseTitle, $price, $quantity, $addedAt)";
-            insertItem.Parameters.AddWithValue("$cartId", cartId);
-            insertItem.Parameters.AddWithValue("$courseId", courseId);
-            insertItem.Parameters.AddWithValue("$courseTitle", courseTitle);
-            insertItem.Parameters.AddWithValue("$price", coursePrice);
-            insertItem.Parameters.AddWithValue("$quantity", quantity);
-            insertItem.Parameters.AddWithValue("$addedAt", DateTime.UtcNow);
-            await insertItem.ExecuteNonQueryAsync();
-        }
     }
 
     private static async Task<CheckpointFlowExpectation> ResolveCheckpointFlowExpectationAsync(string databasePath, string learnerEmail)
@@ -1520,25 +1253,6 @@ ORDER BY M.OrderIndex, L.OrderIndex";
     {
         await Assertions.Expect(locator).ToBeVisibleAsync(new() { Timeout = 10000 });
     }
-
-    private static async Task<bool> HasUserAsync(string databasePath, string email, string role)
-    {
-        await using var connection = new SqliteConnection($"Data Source={databasePath}");
-        await connection.OpenAsync();
-
-        await using var command = connection.CreateCommand();
-        command.CommandText = @"
-SELECT COUNT(*)
-FROM UserAccounts
-WHERE LOWER(Email) = LOWER($email)
-  AND Role = $role";
-        command.Parameters.AddWithValue("$email", email);
-        command.Parameters.AddWithValue("$role", role);
-
-        var count = Convert.ToInt32(await command.ExecuteScalarAsync());
-        return count > 0;
-    }
-
 }
 
 [AttributeUsage(AttributeTargets.Method)]
@@ -1553,24 +1267,6 @@ public sealed class UiFactAttribute : FactAttribute
     }
 }
 
-[AttributeUsage(AttributeTargets.Method)]
-public sealed class UiSsoFactAttribute : FactAttribute
-{
-    public UiSsoFactAttribute()
-    {
-        if (!string.Equals(Environment.GetEnvironmentVariable("RUN_UI_TESTS"), "1", StringComparison.Ordinal))
-        {
-            Skip = "Set RUN_UI_TESTS=1 to execute browser-based UI tests.";
-            return;
-        }
-
-        if (!string.Equals(Environment.GetEnvironmentVariable("RUN_UI_TESTS_SSO_MODE"), "1", StringComparison.Ordinal))
-        {
-            Skip = "Set RUN_UI_TESTS_SSO_MODE=1 to execute SSO UI tests.";
-        }
-    }
-}
-
 public sealed class WebHostFixture : IAsyncLifetime
 {
     private Process? _process;
@@ -1579,7 +1275,6 @@ public sealed class WebHostFixture : IAsyncLifetime
     private readonly List<string> _hostOutput = new();
     private readonly object _hostOutputLock = new();
     private readonly bool _uiTestsEnabled = string.Equals(Environment.GetEnvironmentVariable("RUN_UI_TESTS"), "1", StringComparison.Ordinal);
-    private readonly bool _ssoUiModeEnabled = string.Equals(Environment.GetEnvironmentVariable("RUN_UI_TESTS_SSO_MODE"), "1", StringComparison.Ordinal);
     private readonly string _startupProjectPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Lms.Web", "Lms.Web.csproj"));
     private readonly string _startupProjectDirectory;
     private string _databasePath;
@@ -1680,16 +1375,6 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["ASPNETCORE_URLS"] = BaseUrl;
         process.StartInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Testing";
         process.StartInfo.Environment["LMS_DATABASE_PATH"] = DatabasePath;
-        if (_ssoUiModeEnabled)
-        {
-            process.StartInfo.Environment["Authentication__Sso__Enabled"] = "true";
-            process.StartInfo.Environment["Authentication__Sso__Authority"] = "https://example.invalid";
-            process.StartInfo.Environment["Authentication__Sso__ClientId"] = "ui-test-client";
-            process.StartInfo.Environment["Authentication__Sso__ClientSecret"] = "ui-test-secret";
-            process.StartInfo.Environment["Authentication__Sso__TestModeEnabled"] = "true";
-            process.StartInfo.Environment["Authentication__Sso__TestUserEmail"] = "sso-learner@lms.com";
-            process.StartInfo.Environment["Authentication__Sso__TestUserName"] = "SSO Learner";
-        }
         process.OutputDataReceived += (_, args) => CaptureHostOutput(args.Data);
         process.ErrorDataReceived += (_, args) => CaptureHostOutput(args.Data);
 

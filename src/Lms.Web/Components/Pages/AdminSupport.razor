@@ -7,7 +7,6 @@
 @inject ICourseService CourseService
 @inject IUserAccountService UserAccountService
 @inject IEnrollmentService EnrollmentService
-@inject IDueDateReminderService DueDateReminderService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Learner Purchase Support</PageTitle>
@@ -33,7 +32,7 @@
 
 			<div>
 				<label for="support-course">Course</label>
-				<select id="support-course" value="@(_selectedCourseId?.ToString() ?? string.Empty)" @onchange="OnCourseChanged">
+				<select id="support-course" @bind="_selectedCourseId">
 					<option value="">Select course</option>
 					@foreach (var course in _courses)
 					{
@@ -54,48 +53,6 @@
 			<button class="primary-btn" @onclick="EnrollSelectedLearnerAsync" disabled="@(!CanEnroll())">Enroll</button>
 			<button class="secondary-btn" @onclick="UnenrollSelectedLearnerAsync" disabled="@(!CanUnenroll())">Unenroll</button>
 		</div>
-
-		<div class="form-row">
-			<div class="form-field">
-				<label for="support-due-date">Due date</label>
-				<input id="support-due-date" type="date" @bind-value="_selectedDueDate" @bind-value:format="yyyy-MM-dd" />
-			</div>
-		</div>
-
-		<div class="support-op-actions">
-			<button class="secondary-btn" @onclick="UpdateDueDateAsync" disabled="@(!CanUpdateDueDate())">Update due date</button>
-		</div>
-
-		<div class="form-row">
-			<div class="form-field">
-				<label for="reminder-type-select">Reminder type</label>
-				<select id="reminder-type-select" @bind="_reminderProcessType">
-					<option value="all">All reminder types</option>
-					<option value="due-date">Due date reminders only</option>
-					<option value="course-start">Course start reminders only</option>
-					<option value="assessment">Assessment deadline reminders only</option>
-				</select>
-			</div>
-		</div>
-
-		<div class="support-op-actions">
-			<button class="secondary-btn" @onclick="ProcessRemindersAsync">Process Reminders</button>
-		</div>
-
-		@if (_reminderProcessResult != null)
-		{
-			<div class="reminder-results card">
-				<h4>Reminder Processing Results</h4>
-				<ul>
-					<li>Due Soon: <strong>@_reminderProcessResult.DueSoonSent</strong></li>
-					<li>Overdue: <strong>@_reminderProcessResult.OverdueSent</strong></li>
-					<li>Course Start: <strong>@_reminderProcessResult.CourseStartSent</strong></li>
-					<li>Enrollment Closing: <strong>@_reminderProcessResult.EnrollmentClosingSent</strong></li>
-					<li>Assessment Deadline: <strong>@_reminderProcessResult.AssessmentDeadlineSent</strong></li>
-					<li>Total Processed: <strong>@_reminderProcessResult.TotalProcessed</strong></li>
-				</ul>
-			</div>
-		}
 
 		@if (!string.IsNullOrWhiteSpace(_supportStatus))
 		{
@@ -142,11 +99,8 @@
 	private Guid? _selectedLearnerId;
 	private Guid? _selectedCourseId;
 	private string _supportReason = string.Empty;
-	private DateTime? _selectedDueDate;
 	private string? _supportStatus;
 	private bool? _supportSucceeded;
-	private string _reminderProcessType = "all";
-	private CourseReminderRunResult? _reminderProcessResult;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -173,7 +127,6 @@
 
 		_selectedLearnerId ??= _learners.FirstOrDefault()?.Id;
 		_selectedCourseId ??= _courses.FirstOrDefault()?.Id;
-		SyncSelectedDueDateFromEnrollment();
 	}
 
 	private async Task OnLearnerChanged(ChangeEventArgs args)
@@ -188,24 +141,8 @@
 		}
 
 		await RefreshLearnerEnrollmentsAsync();
-		SyncSelectedDueDateFromEnrollment();
 		_supportStatus = null;
 		_supportSucceeded = null;
-	}
-
-	private Task OnCourseChanged(ChangeEventArgs args)
-	{
-		if (Guid.TryParse(args.Value?.ToString(), out var courseId))
-		{
-			_selectedCourseId = courseId;
-		}
-		else
-		{
-			_selectedCourseId = null;
-		}
-
-		SyncSelectedDueDateFromEnrollment();
-		return Task.CompletedTask;
 	}
 
 	private async Task RefreshLearnerEnrollmentsAsync()
@@ -239,16 +176,6 @@
 		return _learnerEnrollments.Any(item => item.CourseId == _selectedCourseId.Value);
 	}
 
-	private bool CanUpdateDueDate()
-	{
-		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue)
-		{
-			return false;
-		}
-
-		return _learnerEnrollments.Any(item => item.CourseId == _selectedCourseId.Value);
-	}
-
 	private async Task EnrollSelectedLearnerAsync()
 	{
 		_supportStatus = null;
@@ -265,7 +192,6 @@
 		_supportSucceeded = result.Succeeded;
 		_supportStatus = result.Message;
 		await RefreshLearnerEnrollmentsAsync();
-		SyncSelectedDueDateFromEnrollment();
 	}
 
 	private async Task UnenrollSelectedLearnerAsync()
@@ -284,56 +210,6 @@
 		_supportSucceeded = result.Succeeded;
 		_supportStatus = result.Message;
 		await RefreshLearnerEnrollmentsAsync();
-		SyncSelectedDueDateFromEnrollment();
-	}
-
-	private async Task UpdateDueDateAsync()
-	{
-		_supportStatus = null;
-		_supportSucceeded = null;
-
-		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue || !_actorUserId.HasValue)
-		{
-			_supportStatus = "Select learner and course.";
-			_supportSucceeded = false;
-			return;
-		}
-
-		if (!_selectedDueDate.HasValue)
-		{
-			_supportStatus = "Select a valid due date.";
-			_supportSucceeded = false;
-			return;
-		}
-
-		var dueAtUtc = DateTime.SpecifyKind(_selectedDueDate.Value.Date.AddHours(23).AddMinutes(59).AddSeconds(59), DateTimeKind.Utc);
-		var updated = await DueDateReminderService.SetDueDateAsync(_selectedLearnerId.Value, _selectedCourseId.Value, dueAtUtc, _actorUserId.Value, _actorEmail);
-
-		_supportSucceeded = updated;
-		_supportStatus = updated ? "Due date updated." : "Enrollment not found for the selected learner/course.";
-		await RefreshLearnerEnrollmentsAsync();
-		SyncSelectedDueDateFromEnrollment();
-	}
-
-	private async Task ProcessRemindersAsync()
-	{
-		try
-		{
-			_reminderProcessResult = await DueDateReminderService.ProcessAllRemindersAsync();
-			_supportSucceeded = true;
-			_supportStatus = "Reminders processed successfully.";
-		}
-		catch (Exception ex)
-		{
-			_supportSucceeded = false;
-			_supportStatus = $"Error processing reminders: {ex.Message}";
-		}
-	}
-
-	private void SyncSelectedDueDateFromEnrollment()
-	{
-		var selectedEnrollment = _learnerEnrollments.FirstOrDefault(item => item.CourseId == _selectedCourseId);
-		_selectedDueDate = selectedEnrollment?.DueAtUtc?.ToLocalTime().Date;
 	}
 
 	private string GetSupportStatusClass()

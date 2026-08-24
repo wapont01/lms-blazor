@@ -8,6 +8,7 @@
 @inject ICourseService CourseService
 @inject IEnrollmentService EnrollmentService
 @inject IPaymentService PaymentService
+@inject IPolicyDisclosureService PolicyDisclosureService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject ILogger<Checkout> Logger
@@ -180,11 +181,48 @@
                         }
                     </fieldset>
 
-                    <!-- Terms -->
+                    @if (_policyDisclosures.Count > 0)
+                    {
+                        <section class="form-section policy-disclosure" aria-labelledby="ppd-heading">
+                            <h3 id="ppd-heading">Policies and Procedures Disclosure</h3>
+                            <p>Your course terms and required provider disclosure are ready for review.</p>
+                            <details>
+                                <summary>Review disclosure details</summary>
+                                @foreach (var disclosure in _policyDisclosures)
+                                {
+                                    <article class="policy-disclosure-course">
+                                        <h4>@disclosure.CourseTitle</h4>
+                                        <dl class="course-regulatory-summary">
+                                            <div><dt>Commission course number</dt><dd>@(disclosure.CommissionCourseNumber ?? "Not yet assigned")</dd></div>
+                                            <div><dt>Delivery</dt><dd>@CourseDeliveryMethods.ToDisplayText(disclosure.DeliveryMethod)</dd></div>
+                                            <div><dt>Instructional hours</dt><dd>@(disclosure.InstructionalMinutes / 60m) hours</dd></div>
+                                            <div><dt>Tuition and fees</dt><dd>@($"${disclosure.TuitionAndFees:F2}")</dd></div>
+                                            <div><dt>Proctoring fee</dt><dd>@($"${disclosure.ProctoringFee:F2} (included)")</dd></div>
+                                            <div><dt>Completion window</dt><dd>@(disclosure.CompletionWindowDays.HasValue ? $"{disclosure.CompletionWindowDays} days" : "See course schedule")</dd></div>
+                                            <div><dt>Minimum passing score</dt><dd>@($"{disclosure.MinimumPassingPercent:0.##}%")</dd></div>
+                                        </dl>
+                                        <p><strong>Provider retake policy:</strong> @disclosure.RetakePolicy</p>
+                                        <p><strong>License Examination Performance Record:</strong> @disclosure.LicenseExaminationPerformanceRecord</p>
+                                        <p><strong>Annual Summary Report:</strong> @disclosure.AnnualSummaryReportData</p>
+                                        <p>Commission-published pass-rate information is available at <a href="https://www.ncrec.gov/PrelicensingEducation/ExamPassRates" target="_blank" rel="noopener noreferrer">ncrec.gov</a>.</p>
+                                        <p><strong>Support:</strong> <a href="mailto:@disclosure.SupportEmail">@disclosure.SupportEmail</a> · <a href="tel:@disclosure.SupportTelephone">@disclosure.SupportTelephone</a></p>
+                                    </article>
+                                }
+                            </details>
+                        </section>
+                    }
+
                     <div class="form-group checkbox">
                         <label>
                             <input type="checkbox" @bind="_acceptedTerms" required />
-                            <span>I agree to the terms and conditions and privacy policy</span>
+                            @if (_policyDisclosures.Count > 0)
+                            {
+                                <span>I certify that I received the Policies and Procedures Disclosure before payment and agree to the terms and privacy policy.</span>
+                            }
+                            else
+                            {
+                                <span>I agree to the terms and privacy policy.</span>
+                            }
                         </label>
                     </div>
 
@@ -214,7 +252,6 @@
     private decimal _taxAmount = 0;
     private decimal _discountAmount = 0;
     private const decimal TaxRate = 0.08m;
-    private Lms.Application.Data.ApplicationDbContext? _dbContext;
 
     // Form fields
     private string _email = "";
@@ -229,6 +266,7 @@
     private string _expiryDate = "";
     private string _cvv = "";
     private bool _acceptedTerms = false;
+    private IReadOnlyList<PolicyDisclosurePreview> _policyDisclosures = [];
 
     // State
     private bool _isProcessing = false;
@@ -254,11 +292,15 @@
         _userId = parsedId;
         _userEmail = user.FindFirst(ClaimTypes.Email)?.Value;
         _email = _userEmail ?? "";
-        _dbContext = DbContext;
-
         // Load cart
         _cart = await ShoppingCartService.GetCartWithCoursesAsync(_userId);
         _taxAmount = _cart?.GetTotal() * TaxRate ?? 0;
+        var learner = await DbContext.UserAccounts.AsNoTracking().SingleOrDefaultAsync(account => account.Id == _userId);
+        _fullName = learner?.LegalName ?? learner?.DisplayName ?? "";
+        if (_cart is not null)
+        {
+            _policyDisclosures = await PolicyDisclosureService.GetCheckoutDisclosuresAsync(_userId, GetPolicyDisclosurePurchaseItems());
+        }
     }
 
     private void SetPaymentMethod(string method)
@@ -299,6 +341,10 @@
 
             var total = (_cart?.GetTotal() ?? 0) + _taxAmount - _discountAmount;
             var paymentMethodInput = ResolvePaymentMethodInput();
+            var purchaseItems = GetPolicyDisclosurePurchaseItems();
+            var acknowledgmentIds = _policyDisclosures.Count == 0
+                ? Array.Empty<Guid>()
+                : await PolicyDisclosureService.AcknowledgeAsync(_userId, purchaseItems);
 
             // Process payment through PaymentService
             var paymentResult = await PaymentService.ProcessPaymentAsync(
@@ -336,18 +382,38 @@
             }
 
             // Retrieve the payment transaction that was just created
-            var transaction = await _dbContext.PaymentTransactions
+            var transaction = await DbContext.PaymentTransactions
                 .OrderByDescending(t => t.CreatedAt)
                 .FirstOrDefaultAsync(t => t.StripePaymentIntentId == paymentResult.StripePaymentIntentId);
+
+            if (transaction != null)
+            {
+                var purchasedCourseIds = purchaseItems.Select(item => item.CourseId).ToList();
+                var enrollments = await DbContext.Enrollments
+                    .Where(enrollment => enrollment.UserAccountId == _userId && purchasedCourseIds.Contains(enrollment.CourseId))
+                    .ToListAsync();
+                foreach (var enrollment in enrollments)
+                {
+                    enrollment.PaymentTransactionId = transaction.Id;
+                }
+                await DbContext.SaveChangesAsync();
+                await PolicyDisclosureService.FinalizePurchaseAsync(
+                    _userId,
+                    transaction.Id,
+                    acknowledgmentIds,
+                    purchaseItems,
+                    _taxAmount,
+                    _discountAmount);
+            }
 
             if (transaction != null && isTestingEnvironment)
             {
                 _invoiceNumber = $"INV-TEST-{DateTime.UtcNow:yyyyMMddHHmmss}";
             }
 
-            if (transaction != null && !isTestingEnvironment)
+            if (transaction != null && total > 0 && !isTestingEnvironment)
             {
-                // Generate invoice and send receipt email
+                // Generate invoice and send receipt email only for paid purchases.
                 try
                 {
                     var invoice = await PaymentService.GenerateInvoiceAsync(transaction, courseNames, _email, TaxRate);
@@ -366,7 +432,7 @@
             // Show success immediately after confirmed payment.
             // Cart cleanup is best-effort and should not block receipt UI.
             _paymentCompleted = true;
-            _message = "Payment processed successfully!";
+            _message = total > 0 ? "Payment processed successfully!" : "Enrollment completed successfully!";
             _isError = false;
 
             try
@@ -392,6 +458,13 @@
         {
             _isProcessing = false;
         }
+    }
+
+    private List<PolicyDisclosurePurchaseItem> GetPolicyDisclosurePurchaseItems()
+    {
+        return _cart?.Items
+            .Select(item => new PolicyDisclosurePurchaseItem(item.CourseId, item.Price, item.Quantity))
+            .ToList() ?? [];
     }
 
     private string ResolvePaymentMethodInput()

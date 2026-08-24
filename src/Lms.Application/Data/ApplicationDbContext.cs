@@ -6,6 +6,8 @@ namespace Lms.Application.Data;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
     public DbSet<Course> Courses => Set<Course>();
+    public DbSet<SchoolProfile> SchoolProfiles => Set<SchoolProfile>();
+    public DbSet<SchoolStaffMember> SchoolStaffMembers => Set<SchoolStaffMember>();
     public DbSet<Module> Modules => Set<Module>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
@@ -18,12 +20,18 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<AssessmentAttempt> AssessmentAttempts => Set<AssessmentAttempt>();
     public DbSet<AssessmentAnswer> AssessmentAnswers => Set<AssessmentAnswer>();
     public DbSet<RetakeGrant> RetakeGrants => Set<RetakeGrant>();
+    public DbSet<CourseCheckpointDefinition> CourseCheckpointDefinitions => Set<CourseCheckpointDefinition>();
+    public DbSet<CourseCheckpointOption> CourseCheckpointOptions => Set<CourseCheckpointOption>();
     public DbSet<ModuleCheckpointProgress> ModuleCheckpointProgresses => Set<ModuleCheckpointProgress>();
+    public DbSet<ExamProctoringSession> ExamProctoringSessions => Set<ExamProctoringSession>();
+    public DbSet<CourseActivitySession> CourseActivitySessions => Set<CourseActivitySession>();
     public DbSet<BrokerLearnerAssignment> BrokerLearnerAssignments => Set<BrokerLearnerAssignment>();
     public DbSet<SystemNotification> SystemNotifications => Set<SystemNotification>();
     public DbSet<CourseReminder> CourseReminders => Set<CourseReminder>();
     public DbSet<ShoppingCart> ShoppingCarts => Set<ShoppingCart>();
     public DbSet<PaymentTransaction> PaymentTransactions => Set<PaymentTransaction>();
+    public DbSet<PurchaseLine> PurchaseLines => Set<PurchaseLine>();
+    public DbSet<PolicyDisclosureAcknowledgment> PolicyDisclosureAcknowledgments => Set<PolicyDisclosureAcknowledgment>();
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<Refund> Refunds => Set<Refund>();
     public DbSet<InstructorPayout> InstructorPayouts => Set<InstructorPayout>();
@@ -37,10 +45,60 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             entity.HasKey(course => course.Id);
             entity.HasIndex(course => course.Slug).IsUnique();
+            entity.HasIndex(course => course.OwnerInstructorId);
             entity.Property(course => course.Title).HasMaxLength(120).IsRequired();
             entity.Property(course => course.Level).HasMaxLength(40).IsRequired();
+            entity.Property(course => course.ComplianceType).HasMaxLength(40).IsRequired().HasDefaultValue(CourseComplianceTypes.Unspecified);
+            entity.Property(course => course.DeliveryMethod).HasMaxLength(40).IsRequired().HasDefaultValue(CourseDeliveryMethods.DistanceEducation);
+            entity.Property(course => course.ContinuingEducationType).HasMaxLength(40);
+            entity.Property(course => course.CommissionCourseNumber).HasMaxLength(80);
+            entity.Property(course => course.RequiredInstructionalMinutes).HasDefaultValue(0);
+            entity.Property(course => course.MinimumPassingPercent).HasDefaultValue(75);
+            entity.Property(course => course.MinimumAttendancePercent).HasDefaultValue(80);
             entity.Property(course => course.Jurisdiction).HasMaxLength(100);
             entity.Property(course => course.Price).HasPrecision(18, 2);
+            entity.Property(course => course.ReviewStatus).HasMaxLength(30).IsRequired().HasDefaultValue(CourseReviewStatuses.Draft);
+            entity.Property(course => course.ReviewNote).HasMaxLength(1000);
+        });
+
+        modelBuilder.Entity<SchoolProfile>(entity =>
+        {
+            entity.HasKey(profile => profile.Id);
+            entity.Property(profile => profile.LegalName).HasMaxLength(200).IsRequired();
+            entity.Property(profile => profile.AdvertisedName).HasMaxLength(200).IsRequired();
+            entity.Property(profile => profile.StreetAddress).HasMaxLength(200).IsRequired();
+            entity.Property(profile => profile.City).HasMaxLength(100).IsRequired();
+            entity.Property(profile => profile.State).HasMaxLength(2).IsRequired();
+            entity.Property(profile => profile.PostalCode).HasMaxLength(20).IsRequired();
+            entity.Property(profile => profile.EducationDirectorName).HasMaxLength(160).IsRequired();
+            entity.Property(profile => profile.CorporateOfficerName).HasMaxLength(160).IsRequired();
+            entity.Property(profile => profile.PrimaryInstructorName).HasMaxLength(160).IsRequired();
+            entity.Property(profile => profile.PrimaryInstructorEmail).HasMaxLength(160).IsRequired();
+            entity.Property(profile => profile.PrimaryInstructorTelephone).HasMaxLength(40).IsRequired();
+            entity.Property(profile => profile.ProviderLicenseNumber).HasMaxLength(80);
+            entity.Property(profile => profile.InstructorLicenseNumber).HasMaxLength(80);
+            entity.Property(profile => profile.SupportEmail).HasMaxLength(160).IsRequired();
+            entity.Property(profile => profile.SupportTelephone).HasMaxLength(40).IsRequired();
+            entity.Property(profile => profile.SupportHours).HasMaxLength(200);
+            entity.Property(profile => profile.WebsiteUrl).HasMaxLength(300);
+            entity.Property(profile => profile.LicenseExaminationPerformanceRecord).HasMaxLength(1000).IsRequired();
+            entity.Property(profile => profile.AnnualSummaryReportData).HasMaxLength(1000).IsRequired();
+        });
+
+        modelBuilder.Entity<SchoolStaffMember>(entity =>
+        {
+            entity.HasKey(member => member.Id);
+            entity.Property(member => member.Name).HasMaxLength(160).IsRequired();
+            entity.Property(member => member.Role).HasMaxLength(40).IsRequired();
+            entity.Property(member => member.Title).HasMaxLength(120);
+            entity.Property(member => member.LicenseNumber).HasMaxLength(80);
+            entity.Property(member => member.Email).HasMaxLength(160);
+            entity.Property(member => member.Telephone).HasMaxLength(40);
+            entity.HasIndex(member => new { member.SchoolProfileId, member.Role });
+            entity.HasOne(member => member.SchoolProfile)
+                .WithMany(profile => profile.StaffMembers)
+                .HasForeignKey(member => member.SchoolProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Module>(entity =>
@@ -69,6 +127,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasKey(user => user.Id);
             entity.Property(user => user.Email).HasMaxLength(160).IsRequired();
             entity.Property(user => user.DisplayName).HasMaxLength(120).IsRequired();
+            entity.Property(user => user.LegalName).HasMaxLength(160);
+            entity.Property(user => user.LicenseNumber).HasMaxLength(40);
+            entity.Property(user => user.LicenseStatus).HasMaxLength(40);
             entity.Property(user => user.Role).HasMaxLength(40).IsRequired();
             entity.HasIndex(user => user.Email).IsUnique();
             entity.HasIndex(user => user.PasswordExpiresAt);
@@ -99,6 +160,60 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne<UserAccount>()
                 .WithMany()
                 .HasForeignKey(enrollment => enrollment.SponsoredByBrokerUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PurchaseLine>(entity =>
+        {
+            entity.HasKey(line => line.Id);
+            entity.Property(line => line.CourseTitle).HasMaxLength(120).IsRequired();
+            entity.Property(line => line.UnitPrice).HasPrecision(18, 2);
+            entity.Property(line => line.LineSubtotal).HasPrecision(18, 2);
+            entity.Property(line => line.TaxAmount).HasPrecision(18, 2);
+            entity.Property(line => line.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(line => line.LineTotal).HasPrecision(18, 2);
+            entity.HasIndex(line => line.PaymentTransactionId);
+            entity.HasOne(line => line.PaymentTransaction)
+                .WithMany(transaction => transaction.PurchaseLines)
+                .HasForeignKey(line => line.PaymentTransactionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(line => line.Course)
+                .WithMany()
+                .HasForeignKey(line => line.CourseId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PolicyDisclosureAcknowledgment>(entity =>
+        {
+            entity.HasKey(acknowledgment => acknowledgment.Id);
+            entity.Property(acknowledgment => acknowledgment.DisclosureVersion).HasMaxLength(40).IsRequired();
+            entity.Property(acknowledgment => acknowledgment.StudentLegalName).HasMaxLength(160).IsRequired();
+            entity.Property(acknowledgment => acknowledgment.StudentEmail).HasMaxLength(160).IsRequired();
+            entity.Property(acknowledgment => acknowledgment.ElectronicSignature).HasMaxLength(160).IsRequired();
+            entity.Property(acknowledgment => acknowledgment.CourseTitle).HasMaxLength(120).IsRequired();
+            entity.Property(acknowledgment => acknowledgment.CommissionCourseNumber).HasMaxLength(80);
+            entity.Property(acknowledgment => acknowledgment.DeliveryMethod).HasMaxLength(40).IsRequired();
+            entity.Property(acknowledgment => acknowledgment.TuitionAndFees).HasPrecision(18, 2);
+            entity.Property(acknowledgment => acknowledgment.ProctoringFee).HasPrecision(18, 2);
+            entity.Property(acknowledgment => acknowledgment.SupportEmail).HasMaxLength(160).IsRequired();
+            entity.Property(acknowledgment => acknowledgment.SupportTelephone).HasMaxLength(40).IsRequired();
+            entity.HasIndex(acknowledgment => new { acknowledgment.LearnerId, acknowledgment.CourseId, acknowledgment.AcknowledgedAtUtc });
+            entity.HasIndex(acknowledgment => acknowledgment.PaymentTransactionId);
+            entity.HasOne(acknowledgment => acknowledgment.Learner)
+                .WithMany()
+                .HasForeignKey(acknowledgment => acknowledgment.LearnerId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(acknowledgment => acknowledgment.Course)
+                .WithMany()
+                .HasForeignKey(acknowledgment => acknowledgment.CourseId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(acknowledgment => acknowledgment.PaymentTransaction)
+                .WithMany(transaction => transaction.PolicyDisclosureAcknowledgments)
+                .HasForeignKey(acknowledgment => acknowledgment.PaymentTransactionId)
+                .OnDelete(DeleteBehavior.SetNull);
+            entity.HasOne(acknowledgment => acknowledgment.Enrollment)
+                .WithMany()
+                .HasForeignKey(acknowledgment => acknowledgment.EnrollmentId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
@@ -135,6 +250,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(certificate => certificate.CertificateNumber).HasMaxLength(60).IsRequired();
             entity.Property(certificate => certificate.VerificationCode).HasMaxLength(64).IsRequired();
             entity.Property(certificate => certificate.RevocationReason).HasMaxLength(300);
+            entity.Property(certificate => certificate.InstructorName).HasMaxLength(160);
+            entity.Property(certificate => certificate.EducationDirectorName).HasMaxLength(160);
+            entity.Property(certificate => certificate.CommissionCourseNumber).HasMaxLength(80);
             entity.HasIndex(certificate => certificate.CertificateNumber).IsUnique();
             entity.HasIndex(certificate => certificate.VerificationCode).IsUnique();
             entity.HasIndex(certificate => new { certificate.UserAccountId, certificate.ExpiresAt });
@@ -202,6 +320,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .WithMany(user => user.AssessmentAttempts)
                 .HasForeignKey(attempt => attempt.UserAccountId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(attempt => attempt.ExamProctoringSession)
+                .WithOne(session => session.AssessmentAttempt)
+                .HasForeignKey<AssessmentAttempt>(attempt => attempt.ExamProctoringSessionId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<AssessmentAnswer>(entity =>
@@ -242,6 +365,39 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<CourseCheckpointDefinition>(entity =>
+        {
+            entity.HasKey(definition => definition.Id);
+            entity.Property(definition => definition.Key).HasMaxLength(80).IsRequired();
+            entity.Property(definition => definition.Title).HasMaxLength(160).IsRequired();
+            entity.Property(definition => definition.Prompt).HasMaxLength(500).IsRequired();
+            entity.Property(definition => definition.Description).HasMaxLength(500);
+            entity.HasIndex(definition => new { definition.CourseId, definition.Key }).IsUnique();
+
+            entity.HasOne(definition => definition.Course)
+                .WithMany()
+                .HasForeignKey(definition => definition.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(definition => definition.Module)
+                .WithMany()
+                .HasForeignKey(definition => definition.ModuleId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<CourseCheckpointOption>(entity =>
+        {
+            entity.HasKey(option => option.Id);
+            entity.Property(option => option.Key).HasMaxLength(80).IsRequired();
+            entity.Property(option => option.Label).HasMaxLength(220).IsRequired();
+            entity.HasIndex(option => new { option.CourseCheckpointDefinitionId, option.OrderIndex });
+
+            entity.HasOne(option => option.CourseCheckpointDefinition)
+                .WithMany(definition => definition.Options)
+                .HasForeignKey(option => option.CourseCheckpointDefinitionId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<ModuleCheckpointProgress>(entity =>
         {
             entity.HasKey(progress => progress.Id);
@@ -256,6 +412,43 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne(progress => progress.Course)
                 .WithMany(course => course.ModuleCheckpointProgresses)
                 .HasForeignKey(progress => progress.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ExamProctoringSession>(entity =>
+        {
+            entity.HasKey(session => session.Id);
+            entity.Property(session => session.ProctorName).HasMaxLength(160).IsRequired();
+            entity.Property(session => session.ExternalSessionId).HasMaxLength(120);
+            entity.Property(session => session.SecurityIncidentNotes).HasMaxLength(500);
+            entity.HasIndex(session => new { session.CourseId, session.UserAccountId, session.ExpiresAtUtc });
+            entity.HasIndex(session => session.ExternalSessionId);
+
+            entity.HasOne(session => session.Course)
+                .WithMany(course => course.ExamProctoringSessions)
+                .HasForeignKey(session => session.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(session => session.UserAccount)
+                .WithMany(user => user.ExamProctoringSessions)
+                .HasForeignKey(session => session.UserAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CourseActivitySession>(entity =>
+        {
+            entity.HasKey(session => session.Id);
+            entity.HasIndex(session => new { session.CourseId, session.UserAccountId, session.StartedAtUtc });
+            entity.HasIndex(session => new { session.UserAccountId, session.EndedAtUtc });
+
+            entity.HasOne(session => session.Course)
+                .WithMany(course => course.ActivitySessions)
+                .HasForeignKey(session => session.CourseId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(session => session.UserAccount)
+                .WithMany(user => user.CourseActivitySessions)
+                .HasForeignKey(session => session.UserAccountId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

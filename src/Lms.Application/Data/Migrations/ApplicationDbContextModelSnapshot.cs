@@ -59,6 +59,9 @@ namespace Lms.Application.Data.Migrations
                     b.Property<Guid>("CourseAssessmentId")
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid?>("ExamProctoringSessionId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("FeedbackSummary")
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
@@ -80,6 +83,9 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ExamProctoringSessionId")
+                        .IsUnique();
 
                     b.HasIndex("UserAccountId");
 
@@ -225,13 +231,31 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CommissionCourseNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CompletedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CreditHours")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("EducationDirectorName")
+                        .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("EnrollmentId")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("InstructorName")
+                        .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("IsRevoked")
@@ -279,11 +303,36 @@ namespace Lms.Application.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CommissionCourseNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CompletionWindowDays")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ComplianceType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("");
+
+                    b.Property<string>("ContinuingEducationType")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("CreditHours")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("DeliveryMethod")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("DistanceEducation");
 
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
@@ -309,8 +358,46 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("MinimumAttendancePercent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(80);
+
+                    b.Property<int>("MinimumPassingPercent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(75);
+
+                    b.Property<Guid?>("OwnerInstructorId")
+                        .HasColumnType("TEXT");
+
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RequiredInstructionalMinutes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("RequiresProctoredExam")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReviewStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ReviewedByUserId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Slug")
@@ -330,10 +417,45 @@ namespace Lms.Application.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("OwnerInstructorId");
+
                     b.HasIndex("Slug")
                         .IsUnique();
 
                     b.ToTable("Courses");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.CourseActivitySession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CreditedMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("EndedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("LastActivityAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserAccountId", "EndedAtUtc");
+
+                    b.HasIndex("CourseId", "UserAccountId", "StartedAtUtc");
+
+                    b.ToTable("CourseActivitySessions");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.CourseAssessment", b =>
@@ -368,6 +490,89 @@ namespace Lms.Application.Data.Migrations
                     b.HasIndex("CourseId", "IsRequired");
 
                     b.ToTable("CourseAssessments");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.CourseCheckpointDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("GatesProgression")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("LessonId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ModuleId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Prompt")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ModuleId");
+
+                    b.HasIndex("CourseId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("CourseCheckpointDefinitions");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.CourseCheckpointOption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseCheckpointDefinitionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(220)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseCheckpointDefinitionId", "OrderIndex");
+
+                    b.ToTable("CourseCheckpointOptions");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.CourseReminder", b =>
@@ -407,11 +612,17 @@ namespace Lms.Application.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("AccessGrantedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("AssessmentReminderSentAt")
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("Completed")
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ConsentStatus")
                         .IsRequired()
@@ -475,6 +686,99 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("Enrollments");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.ExamProctoringSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ClosedBookConfirmed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExternalSessionId")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("IdentityVerifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProctorName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SecurityIncidentNotes")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("SecurityIncidentReported")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UsedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExternalSessionId");
+
+                    b.HasIndex("UserAccountId");
+
+                    b.HasIndex("CourseId", "UserAccountId", "ExpiresAtUtc");
+
+                    b.ToTable("ExamProctoringSessions");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.InstructorPayout", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FailureReason")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("InstructorId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PaidDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ScheduledDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StripeTransferId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InstructorId");
+
+                    b.ToTable("InstructorPayouts");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.Invoice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -512,50 +816,6 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("Invoices");
                 });
 
-            modelBuilder.Entity("Lms.Domain.Entities.Refund", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("CompletedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FailureReason")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("PaymentTransactionId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(200)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasDefaultValue("Initiated")
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("StripeRefundId")
-                        .HasMaxLength(120)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PaymentTransactionId");
-
-                    b.ToTable("Refunds");
-                });
-
             modelBuilder.Entity("Lms.Domain.Entities.Lesson", b =>
                 {
                     b.Property<Guid>("Id")
@@ -583,6 +843,7 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("TextContent")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
@@ -726,6 +987,216 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("PaymentTransactions");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.PolicyDisclosureAcknowledgment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("AcknowledgedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AnnualSummaryReportData")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CommissionCourseNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CourseTitle")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DeliveryMethod")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DisclosurePublishedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisclosureTextSnapshot")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DisclosureVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ElectronicSignature")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("EnrollmentId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("InstructionalMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("LearnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseExaminationPerformanceRecord")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("PaymentTransactionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("ProctoringFee")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StudentEmail")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StudentLegalName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SupportEmail")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SupportTelephone")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TuitionAndFees")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("EnrollmentId");
+
+                    b.HasIndex("PaymentTransactionId");
+
+                    b.HasIndex("LearnerId", "CourseId", "AcknowledgedAtUtc");
+
+                    b.ToTable("PolicyDisclosureAcknowledgments");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.PurchaseLine", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CourseTitle")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("LineSubtotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("PaymentTransactionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("PaymentTransactionId");
+
+                    b.ToTable("PurchaseLines");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.Refund", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FailureReason")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("FraudFlaggedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FraudReason")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FraudRiskLevel")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsFlaggedForReview")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("PaymentTransactionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StripeRefundId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentTransactionId");
+
+                    b.ToTable("Refunds");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.RetakeGrant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -759,6 +1230,159 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("RetakeGrants");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.SchoolProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AdvertisedName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AnnualSummaryReportData")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CorporateOfficerName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EducationDirectorName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("InstructorLicenseNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LegalName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseExaminationPerformanceRecord")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PrimaryInstructorEmail")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PrimaryInstructorName")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PrimaryInstructorTelephone")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProviderLicenseNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StreetAddress")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SupportEmail")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SupportHours")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SupportTelephone")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UpdatedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("WebsiteUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SchoolProfiles");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.SchoolStaffMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("AddedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseNumber")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SchoolProfileId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Telephone")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SchoolProfileId", "Role");
+
+                    b.ToTable("SchoolStaffMembers");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.ShoppingCart", b =>
                 {
                     b.Property<Guid>("Id")
@@ -780,6 +1404,55 @@ namespace Lms.Application.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ShoppingCarts");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.Subscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("AmountPerCycle")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BillingCycle")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("LearnerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("NextBillingDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("StripeSubscriptionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("LearnerId");
+
+                    b.ToTable("Subscriptions");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.SystemNotification", b =>
@@ -844,8 +1517,26 @@ namespace Lms.Application.Data.Migrations
                     b.Property<bool>("ForcePasswordChange")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("InitialLicensureDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsBicEligible")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LegalName")
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LockoutEndUtc")
                         .HasColumnType("TEXT");
@@ -904,6 +1595,11 @@ namespace Lms.Application.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Lms.Domain.Entities.ExamProctoringSession", "ExamProctoringSession")
+                        .WithOne("AssessmentAttempt")
+                        .HasForeignKey("Lms.Domain.Entities.AssessmentAttempt", "ExamProctoringSessionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("Lms.Domain.Entities.UserAccount", "UserAccount")
                         .WithMany("AssessmentAttempts")
                         .HasForeignKey("UserAccountId")
@@ -911,6 +1607,8 @@ namespace Lms.Application.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("CourseAssessment");
+
+                    b.Navigation("ExamProctoringSession");
 
                     b.Navigation("UserAccount");
                 });
@@ -979,6 +1677,25 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("UserAccount");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.CourseActivitySession", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.Course", "Course")
+                        .WithMany("ActivitySessions")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.UserAccount", "UserAccount")
+                        .WithMany("CourseActivitySessions")
+                        .HasForeignKey("UserAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("UserAccount");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.CourseAssessment", b =>
                 {
                     b.HasOne("Lms.Domain.Entities.Course", "Course")
@@ -988,6 +1705,35 @@ namespace Lms.Application.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.CourseCheckpointDefinition", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.Module", "Module")
+                        .WithMany()
+                        .HasForeignKey("ModuleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Module");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.CourseCheckpointOption", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.CourseCheckpointDefinition", "CourseCheckpointDefinition")
+                        .WithMany("Options")
+                        .HasForeignKey("CourseCheckpointDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CourseCheckpointDefinition");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.CourseReminder", b =>
@@ -1027,6 +1773,36 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("Course");
 
                     b.Navigation("UserAccount");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.ExamProctoringSession", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.Course", "Course")
+                        .WithMany("ExamProctoringSessions")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.UserAccount", "UserAccount")
+                        .WithMany("ExamProctoringSessions")
+                        .HasForeignKey("UserAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("UserAccount");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.InstructorPayout", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.UserAccount", "Instructor")
+                        .WithMany()
+                        .HasForeignKey("InstructorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Instructor");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.Invoice", b =>
@@ -1111,6 +1887,58 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("Learner");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.PolicyDisclosureAcknowledgment", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.Enrollment", "Enrollment")
+                        .WithMany()
+                        .HasForeignKey("EnrollmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Lms.Domain.Entities.UserAccount", "Learner")
+                        .WithMany()
+                        .HasForeignKey("LearnerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.PaymentTransaction", "PaymentTransaction")
+                        .WithMany("PolicyDisclosureAcknowledgments")
+                        .HasForeignKey("PaymentTransactionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Enrollment");
+
+                    b.Navigation("Learner");
+
+                    b.Navigation("PaymentTransaction");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.PurchaseLine", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.PaymentTransaction", "PaymentTransaction")
+                        .WithMany("PurchaseLines")
+                        .HasForeignKey("PaymentTransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("PaymentTransaction");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.Refund", b =>
                 {
                     b.HasOne("Lms.Domain.Entities.PaymentTransaction", "PaymentTransaction")
@@ -1147,6 +1975,17 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("GrantedByAdmin");
 
                     b.Navigation("UserAccount");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.SchoolStaffMember", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.SchoolProfile", "SchoolProfile")
+                        .WithMany("StaffMembers")
+                        .HasForeignKey("SchoolProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SchoolProfile");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.ShoppingCart", b =>
@@ -1189,6 +2028,25 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("Items");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.Subscription", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.UserAccount", "Learner")
+                        .WithMany()
+                        .HasForeignKey("LearnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Learner");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.SystemNotification", b =>
                 {
                     b.HasOne("Lms.Domain.Entities.UserAccount", "RecipientUser")
@@ -1212,11 +2070,15 @@ namespace Lms.Application.Data.Migrations
 
             modelBuilder.Entity("Lms.Domain.Entities.Course", b =>
                 {
+                    b.Navigation("ActivitySessions");
+
                     b.Navigation("Assessments");
 
                     b.Navigation("CompletionCertificates");
 
                     b.Navigation("Enrollments");
+
+                    b.Navigation("ExamProctoringSessions");
 
                     b.Navigation("ModuleCheckpointProgresses");
 
@@ -1230,11 +2092,21 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("Questions");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.CourseCheckpointDefinition", b =>
+                {
+                    b.Navigation("Options");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.Enrollment", b =>
                 {
                     b.Navigation("CompletionCertificate");
 
                     b.Navigation("Reminders");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.ExamProctoringSession", b =>
+                {
+                    b.Navigation("AssessmentAttempt");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.Lesson", b =>
@@ -1253,7 +2125,16 @@ namespace Lms.Application.Data.Migrations
 
                     b.Navigation("Invoices");
 
+                    b.Navigation("PolicyDisclosureAcknowledgments");
+
+                    b.Navigation("PurchaseLines");
+
                     b.Navigation("Refunds");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.SchoolProfile", b =>
+                {
+                    b.Navigation("StaffMembers");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.UserAccount", b =>
@@ -1264,7 +2145,11 @@ namespace Lms.Application.Data.Migrations
 
                     b.Navigation("CompletionCertificates");
 
+                    b.Navigation("CourseActivitySessions");
+
                     b.Navigation("Enrollments");
+
+                    b.Navigation("ExamProctoringSessions");
 
                     b.Navigation("LearnerAssignments");
 

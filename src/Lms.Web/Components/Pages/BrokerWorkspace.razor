@@ -217,7 +217,7 @@
 
 				<div class="support-learner-row">
 					<label for="Support-learner">Learner</label>
-					<select id="Support-learner" @bind="_selectedLearnerIdText" @bind:after="OnSelectedLearnerChangedAsync">
+					<select id="Support-learner" value="@_selectedLearnerIdText" @onchange="OnSelectedLearnerChangedAsync" disabled="@(!_isInteractive)">
 						@foreach (var learner in _allLearners)
 						{
 							<option value="@learner.LearnerId">@learner.LearnerName (@learner.LearnerEmail)</option>
@@ -383,6 +383,7 @@
 	private string? _SupportStatus;
 	private bool? _SupportSucceeded;
 	private Guid _brokerUserId;
+	private bool _isInteractive;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -406,6 +407,17 @@
 		}
 	}
 
+	protected override Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			_isInteractive = true;
+			StateHasChanged();
+		}
+
+		return Task.CompletedTask;
+	}
+
 	private async Task RefreshBrokerDataAsync()
 	{
 
@@ -417,9 +429,9 @@
 		await RefreshBrokerPurchasedCoursesAsync();
 	}
 
-	private async Task OnSelectedLearnerChangedAsync()
+	private async Task OnSelectedLearnerChangedAsync(ChangeEventArgs args)
 	{
-		if (Guid.TryParse(_selectedLearnerIdText, out var learnerId))
+		if (Guid.TryParse(args.Value?.ToString(), out var learnerId))
 		{
 			SetSelectedLearner(learnerId);
 		}

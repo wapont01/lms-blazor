@@ -10,11 +10,11 @@
 <PageTitle>Learner Courses</PageTitle>
 
 <h1>Learner Courses</h1>
-@if (_dashboardContext?.IsAdminViewer == true)
+@if (_isAdminViewer || _dashboardContext?.IsAdminViewer == true)
 {
     <p>
         <strong>Viewing learner:</strong>
-        <select value="@(_dashboardContext.LearnerUserId?.ToString() ?? string.Empty)" @onchange="OnLearnerSelectionChanged" disabled="@(_learnerOptions.Count == 0)">
+        <select @key="@SelectedLearnerValue" value="@SelectedLearnerValue" @onchange="OnLearnerSelectionChanged" disabled="@(_learnerOptions.Count == 0)">
             @if (_learnerOptions.Count == 0)
             {
                 <option value="">No learner accounts available</option>
@@ -29,13 +29,13 @@
         </select>
     </p>
 
-    @if (_dashboardContext.LearnerUserId.HasValue)
+    @if (_dashboardContext?.LearnerUserId.HasValue == true)
     {
         <p>@_dashboardContext.Email · @_dashboardContext.EnrolledCourseCount enrolled · @_dashboardContext.CompletedCourseCount completed</p>
     }
 }
 
-@if (_dashboardContext?.IsAdminViewer == true && !_dashboardContext.LearnerUserId.HasValue)
+@if ((_isAdminViewer || _dashboardContext?.IsAdminViewer == true) && _dashboardContext?.LearnerUserId.HasValue != true)
 {
     <p>No learner accounts available.</p>
 }
@@ -132,19 +132,17 @@ else
             return;
         }
 
-        if (_dashboardContext.LearnerUserId.HasValue)
+        if (!LearnerId.HasValue)
         {
-            if (LearnerId != _dashboardContext.LearnerUserId.Value)
-            {
-                NavigationManager.NavigateTo(BuildLearnerUri(_dashboardContext.LearnerUserId.Value), replace: true);
-            }
             return;
         }
 
-        if (LearnerId.HasValue)
+        if (_dashboardContext.LearnerUserId.HasValue && _learnerOptions.Any(option => option.UserId == LearnerId.Value))
         {
-            NavigationManager.NavigateTo("/learner", replace: true);
+            return;
         }
+
+        // Preserve the requested learner context so admin empty-state views remain stable.
     }
 
     private Task OnLearnerSelectionChanged(ChangeEventArgs eventArgs)
@@ -162,6 +160,11 @@ else
         NavigationManager.NavigateTo(BuildLearnerUri(selectedLearnerId), replace: true);
         return Task.CompletedTask;
     }
+
+    private string SelectedLearnerValue =>
+        LearnerId.HasValue
+            ? LearnerId.Value.ToString("D")
+            : _dashboardContext?.LearnerUserId?.ToString("D") ?? string.Empty;
 
     private string GetEmptyStateMessage()
     {

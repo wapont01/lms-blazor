@@ -1,0 +1,99 @@
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@inject ISchoolProfileService SchoolProfileService
+
+<section class="support-widget card" aria-label="Support">
+    <h3>Support</h3>
+
+    @if (_profile is null)
+    {
+        <p class="muted-text">Loading support contacts...</p>
+    }
+    else
+    {
+        <div class="support-contact-group">
+            <strong>Instructors</strong>
+            @foreach (var instructor in GetInstructors())
+            {
+                <div class="support-person">
+                    <span>@instructor.Name</span>
+                    @if (!string.IsNullOrWhiteSpace(instructor.Email))
+                    {
+                        <a href="mailto:@instructor.Email">@instructor.Email</a>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(instructor.Telephone))
+                    {
+                        <a href="tel:@instructor.Telephone">@instructor.Telephone</a>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="support-contact-group">
+            <strong>Technical Support</strong>
+            <a href="mailto:@_profile.SupportEmail">@_profile.SupportEmail</a>
+            <a href="tel:@_profile.SupportTelephone">@_profile.SupportTelephone</a>
+            @if (!string.IsNullOrWhiteSpace(_profile.SupportHours))
+            {
+                <span class="muted-text">@_profile.SupportHours</span>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private SchoolProfile? _profile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _profile = await SchoolProfileService.GetAsync();
+    }
+
+    private IReadOnlyList<SupportContact> GetInstructors()
+    {
+        if (_profile is null)
+        {
+            return [];
+        }
+
+        var roster = _profile.StaffMembers
+            .Where(member => string.Equals(member.Role, SchoolStaffRoles.Instructor, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(member => member.Name)
+            .Select(member => new SupportContact(member.Name, member.Email, member.Telephone))
+            .ToList();
+
+        return roster.Count > 0
+            ? roster
+            : [new SupportContact(_profile.PrimaryInstructorName, _profile.PrimaryInstructorEmail, _profile.PrimaryInstructorTelephone)];
+    }
+
+    private sealed record SupportContact(string Name, string? Email, string? Telephone);
+}
+
+<style>
+    .support-widget {
+        display: grid;
+        gap: 1rem;
+        max-width: 400px;
+    }
+
+    .support-widget h3 {
+        margin: 0;
+        font-size: 1.1rem;
+    }
+
+    .support-contact-group,
+    .support-person {
+        display: grid;
+        gap: 0.25rem;
+        min-width: 0;
+    }
+
+    .support-person + .support-person {
+        margin-top: 0.5rem;
+    }
+
+    .support-widget a {
+        overflow-wrap: anywhere;
+    }
+</style>

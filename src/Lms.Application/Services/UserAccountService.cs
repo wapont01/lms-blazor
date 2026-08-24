@@ -312,6 +312,8 @@ public class UserAccountService : IUserAccountService
         {
             new SeedUserDefinition("admin@lms.com", "Admin User", "Admin123!", "Admin"),
             new SeedUserDefinition("instructor@lms.com", "Instructor User", "Instructor123!", "Instructor"),
+            new SeedUserDefinition("instructor2@lms.com", "Instructor Two", "Instructor234!", "Instructor"),
+            new SeedUserDefinition("instructor3@lms.com", "Instructor Three", "Instructor345!", "Instructor"),
             new SeedUserDefinition("broker@lms.com", "Broker User", "Broker123!", "Broker"),
             new SeedUserDefinition("broker2@lms.com", "Broker Two", "Broker234!", "Broker"),
             new SeedUserDefinition("learner@lms.com", "Learner User", "Learner123!", "Learner"),

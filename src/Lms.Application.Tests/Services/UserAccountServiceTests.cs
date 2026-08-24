@@ -185,6 +185,27 @@ public class UserAccountServiceTests
     }
 
     [Fact]
+    public async Task SeedAsync_AssignsSingleFreeCourse_AndPaidCoursesWithinConfiguredRange()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        await CourseSeed.SeedAsync(fixture.DbContext);
+
+        var seededCourses = await fixture.DbContext.Courses
+            .AsNoTracking()
+            .ToListAsync();
+
+        Assert.NotEmpty(seededCourses);
+
+        var freeCourses = seededCourses.Where(course => course.Price == 0m).ToList();
+        Assert.Single(freeCourses);
+
+        var paidCourses = seededCourses.Where(course => course.Price > 0m).ToList();
+        Assert.NotEmpty(paidCourses);
+        Assert.All(paidCourses, course => Assert.InRange(course.Price, 90m, 120m));
+    }
+
+    [Fact]
     public async Task UpsertExternalUserAsync_CreatesLearnerByDefault()
     {
         await using var fixture = await TestFixture.CreateAsync();

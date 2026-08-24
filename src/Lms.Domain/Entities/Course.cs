@@ -24,6 +24,41 @@ public class Course
     [Range(0, 1000)]
     public int CreditHours { get; set; }
 
+    [Required]
+    [StringLength(40)]
+    public string ComplianceType { get; set; } = CourseComplianceTypes.Unspecified;
+
+    [Required]
+    [StringLength(40)]
+    public string DeliveryMethod { get; set; } = CourseDeliveryMethods.DistanceEducation;
+
+    [StringLength(40)]
+    public string? ContinuingEducationType { get; set; }
+
+    [StringLength(80)]
+    public string? CommissionCourseNumber { get; set; }
+
+    public int? CompletionWindowDays { get; set; }
+
+    public bool RequiresProctoredExam { get; set; }
+
+    [Range(0, 100000)]
+    public int RequiredInstructionalMinutes { get; set; }
+
+    [Range(0, 100)]
+    public int MinimumPassingPercent { get; set; } = 75;
+
+    [Range(0, 100)]
+    public int MinimumAttendancePercent { get; set; } = 80;
+
+    public bool UsesUnitBasedStructure => string.Equals(ComplianceType, CourseComplianceTypes.Prelicensing, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(ComplianceType, CourseComplianceTypes.Postlicensing, StringComparison.OrdinalIgnoreCase);
+
+    public bool IsPrelicensingOrPostlicensing => string.Equals(ComplianceType, CourseComplianceTypes.Prelicensing, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(ComplianceType, CourseComplianceTypes.Postlicensing, StringComparison.OrdinalIgnoreCase);
+
+    public string SectionLabel => UsesUnitBasedStructure ? "Unit" : "Module";
+
     public string? Jurisdiction { get; set; }
 
     [Range(0, 100000)]
@@ -32,6 +67,19 @@ public class Course
     public bool IsPublished { get; set; }
 
     public bool IsArchived { get; set; }
+
+    public Guid? OwnerInstructorId { get; set; }
+
+    [Required]
+    [StringLength(30)]
+    public string ReviewStatus { get; set; } = CourseReviewStatuses.Draft;
+
+    [StringLength(1000)]
+    public string? ReviewNote { get; set; }
+
+    public Guid? ReviewedByUserId { get; set; }
+
+    public DateTime? ReviewedAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -46,7 +94,94 @@ public class Course
     public ICollection<CompletionCertificate> CompletionCertificates { get; set; } = new List<CompletionCertificate>();
     public ICollection<CourseAssessment> Assessments { get; set; } = new List<CourseAssessment>();
     public ICollection<ModuleCheckpointProgress> ModuleCheckpointProgresses { get; set; } = new List<ModuleCheckpointProgress>();
+    public ICollection<ExamProctoringSession> ExamProctoringSessions { get; set; } = new List<ExamProctoringSession>();
+    public ICollection<CourseActivitySession> ActivitySessions { get; set; } = new List<CourseActivitySession>();
 }
+
+public static class CourseComplianceTypes
+{
+    public const string Unspecified = "";
+    public const string Prelicensing = "Prelicensing";
+    public const string Postlicensing = "Postlicensing";
+    public const string ContinuingEducation = "ContinuingEducation";
+
+    public static bool IsRegulated(string? complianceType) => string.Equals(complianceType, Prelicensing, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(complianceType, Postlicensing, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(complianceType, ContinuingEducation, StringComparison.OrdinalIgnoreCase);
+
+    public static string ToDisplayText(string complianceType) => complianceType switch
+    {
+        Prelicensing => "Pre-licensing",
+        Postlicensing => "Post-licensing",
+        ContinuingEducation => "Continuing education",
+        _ => "Not selected"
+    };
+}
+
+public static class CourseDeliveryMethods
+{
+    public const string DistanceEducation = "DistanceEducation";
+    public const string SynchronousDistanceLearning = "SynchronousDistanceLearning";
+    public const string InPerson = "InPerson";
+    public const string Blended = "Blended";
+
+    public static string ToDisplayText(string deliveryMethod) => deliveryMethod switch
+    {
+        SynchronousDistanceLearning => "Synchronous distance learning",
+        InPerson => "In person",
+        Blended => "Blended",
+        _ => "Distance education"
+    };
+}
+
+public static class ContinuingEducationTypes
+{
+    public const string Elective = "Elective";
+    public const string GeneralUpdate = "GeneralUpdate";
+    public const string BrokerInChargeUpdate = "BrokerInChargeUpdate";
+
+    public static readonly IReadOnlyList<string> All = [GeneralUpdate, BrokerInChargeUpdate, Elective];
+
+    public static bool IsValid(string? courseType) => All.Contains(courseType, StringComparer.OrdinalIgnoreCase);
+
+    public static string ToDisplayText(string courseType) => courseType switch
+    {
+        GeneralUpdate => "General Update (GENUP)",
+        BrokerInChargeUpdate => "Broker-in-Charge Update (BICUP)",
+        Elective => "Elective",
+        _ => "Not selected"
+    };
+
+    public static bool IsUpdateCourse(string? courseType) => string.Equals(courseType, GeneralUpdate, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(courseType, BrokerInChargeUpdate, StringComparison.OrdinalIgnoreCase);
+}
+
+public static class CourseReviewStatuses
+{
+    public const string Draft = "Draft";
+    public const string PendingReview = "PendingReview";
+    public const string ChangesRequested = "ChangesRequested";
+    public const string Rejected = "Rejected";
+    public const string Approved = "Approved";
+
+    // Rejected courses can still be resubmitted within this window; after it lapses, rejection becomes final.
+    public const int RejectionResubmissionWindowDays = 30;
+
+    public static string ToDisplayText(string reviewStatus) => reviewStatus switch
+    {
+        PendingReview => "Pending review",
+        ChangesRequested => "Changes requested",
+        Approved => "Approved",
+        Rejected => "Rejected",
+        _ => "Draft"
+    };
+
+    public static bool CanResubmitAfterRejection(DateTime? reviewedAtUtc, DateTime utcNow)
+    {
+        return !reviewedAtUtc.HasValue || utcNow <= reviewedAtUtc.Value.AddDays(RejectionResubmissionWindowDays);
+    }
+}
+
 
 public class Module
 {
@@ -63,11 +198,19 @@ public class Lesson
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid ModuleId { get; set; }
+
+    [Required(ErrorMessage = "Title is required.")]
     public string Title { get; set; } = string.Empty;
+
     public string ContentType { get; set; } = "Text";
     public string? ContentUrl { get; set; }
+
+    [Required(ErrorMessage = "Lesson content is required.")]
     public string? TextContent { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "Duration Minutes must be greater than 0.")]
     public int DurationMinutes { get; set; }
+
     public int OrderIndex { get; set; }
     public bool IsRequired { get; set; } = true;
 
@@ -87,6 +230,18 @@ public class UserAccount
     [Required]
     [StringLength(120)]
     public string DisplayName { get; set; } = string.Empty;
+
+    [StringLength(160)]
+    public string? LegalName { get; set; }
+
+    [StringLength(40)]
+    public string? LicenseNumber { get; set; }
+
+    [StringLength(40)]
+    public string? LicenseStatus { get; set; }
+
+    public DateTime? InitialLicensureDate { get; set; }
+    public bool IsBicEligible { get; set; }
 
     [Required]
     public string PasswordHash { get; set; } = string.Empty;
@@ -111,6 +266,8 @@ public class UserAccount
     public ICollection<BrokerLearnerAssignment> BrokerAssignments { get; set; } = new List<BrokerLearnerAssignment>();
     public ICollection<BrokerLearnerAssignment> LearnerAssignments { get; set; } = new List<BrokerLearnerAssignment>();
     public ICollection<SystemNotification> Notifications { get; set; } = new List<SystemNotification>();
+    public ICollection<ExamProctoringSession> ExamProctoringSessions { get; set; } = new List<ExamProctoringSession>();
+    public ICollection<CourseActivitySession> CourseActivitySessions { get; set; } = new List<CourseActivitySession>();
 }
 
 public class BrokerLearnerAssignment
@@ -166,6 +323,66 @@ public class ModuleCheckpointProgress
     public Course? Course { get; set; }
 }
 
+public class CourseCheckpointDefinition
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid CourseId { get; set; }
+
+    [Required]
+    [StringLength(80)]
+    public string Key { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(160)]
+    public string Title { get; set; } = "Checkpoint";
+
+    [Required]
+    [StringLength(500)]
+    public string Prompt { get; set; } = string.Empty;
+
+    [StringLength(500)]
+    public string Description { get; set; } = string.Empty;
+
+    public Guid? ModuleId { get; set; }
+
+    // Where this checkpoint sits relative to its module's lessons: null = end of module (or, when set,
+    // the ID of the lesson it should appear immediately after). StartOfModuleAnchor is a sentinel value
+    // (Guid.Empty, never a real lesson ID) meaning "before any lesson in the module" — instructors can
+    // freely move a checkpoint to any of these anchor points; none of them make it "belong" to a lesson.
+    public Guid? LessonId { get; set; }
+    public bool GatesProgression { get; set; }
+
+    // Sentinel LessonId value meaning "appears before any lesson in the module" (the start of the module).
+    public static readonly Guid StartOfModuleAnchor = Guid.Empty;
+
+    // Position among sibling checkpoints anchored to the same LessonId (or the same "end of module"
+    // group when LessonId is null); lets instructors reorder checkpoints independently of Title.
+    public int OrderIndex { get; set; }
+
+    public Course? Course { get; set; }
+    public Module? Module { get; set; }
+    public ICollection<CourseCheckpointOption> Options { get; set; } = new List<CourseCheckpointOption>();
+}
+
+public class CourseCheckpointOption
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid CourseCheckpointDefinitionId { get; set; }
+
+    [Required]
+    [StringLength(80)]
+    public string Key { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(220)]
+    public string Label { get; set; } = string.Empty;
+
+    public bool IsCorrect { get; set; }
+    public int OrderIndex { get; set; }
+
+    public CourseCheckpointDefinition? CourseCheckpointDefinition { get; set; }
+}
+
 public class Enrollment
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -182,7 +399,9 @@ public class Enrollment
     public string ConsentStatus { get; set; } = "NotRequired";
 
     public DateTime EnrolledAt { get; set; } = DateTime.UtcNow;
+    public DateTime AccessGrantedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? DueAtUtc { get; set; }
+    public DateTime? CompletedAtUtc { get; set; }
     public DateTime? DueSoonReminderSentAt { get; set; }
     public DateTime? OverdueReminderSentAt { get; set; }
     public DateTime? CourseStartReminderSentAt { get; set; }
@@ -253,6 +472,18 @@ public class CompletionCertificate
 
     public DateTime IssuedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddYears(1);
+    public DateTime CompletedAtUtc { get; set; } = DateTime.UtcNow;
+
+    [StringLength(160)]
+    public string? InstructorName { get; set; }
+
+    [StringLength(160)]
+    public string? EducationDirectorName { get; set; }
+
+    [StringLength(80)]
+    public string? CommissionCourseNumber { get; set; }
+
+    public int CreditHours { get; set; }
 
     public bool IsRevoked { get; set; }
     public DateTime? RevokedAt { get; set; }
@@ -335,6 +566,7 @@ public class AssessmentAttempt
     public int AttemptNumber { get; set; } = 1;
     public decimal ScorePercent { get; set; }
     public bool Passed { get; set; }
+    public Guid? ExamProctoringSessionId { get; set; }
 
     [StringLength(500)]
     public string? FeedbackSummary { get; set; }
@@ -342,6 +574,48 @@ public class AssessmentAttempt
     public CourseAssessment? CourseAssessment { get; set; }
     public UserAccount? UserAccount { get; set; }
     public ICollection<AssessmentAnswer> Answers { get; set; } = new List<AssessmentAnswer>();
+    public ExamProctoringSession? ExamProctoringSession { get; set; }
+}
+
+public class ExamProctoringSession
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid CourseId { get; set; }
+    public Guid UserAccountId { get; set; }
+
+    [Required]
+    [StringLength(160)]
+    public string ProctorName { get; set; } = string.Empty;
+
+    [StringLength(120)]
+    public string? ExternalSessionId { get; set; }
+
+    public DateTime IdentityVerifiedAtUtc { get; set; }
+    public bool ClosedBookConfirmed { get; set; }
+    public DateTime ExpiresAtUtc { get; set; }
+    public DateTime? UsedAtUtc { get; set; }
+    public bool SecurityIncidentReported { get; set; }
+
+    [StringLength(500)]
+    public string? SecurityIncidentNotes { get; set; }
+
+    public Course? Course { get; set; }
+    public UserAccount? UserAccount { get; set; }
+    public AssessmentAttempt? AssessmentAttempt { get; set; }
+}
+
+public class CourseActivitySession
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid CourseId { get; set; }
+    public Guid UserAccountId { get; set; }
+    public DateTime StartedAtUtc { get; set; }
+    public DateTime? EndedAtUtc { get; set; }
+    public DateTime LastActivityAtUtc { get; set; }
+    public int CreditedMinutes { get; set; }
+
+    public Course? Course { get; set; }
+    public UserAccount? UserAccount { get; set; }
 }
 
 public class AssessmentAnswer

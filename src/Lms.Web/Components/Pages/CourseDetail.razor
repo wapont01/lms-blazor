@@ -41,6 +41,7 @@ else
             }
 
             <h2>Course Menu</h2>
+            <a class="compliance-menu-link" href="@($"/courses/{_course.Id}/compliance-resources")">Compliance Resources</a>
             @if (!MenuLinksEnabled)
             {
                 <p class="menu-lock-note">Menu unlocks after you begin the timed course.</p>
@@ -58,7 +59,7 @@ else
 
                     <section class="lesson-menu-module">
                         <button type="button" class="menu-module-toggle" aria-expanded="@isExpanded" disabled>
-                            <span class="module-toggle-label">@module.Title</span>
+                            <span class="module-toggle-label">@GetModuleMenuLabel(module)</span>
                             <span class="module-toggle-icon @(isExpanded ? "is-expanded" : string.Empty)" aria-hidden="true">▸</span>
                         </button>
                         @if (isExpanded && moduleLessons.Count == 0)
@@ -81,6 +82,13 @@ else
                                         }
                                     </li>
                                 }
+                                @if (_course.UsesUnitBasedStructure)
+                                {
+                                    <li class="unit-assessment-menu-item">
+                                        <span>Unit Assessment</span>
+                                        <strong class="is-required">Required</strong>
+                                    </li>
+                                }
                             </ul>
                         }
                     </section>
@@ -98,11 +106,33 @@ else
                     </div>
                 </div>
 
+                @if (_isPreviewMode)
+                {
+                    <section class="flow-feedback-banner" aria-live="polite">
+                        <p class="muted-text">Preview Mode: learner progress, checkpoints, and assessment attempts are not being saved.</p>
+                        <div class="checkpoint-actions">
+                            <button type="button" class="secondary-button" @onclick="ExitPreview">Exit Preview</button>
+                        </div>
+                    </section>
+                }
+
                 @if (string.Equals(FinalAssessmentResult, "Successfully Completed", StringComparison.OrdinalIgnoreCase)
                     || _assessmentEligibility?.HasPassed == true)
                 {
                     <section class="flow-feedback-banner" aria-live="polite">
                         <p class="course-success-message">Successfully Completed</p>
+                        @if (!string.IsNullOrWhiteSpace(FinalAssessmentElapsed))
+                        {
+                            <p class="course-success-detail">Elapsed time: @FinalAssessmentElapsed</p>
+                        }
+                        @if (PassedFinalAssessmentAtUtc is DateTime completedAtUtc)
+                        {
+                            <p class="course-success-detail">Completed: @completedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</p>
+                        }
+                        @if (FinalAssessmentScore.HasValue && FinalAssessmentCorrect.HasValue && FinalAssessmentTotal.HasValue)
+                        {
+                            <p class="course-success-detail">Score: @FinalAssessmentCorrect of @FinalAssessmentTotal (@FinalAssessmentScore.Value.ToString("0")%)</p>
+                        }
                     </section>
                 }
                 else if (ShowFinalAssessmentFailureMessage)
@@ -126,8 +156,8 @@ else
                         <strong>@_course.Jurisdiction</strong>
                     </div>
                     <div class="summary-chip">
-                        <span class="summary-label">Modules</span>
-                        <strong>@_course.Modules.Count</strong>
+                        <span class="summary-label">@(_course.UsesUnitBasedStructure ? "Units" : "Modules")</span>
+                        <strong>@(_course.UsesUnitBasedStructure ? _course.Modules.Count(module => !IsGettingStartedModule(module)) : _course.Modules.Count)</strong>
                     </div>
                     <div class="summary-chip">
                         <span class="summary-label">Duration</span>
@@ -193,8 +223,17 @@ else
     [SupplyParameterFromQuery(Name = "finalAssessmentTotal")]
     public int? FinalAssessmentTotal { get; set; }
 
+    [SupplyParameterFromQuery(Name = "finalAssessmentCompletedAt")]
+    public string? FinalAssessmentCompletedAt { get; set; }
+
     [SupplyParameterFromQuery(Name = "learnerId")]
     public Guid? LearnerId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "preview")]
+    public string? Preview { get; set; }
+
+    [SupplyParameterFromQuery(Name = "previewSession")]
+    public string? PreviewSession { get; set; }
 
     private Lms.Domain.Entities.Course? _course;
     private Guid? _viewerUserId;
@@ -202,6 +241,7 @@ else
     private Guid? _learnerContextUserId;
     private bool _isAuthenticated;
     private bool _isAdminViewer;
+    private bool _isPreviewMode;
     private bool _isEnrolled;
     private bool _canEnroll;
     private bool _canMarkCompletion;
@@ -228,6 +268,7 @@ else
         .FirstOrDefault()?.Passed == true;
     private bool IsRetakeLimitReached => _assessmentEligibility?.RequiresAssessment == true
         && _assessmentEligibility.HasPassed == false
+        && !_assessmentEligibility.HasUnlimitedAttempts
         && RemainingAssessmentAttempts == 0;
     private bool HasRetakeGrantOverride => _assessmentEligibility?.HasRetakeGrantOverride == true;
     private bool LatestAssessmentAttemptFailed => _assessmentHistory
@@ -243,7 +284,9 @@ else
         ? TotalAssessmentAttempts
         : Math.Max(_assessmentEligibility.AttemptsAllowed, TotalAssessmentAttempts);
     private int RemainingAssessmentAttempts => Math.Max(TotalAllowedAssessmentAttempts - UsedAssessmentAttempts, 0);
-    private string FinalAssessmentFailureOverviewMessage => RemainingAssessmentAttempts switch
+    private string FinalAssessmentFailureOverviewMessage => _assessmentEligibility?.HasUnlimitedAttempts == true
+        ? $"Result: Failure. Attempts used: {UsedAssessmentAttempts}. You may retake this assessment within the course completion period."
+        : RemainingAssessmentAttempts switch
     {
         0 => $"Result: Failure. Attempts used: {UsedAssessmentAttempts} of {TotalAllowedAssessmentAttempts}. You have no attempts remaining. Contact an admin for additional attempts.",
         1 => $"Result: Failure. Attempts used: {UsedAssessmentAttempts} of {TotalAllowedAssessmentAttempts}. You have one more attempt remaining.",
@@ -253,14 +296,30 @@ else
     private bool IsAssessmentTerminalOverviewLock => _assessmentEligibility?.RequiresAssessment == true
         && _assessmentEligibility.HasPassed == false
         && IsRetakeLimitReached;
-    private DateTime? PassedFinalAssessmentAtUtc => _assessmentHistory
-        .Where(item => item.Passed)
-        .OrderByDescending(item => item.SubmittedAt)
-        .Select(item => (DateTime?)item.SubmittedAt)
-        .FirstOrDefault();
+    private DateTime? QueryFinalAssessmentCompletedAtUtc => DateTime.TryParse(
+        FinalAssessmentCompletedAt,
+        System.Globalization.CultureInfo.InvariantCulture,
+        System.Globalization.DateTimeStyles.AdjustToUniversal | System.Globalization.DateTimeStyles.AssumeUniversal,
+        out var parsedCompletedAtUtc)
+        ? parsedCompletedAtUtc
+        : null;
+    private bool HasPersistedAssessmentPass => !HasRetakeGrantOverride
+        && (_assessmentEligibility?.HasPassed == true || _assessmentHistory.Any(item => item.Passed));
+    private DateTime? PassedFinalAssessmentAtUtc => !HasPersistedAssessmentPass
+        ? null
+        : _assessmentHistory
+            .Where(item => item.Passed)
+            .OrderByDescending(item => item.SubmittedAt)
+            .Select(item => (DateTime?)item.SubmittedAt)
+            .FirstOrDefault()
+            ?? QueryFinalAssessmentCompletedAtUtc;
     private string CompletionDateTimeDisplay => PassedFinalAssessmentAtUtc is DateTime completedAtUtc
         ? completedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")
         : "Not completed";
+    private bool ShowCompletedCourseResultSummary => HasPersistedAssessmentPass
+        || (string.Equals(FinalAssessmentResult, "Successfully Completed", StringComparison.OrdinalIgnoreCase)
+            && _assessmentEligibility is null
+            && QueryFinalAssessmentCompletedAtUtc.HasValue);
 
     protected override async Task OnInitializedAsync()
     {
@@ -276,6 +335,8 @@ else
 
         _canEnroll = authState.User.IsInRole("Learner") || authState.User.IsInRole("Admin");
         _canMarkCompletion = authState.User.IsInRole("Learner") || authState.User.IsInRole("Admin");
+        _isPreviewMode = IsPreviewRequested(Preview)
+            && (authState.User.IsInRole("Instructor") || authState.User.IsInRole("Admin"));
 
         _isInitialized = true;
     }
@@ -298,6 +359,21 @@ else
             }
         }
 
+        if (_isPreviewMode)
+        {
+            _learnerContextUserId = null;
+            _userId = null;
+            _isEnrolled = true;
+            _lessonCompletion = new Dictionary<Guid, bool>();
+            _enrollmentProgressPercent = 0m;
+            _learnerFlowProgressPercent = 0m;
+            _assessment = _course is null ? null : await AssessmentService.GetCourseAssessmentAsync(_course.Id);
+            _assessmentEligibility = null;
+            _latestAttempt = null;
+            _assessmentHistory = new List<AssessmentAttemptHistoryItem>();
+            return;
+        }
+
         if (_viewerUserId.HasValue)
         {
             var learnerSelection = await LearnerDashboardService.ResolveLearnerContextAsync(_viewerUserId.Value, _isAdminViewer, LearnerId);
@@ -306,13 +382,13 @@ else
 
             if (_isAdminViewer)
             {
-                if (_learnerContextUserId.HasValue && LearnerId != _learnerContextUserId.Value)
+                if (LearnerId.HasValue && _learnerContextUserId.HasValue && !Guid.Equals(LearnerId.Value, _learnerContextUserId.Value))
                 {
                     NavigationManager.NavigateTo(BuildCourseDetailUri(Id, _learnerContextUserId.Value), replace: true);
                     return;
                 }
 
-                if (!_learnerContextUserId.HasValue && LearnerId.HasValue)
+                if (LearnerId.HasValue && !_learnerContextUserId.HasValue)
                 {
                     NavigationManager.NavigateTo(BuildCourseDetailUri(Id, null), replace: true);
                     return;
@@ -345,6 +421,11 @@ else
         }
         catch (JSException)
         {
+            _hasTimedSessionStarted = false;
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit was mid-transition (e.g. enhanced navigation); skip and retry on the next render.
             _hasTimedSessionStarted = false;
         }
         finally
@@ -528,26 +609,68 @@ else
         return string.Equals(module.Title, "Getting Started", StringComparison.OrdinalIgnoreCase);
     }
 
+    private string GetModuleMenuLabel(Module module)
+    {
+        if (_course?.UsesUnitBasedStructure != true)
+        {
+            return module.Title;
+        }
+
+        var unitNumber = _course.Modules
+            .Where(candidate => !IsGettingStartedModule(candidate))
+            .OrderBy(candidate => candidate.OrderIndex)
+            .ToList()
+            .FindIndex(candidate => candidate.Id == module.Id) + 1;
+        return $"Unit {unitNumber}: {module.Title}";
+    }
+
     private string BuildTimedSessionStorageKey()
     {
-        var actor = _userId?.ToString("D") ?? "anonymous";
+        var actor = GetStorageActorKey();
         return $"lms:course-timer:{Id:D}:{actor}";
     }
 
     private string BuildLessonUri(Guid lessonId)
     {
         var lessonUri = $"/courses/{Id}/lessons/{lessonId}";
-        if (!_learnerContextUserId.HasValue || !_isAdminViewer)
+        var queryParts = new List<string>();
+
+        if (_isPreviewMode)
+        {
+            queryParts.Add("preview=1");
+
+            if (!string.IsNullOrWhiteSpace(PreviewSession))
+            {
+                queryParts.Add($"previewSession={Uri.EscapeDataString(PreviewSession)}");
+            }
+        }
+
+        if (_learnerContextUserId.HasValue && _isAdminViewer)
+        {
+            queryParts.Add($"learnerId={Uri.EscapeDataString(_learnerContextUserId.Value.ToString())}");
+        }
+
+        if (queryParts.Count == 0)
         {
             return lessonUri;
         }
 
-        return $"{lessonUri}?learnerId={Uri.EscapeDataString(_learnerContextUserId.Value.ToString())}";
+        return $"{lessonUri}?{string.Join("&", queryParts)}";
     }
 
     private string BuildCourseDetailUri(Guid courseId, Guid? learnerUserId)
     {
         var queryParts = new List<string>();
+
+        if (_isPreviewMode)
+        {
+            queryParts.Add("preview=1");
+
+            if (!string.IsNullOrWhiteSpace(PreviewSession))
+            {
+                queryParts.Add($"previewSession={Uri.EscapeDataString(PreviewSession)}");
+            }
+        }
 
         if (learnerUserId.HasValue)
         {
@@ -582,6 +705,35 @@ else
         return queryParts.Count == 0
             ? $"/courses/{courseId}"
             : $"/courses/{courseId}?{string.Join("&", queryParts)}";
+    }
+
+    private string BuildExitPreviewUri()
+    {
+        return "/instructor";
+    }
+
+    private void ExitPreview()
+    {
+        // Force a full page load; enhanced navigation can leave a stale render after preview state teardown.
+        NavigationManager.NavigateTo(BuildExitPreviewUri(), forceLoad: true);
+    }
+
+    private string GetStorageActorKey()
+    {
+        if (_isPreviewMode && _viewerUserId.HasValue)
+        {
+	        var session = string.IsNullOrWhiteSpace(PreviewSession) ? "default" : PreviewSession;
+	        return $"preview:{_viewerUserId.Value:D}:{session}";
+        }
+
+        return _userId?.ToString("D") ?? "anonymous";
+    }
+
+    private static bool IsPreviewRequested(string? preview)
+    {
+        return !string.IsNullOrWhiteSpace(preview)
+            && !string.Equals(preview, "0", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(preview, "false", StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class AssessmentQuestionInput

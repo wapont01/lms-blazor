@@ -144,7 +144,7 @@ public class LearnerDashboardServiceTests
             await userAccountService.EnsureSeedUsersAsync();
 
             var assessmentService = new AssessmentService(dbContext, auditLogService);
-            var enrollmentService = new EnrollmentService(dbContext, auditLogService, assessmentService);
+            var enrollmentService = new EnrollmentService(dbContext, auditLogService, assessmentService, new SchoolProfileService(dbContext, auditLogService));
             var learnerDashboardService = new LearnerDashboardService(enrollmentService, assessmentService, userAccountService);
 
             return new TestFixture(connection, dbContext, userAccountService, enrollmentService, assessmentService, learnerDashboardService);
