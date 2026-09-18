@@ -1,0 +1,594 @@
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+
+<section class="card" id="admin-compliance-reports">
+    <h2>Compliance Reports</h2>
+
+    <h3>Pending Course Completion Reports</h3>
+    <p class="muted-text">21 NCAC 58H .0207(f): each completion must be reported to the Commission within 7 days.</p>
+
+    @if (PendingReports.Count == 0)
+    {
+        <p class="muted-text">No pending completion reports.</p>
+    }
+    else
+    {
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Course</th>
+                    <th>Instructor</th>
+                    <th>Completed</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in PendingReports)
+                {
+                    <tr>
+                        <td>
+                            <strong>@row.StudentLegalName</strong>
+                            <div class="muted-text">@row.StudentEmail</div>
+                            <div class="muted-text">@row.StudentPhone</div>
+                            <div class="muted-text">Broker License: @(row.BrokerLicenseNumber ?? "N/A")</div>
+                        </td>
+                        <td>
+                            @row.CourseTitle
+                            <div class="muted-text">@(row.CommissionCourseNumber ?? "No commission #")</div>
+                        </td>
+                        <td>
+                            @(row.InstructorName ?? "Unassigned")
+                            <div class="muted-text">@(row.InstructorLicenseNumber ?? "No license #")</div>
+                        </td>
+                        <td>@row.CompletedAtUtc.ToString("yyyy-MM-dd")</td>
+                        <td>@row.DueAtUtc.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            @if (row.IsOverdue)
+                            {
+                                <span class="status-pill status-pill-changes">Overdue</span>
+                            }
+                            else
+                            {
+                                <span class="status-pill status-pill-approved">On time</span>
+                            }
+                        </td>
+                        <td>
+                            <button type="button" @onclick="() => OnMarkSubmitted.InvokeAsync(row.EnrollmentId)">Mark submitted</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <h3>Pending Cheating Incident Reports</h3>
+    <p class="muted-text">21 NCAC 58H .0203: cheating incidents must be reported to the Commission within 10 days.</p>
+
+    @if (PendingCheatingIncidents.Count == 0)
+    {
+        <p class="muted-text">No pending cheating incident reports.</p>
+    }
+    else
+    {
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Student</th>
+                    <th>Course</th>
+                    <th>Proctor</th>
+                    <th>Notes</th>
+                    <th>Detected</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var incident in PendingCheatingIncidents)
+                {
+                    <tr>
+                        <td>
+                            <strong>@incident.StudentName</strong>
+                            <div class="muted-text">@incident.StudentEmail</div>
+                        </td>
+                        <td>
+                            @incident.CourseTitle
+                            <div class="muted-text">@(incident.CommissionCourseNumber ?? "No commission #")</div>
+                        </td>
+                        <td>@incident.ProctorName</td>
+                        <td>@(incident.Notes ?? "N/A")</td>
+                        <td>@incident.IncidentDetectedAtUtc.ToString("yyyy-MM-dd")</td>
+                        <td>@incident.DueAtUtc.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            @if (incident.IsOverdue)
+                            {
+                                <span class="status-pill status-pill-changes">Overdue</span>
+                            }
+                            else
+                            {
+                                <span class="status-pill status-pill-approved">On time</span>
+                            }
+                        </td>
+                        <td>
+                            <button type="button" @onclick="() => OnMarkCheatingIncidentReported.InvokeAsync(incident.ProctoringSessionId)">Mark submitted</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <h3>Education Director Orientation</h3>
+    <p class="muted-text">21 NCAC 58H .0203: the education director must view the Commission orientation video within 30 days of designation.</p>
+    <p>
+        <strong>@EducationDirectorOrientation.EducationDirectorName</strong> —
+        @if (EducationDirectorOrientation.ViewedAtUtc is not null)
+        {
+            <span class="status-pill status-pill-approved">Viewed @EducationDirectorOrientation.ViewedAtUtc.Value.ToString("yyyy-MM-dd")</span>
+        }
+        else if (EducationDirectorOrientation.DueAtUtc is null)
+        {
+            <span class="muted-text">No designation date on file.</span>
+        }
+        else
+        {
+            <span class="status-pill @(EducationDirectorOrientation.IsOverdue ? "status-pill-changes" : "status-pill-pending")">
+                Not viewed — due @EducationDirectorOrientation.DueAtUtc.Value.ToString("yyyy-MM-dd")
+            </span>
+            <button type="button" @onclick="() => OnMarkEducationDirectorOrientationViewed.InvokeAsync()">Mark viewed</button>
+        }
+    </p>
+
+    <h3>Instructor Hire Reporting &amp; Annual Observations</h3>
+    <p class="muted-text">21 NCAC 58H .0203: instructor hires must be reported within 10 days; instructors must be observed/evaluated annually.</p>
+
+    @if (InstructorCompliance.Count == 0)
+    {
+        <p class="muted-text">No instructors on the staff roster yet.</p>
+    }
+    else
+    {
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Instructor</th>
+                    <th>Hire Report</th>
+                    <th>Last Observation</th>
+                    <th>Next Observation Due</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var instructor in InstructorCompliance)
+                {
+                    <tr>
+                        <td>@instructor.Name</td>
+                        <td>
+                            @if (instructor.HireReportedAtUtc is not null)
+                            {
+                                <span class="status-pill status-pill-approved">Reported @instructor.HireReportedAtUtc.Value.ToString("yyyy-MM-dd")</span>
+                            }
+                            else
+                            {
+                                <span class="status-pill @(instructor.IsHireReportOverdue ? "status-pill-changes" : "status-pill-pending")">
+                                    Due @instructor.HireReportDueAtUtc.ToString("yyyy-MM-dd")
+                                </span>
+                                <button type="button" @onclick="() => OnMarkInstructorHireReported.InvokeAsync(instructor.StaffMemberId)">Mark reported</button>
+                            }
+                        </td>
+                        <td>@(instructor.LastObservationAtUtc?.ToString("yyyy-MM-dd") ?? "Never")</td>
+                        <td>
+                            <span class="status-pill @(instructor.IsObservationOverdue ? "status-pill-changes" : "status-pill-approved")">
+                                @instructor.NextObservationDueAtUtc.ToString("yyyy-MM-dd")
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" @onclick="() => OnRecordInstructorObservation.InvokeAsync(instructor.StaffMemberId)">Record observation</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <h3>Record Retention</h3>
+    <p class="muted-text">21 NCAC 58H .0208: enrollment, attendance, exam, and disclosure records must be retained for 3 years. No deletion feature exists in this system, so retention is satisfied by default; categories flagged below simply have records old enough to be eligible for archival review.</p>
+
+    <table class="simple-table">
+        <thead>
+            <tr>
+                <th>Record Category</th>
+                <th>Count</th>
+                <th>Oldest Record</th>
+                <th>Retention Window</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var category in RetentionSummary)
+            {
+                <tr>
+                    <td>@category.CategoryName</td>
+                    <td>@category.RecordCount</td>
+                    <td>@(category.OldestRecordAtUtc?.ToString("yyyy-MM-dd") ?? "N/A")</td>
+                    <td>@category.RetentionYears years</td>
+                    <td>
+                        @if (category.HasRecordsEligibleForArchivalReview)
+                        {
+                            <span class="status-pill status-pill-pending">Eligible for archival review</span>
+                        }
+                        else
+                        {
+                            <span class="status-pill status-pill-approved">Within retention window</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <h3>Course Scheduling Compliance</h3>
+    <p class="muted-text">21 NCAC 58H .0404: Commission must be notified 10 days before a scheduled course; late changes/cancellations (within 5 days of start) must be reported within 24 hours. No CE course may be scheduled June 11-30; sessions should not exceed 8 hours/day.</p>
+
+    <EditForm Model="ScheduleDraft" OnValidSubmit="SubmitScheduleDraftAsync">
+        <div class="form-row">
+            <div class="form-field">
+                <label>Course</label>
+                <select @bind="ScheduleDraft.CourseId">
+                    <option value="">Select course</option>
+                    @foreach (var course in Courses)
+                    {
+                        <option value="@course.Id">@course.Title</option>
+                    }
+                </select>
+            </div>
+            <div class="form-field">
+                <label>Scheduled Start</label>
+                <input type="datetime-local" @bind="ScheduleDraft.StartLocal" />
+            </div>
+            <div class="form-field">
+                <label>Scheduled End</label>
+                <input type="datetime-local" @bind="ScheduleDraft.EndLocal" />
+            </div>
+            <div class="form-field">
+                <button type="submit">Schedule session</button>
+            </div>
+        </div>
+    </EditForm>
+
+    @if (ScheduleWarnings.Count > 0)
+    {
+        <p class="status-pill status-pill-pending">@string.Join(" ", ScheduleWarnings)</p>
+    }
+
+    <h4>Manage Scheduled Sessions</h4>
+    @if (ScheduledSessions.Count == 0)
+    {
+        <p class="muted-text">No scheduled sessions.</p>
+    }
+    else
+    {
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Scheduled Start</th>
+                    <th>Scheduled End</th>
+                    <th>Commission Notified</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var session in ScheduledSessions)
+                {
+                    <tr>
+                        <td>@session.CourseTitle</td>
+                        <td><input type="datetime-local" value="@session.ScheduledStartAtUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")" @onchange="e => OnRescheduleStartChanged(session.SessionId, e)" /></td>
+                        <td><input type="datetime-local" value="@session.ScheduledEndAtUtc.ToLocalTime().ToString("yyyy-MM-ddTHH:mm")" @onchange="e => OnRescheduleEndChanged(session.SessionId, e)" /></td>
+                        <td>@(session.CommissionNotified ? "Yes" : "No")</td>
+                        <td>
+                            <div class="action-stack">
+                                <button type="button" @onclick="() => SaveRescheduleAsync(session.SessionId)">Save reschedule</button>
+                                <button type="button" @onclick="() => OnCancelSession.InvokeAsync(session.SessionId)">Cancel session</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <h4>Pending Commission Notifications (10-day notice)</h4>
+    @if (PendingScheduleNotifications.Count == 0)
+    {
+        <p class="muted-text">No pending schedule notifications.</p>
+    }
+    else
+    {
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Scheduled Start</th>
+                    <th>Notice Due</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var session in PendingScheduleNotifications)
+                {
+                    <tr>
+                        <td>@session.CourseTitle</td>
+                        <td>@session.ScheduledStartAtUtc.ToString("yyyy-MM-dd")</td>
+                        <td>@session.DueAtUtc.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            @if (session.IsOverdue)
+                            {
+                                <span class="status-pill status-pill-changes">Overdue</span>
+                            }
+                            else
+                            {
+                                <span class="status-pill status-pill-approved">On time</span>
+                            }
+                        </td>
+                        <td>
+                            <button type="button" @onclick="() => OnMarkScheduleNotificationSent.InvokeAsync(session.SessionId)">Mark notified</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <h4>Pending Schedule Change Reports (24-hour rule)</h4>
+    @if (PendingScheduleChangeReports.Count == 0)
+    {
+        <p class="muted-text">No pending schedule change reports.</p>
+    }
+    else
+    {
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Changed</th>
+                    <th>Due</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var change in PendingScheduleChangeReports)
+                {
+                    <tr>
+                        <td>@change.CourseTitle</td>
+                        <td>@change.ChangedAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@change.DueAtUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>
+                            @if (change.IsOverdue)
+                            {
+                                <span class="status-pill status-pill-changes">Overdue</span>
+                            }
+                            else
+                            {
+                                <span class="status-pill status-pill-approved">On time</span>
+                            }
+                        </td>
+                        <td>
+                            <button type="button" @onclick="() => OnMarkScheduleChangeReported.InvokeAsync(change.SessionId)">Mark reported</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <h3>Compliance Reminder Notifications</h3>
+    <p class="muted-text">Sends an admin notification for any overdue item above (idempotent — an item is only notified once). This also runs automatically every 6 hours.</p>
+    <button type="button" @onclick="OnProcessReminders">Process compliance reminders now</button>
+    @if (LastReminderRunResult is not null)
+    {
+        <p class="muted-text">Last run sent @LastReminderRunResult.Value notification(s).</p>
+    }
+
+    <h3>Monthly Summary Report</h3>
+    <p class="muted-text">21 NCAC 58H .0207(g): monthly enrollment, completion, and exam-failure counts due by the 5th.</p>
+
+    <div class="form-row">
+        <div class="form-field">
+            <label>Year</label>
+            <input type="number" value="@SummaryYear" @onchange="OnYearChangedAsync" />
+        </div>
+        <div class="form-field">
+            <label>Month</label>
+            <select value="@SummaryMonth" @onchange="OnMonthChangedAsync">
+                @for (var month = 1; month <= 12; month++)
+                {
+                    <option value="@month">@System.Globalization.CultureInfo.InvariantCulture.DateTimeFormat.GetMonthName(month)</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @if (SummaryRows.Count == 0)
+    {
+        <p class="muted-text">No enrollment activity for the selected period.</p>
+    }
+    else
+    {
+        <table class="simple-table">
+            <thead>
+                <tr>
+                    <th>Course</th>
+                    <th>Instructor</th>
+                    <th>Enrollments</th>
+                    <th>Completions</th>
+                    <th>Exam Fails</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in SummaryRows)
+                {
+                    <tr>
+                        <td>@row.CourseTitle</td>
+                        <td>@(row.InstructorName ?? "Unassigned")</td>
+                        <td>@row.EnrollmentCount</td>
+                        <td>@row.CompletionCount</td>
+                        <td>@row.ExamFailCount</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public IReadOnlyList<CourseCompletionReportRow> PendingReports { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<Guid> OnMarkSubmitted { get; set; }
+
+    [Parameter]
+    public int SummaryYear { get; set; } = DateTime.UtcNow.Year;
+
+    [Parameter]
+    public int SummaryMonth { get; set; } = DateTime.UtcNow.Month;
+
+    [Parameter]
+    public EventCallback<int> SummaryYearChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<int> SummaryMonthChanged { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<MonthlySummaryReportRow> SummaryRows { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<CheatingIncidentReportRow> PendingCheatingIncidents { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<Guid> OnMarkCheatingIncidentReported { get; set; }
+
+    [Parameter]
+    public EducationDirectorOrientationStatus EducationDirectorOrientation { get; set; } = new("Education Director", null, null, null, false);
+
+    [Parameter]
+    public EventCallback OnMarkEducationDirectorOrientationViewed { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<InstructorComplianceRow> InstructorCompliance { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<Guid> OnMarkInstructorHireReported { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnRecordInstructorObservation { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<RetentionCategorySummary> RetentionSummary { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<Course> Courses { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<PendingScheduleNotificationRow> PendingScheduleNotifications { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<PendingScheduleChangeReportRow> PendingScheduleChangeReports { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<Guid> OnMarkScheduleNotificationSent { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnMarkScheduleChangeReported { get; set; }
+
+    [Parameter]
+    public EventCallback<CourseScheduleDraft> OnScheduleSession { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<string> ScheduleWarnings { get; set; } = [];
+
+    [Parameter]
+    public EventCallback OnProcessReminders { get; set; }
+
+    [Parameter]
+    public int? LastReminderRunResult { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<ScheduledCourseSessionRow> ScheduledSessions { get; set; } = [];
+
+    [Parameter]
+    public EventCallback<(Guid SessionId, DateTime NewStartUtc, DateTime NewEndUtc)> OnRescheduleSession { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnCancelSession { get; set; }
+
+    public CourseScheduleDraft ScheduleDraft { get; set; } = new();
+    private readonly Dictionary<Guid, DateTime> _rescheduleStartDrafts = new();
+    private readonly Dictionary<Guid, DateTime> _rescheduleEndDrafts = new();
+
+    public sealed class CourseScheduleDraft
+    {
+        public string CourseId { get; set; } = string.Empty;
+        public DateTime StartLocal { get; set; } = DateTime.Today.AddDays(15).AddHours(9);
+        public DateTime EndLocal { get; set; } = DateTime.Today.AddDays(15).AddHours(17);
+    }
+
+    private async Task SubmitScheduleDraftAsync()
+    {
+        await OnScheduleSession.InvokeAsync(ScheduleDraft);
+    }
+
+    private void OnRescheduleStartChanged(Guid sessionId, ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var value))
+        {
+            _rescheduleStartDrafts[sessionId] = value;
+        }
+    }
+
+    private void OnRescheduleEndChanged(Guid sessionId, ChangeEventArgs e)
+    {
+        if (DateTime.TryParse(e.Value?.ToString(), out var value))
+        {
+            _rescheduleEndDrafts[sessionId] = value;
+        }
+    }
+
+    private async Task SaveRescheduleAsync(Guid sessionId)
+    {
+        var session = ScheduledSessions.FirstOrDefault(existing => existing.SessionId == sessionId);
+        if (session is null)
+        {
+            return;
+        }
+
+        var newStartLocal = _rescheduleStartDrafts.TryGetValue(sessionId, out var start) ? start : session.ScheduledStartAtUtc.ToLocalTime();
+        var newEndLocal = _rescheduleEndDrafts.TryGetValue(sessionId, out var end) ? end : session.ScheduledEndAtUtc.ToLocalTime();
+
+        await OnRescheduleSession.InvokeAsync((sessionId, newStartLocal.ToUniversalTime(), newEndLocal.ToUniversalTime()));
+        _rescheduleStartDrafts.Remove(sessionId);
+        _rescheduleEndDrafts.Remove(sessionId);
+    }
+
+    private async Task OnYearChangedAsync(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var year))
+        {
+            await SummaryYearChanged.InvokeAsync(year);
+        }
+    }
+
+    private async Task OnMonthChangedAsync(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var month))
+        {
+            await SummaryMonthChanged.InvokeAsync(month);
+        }
+    }
+}

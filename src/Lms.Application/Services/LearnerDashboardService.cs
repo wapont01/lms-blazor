@@ -158,6 +158,19 @@ public sealed class LearnerDashboardService : ILearnerDashboardService
 
             if (eligibility.HasPassed)
             {
+                if (!enrollment.Completed || enrollment.ProgressPercent < 100m)
+                {
+                    await _enrollmentService.UpdateProgressAsync(learner.Id, enrollment.CourseId, 100m);
+                    enrollment.Completed = true;
+                    enrollment.ProgressPercent = 100m;
+                    var issuedCertificate = (await _enrollmentService.GetCertificatesForLearnerAsync(learner.Id))
+                        .FirstOrDefault(certificate => certificate.CourseId == enrollment.CourseId);
+                    if (issuedCertificate is not null)
+                    {
+                        certificateIdsByCourseId[enrollment.CourseId] = issuedCertificate.CertificateId;
+                    }
+                }
+
                 progress = 100m;
                 status = "Completed";
             }

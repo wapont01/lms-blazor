@@ -4,6 +4,7 @@
 @using Lms.Web.Components.Shared
 @using System.Security.Claims
 @inject IEnrollmentService EnrollmentService
+@inject IUserAccountService UserAccountService
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -43,6 +44,24 @@
 				</article>
 			</div>
 		</section>
+
+		@if (_brokerUser is not null)
+		{
+			var education = LicenseEducationRules.CalculateForState(_brokerUser.State, _brokerUser.InitialLicensureDate, _brokerUser.PostlicensingCompletedAt, _brokerUser.ContinuingEducationDueDate, _brokerUser.LicenseRenewalDueDate, DateTime.UtcNow);
+			<section class="card">
+				<h2>License Education</h2>
+				<p><strong>@education.Phase@(education.IsPostlicensingOverdue ? " (overdue)" : string.Empty)</strong></p>
+				<div class="form-grid">
+					<div class="form-field"><label>Initial license date</label><span>@(education.InitialLicensureDate?.ToString("yyyy-MM-dd") ?? "Not set")</span></div>
+					<div class="form-field"><label>Expected post-license date</label><span>@(education.ExpectedPostlicensingDate?.ToString("yyyy-MM-dd") ?? "Not set")</span></div>
+					<div class="form-field"><label>Expected CE date</label><span>@(education.ExpectedContinuingEducationDate?.ToString("yyyy-MM-dd") ?? "Not set")</span></div>
+				</div>
+				@if (!education.InitialLicensureDate.HasValue)
+				{
+					<p class="muted-text">Your initial license date has not been entered. Contact an administrator to calculate your education phase.</p>
+				}
+			</section>
+		}
 	}
 
 	@if (IsSectionVisible("compliance"))
@@ -217,7 +236,7 @@
 
 				<div class="support-learner-row">
 					<label for="Support-learner">Learner</label>
-					<select id="Support-learner" value="@_selectedLearnerIdText" @onchange="OnSelectedLearnerChangedAsync" disabled="@(!_isInteractive)">
+					<select id="Support-learner" value="@_selectedLearnerIdText" @onchange="HandleLearnerSelectionChangedAsync">
 						@foreach (var learner in _allLearners)
 						{
 							<option value="@learner.LearnerId">@learner.LearnerName (@learner.LearnerEmail)</option>
@@ -283,20 +302,15 @@
 				}
 			</section>
 
-			<section class="card support-ownership-card">
+			<section class="card support-ownership-card" @key="@(_selectedLearnerIdText)">
 				<h3>Learner enrolled courses</h3>
 				<p class="muted-text">Courses the selected learner enrolled in directly.</p>
 
 				@{
-					var selectedLearner = _allLearners.FirstOrDefault(learner => learner.LearnerId == _selectedLearnerId)
-						?? _allLearners.FirstOrDefault();
-					var selectedLearnerLabel = selectedLearner is null
-						? "Current learner"
-						: $"{selectedLearner.LearnerName} ({selectedLearner.LearnerEmail})";
 					var learnerOwnedCourses = GetSelectedLearnerEnrolledCourses();
 				}
 
-				<p><strong>@selectedLearnerLabel</strong></p>
+				<p><strong>@_selectedLearnerDisplayText</strong></p>
 
 				@if (learnerOwnedCourses.Count > 0)
 				{
@@ -378,12 +392,13 @@
 	private List<LearnerLogItem> _logs = new();
 	private Guid? _selectedLearnerId;
 	private string _selectedLearnerIdText = string.Empty;
+	private string _selectedLearnerDisplayText = string.Empty;
 	private Guid? _selectedCourseId;
 	private string _actorEmail = string.Empty;
 	private string? _SupportStatus;
 	private bool? _SupportSucceeded;
 	private Guid _brokerUserId;
-	private bool _isInteractive;
+	private UserAccount? _brokerUser;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -396,6 +411,7 @@
 		}
 
 		_actorEmail = authState.User.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty;
+		_brokerUser = await UserAccountService.GetByIdAsync(_brokerUserId);
 
 		await RefreshBrokerDataAsync();
 		await RefreshLearnerDirectoryAsync();
@@ -403,19 +419,9 @@
 		if (_allLearners.Count > 0)
 		{
 			SetSelectedLearner(_allLearners[0].LearnerId);
+			_selectedLearnerDisplayText = GetSelectedLearnerDisplayText();
 			await RefreshSupportContextAsync();
 		}
-	}
-
-	protected override Task OnAfterRenderAsync(bool firstRender)
-	{
-		if (firstRender)
-		{
-			_isInteractive = true;
-			StateHasChanged();
-		}
-
-		return Task.CompletedTask;
 	}
 
 	private async Task RefreshBrokerDataAsync()
@@ -429,27 +435,96 @@
 		await RefreshBrokerPurchasedCoursesAsync();
 	}
 
-	private async Task OnSelectedLearnerChangedAsync(ChangeEventArgs args)
+	private async Task HandleLearnerSelectionChangedAsync(ChangeEventArgs args)
 	{
-		if (Guid.TryParse(args.Value?.ToString(), out var learnerId))
-		{
-			SetSelectedLearner(learnerId);
-		}
-		else
-		{
-			SetSelectedLearner(null);
-		}
-
+		var rawValue = args.Value?.ToString() ?? string.Empty;
+		ApplySelectedLearner(rawValue);
 		_selectedCourseId = null;
 		_SupportStatus = null;
 		_SupportSucceeded = null;
 		await RefreshSupportContextAsync();
 	}
 
+	private void ApplySelectedLearner(string rawValue)
+	{
+		_selectedLearnerIdText = rawValue;
+		_selectedLearnerId = TryResolveSelectedLearnerId(rawValue, out var learnerId) ? learnerId : null;
+
+		if (_selectedLearnerId.HasValue && !_allLearners.Any(item => item.LearnerId == _selectedLearnerId.Value))
+		{
+			_selectedLearnerId = null;
+			_selectedLearnerIdText = string.Empty;
+		}
+
+		if (!_selectedLearnerId.HasValue && _allLearners.Count > 0)
+		{
+			_selectedLearnerId = _allLearners[0].LearnerId;
+			_selectedLearnerIdText = _selectedLearnerId.Value.ToString();
+		}
+
+		_selectedLearnerDisplayText = GetSelectedLearnerDisplayText();
+	}
+
+	private bool TryResolveSelectedLearnerId(string? rawValue, out Guid learnerId)
+	{
+		learnerId = Guid.Empty;
+		if (string.IsNullOrWhiteSpace(rawValue))
+		{
+			return false;
+		}
+
+		var trimmedValue = rawValue.Trim();
+		if (Guid.TryParse(trimmedValue, out learnerId))
+		{
+			return true;
+		}
+
+		foreach (var learner in _allLearners)
+		{
+			if (string.Equals(learner.LearnerId.ToString("D"), trimmedValue, StringComparison.OrdinalIgnoreCase)
+				|| string.Equals(learner.LearnerId.ToString(), trimmedValue, StringComparison.OrdinalIgnoreCase))
+			{
+				learnerId = learner.LearnerId;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	private void SetSelectedLearner(Guid? learnerId)
 	{
-		_selectedLearnerId = learnerId;
-		_selectedLearnerIdText = learnerId?.ToString() ?? string.Empty;
+		if (learnerId.HasValue && _allLearners.Any(item => item.LearnerId == learnerId.Value))
+		{
+			_selectedLearnerId = learnerId;
+			_selectedLearnerIdText = learnerId.Value.ToString();
+			_selectedLearnerDisplayText = GetSelectedLearnerDisplayText();
+			return;
+		}
+
+		var fallbackLearner = _allLearners.FirstOrDefault();
+		_selectedLearnerId = fallbackLearner?.LearnerId;
+		_selectedLearnerIdText = fallbackLearner?.LearnerId.ToString() ?? string.Empty;
+		_selectedLearnerDisplayText = GetSelectedLearnerDisplayText();
+	}
+
+	private string GetSelectedLearnerDisplayText()
+	{
+		var resolvedLearnerId = _selectedLearnerId.HasValue
+			? _selectedLearnerId.Value
+			: (Guid.TryParse(_selectedLearnerIdText, out var parsed) ? parsed : Guid.Empty);
+
+		if (resolvedLearnerId != Guid.Empty)
+		{
+			var selectedLearner = _allLearners.FirstOrDefault(item => item.LearnerId == resolvedLearnerId);
+			if (selectedLearner is not null)
+			{
+				return $"{selectedLearner.LearnerName} ({selectedLearner.LearnerEmail})";
+			}
+		}
+
+		var fallbackLearner = _allLearners.FirstOrDefault();
+		return fallbackLearner is null ? "Current learner" : $"{fallbackLearner.LearnerName} ({fallbackLearner.LearnerEmail})";
 	}
 
 	private async Task RefreshSupportContextAsync()
@@ -491,6 +566,8 @@
 		{
 			_selectedCourseId = _availableCourses[0].Id;
 		}
+
+		_selectedLearnerDisplayText = GetSelectedLearnerDisplayText();
 	}
 
 	private async Task RefreshLearnerDirectoryAsync()

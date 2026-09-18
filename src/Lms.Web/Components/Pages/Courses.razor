@@ -1,6 +1,7 @@
 @page "/courses"
 @using System.Security.Claims
 @using Lms.Application.Services
+@using Lms.Domain.Entities
 @inject ICourseService CourseService
 @inject IEnrollmentService EnrollmentService
 @inject IShoppingCartService ShoppingCartService
@@ -25,8 +26,34 @@
 
         <div class="courses-header">
             <div class="search-bar">
-                <input type="text" placeholder="Search courses..." @oninput="FilterCourses" />
+                <label for="course-search">Search courses</label>
+                <div class="search-input-wrap">
+                    <span aria-hidden="true">⌕</span>
+                    <input id="course-search" type="search" placeholder="Title, topic, state, or category" value="@_searchTerm" @oninput="FilterCourses" />
+                    @if (!string.IsNullOrWhiteSpace(_searchTerm))
+                    {
+                        <button type="button" class="clear-search-button" aria-label="Clear course search" @onclick="ClearSearch">×</button>
+                    }
+                </div>
             </div>
+            <div class="course-filter">
+                <label for="state-filter">State</label>
+                <select id="state-filter" value="@_stateFilter" @onchange="FilterByState">
+                    <option value="All">All states</option>
+                    <option value="Florida">Florida</option>
+                    <option value="North Carolina">North Carolina</option>
+                </select>
+            </div>
+            <div class="course-filter">
+                <label for="category-filter">Category</label>
+                <select id="category-filter" value="@_categoryFilter" @onchange="FilterByCategory">
+                    <option value="All">All categories</option>
+                    <option value="Prelicensing">Prelicensing</option>
+                    <option value="Postlicensing">Postlicensing</option>
+                    <option value="ContinuingEducation">Continuing education</option>
+                </select>
+            </div>
+            <span class="course-result-count" role="status">@GetResultCountLabel()</span>
             @if (_canPurchase)
             {
                 <a href="/cart" class="cart-link">🛒 View Cart (@_cartItemCount)</a>
@@ -39,7 +66,10 @@
                 <div class="course-card">
                     <div class="card-header">
                         <h3>@course.Title</h3>
-                        <span class="course-level">@course.Level</span>
+                    </div>
+                    <div class="course-tags">
+                        <span class="course-state">@(string.IsNullOrWhiteSpace(course.State) ? "Real estate" : course.State)</span>
+                        <span class="course-category">@GetCategoryLabel(course.ComplianceType)</span>
                     </div>
                     <p class="description">@course.Description</p>
                     <div class="course-details">
@@ -86,6 +116,14 @@
                 </div>
             }
         </div>
+        @if (_filteredCourses.Count == 0)
+        {
+            <div class="course-empty-state" role="status">
+                <h2>No courses found</h2>
+                <p>Try a different search or choose another state.</p>
+                <button type="button" class="btn-secondary" @onclick="ClearFilters">Clear filters</button>
+            </div>
+        }
     }
 </div>
 
@@ -99,6 +137,8 @@
     private int _cartItemCount = 0;
     private string? _message;
     private string _searchTerm = "";
+    private string _stateFilter = "All";
+    private string _categoryFilter = "All";
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,6 +160,14 @@
                 _enrolledCourseIds.Add(enrollment.CourseId);
             }
 
+            var offeredCourseIds = (await EnrollmentService.GetAvailableCoursesForLearnerAsync(userId))
+                .Select(course => course.Id)
+                .ToHashSet();
+            _courses = _courses
+                .Where(course => offeredCourseIds.Contains(course.Id) || _enrolledCourseIds.Contains(course.Id))
+                .ToList();
+            _filteredCourses = _courses;
+
             var cart = await ShoppingCartService.GetCartWithCoursesAsync(userId);
             _cartItemCount = cart.Items.Sum(item => item.Quantity);
         }
@@ -128,17 +176,62 @@
     private void FilterCourses(ChangeEventArgs e)
     {
         _searchTerm = e.Value?.ToString() ?? "";
-        if (string.IsNullOrWhiteSpace(_searchTerm))
-        {
-            _filteredCourses = _courses;
-        }
-        else
-        {
-            _filteredCourses = _courses
-                .Where(c => c.Title.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase) ||
-                           c.Description.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
+        ApplyFilters();
+    }
+
+    private void FilterByState(ChangeEventArgs e)
+    {
+        _stateFilter = e.Value?.ToString() ?? "All";
+        ApplyFilters();
+    }
+
+    private void FilterByCategory(ChangeEventArgs e)
+    {
+        _categoryFilter = e.Value?.ToString() ?? "All";
+        ApplyFilters();
+    }
+
+    private void ApplyFilters()
+    {
+        var searchTerm = _searchTerm.Trim();
+        _filteredCourses = _courses
+            .Where(course => _stateFilter == "All"
+                || string.Equals(course.State, _stateFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(course => _categoryFilter == "All"
+                || string.Equals(course.ComplianceType, _categoryFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(course => string.IsNullOrWhiteSpace(searchTerm)
+                || course.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                || (course.Description?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+                || (course.State?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
+                || course.ComplianceType.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                || course.DeliveryMethod.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private void ClearSearch()
+    {
+        _searchTerm = string.Empty;
+        ApplyFilters();
+    }
+
+    private void ClearFilters()
+    {
+        _searchTerm = string.Empty;
+        _stateFilter = "All";
+        _categoryFilter = "All";
+        ApplyFilters();
+    }
+
+    private static string GetCategoryLabel(string complianceType)
+    {
+        return string.IsNullOrWhiteSpace(complianceType)
+            ? "Real estate"
+            : CourseComplianceTypes.ToDisplayText(complianceType);
+    }
+
+    private string GetResultCountLabel()
+    {
+        return $"{_filteredCourses.Count} course{(_filteredCourses.Count == 1 ? string.Empty : "s")}";
     }
 
     private async Task AddToCartAsync(Lms.Domain.Entities.Course course)
@@ -203,11 +296,74 @@
     }
 
     .search-bar input {
-        padding: 0.75rem;
+        padding: 0.75rem 2.5rem 0.75rem 2.25rem;
         border: 1px solid #ddd;
         border-radius: 4px;
         font-size: 1rem;
         min-width: 300px;
+    }
+
+    .search-bar label,
+    .course-filter label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+        color: #52606d;
+    }
+
+    .search-input-wrap {
+        position: relative;
+    }
+
+    .search-input-wrap > span {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-52%);
+        color: #52606d;
+        font-size: 1.25rem;
+        pointer-events: none;
+    }
+
+    .clear-search-button {
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        border: 0;
+        background: transparent;
+        color: #52606d;
+        font-size: 1.2rem;
+        cursor: pointer;
+    }
+
+    .course-filter select {
+        min-width: 180px;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background: white;
+        font-size: 1rem;
+    }
+
+    .course-result-count {
+        align-self: end;
+        color: #52606d;
+        font-size: 0.9rem;
+        white-space: nowrap;
+    }
+
+    .course-empty-state {
+        padding: 3rem 1rem;
+        text-align: center;
+        border: 1px dashed #cbd5e0;
+        color: #52606d;
+    }
+
+    .course-empty-state h2 {
+        margin-top: 0;
+        color: #243b53;
     }
 
     .cart-link {
@@ -242,6 +398,20 @@
         transition: box-shadow 0.2s;
     }
 
+    @@media (max-width: 640px) {
+        .search-bar,
+        .course-filter,
+        .search-bar input,
+        .course-filter select {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .course-result-count {
+            align-self: start;
+        }
+    }
+
     .course-card:hover {
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
@@ -261,14 +431,31 @@
         flex: 1;
     }
 
-    .course-level {
-        background: #e8f1ff;
-        color: #4a90e2;
-        padding: 0.25rem 0.75rem;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        white-space: nowrap;
+    .course-tags {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        padding: 0.75rem 1rem 0;
+    }
+
+    .course-state,
+    .course-category {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .course-state {
+        background: #e6fffa;
+        color: #146c63;
+    }
+
+    .course-category {
+        background: #fff3bf;
+        color: #7a5b00;
     }
 
     .description {

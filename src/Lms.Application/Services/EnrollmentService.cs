@@ -20,7 +20,6 @@ public interface IEnrollmentService
     Task<List<Course>> GetBrokerPurchasedCoursesAsync(Guid brokerUserId);
     Task<List<Course>> GetBrokerPurchasableCoursesForLearnerAsync(Guid brokerUserId, Guid learnerUserId);
     Task UpdateProgressAsync(Guid userId, Guid courseId, decimal progressPercent);
-    Task ReconcileCompletionAsync(Guid userId, Guid courseId);
     Task<Dictionary<Guid, bool>> GetLessonCompletionMapAsync(Guid userId, Guid courseId);
     Task SetLessonCompletionAsync(Guid userId, Guid lessonId, bool completed);
     Task<List<LearnerCertificateRow>> GetCertificatesForLearnerAsync(Guid userId);
@@ -45,6 +44,7 @@ public interface IEnrollmentService
     Task<EnrollmentLifecycleResult> AdminTransferEnrollmentAsync(Guid learnerUserId, Guid fromCourseId, Guid toCourseId, Guid actorUserId, string actorEmail, string reason);
     Task<List<LearnerLogItem>> GetLearnerLogsAsync(Guid learnerUserId, Guid? brokerUserId = null);
     Task<List<BrokerEnrollmentReportRow>> GetBrokerEnrollmentReportAsync(Guid brokerUserId, DateTime? fromUtc = null, DateTime? toUtc = null);
+    Task ReconcileCompletionAsync(Guid userId, Guid courseId);
 }
 
 public sealed record BrokerDashboardSummary(int Learners, int ActiveEnrollments, int CompletedEnrollments, int AtRiskEnrollments);
@@ -60,24 +60,19 @@ public sealed record CertificateDownloadPayload(
     string VerificationCode,
     string LearnerName,
     string LearnerEmail,
-    string SchoolName,
-    string PrimaryInstructorName,
-    string? ProviderLicenseNumber,
-    string? InstructorLicenseNumber,
     string CourseTitle,
-    DateTime CourseStartDateUtc,
-    DateTime CompletedAtUtc,
     DateTime IssuedAt,
     DateTime ExpiresAt,
+    string Status,
+    bool IsRevoked,
+    string? RevocationReason,
     string? InstructorName,
-    string EducationDirectorName,
+    string? EducationDirectorName,
     string? CommissionCourseNumber,
     int CreditHours,
     string ComplianceType,
-    string DeliveryMethod,
-    string Status,
-    bool IsRevoked,
-    string? RevocationReason);
+    DateTime CompletedAtUtc,
+    DateTime CourseStartDateUtc);
 public sealed record EnrollmentLifecycleResult(Guid LearnerUserId, Guid CourseId, bool Succeeded, string Action, string Message);
 public sealed record LearnerLogItem(DateTime TimestampUtc, string Type, string Title, string Details);
 public sealed record BrokerEnrollmentReportRow(string LearnerName, string LearnerEmail, string CourseTitle, DateTime EnrolledAt, decimal ProgressPercent, bool Completed);
@@ -92,14 +87,16 @@ public class EnrollmentService : IEnrollmentService
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuditLogService _auditLogService;
     private readonly IAssessmentService _assessmentService;
-    private readonly ISchoolProfileService _schoolProfileService;
+    private readonly ISchoolProfileService? _schoolProfileService;
+    private readonly ICourseActivityService? _courseActivityService;
 
-    public EnrollmentService(ApplicationDbContext dbContext, IAuditLogService auditLogService, IAssessmentService assessmentService, ISchoolProfileService schoolProfileService)
+    public EnrollmentService(ApplicationDbContext dbContext, IAuditLogService auditLogService, IAssessmentService assessmentService, ISchoolProfileService? schoolProfileService = null, ICourseActivityService? courseActivityService = null)
     {
         _dbContext = dbContext;
         _auditLogService = auditLogService;
         _assessmentService = assessmentService;
         _schoolProfileService = schoolProfileService;
+        _courseActivityService = courseActivityService;
         QuestPDF.Settings.License = LicenseType.Community;
     }
 
@@ -111,16 +108,21 @@ public class EnrollmentService : IEnrollmentService
 
     public async Task EnrollAsync(Guid userId, Guid courseId)
     {
-        var userExists = await _dbContext.UserAccounts.AnyAsync(user => user.Id == userId);
-        if (!userExists)
+        var learner = await _dbContext.UserAccounts.FirstOrDefaultAsync(user => user.Id == userId);
+        if (learner is null)
         {
             throw new InvalidOperationException("Your session is out of date. Please sign in again.");
         }
 
-        var course = await _dbContext.Courses.FirstOrDefaultAsync(existing => existing.Id == courseId);
+        var course = await _dbContext.Courses.FirstOrDefaultAsync(course => course.Id == courseId);
         if (course is null)
         {
             throw new InvalidOperationException("Course not found.");
+        }
+
+        if (!IsCourseAvailableToLearner(course, learner))
+        {
+            throw new InvalidOperationException("This course is not available for your licensing state.");
         }
 
         var alreadyEnrolled = await IsEnrolledAsync(userId, courseId);
@@ -129,7 +131,6 @@ public class EnrollmentService : IEnrollmentService
             return;
         }
 
-        var enrolledAtUtc = DateTime.UtcNow;
         var enrollment = new Enrollment
         {
             UserAccountId = userId,
@@ -137,9 +138,10 @@ public class EnrollmentService : IEnrollmentService
             EnrollmentSource = LearnerPurchaseSource,
             SponsoredByBrokerUserId = null,
             ConsentStatus = NotRequiredConsent,
-            EnrolledAt = enrolledAtUtc,
-            AccessGrantedAtUtc = enrolledAtUtc,
-            DueAtUtc = RegulatoryCoursePolicy.GetEnrollmentDeadlineUtc(course, enrolledAtUtc),
+            EnrolledAt = DateTime.UtcNow,
+            DueAtUtc = DateTime.UtcNow.AddDays(30),
+            DueSoonReminderSentAt = null,
+            OverdueReminderSentAt = null,
             ProgressPercent = 0,
             Completed = false
         };
@@ -165,6 +167,14 @@ public class EnrollmentService : IEnrollmentService
         await _auditLogService.WriteAsync(userId, actorEmail, "enrollment.created", "Enrollment", enrollment.Id, $"CourseId={courseId}");
     }
 
+    private static bool IsCourseAvailableToLearner(Course course, UserAccount learner)
+    {
+        return string.IsNullOrWhiteSpace(learner.State) ||
+            string.IsNullOrWhiteSpace(course.State) ||
+            string.Equals(course.State, "General", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(course.State, learner.State, StringComparison.OrdinalIgnoreCase);
+    }
+
     public async Task<List<Enrollment>> GetEnrollmentsForLearnerAsync(Guid userId)
     {
         return await _dbContext.Enrollments
@@ -184,14 +194,30 @@ public class EnrollmentService : IEnrollmentService
 
     public async Task<List<Course>> GetAvailableCoursesForLearnerAsync(Guid userId)
     {
+        var learnerState = await _dbContext.UserAccounts
+            .Where(user => user.Id == userId)
+            .Select(user => user.State)
+            .FirstOrDefaultAsync();
+
         var enrolledCourseIds = await _dbContext.Enrollments
             .Where(enrollment => enrollment.UserAccountId == userId)
             .Select(enrollment => enrollment.CourseId)
             .ToListAsync();
 
-        return await _dbContext.Courses
+        var courses = _dbContext.Courses
             .AsNoTracking()
-            .Where(course => course.IsPublished && !course.IsArchived && !enrolledCourseIds.Contains(course.Id))
+            .Where(course => course.IsPublished && !course.IsArchived && !enrolledCourseIds.Contains(course.Id));
+
+        if (!string.IsNullOrWhiteSpace(learnerState))
+        {
+            var normalizedLearnerState = learnerState.Trim().ToUpperInvariant();
+            courses = courses.Where(course =>
+                string.IsNullOrWhiteSpace(course.State) ||
+                course.State == "General" ||
+                course.State.ToUpper() == normalizedLearnerState);
+        }
+
+        return await courses
             .OrderBy(course => course.Title)
             .ToListAsync();
     }
@@ -254,7 +280,7 @@ public class EnrollmentService : IEnrollmentService
 
         var clampedProgress = Math.Clamp(progressPercent, 0, 100);
         enrollment.ProgressPercent = clampedProgress;
-        enrollment.Completed = clampedProgress >= 100;
+        ApplyCompletionState(enrollment, clampedProgress >= 100);
 
         await _dbContext.SaveChangesAsync();
 
@@ -266,19 +292,6 @@ public class EnrollmentService : IEnrollmentService
         await EnsureCertificateStateAsync(userId, enrollment, actorEmail);
 
         await _auditLogService.WriteAsync(userId, actorEmail, "enrollment.progress.updated", "Enrollment", enrollment.Id, $"Progress={clampedProgress:0.##}");
-    }
-
-    public async Task ReconcileCompletionAsync(Guid userId, Guid courseId)
-    {
-        var enrollment = await _dbContext.Enrollments.FirstOrDefaultAsync(existing =>
-            existing.UserAccountId == userId && existing.CourseId == courseId);
-
-        if (enrollment is null)
-        {
-            throw new InvalidOperationException("Enrollment not found.");
-        }
-
-        await RecalculateEnrollmentProgressAsync(userId, courseId, enrollment);
     }
 
     public async Task<Dictionary<Guid, bool>> GetLessonCompletionMapAsync(Guid userId, Guid courseId)
@@ -404,7 +417,9 @@ public class EnrollmentService : IEnrollmentService
     public async Task<List<CertificateComplianceRow>> GetCertificateComplianceRowsAsync(Guid? brokerUserId = null)
     {
         var now = DateTime.UtcNow;
-        var visibleLearnerIds = await GetVisibleLearnerIdsAsync();
+        var visibleLearnerIds = brokerUserId.HasValue
+            ? await GetAssignedLearnerIdsAsync(brokerUserId.Value)
+            : await GetVisibleLearnerIdsAsync();
 
         var certificatesQuery = _dbContext.CompletionCertificates
             .AsNoTracking()
@@ -451,33 +466,7 @@ public class EnrollmentService : IEnrollmentService
             return null;
         }
 
-        var status = GetCertificateStatus(certificate, DateTime.UtcNow);
-        var schoolProfile = await _schoolProfileService.GetAsync();
-
-        return new CertificateDownloadPayload(
-            certificate.Id,
-            certificate.CertificateNumber,
-            certificate.VerificationCode,
-            certificate.UserAccount?.LegalName ?? certificate.UserAccount?.DisplayName ?? "Unknown Learner",
-            certificate.UserAccount?.Email ?? "unknown@lms.local",
-            schoolProfile.AdvertisedName,
-            schoolProfile.PrimaryInstructorName,
-            schoolProfile.ProviderLicenseNumber,
-            schoolProfile.InstructorLicenseNumber,
-            certificate.Course?.Title ?? "Unknown Course",
-            certificate.Enrollment?.AccessGrantedAtUtc ?? certificate.IssuedAt,
-            certificate.CompletedAtUtc,
-            certificate.IssuedAt,
-            certificate.ExpiresAt,
-            certificate.InstructorName,
-            certificate.EducationDirectorName ?? schoolProfile.EducationDirectorName,
-            certificate.CommissionCourseNumber,
-            certificate.CreditHours,
-            certificate.Course?.ComplianceType ?? CourseComplianceTypes.Unspecified,
-            certificate.Course?.DeliveryMethod ?? CourseDeliveryMethods.DistanceEducation,
-            status,
-            certificate.IsRevoked,
-            certificate.RevocationReason);
+        return BuildCertificateDownloadPayload(certificate);
     }
 
     public async Task<CertificateDownloadPayload?> VerifyCertificateAsync(string certificateNumber, string verificationCode)
@@ -503,32 +492,8 @@ public class EnrollmentService : IEnrollmentService
         {
             return null;
         }
-        var schoolProfile = await _schoolProfileService.GetAsync();
 
-        return new CertificateDownloadPayload(
-            certificate.Id,
-            certificate.CertificateNumber,
-            certificate.VerificationCode,
-            certificate.UserAccount?.LegalName ?? certificate.UserAccount?.DisplayName ?? "Unknown Learner",
-            certificate.UserAccount?.Email ?? "unknown@lms.local",
-            schoolProfile.AdvertisedName,
-            schoolProfile.PrimaryInstructorName,
-            schoolProfile.ProviderLicenseNumber,
-            schoolProfile.InstructorLicenseNumber,
-            certificate.Course?.Title ?? "Unknown Course",
-            certificate.Enrollment?.AccessGrantedAtUtc ?? certificate.IssuedAt,
-            certificate.CompletedAtUtc,
-            certificate.IssuedAt,
-            certificate.ExpiresAt,
-            certificate.InstructorName,
-            certificate.EducationDirectorName ?? schoolProfile.EducationDirectorName,
-            certificate.CommissionCourseNumber,
-            certificate.CreditHours,
-            certificate.Course?.ComplianceType ?? CourseComplianceTypes.Unspecified,
-            certificate.Course?.DeliveryMethod ?? CourseDeliveryMethods.DistanceEducation,
-            GetCertificateStatus(certificate, DateTime.UtcNow),
-            certificate.IsRevoked,
-            certificate.RevocationReason);
+        return BuildCertificateDownloadPayload(certificate);
     }
 
     public async Task<byte[]?> GenerateCertificatePdfAsync(Guid certificateId, Guid requesterUserId, bool isPrivileged)
@@ -561,13 +526,8 @@ public class EnrollmentService : IEnrollmentService
                 {
                     column.Spacing(12);
 
-                    column.Item().AlignCenter().Text(payload.SchoolName).FontSize(18).Bold();
-                    if (!string.IsNullOrWhiteSpace(payload.ProviderLicenseNumber))
-                    {
-                        column.Item().AlignCenter().Text($"Provider license number: {payload.ProviderLicenseNumber}").FontSize(10);
-                    }
-                    column.Item().AlignCenter().Text("Course Completion Certificate").FontSize(28).Bold().FontColor(Colors.Blue.Darken2);
-                    column.Item().AlignCenter().Text($"{CourseComplianceTypes.ToDisplayText(payload.ComplianceType)} · {CourseDeliveryMethods.ToDisplayText(payload.DeliveryMethod)}").FontSize(11);
+                    column.Item().Text("Learning Completion Certificate").FontSize(28).Bold().FontColor(Colors.Blue.Darken2);
+                    column.Item().Text($"Certificate Number: {payload.CertificateNumber}").Bold();
 
                     column.Item().PaddingTop(6).Text(text =>
                     {
@@ -578,37 +538,18 @@ public class EnrollmentService : IEnrollmentService
                         text.Span(".").FontSize(12);
                     });
 
-                    column.Item().PaddingTop(6).Table(table =>
-                    {
-                        table.ColumnsDefinition(columns =>
-                        {
-                            columns.RelativeColumn();
-                            columns.RelativeColumn();
-                        });
-                        table.Cell().Text($"Course start date: {payload.CourseStartDateUtc:MM-dd-yyyy}");
-                        table.Cell().Text($"Completion date: {payload.CompletedAtUtc:MM-dd-yyyy}");
-                        table.Cell().Text($"Commission course number: {payload.CommissionCourseNumber ?? "Not assigned"}");
-                        table.Cell().Text($"Credit hours: {payload.CreditHours}");
-                        table.Cell().Text($"Instructor: {payload.InstructorName ?? payload.PrimaryInstructorName}");
-                        if (!string.IsNullOrWhiteSpace(payload.InstructorLicenseNumber))
-                        {
-                            table.Cell().Text($"Instructor license number: {payload.InstructorLicenseNumber}");
-                        }
-                        table.Cell().Text($"Certificate number: {payload.CertificateNumber}");
-                    });
-
-                    column.Item().PaddingTop(12).Text($"Electronically signed by {payload.EducationDirectorName}, Education Director").Bold();
-                    column.Item().Text($"Signature date: {payload.IssuedAt:MM-dd-yyyy}");
+                    column.Item().Text($"Issued (UTC): {payload.IssuedAt:u}");
+                    column.Item().Text($"Expires (UTC): {payload.ExpiresAt:u}");
                     column.Item().Text($"Status: {payload.Status}");
-                    column.Item().Text($"Verification code: {payload.VerificationCode}");
+                    column.Item().Text($"Verification Code: {payload.VerificationCode}");
 
                     if (!string.IsNullOrWhiteSpace(payload.RevocationReason))
                     {
                         column.Item().Text($"Revocation Reason: {payload.RevocationReason}").FontColor(Colors.Red.Darken2);
                     }
 
-                    column.Item().PaddingTop(10).Text("Scan to verify this certificate online").SemiBold();
-                    column.Item().Width(110).Image(qrBytes);
+                    column.Item().PaddingTop(10).Text("Scan QR to verify online").SemiBold();
+                    column.Item().Width(140).Image(qrBytes);
                     column.Item().Text($"Verification URL: {verifyUrl}").FontSize(9).FontColor(Colors.Grey.Darken1);
                 });
             });
@@ -642,7 +583,7 @@ public class EnrollmentService : IEnrollmentService
 
     public async Task<BrokerDashboardSummary> GetBrokerSummaryAsync(Guid brokerUserId)
     {
-        var assignedLearnerIds = await GetVisibleLearnerIdsAsync();
+        var assignedLearnerIds = await GetAssignedLearnerIdsAsync(brokerUserId);
 
         var learners = assignedLearnerIds.Count;
         var enrollments = await _dbContext.Enrollments
@@ -676,7 +617,9 @@ public class EnrollmentService : IEnrollmentService
     {
         var learners = await _dbContext.UserAccounts
             .AsNoTracking()
-            .Where(user => user.Role == "Learner" && user.IsActive)
+            .Where(user => user.Role == "Learner" && user.IsActive
+                && _dbContext.BrokerLearnerAssignments.Any(assignment =>
+                    assignment.BrokerUserId == brokerUserId && assignment.LearnerUserId == user.Id))
             .OrderBy(user => user.DisplayName)
             .ToListAsync();
 
@@ -698,7 +641,7 @@ public class EnrollmentService : IEnrollmentService
 
     public async Task<List<BrokerLearnerRow>> GetBrokerLearnerRowsAsync(Guid brokerUserId)
     {
-        var assignedLearnerIds = await GetVisibleLearnerIdsAsync();
+        var assignedLearnerIds = await GetAssignedLearnerIdsAsync(brokerUserId);
 
         var enrollments = await _dbContext.Enrollments
             .AsNoTracking()
@@ -730,7 +673,7 @@ public class EnrollmentService : IEnrollmentService
     {
         var rows = new List<AssessmentBlockedLearnerRow>();
 
-        var assignedLearnerIds = await GetVisibleLearnerIdsAsync();
+        var assignedLearnerIds = await GetAssignedLearnerIdsAsync(brokerUserId);
 
         var enrollments = await _dbContext.Enrollments
             .AsNoTracking()
@@ -819,8 +762,8 @@ public class EnrollmentService : IEnrollmentService
             return new EnrollmentLifecycleResult(learnerUserId, courseId, false, "repair", "Learner not found or not active.");
         }
 
-        var course = await _dbContext.Courses.FirstOrDefaultAsync(existing => existing.Id == courseId);
-        if (course is null)
+        var courseValid = await _dbContext.Courses.AnyAsync(course => course.Id == courseId);
+        if (!courseValid)
         {
             return new EnrollmentLifecycleResult(learnerUserId, courseId, false, "correction", "Course not found.");
         }
@@ -831,7 +774,6 @@ public class EnrollmentService : IEnrollmentService
             return new EnrollmentLifecycleResult(learnerUserId, courseId, true, "correction", "Learner is already enrolled.");
         }
 
-        var enrolledAtUtc = DateTime.UtcNow;
         var enrollment = new Enrollment
         {
             UserAccountId = learnerUserId,
@@ -839,9 +781,10 @@ public class EnrollmentService : IEnrollmentService
             EnrollmentSource = LearnerPurchaseSource,
             SponsoredByBrokerUserId = null,
             ConsentStatus = NotRequiredConsent,
-            EnrolledAt = enrolledAtUtc,
-            AccessGrantedAtUtc = enrolledAtUtc,
-            DueAtUtc = RegulatoryCoursePolicy.GetEnrollmentDeadlineUtc(course, enrolledAtUtc),
+            EnrolledAt = DateTime.UtcNow,
+            DueAtUtc = DateTime.UtcNow.AddDays(30),
+            DueSoonReminderSentAt = null,
+            OverdueReminderSentAt = null,
             ProgressPercent = 0,
             Completed = false
         };
@@ -956,14 +899,12 @@ public class EnrollmentService : IEnrollmentService
 
             if (!IsBrokerSponsoredEnrollment(existingEnrollment, brokerUserId))
             {
-                return new EnrollmentLifecycleResult(learnerUserId, courseId, false, "enroll", "Learner-owned enrollment is already active for this course.");
+                return new EnrollmentLifecycleResult(learnerUserId, courseId, false, "enroll", "Learner already has a learner-owned enrollment in this course.");
             }
 
             return new EnrollmentLifecycleResult(learnerUserId, courseId, true, "enroll", "Learner is already enrolled.");
         }
 
-        var course = await _dbContext.Courses.FirstAsync(existing => existing.Id == courseId);
-        var enrolledAtUtc = DateTime.UtcNow;
         var enrollment = new Enrollment
         {
             UserAccountId = learnerUserId,
@@ -971,9 +912,10 @@ public class EnrollmentService : IEnrollmentService
             EnrollmentSource = BrokerSponsoredSource,
             SponsoredByBrokerUserId = brokerUserId,
             ConsentStatus = ApprovedConsent,
-            EnrolledAt = enrolledAtUtc,
-            AccessGrantedAtUtc = enrolledAtUtc,
-            DueAtUtc = RegulatoryCoursePolicy.GetEnrollmentDeadlineUtc(course, enrolledAtUtc),
+            EnrolledAt = DateTime.UtcNow,
+            DueAtUtc = DateTime.UtcNow.AddDays(30),
+            DueSoonReminderSentAt = null,
+            OverdueReminderSentAt = null,
             ProgressPercent = 0,
             Completed = false
         };
@@ -1244,7 +1186,7 @@ public class EnrollmentService : IEnrollmentService
         if (courseLessons.Count == 0)
         {
             enrollment.ProgressPercent = 0;
-            enrollment.Completed = false;
+            ApplyCompletionState(enrollment, false);
             await _dbContext.SaveChangesAsync();
             return;
         }
@@ -1262,7 +1204,7 @@ public class EnrollmentService : IEnrollmentService
         var percent = Math.Round(100m * completedCount / progressScope.Count, 2, MidpointRounding.AwayFromZero);
 
         enrollment.ProgressPercent = percent;
-        enrollment.Completed = percent >= 100m;
+        ApplyCompletionState(enrollment, percent >= 100m);
         await _dbContext.SaveChangesAsync();
 
         var actorEmail = await _dbContext.UserAccounts
@@ -1275,57 +1217,49 @@ public class EnrollmentService : IEnrollmentService
         await _auditLogService.WriteAsync(userId, actorEmail, "enrollment.progress.recalculated", "Enrollment", enrollment.Id, $"Progress={percent:0.##}");
     }
 
+    public async Task ReconcileCompletionAsync(Guid userId, Guid courseId)
+    {
+        var enrollment = await _dbContext.Enrollments
+            .FirstOrDefaultAsync(existing => existing.UserAccountId == userId && existing.CourseId == courseId);
+
+        if (enrollment is null)
+        {
+            return;
+        }
+
+        await RecalculateEnrollmentProgressAsync(userId, courseId, enrollment);
+    }
+
+    // Sets/clears CompletedAtUtc alongside Completed so it only stamps once, on the true first completion.
+    private static void ApplyCompletionState(Enrollment enrollment, bool completed)
+    {
+        if (completed)
+        {
+            enrollment.CompletedAtUtc ??= DateTime.UtcNow;
+        }
+        else
+        {
+            enrollment.CompletedAtUtc = null;
+        }
+
+        enrollment.Completed = completed;
+    }
+
     private async Task EnsureCertificateStateAsync(Guid actorUserId, Enrollment enrollment, string? actorEmail)
     {
         var certificate = await _dbContext.CompletionCertificates
             .FirstOrDefaultAsync(existing => existing.EnrollmentId == enrollment.Id);
 
-        var course = await _dbContext.Courses
-            .AsNoTracking()
-            .FirstAsync(existing => existing.Id == enrollment.CourseId);
         var hasPassedRequiredAssessment = await _assessmentService.HasPassedRequiredAssessmentAsync(enrollment.CourseId, enrollment.UserAccountId);
-        var requiredCheckpointKeys = await _dbContext.CourseCheckpointDefinitions
-            .AsNoTracking()
-            .Where(definition => definition.CourseId == enrollment.CourseId && definition.GatesProgression)
-            .Select(definition => definition.Key)
-            .ToListAsync();
-        var passedCheckpointKeys = await _dbContext.ModuleCheckpointProgresses
-            .AsNoTracking()
-            .Where(progress => progress.CourseId == enrollment.CourseId && progress.UserAccountId == enrollment.UserAccountId && progress.Passed)
-            .Select(progress => progress.CheckpointKey)
-            .ToListAsync();
-        var completedRequiredCheckpoints = !course.UsesUnitBasedStructure
-            || (requiredCheckpointKeys.Count > 0 && requiredCheckpointKeys.All(key => passedCheckpointKeys.Contains(key)));
-        var completedWithinDeadline = !enrollment.DueAtUtc.HasValue || DateTime.UtcNow <= enrollment.DueAtUtc.Value;
-        var outsideCeBlackout = !string.Equals(course.ComplianceType, CourseComplianceTypes.ContinuingEducation, StringComparison.OrdinalIgnoreCase)
-            || !RegulatoryCoursePolicy.IsContinuingEducationBlackout(DateTime.UtcNow);
-        var hasVerifiedProctoredPass = !course.RequiresProctoredExam || await _dbContext.AssessmentAttempts
-            .AsNoTracking()
-            .AnyAsync(attempt =>
-                attempt.CourseAssessment!.CourseId == enrollment.CourseId
-                && attempt.UserAccountId == enrollment.UserAccountId
-                && attempt.Passed
-                && attempt.ExamProctoringSession != null
-                && attempt.ExamProctoringSession.ClosedBookConfirmed
-                && !attempt.ExamProctoringSession.SecurityIncidentReported);
-        var certificateEligible = enrollment.Completed
-            && completedRequiredCheckpoints
-            && hasPassedRequiredAssessment
-            && hasVerifiedProctoredPass
-            && completedWithinDeadline
-            && outsideCeBlackout;
+        var hasSatisfiedAttendance = await HasSatisfiedAttendanceRequirementAsync(enrollment.CourseId, enrollment.UserAccountId);
+        var certificateEligible = enrollment.Completed && hasPassedRequiredAssessment && hasSatisfiedAttendance;
 
         if (certificateEligible)
         {
-            var completedAtUtc = enrollment.CompletedAtUtc ?? certificate?.CompletedAtUtc ?? DateTime.UtcNow;
-            enrollment.CompletedAtUtc = completedAtUtc;
             if (certificate is null)
             {
-                var issuedAt = completedAtUtc;
-                var schoolProfile = await _schoolProfileService.GetAsync();
-                var instructorName = course.OwnerInstructorId.HasValue
-                    ? await _dbContext.UserAccounts.Where(user => user.Id == course.OwnerInstructorId.Value).Select(user => user.LegalName ?? user.DisplayName).FirstOrDefaultAsync()
-                    : null;
+                var issuedAt = DateTime.UtcNow;
+                var regulatoryFields = await BuildCertificateRegulatoryFieldsAsync(enrollment.CourseId);
                 certificate = new CompletionCertificate
                 {
                     UserAccountId = enrollment.UserAccountId,
@@ -1335,11 +1269,11 @@ public class EnrollmentService : IEnrollmentService
                     VerificationCode = string.Empty,
                     IssuedAt = issuedAt,
                     ExpiresAt = issuedAt.AddYears(1),
-                    CompletedAtUtc = completedAtUtc,
-                    InstructorName = instructorName ?? schoolProfile.PrimaryInstructorName,
-                    EducationDirectorName = schoolProfile.EducationDirectorName,
-                    CommissionCourseNumber = course.CommissionCourseNumber,
-                    CreditHours = course.CreditHours,
+                    CompletedAtUtc = enrollment.CompletedAtUtc ?? issuedAt,
+                    InstructorName = regulatoryFields.InstructorName,
+                    EducationDirectorName = regulatoryFields.EducationDirectorName,
+                    CommissionCourseNumber = regulatoryFields.CommissionCourseNumber,
+                    CreditHours = regulatoryFields.CreditHours,
                     IsRevoked = false,
                     RevokedAt = null,
                     RevocationReason = null
@@ -1364,6 +1298,14 @@ public class EnrollmentService : IEnrollmentService
                 certificate.VerificationCode = GenerateVerificationCode(certificate.CertificateNumber, certificate.UserAccountId, certificate.CourseId, reissuedAt);
                 await _dbContext.SaveChangesAsync();
                 await _auditLogService.WriteAsync(actorUserId, actorEmail, "certificate.reissued", "CompletionCertificate", certificate.Id, certificate.CertificateNumber);
+                return;
+            }
+
+            // Keep an already-active certificate's completion timestamp in sync with reconciled enrollment data.
+            if (enrollment.CompletedAtUtc.HasValue && certificate.CompletedAtUtc != enrollment.CompletedAtUtc.Value)
+            {
+                certificate.CompletedAtUtc = enrollment.CompletedAtUtc.Value;
+                await _dbContext.SaveChangesAsync();
             }
 
             return;
@@ -1371,13 +1313,64 @@ public class EnrollmentService : IEnrollmentService
 
         if (certificate is not null && !certificate.IsRevoked)
         {
-            enrollment.CompletedAtUtc = null;
             certificate.IsRevoked = true;
             certificate.RevokedAt = DateTime.UtcNow;
             certificate.RevocationReason = "Enrollment dropped below completion threshold.";
             await _dbContext.SaveChangesAsync();
             await _auditLogService.WriteAsync(actorUserId, actorEmail, "certificate.revoked", "CompletionCertificate", certificate.Id, certificate.CertificateNumber);
         }
+    }
+
+    // NC 21 NCAC 58H .0207(a)-(b): in-person/synchronous/blended courses require minimum tracked attendance minutes before a certificate is eligible.
+    private async Task<bool> HasSatisfiedAttendanceRequirementAsync(Guid courseId, Guid userId)
+    {
+        if (_courseActivityService is null)
+        {
+            return true;
+        }
+
+        var course = await _dbContext.Courses.AsNoTracking().FirstOrDefaultAsync(existing => existing.Id == courseId);
+        if (course is null || !course.RequiresTimedAttendance || course.RequiredInstructionalMinutes <= 0)
+        {
+            return true;
+        }
+
+        var requiredMinutes = course.RequiredInstructionalMinutes * course.MinimumAttendancePercent / 100m;
+        var creditedMinutes = await _courseActivityService.GetCreditedMinutesAsync(userId, courseId);
+        return creditedMinutes >= requiredMinutes;
+    }
+
+    private async Task<(string? InstructorName, string? EducationDirectorName, string? CommissionCourseNumber, int CreditHours)> BuildCertificateRegulatoryFieldsAsync(Guid courseId)
+    {
+        var course = await _dbContext.Courses.AsNoTracking().FirstOrDefaultAsync(existing => existing.Id == courseId);
+        if (course is null)
+        {
+            return (null, null, null, 0);
+        }
+
+        string? instructorName = null;
+        if (course.OwnerInstructorId.HasValue)
+        {
+            instructorName = await _dbContext.UserAccounts
+                .AsNoTracking()
+                .Where(user => user.Id == course.OwnerInstructorId.Value)
+                .Select(user => user.LegalName ?? user.DisplayName)
+                .FirstOrDefaultAsync();
+        }
+
+        string? educationDirectorName = null;
+        if (_schoolProfileService is not null)
+        {
+            var courseState = await _dbContext.Courses
+                .Where(existing => existing.Id == courseId)
+                .Select(existing => existing.State)
+                .FirstOrDefaultAsync();
+            var profile = await _schoolProfileService.GetForStateAsync(courseState ?? string.Empty);
+            instructorName ??= profile.PrimaryInstructorName;
+            educationDirectorName = profile.EducationDirectorName;
+        }
+
+        return (instructorName, educationDirectorName, course.CommissionCourseNumber, course.CreditHours);
     }
 
     private static string GenerateCertificateNumber(Guid courseId, Guid userId)
@@ -1416,24 +1409,43 @@ public class EnrollmentService : IEnrollmentService
         return "Active";
     }
 
+    private static CertificateDownloadPayload BuildCertificateDownloadPayload(CompletionCertificate certificate)
+    {
+        return new CertificateDownloadPayload(
+            certificate.Id,
+            certificate.CertificateNumber,
+            certificate.VerificationCode,
+            certificate.UserAccount?.LegalName ?? certificate.UserAccount?.DisplayName ?? "Unknown Learner",
+            certificate.UserAccount?.Email ?? "unknown@lms.local",
+            certificate.Course?.Title ?? "Unknown Course",
+            certificate.IssuedAt,
+            certificate.ExpiresAt,
+            GetCertificateStatus(certificate, DateTime.UtcNow),
+            certificate.IsRevoked,
+            certificate.RevocationReason,
+            certificate.InstructorName,
+            certificate.EducationDirectorName,
+            certificate.CommissionCourseNumber,
+            certificate.CreditHours,
+            certificate.Course?.ComplianceType ?? CourseComplianceTypes.Unspecified,
+            certificate.CompletedAtUtc,
+            certificate.Enrollment?.AccessGrantedAtUtc ?? certificate.IssuedAt);
+    }
+
     private async Task<bool> CanBrokerManageLearnerAsync(Guid brokerUserId, Guid learnerUserId)
     {
         var brokerValid = await _dbContext.UserAccounts
             .AsNoTracking()
             .AnyAsync(user => user.Id == brokerUserId && user.Role == "Broker" && user.IsActive);
 
-        var learnerValid = await _dbContext.UserAccounts
-            .AsNoTracking()
-            .AnyAsync(user => user.Id == learnerUserId && user.Role == "Learner" && user.IsActive);
-
-        if (!brokerValid || !learnerValid)
+        if (!brokerValid)
         {
             return false;
         }
 
-        return await _dbContext.BrokerLearnerAssignments
+        return await _dbContext.UserAccounts
             .AsNoTracking()
-            .AnyAsync(assignment => assignment.BrokerUserId == brokerUserId && assignment.LearnerUserId == learnerUserId);
+            .AnyAsync(user => user.Id == learnerUserId && user.Role == "Learner" && user.IsActive);
     }
 
     private async Task<bool> CanBrokerUseCourseAsync(Guid brokerUserId, Guid courseId)
@@ -1452,6 +1464,16 @@ public class EnrollmentService : IEnrollmentService
             .AsNoTracking()
             .Where(user => user.Role == "Learner" && user.IsActive)
             .Select(user => user.Id)
+            .ToListAsync();
+    }
+
+    private async Task<List<Guid>> GetAssignedLearnerIdsAsync(Guid brokerUserId)
+    {
+        return await _dbContext.BrokerLearnerAssignments
+            .AsNoTracking()
+            .Where(assignment => assignment.BrokerUserId == brokerUserId)
+            .Select(assignment => assignment.LearnerUserId)
+            .Distinct()
             .ToListAsync();
     }
 

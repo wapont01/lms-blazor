@@ -16,79 +16,7 @@
             <InputTextArea @bind-Value="Draft.Description" />
         </div>
         <div class="form-field">
-            <label>Level</label>
-            <InputText @bind-Value="Draft.Level" />
-            <ValidationMessage For="() => Draft.Level" />
         </div>
-        <div class="form-row">
-            <div class="form-field">
-                <label>Compliance type</label>
-                <InputSelect @bind-Value="Draft.ComplianceType">
-                    <option value="">Select compliance type</option>
-                    <option value="@CourseComplianceTypes.Prelicensing">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.Prelicensing)</option>
-                    <option value="@CourseComplianceTypes.Postlicensing">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.Postlicensing)</option>
-                    <option value="@CourseComplianceTypes.ContinuingEducation">@CourseComplianceTypes.ToDisplayText(CourseComplianceTypes.ContinuingEducation)</option>
-                </InputSelect>
-            </div>
-            <div class="form-field">
-                <label>Delivery method</label>
-                <InputSelect @bind-Value="Draft.DeliveryMethod">
-                    <option value="@CourseDeliveryMethods.DistanceEducation">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.DistanceEducation)</option>
-                    <option value="@CourseDeliveryMethods.SynchronousDistanceLearning">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.SynchronousDistanceLearning)</option>
-                    <option value="@CourseDeliveryMethods.InPerson">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.InPerson)</option>
-                    <option value="@CourseDeliveryMethods.Blended">@CourseDeliveryMethods.ToDisplayText(CourseDeliveryMethods.Blended)</option>
-                </InputSelect>
-            </div>
-        </div>
-        @if (Draft.ComplianceType == CourseComplianceTypes.ContinuingEducation)
-        {
-            <div class="form-field">
-                <label>Continuing education type</label>
-                <InputSelect @bind-Value="Draft.ContinuingEducationType">
-                    @foreach (var type in ContinuingEducationTypes.All)
-                    {
-                        <option value="@type">@ContinuingEducationTypes.ToDisplayText(type)</option>
-                    }
-                </InputSelect>
-            </div>
-        }
-        <div class="form-row">
-            <div class="form-field">
-                <label>Commission course number</label>
-                <InputText @bind-Value="Draft.CommissionCourseNumber" />
-                <ValidationMessage For="() => Draft.CommissionCourseNumber" />
-            </div>
-            <div class="form-field">
-                <label>Completion window (days)</label>
-                <InputNumber @bind-Value="Draft.CompletionWindowDays" />
-            </div>
-        </div>
-        @if (Draft.UsesUnitBasedStructure)
-        {
-            <div class="form-row">
-                <div class="form-field">
-                    <label>Required instructional minutes</label>
-                    <InputNumber @bind-Value="Draft.RequiredInstructionalMinutes" />
-                </div>
-                <div class="form-field">
-                    <label>Minimum pass %</label>
-                    <InputNumber @bind-Value="Draft.MinimumPassingPercent" />
-                </div>
-                <div class="form-field">
-                    <label>Minimum attendance %</label>
-                    <InputNumber @bind-Value="Draft.MinimumAttendancePercent" />
-                </div>
-            </div>
-        }
-        @if (CourseComplianceTypes.IsRegulated(Draft.ComplianceType))
-        {
-            <div class="form-field checkbox-field">
-                <label>
-                    <InputCheckbox @bind-Value="Draft.RequiresProctoredExam" />
-                    Requires proctored exam
-                </label>
-            </div>
-        }
         <div class="form-row">
             <div class="form-field">
                 <label>Duration Hours</label>
@@ -102,8 +30,8 @@
             </div>
         </div>
         <div class="form-field">
-            <label>Jurisdiction</label>
-            <InputText @bind-Value="Draft.Jurisdiction" />
+            <label>State</label>
+            <InputText @bind-Value="Draft.State" />
         </div>
         <div class="form-row">
             <div class="form-field">
@@ -147,23 +75,9 @@
                 <article class="course-item">
                     <div>
                         <h3>@course.Title</h3>
-                        <p>@course.Level | @course.DurationHours hours | @course.Price.ToString("C")</p>
+                        <p>@course.DurationHours hours | @course.Price.ToString("C")</p>
                         <p>@course.Description</p>
-                        <p>Status: @(course.IsArchived ? "Archived" : course.IsPublished ? "Published" : "Draft") | Review: @CourseReviewStatuses.ToDisplayText(course.ReviewStatus)</p>
-                        <dl class="course-regulatory-summary">
-                            <div><dt>Compliance</dt><dd>@CourseComplianceTypes.ToDisplayText(course.ComplianceType)</dd></div>
-                            <div><dt>Delivery</dt><dd>@CourseDeliveryMethods.ToDisplayText(course.DeliveryMethod)</dd></div>
-                            <div><dt>Commission course number</dt><dd>@(course.CommissionCourseNumber ?? "Not set")</dd></div>
-                            <div><dt>Completion window</dt><dd>@(course.CompletionWindowDays.HasValue ? $"{course.CompletionWindowDays} days" : "Not set")</dd></div>
-                            <div><dt>Proctored exam</dt><dd>@(course.RequiresProctoredExam ? "Required" : "Not required")</dd></div>
-                            <div><dt>Instructional time</dt><dd>@course.RequiredInstructionalMinutes minutes</dd></div>
-                            <div><dt>Minimum pass</dt><dd>@course.MinimumPassingPercent%</dd></div>
-                            <div><dt>Minimum attendance</dt><dd>@course.MinimumAttendancePercent%</dd></div>
-                            @if (course.ComplianceType == CourseComplianceTypes.ContinuingEducation)
-                            {
-                                <div><dt>CE type</dt><dd>@ContinuingEducationTypes.ToDisplayText(course.ContinuingEducationType ?? string.Empty)</dd></div>
-                            }
-                        </dl>
+                        <p>Status: @(course.IsArchived ? "Archived" : course.IsPublished ? "Published" : "Draft") | Review: @course.ReviewStatus</p>
                         @if (!string.IsNullOrWhiteSpace(course.ReviewNote))
                         {
                             <p class="muted-text">Note: @course.ReviewNote</p>
@@ -179,6 +93,9 @@
                         </div>
                     </div>
                     <div class="course-actions">
+                        <button type="button" @onclick="() => OnTogglePublish.InvokeAsync(course)">
+                            @(course.IsPublished ? "Unpublish" : "Publish")
+                        </button>
                         <button type="button" @onclick="() => OnToggleArchive.InvokeAsync(course)">
                             @(course.IsArchived ? "Restore" : "Archive")
                         </button>
@@ -222,6 +139,9 @@
 
     [Parameter]
     public string? CourseMessage { get; set; }
+
+    [Parameter]
+    public EventCallback<Course> OnTogglePublish { get; set; }
 
     [Parameter]
     public EventCallback<Course> OnToggleArchive { get; set; }

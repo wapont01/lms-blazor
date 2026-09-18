@@ -1,5 +1,6 @@
 using Lms.Application.Services;
 using Lms.Application.Data;
+using Lms.Web.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Lms.Web.Components;
@@ -50,7 +51,7 @@ builder.Services.AddRateLimiter(options =>
             context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = builder.Environment.IsEnvironment("Testing") ? 100 : 8,
+                PermitLimit = 8,
                 Window = TimeSpan.FromMinutes(1),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0,
@@ -67,13 +68,19 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IUserAccountService, UserAccountService>();
 builder.Services.AddScoped<IAssessmentService, AssessmentService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
-builder.Services.AddScoped<ILearnerDashboardService, LearnerDashboardService>();
 builder.Services.AddScoped<IDueDateReminderService, DueDateReminderService>();
+builder.Services.AddScoped<IRegulatoryDirectoryService, RegulatoryDirectoryService>();
+builder.Services.AddScoped<IRegulatoryComplianceService, RegulatoryComplianceService>();
+builder.Services.AddSingleton<IBackgroundJobMonitor, BackgroundJobMonitor>();
+builder.Services.AddHostedService<DueDateReminderBackgroundService>();
+builder.Services.AddScoped<ILearnerDashboardService, LearnerDashboardService>();
 builder.Services.AddScoped<IModuleCheckpointService, ModuleCheckpointService>();
 builder.Services.AddScoped<ICourseActivityService, CourseActivityService>();
 builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IPolicyDisclosureService, PolicyDisclosureService>();
 builder.Services.AddScoped<ISchoolProfileService, SchoolProfileService>();
+builder.Services.AddScoped<IComplianceReportingService, ComplianceReportingService>();
+builder.Services.AddHostedService<ComplianceReminderBackgroundService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPDFInvoiceService, PDFInvoiceService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
@@ -86,11 +93,30 @@ using (var scope = app.Services.CreateScope())
     var userAccountService = scope.ServiceProvider.GetRequiredService<IUserAccountService>();
     await EnsureLegacyDatabaseMigrationBaselineAsync(dbContext);
     await EnsureEnrollmentProvenanceSchemaAsync(dbContext);
+    await EnsureUserLicenseTypeSchemaAsync(dbContext);
+    await EnsureInstructorProfileSchemaAsync(dbContext);
+    await EnsureSchoolProfileStateSchemaAsync(dbContext);
+    await EnsureUserAndCourseStateSchemaAsync(dbContext);
     await dbContext.Database.MigrateAsync();
     await EnsureEnrollmentProvenanceSchemaAsync(dbContext);
+    await EnsureUserLicenseTypeSchemaAsync(dbContext);
+    await EnsureInstructorProfileSchemaAsync(dbContext);
+    await EnsureSchoolProfileStateSchemaAsync(dbContext);
+    await EnsureUserAndCourseStateSchemaAsync(dbContext);
     await userAccountService.EnsureSeedUsersAsync();
     await CourseSeed.SeedAsync(dbContext);
+    await FloridaDbprCaptureSeed.SeedAsync(dbContext);
+    await NcRecCaptureSeed.SeedAsync(dbContext);
+    await NcRecCharlotteCaptureSeed.SeedAsync(dbContext);
+    await NcRecNewLicenseCaptureSeed.SeedAsync(dbContext);
     await CourseSeed.SeedEnrollmentsAsync(dbContext);
+    var floridaProfile = await dbContext.SchoolProfiles
+        .Include(profile => profile.StaffMembers)
+        .FirstOrDefaultAsync(profile => profile.State == "Florida");
+    if (floridaProfile is not null)
+    {
+        ProductionReadinessGuard.Validate(app.Environment.EnvironmentName, floridaProfile);
+    }
 }
 
 if (!app.Environment.IsDevelopment())
@@ -310,6 +336,27 @@ app.MapGet("/api/certificates/verify", async (string certificateNumber, string v
     });
 });
 
+app.MapGet("/ops/background-jobs/status", (ClaimsPrincipal user, IBackgroundJobMonitor monitor) =>
+{
+    if (!user.IsInRole("Admin"))
+    {
+        return Results.Forbid();
+    }
+
+    return Results.Ok(monitor.GetStatus());
+}).RequireAuthorization();
+
+app.MapGet("/ops/background-jobs/health", async (ClaimsPrincipal user, IBackgroundJobMonitor monitor) =>
+{
+    if (!user.IsInRole("Admin"))
+    {
+        return Results.Forbid();
+    }
+
+    var health = await monitor.HealthCheckAsync();
+    return Results.Ok(health);
+}).RequireAuthorization();
+
 app.Run();
 
 static async Task EnsureLegacyDatabaseMigrationBaselineAsync(ApplicationDbContext dbContext)
@@ -373,6 +420,68 @@ static async Task EnsureEnrollmentProvenanceSchemaAsync(ApplicationDbContext dbC
     if (!await SqliteColumnExistsAsync(dbContext, "Enrollments", "ConsentStatus"))
     {
         await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE \"Enrollments\" ADD COLUMN \"ConsentStatus\" TEXT NOT NULL DEFAULT 'NotRequired';");
+    }
+}
+
+static async Task EnsureUserLicenseTypeSchemaAsync(ApplicationDbContext dbContext)
+{
+    if (!await SqliteTableExistsAsync(dbContext, "UserAccounts") ||
+        await SqliteColumnExistsAsync(dbContext, "UserAccounts", "LicenseType"))
+    {
+        return;
+    }
+
+    await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE \"UserAccounts\" ADD COLUMN \"LicenseType\" TEXT NULL;");
+}
+
+static async Task EnsureInstructorProfileSchemaAsync(ApplicationDbContext dbContext)
+{
+    if (!await SqliteTableExistsAsync(dbContext, "UserAccounts"))
+    {
+        return;
+    }
+
+    if (!await SqliteColumnExistsAsync(dbContext, "UserAccounts", "PhoneNumber"))
+    {
+        await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE \"UserAccounts\" ADD COLUMN \"PhoneNumber\" TEXT NULL;");
+    }
+
+    if (!await SqliteColumnExistsAsync(dbContext, "UserAccounts", "PermanentAddress"))
+    {
+        await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE \"UserAccounts\" ADD COLUMN \"PermanentAddress\" TEXT NULL;");
+    }
+}
+
+static async Task EnsureSchoolProfileStateSchemaAsync(ApplicationDbContext dbContext)
+{
+    if (!await SqliteTableExistsAsync(dbContext, "SchoolProfiles"))
+    {
+        return;
+    }
+
+    if (!await SqliteColumnExistsAsync(dbContext, "SchoolProfiles", "State"))
+    {
+        await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE \"SchoolProfiles\" ADD COLUMN \"State\" TEXT NOT NULL DEFAULT 'Florida';");
+    }
+
+    if (!await SqliteColumnExistsAsync(dbContext, "SchoolProfiles", "AddressState"))
+    {
+        await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE \"SchoolProfiles\" ADD COLUMN \"AddressState\" TEXT NOT NULL DEFAULT 'FL';");
+    }
+}
+
+static async Task EnsureUserAndCourseStateSchemaAsync(ApplicationDbContext dbContext)
+{
+    if (await SqliteTableExistsAsync(dbContext, "UserAccounts")
+        && !await SqliteColumnExistsAsync(dbContext, "UserAccounts", "State"))
+    {
+        await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE \"UserAccounts\" ADD COLUMN \"State\" TEXT NULL;");
+    }
+
+    if (await SqliteTableExistsAsync(dbContext, "Courses")
+        && !await SqliteColumnExistsAsync(dbContext, "Courses", "State"))
+    {
+        await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE \"Courses\" ADD COLUMN \"State\" TEXT NULL;");
     }
 }
 

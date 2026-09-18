@@ -56,7 +56,7 @@ public sealed class PolicyDisclosureService : IPolicyDisclosureService
             return null;
         }
 
-        var schoolProfile = await _schoolProfileService.GetAsync();
+        var schoolProfile = await _schoolProfileService.GetForStateAsync(course.State ?? string.Empty);
         return BuildPreview(course, course.Price, schoolProfile);
     }
 
@@ -78,8 +78,6 @@ public sealed class PolicyDisclosureService : IPolicyDisclosureService
             .AsNoTracking()
             .Where(course => courseIds.Contains(course.Id))
             .ToDictionaryAsync(course => course.Id);
-        var schoolProfile = await _schoolProfileService.GetAsync();
-
         var previews = new List<PolicyDisclosurePreview>();
         foreach (var item in items)
         {
@@ -87,6 +85,8 @@ public sealed class PolicyDisclosureService : IPolicyDisclosureService
             {
                 throw new InvalidOperationException("A course in your cart is no longer available.");
             }
+
+            var schoolProfile = await _schoolProfileService.GetForStateAsync(course.State ?? string.Empty);
 
             if (!CourseComplianceTypes.IsRegulated(course.ComplianceType))
             {
@@ -241,13 +241,18 @@ public sealed class PolicyDisclosureService : IPolicyDisclosureService
         var providerNumber = string.IsNullOrWhiteSpace(schoolProfile.ProviderLicenseNumber)
             ? "Not yet assigned"
             : schoolProfile.ProviderLicenseNumber;
+        var isFlorida = string.Equals(course.State, "Florida", StringComparison.OrdinalIgnoreCase);
+        var regulatorName = isFlorida ? "Florida Real Estate Commission" : "North Carolina Real Estate Commission";
+        var regulatorAddress = isFlorida ? "Division of Real Estate-Complaints, 400 West Robinson Street, Suite N801, Orlando, Florida 32801" : "1313 Navaho Drive, Raleigh, NC 27609";
+        var regulatorWebsite = isFlorida ? "https://www2.myfloridalicense.com/real-estate-commission/" : "https://www.ncrec.gov";
+        var complaintUrl = isFlorida ? "https://www2.myfloridalicense.com/real-estate-commission/complaints/" : "https://www.ncrec.gov/complaintform";
         var instructorNumber = string.IsNullOrWhiteSpace(schoolProfile.InstructorLicenseNumber)
             ? "Not yet assigned"
             : schoolProfile.InstructorLicenseNumber;
         var instructors = schoolProfile.StaffMembers
             .Where(member => string.Equals(member.Role, SchoolStaffRoles.Instructor, StringComparison.OrdinalIgnoreCase))
             .OrderBy(member => member.Name)
-            .Select(member => $"{member.Name}, Instructor")
+            .Select(member => $"{member.Name}, Instructor{(string.IsNullOrWhiteSpace(member.LicenseNumber) ? string.Empty : $" ({member.LicenseNumber})")}")
             .ToList();
         if (instructors.Count == 0)
         {
@@ -255,7 +260,7 @@ public sealed class PolicyDisclosureService : IPolicyDisclosureService
         }
 
         text.AppendLine(schoolProfile.AdvertisedName);
-        text.AppendLine($"{schoolProfile.StreetAddress}, {schoolProfile.City}, {schoolProfile.State} {schoolProfile.PostalCode}");
+        text.AppendLine($"{schoolProfile.StreetAddress}, {schoolProfile.City}, {schoolProfile.AddressState} {schoolProfile.PostalCode}");
         text.AppendLine($"{schoolProfile.SupportTelephone} | {schoolProfile.SupportEmail} | {schoolProfile.WebsiteUrl ?? "Website not listed"}");
         text.AppendLine("POLICIES & PROCEDURES DISCLOSURE");
         text.AppendLine($"Date of publication: {DisclosurePublishedAtUtc:MMMM d, yyyy}");
@@ -263,18 +268,20 @@ public sealed class PolicyDisclosureService : IPolicyDisclosureService
         text.AppendLine($"Legal name of Education Provider: {schoolProfile.LegalName}");
         text.AppendLine($"Education Provider number: {providerNumber}");
         text.AppendLine($"Education Director: {schoolProfile.EducationDirectorName}");
-        text.AppendLine($"Faculty and full-time officials: {string.Join("; ", instructors)}; {schoolProfile.CorporateOfficerName}, Corporate Officer");
+        text.AppendLine($"Faculty and full-time officials: {string.Join("; ", instructors)}; {schoolProfile.CorporateOfficerName}, Corporate Official");
         text.AppendLine();
         text.AppendLine("EDUCATION PROVIDER CERTIFICATION");
-        text.AppendLine("This Education Provider is certified by the North Carolina Real Estate Commission. The Commission's address is 1313 Navaho Drive, Raleigh, NC 27609. Complaints concerning the Education Provider or its affiliated instructors may be directed in writing to the Commission. The Complaint Form is available from the Commission's homepage at ncrec.gov.");
-        text.AppendLine("Per Commission Rule 58H .0204, each prospective student must receive this Policies & Procedures Disclosure before paying any non-refundable tuition or fee. The Provider retains the student's signed or electronic certification of receipt.");
+        text.AppendLine($"This Education Provider's course offering is configured for {regulatorName}. The regulator's contact location is {regulatorAddress}. Complaints concerning the Education Provider or its affiliated instructors may be directed to the applicable regulator. Information is available at {regulatorWebsite}; complaints: {complaintUrl}.");
+        text.AppendLine(isFlorida
+            ? "Florida complaints may also be sent by fax to (407) 317-7245, Attention: Division of Real Estate-Complaints. The provider retains the student's signed or electronic certification of receipt before payment of any non-refundable tuition or fee."
+            : "Per Commission Rule 58H .0204, each prospective student must receive this Policies & Procedures Disclosure before paying any non-refundable tuition or fee. The Provider retains the student's signed or electronic certification of receipt.");
         text.AppendLine();
         text.AppendLine("NO STUDENT SHALL BE DENIED ADMISSION ON THE BASIS OF AGE, SEX, RACE, COLOR, NATIONAL ORIGIN, FAMILIAL STATUS, HANDICAPPING CONDITION, OR RELIGION.");
         text.AppendLine();
         text.AppendLine("COURSE OFFERING");
         text.AppendLine($"Course: {course.Title}");
         text.AppendLine($"Program: {CourseComplianceTypes.ToDisplayText(course.ComplianceType)}{(isContinuingEducation ? $" - {ContinuingEducationTypes.ToDisplayText(course.ContinuingEducationType ?? string.Empty)}" : string.Empty)}");
-        text.AppendLine($"Commission course number: {course.CommissionCourseNumber ?? "Not yet assigned"}");
+        text.AppendLine($"{(isFlorida ? "Course approval number" : "Commission course number")}: {course.CommissionCourseNumber ?? "Not yet assigned"}");
         text.AppendLine($"Delivery method: {CourseDeliveryMethods.ToDisplayText(course.DeliveryMethod)}");
         text.AppendLine($"Instructional hours: {course.RequiredInstructionalMinutes / 60m:0.##}");
         text.AppendLine($"All-inclusive tuition and fees for this purchase: ${tuitionAndFees:0.00}");
@@ -302,12 +309,18 @@ public sealed class PolicyDisclosureService : IPolicyDisclosureService
         text.AppendLine($"Technical and administrative support: {schoolProfile.SupportEmail}; {schoolProfile.SupportTelephone}; {schoolProfile.SupportHours ?? "support hours available upon request"}.");
         text.AppendLine();
         text.AppendLine("STUDENT CONDUCT, CANCELLATION, AND REFUNDS");
-        text.AppendLine("Cheating results in dismissal, a failing course grade, loss of eligibility under makeup or retake policies, and reporting to the North Carolina Real Estate Commission as required by Commission Rule 58H .0203(h). Cancellation, withdrawal, transfer, and refund terms presented during checkout form part of this disclosure and apply to this purchase.");
+        text.AppendLine($"Cheating results in dismissal, a failing course grade, loss of eligibility under makeup or retake policies, and reporting to {regulatorName} when required by applicable law or rule. Cancellation, withdrawal, transfer, and refund terms presented during checkout form part of this disclosure and apply to this purchase.");
+        text.AppendLine(isFlorida
+            ? "Temporary Florida pilot refund policy: a full refund may be requested within 30 days of purchase, before course expiration, and before the course is more than 50% completed. This is adapted temporarily from the supplied CE Shop example and must be replaced or approved before Florida launch."
+            : "Refunds and cancellations are governed by the provider's published terms presented before payment.");
+        text.AppendLine(isFlorida
+            ? "Records policy: the provider retains course completion and related student records according to applicable Florida requirements; continuing-education completion records are retained for at least four years where required by law."
+            : "Records policy: the provider retains course and completion records according to applicable North Carolina requirements.");
         text.AppendLine();
         text.AppendLine("PERFORMANCE INFORMATION");
         text.AppendLine(schoolProfile.LicenseExaminationPerformanceRecord);
         text.AppendLine(schoolProfile.AnnualSummaryReportData);
-        text.AppendLine("Commission-published pass-rate information: https://www.ncrec.gov/PrelicensingEducation/ExamPassRates");
+        text.AppendLine($"Commission-published information: {regulatorWebsite}");
         text.AppendLine();
         text.AppendLine("CERTIFICATION OF TRUTH AND ACCURACY");
         text.AppendLine($"{schoolProfile.EducationDirectorName}, Education Director, certifies that this disclosure is true and correct and that the Education Provider will abide by the policies herein.");

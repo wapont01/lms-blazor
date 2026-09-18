@@ -22,17 +22,15 @@
                             </summary>
                             <ul class="sidebar-submenu">
                                 <li><NavLink href="/admin/courses" Match="NavLinkMatch.All">Courses</NavLink></li>
-                                <li><NavLink href="/admin/school-profile" Match="NavLinkMatch.All">School Profile</NavLink></li>
                                 <li><NavLink href="/admin/assessments" Match="NavLinkMatch.All">Assessments</NavLink></li>
                                 <li><NavLink href="/admin/users" Match="NavLinkMatch.All">Users</NavLink></li>
                                 <li><NavLink href="/admin/audit" Match="NavLinkMatch.All">Audit</NavLink></li>
                                 <li><NavLink href="/admin/certificates" Match="NavLinkMatch.All">Certificates</NavLink></li>
-                                <li><NavLink href="/admin/refunds" Match="NavLinkMatch.All">Refunds</NavLink></li>
-                                <li><NavLink href="/admin/reporting" Match="NavLinkMatch.All">Reporting</NavLink></li>
-                                <li><NavLink href="/admin/reconciliation" Match="NavLinkMatch.All">Reconciliation</NavLink></li>
-                                <li><NavLink href="/admin/payouts" Match="NavLinkMatch.All">Payouts</NavLink></li>
+                                <li><NavLink href="/admin/compliance" Match="NavLinkMatch.All">Compliance</NavLink></li>
+                                <li><NavLink href="/admin/regulatory-directory" Match="NavLinkMatch.All">Regulatory Directory</NavLink></li>
                                 <li><NavLink href="/admin/support" Match="NavLinkMatch.All">Support</NavLink></li>
                                 <li><NavLink href="/admin/logs" Match="NavLinkMatch.All">Logs</NavLink></li>
+                                <li><NavLink href="/admin/school-profile" Match="NavLinkMatch.All">EP</NavLink></li>
                             </ul>
                         </details>
                     </li>
@@ -65,7 +63,6 @@
             <AuthorizeView Roles="Admin,Learner">
                 <Authorized>
                     <li><a href="/learner">Learner</a></li>
-                    <li><a href="/payment-history">Payment History</a></li>
                 </Authorized>
             </AuthorizeView>
             <AuthorizeView>
@@ -114,19 +111,7 @@
     </nav>
 
     <main class="content">
-        <div class="main-wrapper">
-            <div class="main-body">
-                @Body
-            </div>
-            <aside class="sidebar-right">
-                <AuthorizeView Roles="Learner">
-                    <Authorized>
-                        <ReminderWidget />
-                        <SupportWidget />
-                    </Authorized>
-                </AuthorizeView>
-            </aside>
-        </div>
+        @Body
     </main>
 </div>
 

@@ -14,7 +14,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
         var courses = await fixture.DbContext.Courses.OrderBy(course => course.Title).Take(2).ToListAsync();
 
         var now = DateTime.UtcNow;
@@ -65,7 +65,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
         var course = await fixture.DbContext.Courses.FirstAsync();
 
         var enrollment = new Enrollment
@@ -96,6 +96,162 @@ public class DueDateReminderServiceTests
         Assert.Null(refreshed.DueSoonReminderSentAt);
         Assert.Null(refreshed.OverdueReminderSentAt);
     }
+
+    [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_RemindsProvisionalBrokerAtEighteenMonthDeadline()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var initialLicensureDate = DateTime.UtcNow.AddMonths(-17).AddDays(-20);
+        learner.InitialLicensureDate = initialLicensureDate;
+        learner.LicenseStatus = "Provisional";
+        learner.PostlicensingCompletedAt = null;
+        await fixture.DbContext.SaveChangesAsync();
+
+        var now = DateTime.UtcNow;
+        var result = await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(now);
+
+        Assert.Equal(1, result.Sent);
+        Assert.Contains(
+            await fixture.DbContext.SystemNotifications.Where(notification => notification.RecipientUserId == learner.Id).ToListAsync(),
+            notification => notification.Category == "license-compliance" && notification.Message.Contains("postlicensing", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_OffersStateMatchedCoursesForApplicableDeadline()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        learner.State = "North Carolina";
+        learner.LicenseType = "PB";
+        learner.InitialLicensureDate = DateTime.UtcNow.AddMonths(-17).AddDays(-20);
+        learner.PostlicensingCompletedAt = null;
+        fixture.DbContext.Courses.AddRange(
+            CreatePublishedCourse("North Carolina Postlicensing", "North Carolina", CourseComplianceTypes.Postlicensing),
+            CreatePublishedCourse("Florida Postlicensing", "Florida", CourseComplianceTypes.Postlicensing));
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(DateTime.UtcNow);
+
+        var offering = await fixture.DbContext.SystemNotifications.SingleAsync(notification =>
+            notification.RecipientUserId == learner.Id && notification.Category == "course-offering");
+
+        Assert.Contains("North Carolina Postlicensing", offering.Message);
+        Assert.DoesNotContain("Florida Postlicensing", offering.Message);
+    }
+
+    [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_DoesNotDuplicateTheSameMilestone()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        learner.InitialLicensureDate = DateTime.UtcNow.AddMonths(-19);
+        learner.LicenseStatus = "Provisional";
+        learner.PostlicensingCompletedAt = null;
+        await fixture.DbContext.SaveChangesAsync();
+
+        var now = DateTime.UtcNow;
+        var firstRun = await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(now);
+        var secondRun = await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(now.AddHours(1));
+
+        Assert.Equal(1, firstRun.Sent);
+        Assert.Equal(0, secondRun.Sent);
+        Assert.Equal(1, await fixture.DbContext.LicenseComplianceReminders.CountAsync(reminder => reminder.UserAccountId == learner.Id));
+    }
+
+    [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_NorthCarolinaCeNotifiesLearnerBrokerAndAdmins()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "maya.thompson@wlr.com");
+        var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Role == "Admin");
+        learner.State = "North Carolina";
+        learner.LicenseType = "B";
+        learner.InitialLicensureDate = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        learner.PostlicensingCompletedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        learner.ContinuingEducationDueDate = null;
+        fixture.DbContext.BrokerLearnerAssignments.Add(new BrokerLearnerAssignment
+        {
+            BrokerUserId = broker.Id,
+            LearnerUserId = learner.Id
+        });
+        fixture.DbContext.Courses.Add(CreatePublishedCourse("North Carolina CE Update", "North Carolina", CourseComplianceTypes.ContinuingEducation));
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(new DateTime(2026, 6, 1, 0, 0, 0, DateTimeKind.Utc));
+
+        var notifications = await fixture.DbContext.SystemNotifications
+            .Where(notification => notification.Category == "license-compliance" || notification.Category == "course-offering")
+            .ToListAsync();
+
+        Assert.Contains(notifications, notification => notification.RecipientUserId == learner.Id && notification.Message.Contains("North Carolina", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(notifications, notification => notification.RecipientUserId == broker.Id && notification.Message.Contains("Maya", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(notifications, notification => notification.RecipientUserId == admin.Id && notification.Message.Contains("Maya", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(notifications, notification => notification.RecipientUserId == learner.Id && notification.Category == "course-offering" && notification.Message.Contains("North Carolina CE Update", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_UsesLinkedFloridaRenewalAsFirstPostlicenseDeadline()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "sofia.martinez.fl@wlr.com");
+        var snapshot = new RegulatoryDataSnapshot
+        {
+            State = "Florida",
+            SourceName = "DBPR capture",
+            SourceUrl = "https://example.test/florida",
+            RetrievedAtUtc = DateTime.UtcNow,
+            Status = RegulatorySnapshotStatuses.Approved
+        };
+        var licensee = new RegulatoryLicensee
+        {
+            Snapshot = snapshot,
+            State = "Florida",
+            LicenseNumber = learner.LicenseNumber!,
+            Name = learner.DisplayName,
+            LicenseType = "SL",
+            LicenseStatus = "Current",
+            LicenseIssuedDate = new DateOnly(2026, 1, 10),
+            LicenseRenewalDate = new DateOnly(2026, 9, 30)
+        };
+        fixture.DbContext.RegulatoryDataSnapshots.Add(snapshot);
+        fixture.DbContext.RegulatoryLicensees.Add(licensee);
+        fixture.DbContext.UserRegulatoryLicenseLinks.Add(new UserRegulatoryLicenseLink
+        {
+            UserAccountId = learner.Id,
+            RegulatorySnapshot = snapshot,
+            RegulatoryLicensee = licensee
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(new DateTime(2026, 9, 17, 0, 0, 0, DateTimeKind.Utc));
+
+        Assert.Contains(
+            await fixture.DbContext.SystemNotifications.Where(notification => notification.RecipientUserId == learner.Id).ToListAsync(),
+            notification => notification.Category == "license-compliance"
+                && notification.Message.Contains("Florida first-renewal postlicensing", StringComparison.OrdinalIgnoreCase)
+                && notification.Message.Contains("2026-09-30", StringComparison.Ordinal));
+    }
+
+    private static Course CreatePublishedCourse(string title, string state, string complianceType) => new()
+    {
+        Title = title,
+        Slug = Guid.NewGuid().ToString("N"),
+        Description = "State-aware offering test course",
+        Level = "Beginner",
+        DurationHours = 1,
+        CreditHours = 1,
+        Price = 0,
+        State = state,
+        ComplianceType = complianceType,
+        IsPublished = true
+    };
 
     private sealed class TestFixture : IAsyncDisposable
     {

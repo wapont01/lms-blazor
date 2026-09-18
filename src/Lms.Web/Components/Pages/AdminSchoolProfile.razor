@@ -7,11 +7,11 @@
 @inject ISchoolProfileService SchoolProfileService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>School Profile</PageTitle>
+<PageTitle>Education Provider (EP)</PageTitle>
 
 <div class="page-header-row">
     <div>
-        <h1>School Profile</h1>
+        <h1>Education Provider (EP)</h1>
         <p class="muted-text">Central identity and regulatory information used by disclosures, certificates, and support contacts.</p>
     </div>
 </div>
@@ -32,7 +32,15 @@ else
         }
 
         <section class="card">
-            <h2>School Identity</h2>
+            <h2>Education Provider (EP)</h2>
+            <div class="form-field">
+                <label for="school-state">Provider state</label>
+                <select id="school-state" value="@_profile.State" @onchange="ChangeStateAsync">
+                    <option value="Florida">Florida</option>
+                    <option value="North Carolina">North Carolina</option>
+                </select>
+                <span class="muted-text">Florida and North Carolina provider profiles are maintained separately.</span>
+            </div>
             <div class="form-row">
                 <div class="form-field">
                     <label for="school-legal-name">Legal name</label>
@@ -42,6 +50,11 @@ else
                     <label for="school-advertised-name">Advertised name</label>
                     <InputText id="school-advertised-name" @bind-Value="_profile.AdvertisedName" />
                 </div>
+            </div>
+            <div class="form-field">
+                <label for="provider-license">License number</label>
+                <InputText id="provider-license" @bind-Value="_profile.ProviderLicenseNumber" placeholder="1736 (temporary CE Shop example)" aria-describedby="provider-license-note" />
+                <span id="provider-license-note" class="muted-text">The temporary example number 1736 belongs to The CE Shop. Replace it with the NCREC number assigned to WILLIAMS LAND REALTY LLC before regulatory use.</span>
             </div>
             <div class="form-field">
                 <label for="school-address">Street address</label>
@@ -54,7 +67,7 @@ else
                 </div>
                 <div class="form-field">
                     <label for="school-state">State</label>
-                    <InputText id="school-state" @bind-Value="_profile.State" maxlength="2" />
+                    <InputText id="school-address-state" @bind-Value="_profile.AddressState" maxlength="2" />
                 </div>
                 <div class="form-field">
                     <label for="school-postal-code">Postal code</label>
@@ -71,14 +84,8 @@ else
                     <InputText id="education-director" @bind-Value="_profile.EducationDirectorName" />
                 </div>
                 <div class="form-field">
-                    <label for="corporate-officer">Corporate officer</label>
+                    <label for="corporate-officer">Corporate official</label>
                     <InputText id="corporate-officer" @bind-Value="_profile.CorporateOfficerName" />
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-field">
-                    <label for="provider-license">Provider license number</label>
-                    <InputText id="provider-license" @bind-Value="_profile.ProviderLicenseNumber" />
                 </div>
             </div>
         </section>
@@ -108,23 +115,23 @@ else
             </div>
         </section>
 
-        <section class="card">
-            <h2>Instructor and Officer Roster</h2>
+        <section class="card faculty-officials-card">
+            <h2>Faculty and Full-Time Officials</h2>
             @if (_profile.StaffMembers.Count == 0)
             {
-                <p class="muted-text">No additional instructors or officers have been added.</p>
+                <p class="muted-text">No faculty or full-time officials have been added.</p>
             }
             else
             {
-                <div class="table-wrap">
-                    <table>
+                <div class="table-wrap faculty-roster-wrap">
+                    <table class="faculty-roster-table">
                         <thead>
                             <tr>
                                 <th>Name</th>
-                                <th>Role</th>
                                 <th>Title</th>
+                                <th>Email</th>
                                 <th>License number</th>
-                                <th>Contact</th>
+                                <th>Phone</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -133,19 +140,10 @@ else
                             {
                                 <tr>
                                     <td>@member.Name</td>
-                                    <td>@member.Role</td>
                                     <td>@(member.Title ?? "-")</td>
+                                    <td>@(member.Email ?? "-")</td>
                                     <td>@(member.LicenseNumber ?? "-")</td>
-                                    <td>
-                                        @if (!string.IsNullOrWhiteSpace(member.Email))
-                                        {
-                                            <div>@member.Email</div>
-                                        }
-                                        @if (!string.IsNullOrWhiteSpace(member.Telephone))
-                                        {
-                                            <div>@member.Telephone</div>
-                                        }
-                                    </td>
+                                    <td>@(member.Telephone ?? "-")</td>
                                     <td><button type="button" class="secondary-btn" @onclick="() => RemoveStaffMemberAsync(member.Id)" disabled="@_isSaving">Remove</button></td>
                                 </tr>
                             }
@@ -154,41 +152,37 @@ else
                 </div>
             }
 
-            <h3>Add Staff Member</h3>
-            <div class="form-row">
-                <div class="form-field">
-                    <label for="staff-name">Name</label>
-                    <InputText id="staff-name" @bind-Value="_newStaffMember.Name" />
+            <div class="faculty-add-section">
+                <h3>Add Faculty or Full-Time Official</h3>
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="staff-name">Name</label>
+                        <InputText id="staff-name" @bind-Value="_newStaffMember.Name" />
+                    </div>
+                    <div class="form-field">
+                        <label for="staff-title">Title</label>
+                        <InputSelect id="staff-title" @bind-Value="_newStaffMember.Role">
+                            <option value="@SchoolStaffRoles.Instructor">Instructor</option>
+                            <option value="@SchoolStaffRoles.Officer">Full-Time Official</option>
+                        </InputSelect>
+                    </div>
                 </div>
-                <div class="form-field">
-                    <label for="staff-role">Role</label>
-                    <InputSelect id="staff-role" @bind-Value="_newStaffMember.Role">
-                        @foreach (var role in SchoolStaffRoles.All)
-                        {
-                            <option value="@role">@role</option>
-                        }
-                    </InputSelect>
+                <div class="form-row faculty-contact-fields">
+                    <div class="form-field">
+                        <label for="staff-license">License number</label>
+                        <InputText id="staff-license" @bind-Value="_newStaffMember.LicenseNumber" />
+                    </div>
+                    <div class="form-field">
+                        <label for="staff-email">Email</label>
+                        <InputText id="staff-email" type="email" @bind-Value="_newStaffMember.Email" />
+                    </div>
+                    <div class="form-field">
+                        <label for="staff-telephone">Telephone</label>
+                        <InputText id="staff-telephone" type="tel" @bind-Value="_newStaffMember.Telephone" />
+                    </div>
                 </div>
-                <div class="form-field">
-                    <label for="staff-title">Title</label>
-                    <InputText id="staff-title" @bind-Value="_newStaffMember.Title" />
-                </div>
+                <button type="button" class="secondary-btn" @onclick="AddStaffMemberAsync" disabled="@_isSaving">Add Faculty or Official</button>
             </div>
-            <div class="form-row">
-                <div class="form-field">
-                    <label for="staff-license">License number</label>
-                    <InputText id="staff-license" @bind-Value="_newStaffMember.LicenseNumber" />
-                </div>
-                <div class="form-field">
-                    <label for="staff-email">Email</label>
-                    <InputText id="staff-email" type="email" @bind-Value="_newStaffMember.Email" />
-                </div>
-                <div class="form-field">
-                    <label for="staff-telephone">Telephone</label>
-                    <InputText id="staff-telephone" type="tel" @bind-Value="_newStaffMember.Telephone" />
-                </div>
-            </div>
-            <button type="button" class="secondary-btn" @onclick="AddStaffMemberAsync" disabled="@_isSaving">Add Staff Member</button>
         </section>
 
         <section class="card">
@@ -303,7 +297,7 @@ else
         var user = authState.User;
         Guid.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out _actorUserId);
         _actorEmail = user.FindFirst(ClaimTypes.Email)?.Value ?? user.Identity?.Name ?? _actorEmail;
-        _profile = await SchoolProfileService.GetAsync();
+        _profile = await SchoolProfileService.GetForStateAsync("Florida");
         ConfigureProfileEditContext();
         SetSavedStatus();
     }
@@ -319,7 +313,7 @@ else
         _message = null;
         try
         {
-            _profile = await SchoolProfileService.UpdateAsync(_profile, _actorUserId, _actorEmail);
+            _profile = await SchoolProfileService.UpdateForStateAsync(_profile, _actorUserId, _actorEmail);
             _saveSucceeded = true;
             SetSavedStatus();
         }
@@ -335,6 +329,20 @@ else
         }
     }
 
+    private async Task ChangeStateAsync(ChangeEventArgs args)
+    {
+        var state = args.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(state) || string.Equals(state, _profile?.State, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        _profile = await SchoolProfileService.GetForStateAsync(state);
+        ConfigureProfileEditContext();
+        _message = null;
+        SetSavedStatus();
+    }
+
     private async Task AddStaffMemberAsync()
     {
         _isSaving = true;
@@ -345,7 +353,7 @@ else
             _profile = await SchoolProfileService.GetAsync();
             _newStaffMember = new SchoolStaffMember();
             _saveSucceeded = true;
-            _message = "Staff member added.";
+            _message = "Faculty or official added.";
         }
         catch (Exception exception)
         {
@@ -367,7 +375,7 @@ else
             await SchoolProfileService.RemoveStaffMemberAsync(staffMemberId, _actorUserId, _actorEmail);
             _profile = await SchoolProfileService.GetAsync();
             _saveSucceeded = true;
-            _message = "Staff member removed.";
+            _message = "Faculty or official removed.";
         }
         catch (Exception exception)
         {

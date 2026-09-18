@@ -4,7 +4,16 @@ namespace Lms.Domain.Entities;
 
 public class SchoolProfile
 {
+    public const string TemporaryProviderLicenseNumber = "1736";
+    public const string FloridaSchoolStreetAddress = "221 Meridian Ave #511";
+    public const string FloridaSchoolCity = "Miami Beach";
+    public const string FloridaSchoolState = "FL";
+    public const string FloridaSchoolPostalCode = "33139";
+
     public Guid Id { get; set; } = Guid.NewGuid();
+
+    [Required, StringLength(40)]
+    public string State { get; set; } = "Florida";
 
     [Required, StringLength(200)]
     public string LegalName { get; set; } = "WILLIAMS LAND REALTY LLC";
@@ -13,16 +22,16 @@ public class SchoolProfile
     public string AdvertisedName { get; set; } = "WILLIAMS LAND REALTY LLC";
 
     [Required, StringLength(200)]
-    public string StreetAddress { get; set; } = "17214 Belmont Stakes Lane";
+    public string StreetAddress { get; set; } = FloridaSchoolStreetAddress;
 
     [Required, StringLength(100)]
-    public string City { get; set; } = "Charlotte";
+    public string City { get; set; } = FloridaSchoolCity;
 
     [Required, StringLength(2)]
-    public string State { get; set; } = "NC";
+    public string AddressState { get; set; } = FloridaSchoolState;
 
     [Required, StringLength(20)]
-    public string PostalCode { get; set; } = "28278-8147";
+    public string PostalCode { get; set; } = FloridaSchoolPostalCode;
 
     [Required, StringLength(160)]
     public string EducationDirectorName { get; set; } = "William A. Aponte";
@@ -40,7 +49,7 @@ public class SchoolProfile
     public string PrimaryInstructorTelephone { get; set; } = "7865530222";
 
     [StringLength(80)]
-    public string? ProviderLicenseNumber { get; set; }
+    public string? ProviderLicenseNumber { get; set; } = TemporaryProviderLicenseNumber;
 
     [StringLength(80)]
     public string? InstructorLicenseNumber { get; set; }
@@ -74,6 +83,10 @@ public class SchoolProfile
 
     [StringLength(500)]
     public string? SupportScheduleExceptions { get; set; }
+
+    // NC 21 NCAC 58H .0203: education director must view the Commission orientation video within 30 days of designation.
+    public DateTime? EducationDirectorDesignatedAtUtc { get; set; }
+    public DateTime? EducationDirectorOrientationVideoViewedAtUtc { get; set; }
 
     [StringLength(300)]
     public string? SupportResponseTarget { get; set; }
@@ -137,4 +150,8 @@ public class SchoolStaffMember
     public string? Telephone { get; set; }
 
     public DateTime AddedAtUtc { get; set; } = DateTime.UtcNow;
+
+    // NC 21 NCAC 58H .0203: instructor hire must be reported to the Commission within 10 days, and observed/evaluated annually.
+    public DateTime? HireReportedToCommissionAtUtc { get; set; }
+    public DateTime? LastObservationAtUtc { get; set; }
 }

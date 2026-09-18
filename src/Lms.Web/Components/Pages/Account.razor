@@ -7,9 +7,51 @@
 
 <PageTitle>Account</PageTitle>
 
-<h1>Account Security</h1>
+<h1>Account</h1>
 
 <div class="dashboard-grid">
+    @if (_isInstructor)
+    {
+        <section class="card auth-card">
+            <h2>Instructor Profile</h2>
+
+            @if (!string.IsNullOrWhiteSpace(_profileMessage))
+            {
+                <p class="auth-help">@_profileMessage</p>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_profileError))
+            {
+                <p class="auth-error">@_profileError</p>
+            }
+
+            <EditForm Model="_profileModel" OnValidSubmit="SaveInstructorProfileAsync" FormName="instructor-profile-form">
+                <AntiforgeryToken />
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="form-field">
+                    <label for="instructor-profile-license">License number</label>
+                    <InputText id="instructor-profile-license" @bind-Value="_profileModel.LicenseNumber" />
+                </div>
+                <div class="form-field">
+                    <label for="instructor-profile-email">Email</label>
+                    <InputText id="instructor-profile-email" type="email" @bind-Value="_profileModel.Email" />
+                </div>
+                <div class="form-field">
+                    <label for="instructor-profile-phone">Phone</label>
+                    <InputText id="instructor-profile-phone" type="tel" @bind-Value="_profileModel.PhoneNumber" />
+                </div>
+                <div class="form-field">
+                    <label for="instructor-profile-address">Permanent address</label>
+                    <InputTextArea id="instructor-profile-address" rows="3" @bind-Value="_profileModel.PermanentAddress" />
+                </div>
+
+                <button type="submit">Save Profile</button>
+            </EditForm>
+        </section>
+    }
+
     <section class="card auth-card">
         <h2>Change Password</h2>
 
@@ -55,7 +97,11 @@
     private Guid? _userId;
     private string? _message;
     private string? _error;
+    private string? _profileMessage;
+    private string? _profileError;
+    private bool _isInstructor;
     private bool _forceChangeRequired;
+    private InstructorProfileModel _profileModel { get; set; } = new();
     [SupplyParameterFromForm(FormName = "change-password-form")]
     private ChangePasswordModel _model { get; set; } = new();
 
@@ -70,9 +116,54 @@
         if (Guid.TryParse(userIdClaim, out var parsedUserId))
         {
             _userId = parsedUserId;
+            _isInstructor = authState.User.IsInRole("Instructor");
+            if (_isInstructor)
+            {
+                var user = await UserAccountService.GetByIdAsync(parsedUserId);
+                if (user is not null)
+                {
+                    _profileModel = new InstructorProfileModel
+                    {
+                        Email = user.Email,
+                        LicenseNumber = user.LicenseNumber,
+                        PhoneNumber = user.PhoneNumber,
+                        PermanentAddress = user.PermanentAddress
+                    };
+                }
+            }
         }
 
         _forceChangeRequired = string.Equals(ForceChange, "1", StringComparison.Ordinal);
+    }
+
+    private async Task SaveInstructorProfileAsync()
+    {
+        _profileMessage = null;
+        _profileError = null;
+        if (!_userId.HasValue)
+        {
+            _profileError = "Unable to identify your account.";
+            return;
+        }
+
+        try
+        {
+            var updated = await UserAccountService.UpdateInstructorProfileAsync(
+                _userId.Value,
+                _profileModel.Email,
+                _profileModel.LicenseNumber,
+                _profileModel.PhoneNumber,
+                _profileModel.PermanentAddress);
+            _profileModel.Email = updated.Email;
+            _profileModel.LicenseNumber = updated.LicenseNumber;
+            _profileModel.PhoneNumber = updated.PhoneNumber;
+            _profileModel.PermanentAddress = updated.PermanentAddress;
+            _profileMessage = "Instructor profile updated successfully.";
+        }
+        catch (InvalidOperationException exception)
+        {
+            _profileError = exception.Message;
+        }
     }
 
     private async Task ChangePasswordAsync()
@@ -115,5 +206,21 @@
 
         [System.ComponentModel.DataAnnotations.Required]
         public string ConfirmNewPassword { get; set; } = string.Empty;
+    }
+
+    private sealed class InstructorProfileModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.StringLength(40)]
+        public string? LicenseNumber { get; set; }
+
+        [System.ComponentModel.DataAnnotations.StringLength(40)]
+        public string? PhoneNumber { get; set; }
+
+        [System.ComponentModel.DataAnnotations.StringLength(500)]
+        public string? PermanentAddress { get; set; }
     }
 }

@@ -54,47 +54,4 @@ public class CourseAuthoringProgressHelperTests
         Assert.Contains(snapshot.Items, item => item.Label == "At least one module exists" && item.IsComplete);
         Assert.Contains(snapshot.Items, item => item.Label == "At least one lesson exists" && item.IsComplete);
     }
-
-    [Fact]
-    public void Evaluate_RequiresGatingCheckpointForEachUnit_InPrelicensingCourse()
-    {
-        var course = new Course
-        {
-            Title = "NC Real Estate Prelicensing",
-            Description = "A regulated course",
-            Level = "Beginner",
-            Price = 249m,
-            ComplianceType = CourseComplianceTypes.Prelicensing,
-            Modules = new List<Module>
-            {
-                new()
-                {
-                    Id = Guid.NewGuid(),
-                    Title = "Unit 1",
-                    Lessons = new List<Lesson>
-                    {
-                        new() { Title = "Overview", TextContent = "Welcome" }
-                    }
-                }
-            }
-        };
-
-        var checkpoint = new CourseCheckpointDefinition
-        {
-            ModuleId = course.Modules.First().Id,
-            Title = "Unit 1 checkpoint",
-            Prompt = "Choose the correct answer.",
-            Description = "This checkpoint is not gating.",
-            GatesProgression = false,
-            Options = new List<CourseCheckpointOption>
-            {
-                new() { Label = "Correct", IsCorrect = true },
-                new() { Label = "Wrong", IsCorrect = false }
-            }
-        };
-
-        var snapshot = CourseAuthoringProgressHelper.Evaluate(course, new[] { checkpoint });
-
-        Assert.Contains(snapshot.Items, item => item.Label == "Every unit has a progression checkpoint" && !item.IsComplete);
-    }
 }

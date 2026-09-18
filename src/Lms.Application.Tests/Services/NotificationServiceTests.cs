@@ -13,8 +13,8 @@ public class NotificationServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
-        var otherLearner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner2@lms.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var otherLearner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "maya.thompson@wlr.com");
 
         await fixture.NotificationService.CreateAsync(learner.Id, "enrollment", "Enrollment created", "You were enrolled in a course.");
         await fixture.NotificationService.CreateAsync(learner.Id, "assignment", "Broker assigned", "A broker was assigned to your portfolio.");
@@ -38,8 +38,8 @@ public class NotificationServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
-        var otherLearner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner2@lms.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var otherLearner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "maya.thompson@wlr.com");
 
         await fixture.NotificationService.CreateAsync(learner.Id, "enrollment", "Enrollment updated", "Your enrollment was corrected.");
         await fixture.NotificationService.CreateAsync(learner.Id, "assessment", "Assessment retake granted", "You have additional attempts.");

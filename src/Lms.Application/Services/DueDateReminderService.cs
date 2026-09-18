@@ -10,24 +10,17 @@ public interface IDueDateReminderService
     Task<bool> SetDueDateAsync(Guid learnerUserId, Guid courseId, DateTime dueAtUtc, Guid actorUserId, string actorEmail);
     Task<DueDateReminderRunResult> ProcessRemindersAsync(DateTime? nowUtc = null);
     Task<CourseReminderRunResult> ProcessAllRemindersAsync(DateTime? nowUtc = null);
+    Task<LicenseComplianceRunResult> ProcessLicenseComplianceRemindersAsync(DateTime? nowUtc = null);
 }
 
 public sealed record LearnerDueDateRow(Guid CourseId, string CourseTitle, DateTime DueAtUtc, bool IsOverdue, int DaysRemaining);
 public sealed record DueDateReminderRunResult(int DueSoonSent, int OverdueSent, int Processed);
-public sealed record CourseReminderRunResult(int DueSoonSent, int OverdueSent, int CourseStartSent, int EnrollmentClosingSent, int AssessmentDeadlineSent, int TotalProcessed);
+public sealed record LicenseComplianceRunResult(int Sent, int Processed);
+public sealed record CourseReminderRunResult(int DueSoonSent, int OverdueSent, int CourseStartSent, int EnrollmentClosingSent, int AssessmentDeadlineSent, int TotalProcessed, int LicenseComplianceSent = 0);
 
 public class DueDateReminderService : IDueDateReminderService
 {
     private static readonly TimeSpan DueSoonWindow = TimeSpan.FromDays(3);
-    private static readonly TimeSpan CourseStartWindow = TimeSpan.FromDays(7);
-    private static readonly TimeSpan EnrollmentClosingWindow = TimeSpan.FromDays(3);
-    private static readonly TimeSpan AssessmentDeadlineWindow = TimeSpan.FromDays(1);
-
-    private const string ReminderType_DueSoon = "due-soon";
-    private const string ReminderType_Overdue = "overdue";
-    private const string ReminderType_CourseStart = "course-start";
-    private const string ReminderType_EnrollmentClosing = "enrollment-closing";
-    private const string ReminderType_AssessmentDeadline = "assessment-deadline";
 
     private readonly ApplicationDbContext _dbContext;
     private readonly INotificationService _notificationService;
@@ -162,124 +155,220 @@ public class DueDateReminderService : IDueDateReminderService
 
     public async Task<CourseReminderRunResult> ProcessAllRemindersAsync(DateTime? nowUtc = null)
     {
+        var result = await ProcessRemindersAsync(nowUtc);
+        var licenseResult = await ProcessLicenseComplianceRemindersAsync(nowUtc);
+        return new CourseReminderRunResult(
+            result.DueSoonSent,
+            result.OverdueSent,
+            CourseStartSent: 0,
+            EnrollmentClosingSent: 0,
+            AssessmentDeadlineSent: 0,
+            result.Processed,
+            licenseResult.Sent);
+    }
+
+    public async Task<LicenseComplianceRunResult> ProcessLicenseComplianceRemindersAsync(DateTime? nowUtc = null)
+    {
         var now = nowUtc ?? DateTime.UtcNow;
-        var dueSoonBoundary = now.Add(DueSoonWindow);
-        var courseStartBoundary = now.Add(CourseStartWindow);
-        var enrollmentClosingBoundary = now.Add(EnrollmentClosingWindow);
-        var assessmentDeadlineBoundary = now.Add(AssessmentDeadlineWindow);
-
-        var enrollments = await _dbContext.Enrollments
-            .Include(e => e.Course)
-            .Include(e => e.Reminders)
-            .Where(e => !e.Completed)
+        var reminderWindow = now.AddDays(30);
+        var users = await _dbContext.UserAccounts
+            .Where(user => user.IsActive)
             .ToListAsync();
+        var linkedLicensees = await _dbContext.UserRegulatoryLicenseLinks
+            .AsNoTracking()
+            .Include(link => link.RegulatoryLicensee)
+            .Where(link => link.RegulatoryLicensee != null)
+            .ToDictionaryAsync(link => link.UserAccountId, link => link.RegulatoryLicensee!);
 
-        var dueSoonSent = 0;
-        var overdueSent = 0;
-        var courseStartSent = 0;
-        var enrollmentClosingSent = 0;
-        var assessmentDeadlineSent = 0;
+        var candidates = users.SelectMany(user => BuildLicenseMilestones(user, linkedLicensees.GetValueOrDefault(user.Id), now))
+            .Where(milestone => milestone.DueAtUtc <= reminderWindow)
+            .ToList();
 
-        foreach (var enrollment in enrollments)
+        var sent = 0;
+        foreach (var milestone in candidates)
         {
-            // Process due-date reminders
-            if (enrollment.DueAtUtc.HasValue)
+            var alreadySent = await _dbContext.LicenseComplianceReminders.AnyAsync(reminder =>
+                reminder.UserAccountId == milestone.UserId &&
+                reminder.ReminderType == milestone.ReminderType &&
+                reminder.DueAtUtc == milestone.DueAtUtc);
+
+            if (alreadySent)
             {
-                var dueAt = enrollment.DueAtUtc.Value;
-                if (dueAt <= now && !enrollment.OverdueReminderSentAt.HasValue)
+                continue;
+            }
+
+            var overdue = milestone.DueAtUtc <= now;
+            var recipients = await GetComplianceRecipientsAsync(milestone.UserId);
+            foreach (var recipientId in recipients)
+            {
+                await _notificationService.CreateAsync(
+                    recipientId,
+                    "license-compliance",
+                    overdue ? "License requirement overdue" : "License requirement approaching",
+                    overdue
+                        ? $"{milestone.Description} for {milestone.SubjectDisplayName} was due on {milestone.DueAtUtc:yyyy-MM-dd}."
+                        : $"{milestone.Description} for {milestone.SubjectDisplayName} is due on {milestone.DueAtUtc:yyyy-MM-dd}.");
+            }
+
+            var offerings = await GetStateAwareOfferingsAsync(milestone);
+            if (offerings.Count > 0)
+            {
+                var courseTitles = string.Join(", ", offerings.Take(3).Select(course => course.Title));
+                var additionalCourseCount = offerings.Count - 3;
+                foreach (var recipientId in recipients)
                 {
-                    await CreateReminder(enrollment, ReminderType_Overdue, "Course is overdue");
-                    enrollment.OverdueReminderSentAt = now;
-                    overdueSent++;
-                }
-                else if (dueAt <= dueSoonBoundary && !enrollment.DueSoonReminderSentAt.HasValue)
-                {
-                    await CreateReminder(enrollment, ReminderType_DueSoon, "Course due date approaching");
-                    enrollment.DueSoonReminderSentAt = now;
-                    dueSoonSent++;
+                    await _notificationService.CreateAsync(
+                        recipientId,
+                        "course-offering",
+                        "State-matched courses available",
+                        $"Courses matching {milestone.Description.ToLowerInvariant()} for {milestone.SubjectDisplayName} are available: {courseTitles}{(additionalCourseCount > 0 ? $" and {additionalCourseCount} more" : string.Empty)}.");
                 }
             }
 
-            // Process course start reminders
-            if (enrollment.Course?.StartsAtUtc.HasValue == true)
+            _dbContext.LicenseComplianceReminders.Add(new LicenseComplianceReminder
             {
-                var startAt = enrollment.Course.StartsAtUtc.Value;
-                if (startAt > now && startAt <= courseStartBoundary && !HasReminder(enrollment, ReminderType_CourseStart))
-                {
-                    await CreateReminder(enrollment, ReminderType_CourseStart, "Course is starting soon");
-                    courseStartSent++;
-                }
-            }
-
-            // Process enrollment closing reminders
-            if (enrollment.Course?.EnrollmentClosesAtUtc.HasValue == true)
-            {
-                var enrollmentClosesAt = enrollment.Course.EnrollmentClosesAtUtc.Value;
-                if (enrollmentClosesAt > now && enrollmentClosesAt <= enrollmentClosingBoundary && !HasReminder(enrollment, ReminderType_EnrollmentClosing))
-                {
-                    await CreateReminder(enrollment, ReminderType_EnrollmentClosing, "Enrollment period ending soon");
-                    enrollmentClosingSent++;
-                }
-            }
-
-            // Process assessment deadline reminders
-            var requiredAssessment = await _dbContext.CourseAssessments
-                .Where(a => a.CourseId == enrollment.CourseId && a.IsRequired)
-                .FirstOrDefaultAsync();
-
-            if (requiredAssessment != null && !HasReminder(enrollment, ReminderType_AssessmentDeadline))
-            {
-                // Check if learner hasn't passed the assessment
-                var hasPassed = await _dbContext.AssessmentAttempts
-                    .Where(a => a.CourseAssessmentId == requiredAssessment.Id && 
-                                a.UserAccountId == enrollment.UserAccountId &&
-                                a.ScorePercent >= requiredAssessment.PassPercent)
-                    .AnyAsync();
-
-                if (!hasPassed)
-                {
-                    await CreateReminder(enrollment, ReminderType_AssessmentDeadline, "Assessment required for course completion");
-                    assessmentDeadlineSent++;
-                }
-            }
+                UserAccountId = milestone.UserId,
+                ReminderType = milestone.ReminderType,
+                DueAtUtc = milestone.DueAtUtc,
+                SentAtUtc = now
+            });
+            sent++;
         }
 
         await _dbContext.SaveChangesAsync();
-
-        return new CourseReminderRunResult(
-            dueSoonSent,
-            overdueSent,
-            courseStartSent,
-            enrollmentClosingSent,
-            assessmentDeadlineSent,
-            enrollments.Count);
+        return new LicenseComplianceRunResult(sent, candidates.Count);
     }
 
-    private bool HasReminder(Enrollment enrollment, string reminderType)
+    private async Task<List<Course>> GetStateAwareOfferingsAsync(LicenseMilestone milestone)
     {
-        return enrollment.Reminders.Any(r => r.ReminderType == reminderType);
+        if (string.IsNullOrWhiteSpace(milestone.State) || string.IsNullOrWhiteSpace(milestone.RequiredComplianceType))
+        {
+            return new List<Course>();
+        }
+
+        var normalizedState = milestone.State.Trim().ToUpperInvariant();
+        return await _dbContext.Courses
+            .AsNoTracking()
+            .Where(course =>
+                course.IsPublished &&
+                !course.IsArchived &&
+                course.ComplianceType == milestone.RequiredComplianceType &&
+                (string.IsNullOrWhiteSpace(course.State) || course.State == "General" || course.State.ToUpper() == normalizedState))
+            .OrderBy(course => course.Title)
+            .ToListAsync();
     }
 
-    private async Task CreateReminder(Enrollment enrollment, string reminderType, string title)
+    private static IEnumerable<LicenseMilestone> BuildLicenseMilestones(UserAccount user, RegulatoryLicensee? linkedLicensee, DateTime asOfUtc)
     {
-        var message = reminderType switch
-        {
-            ReminderType_DueSoon => $"Your course '{enrollment.Course?.Title ?? "course"}' is due soon.",
-            ReminderType_Overdue => $"Your course '{enrollment.Course?.Title ?? "course"}' is overdue.",
-            ReminderType_CourseStart => $"Your course '{enrollment.Course?.Title ?? "course"}' is starting soon.",
-            ReminderType_EnrollmentClosing => $"Enrollment for '{enrollment.Course?.Title ?? "course"}' is closing soon.",
-            ReminderType_AssessmentDeadline => $"You need to complete the assessment for '{enrollment.Course?.Title ?? "course"}'.",
-            _ => "Course reminder"
-        };
+        var isNorthCarolina = LicenseEducationRules.IsNorthCarolina(user.State);
+        var isFlorida = string.Equals(user.State, "Florida", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(user.State, "FL", StringComparison.OrdinalIgnoreCase);
+        var isNorthCarolinaProvisional = string.Equals(user.LicenseType, "PB", StringComparison.OrdinalIgnoreCase)
+            || (user.LicenseStatus?.Contains("provisional", StringComparison.OrdinalIgnoreCase) ?? false);
+        var initialLicensureDate = user.InitialLicensureDate
+            ?? linkedLicensee?.LicenseIssuedDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var renewalDueDate = user.LicenseRenewalDueDate
+            ?? linkedLicensee?.LicenseRenewalDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
 
-        await _notificationService.CreateAsync(enrollment.UserAccountId, "course-reminder", title, message);
-
-        _dbContext.CourseReminders.Add(new CourseReminder
+        if (initialLicensureDate.HasValue && user.PostlicensingCompletedAt is null &&
+            ((!isNorthCarolina || isNorthCarolinaProvisional) || isFlorida))
         {
-            EnrollmentId = enrollment.Id,
-            ReminderType = reminderType,
-            Message = message,
-            SentAt = DateTime.UtcNow
-        });
+            var postlicensingDueDate = isFlorida && renewalDueDate.HasValue
+                ? renewalDueDate.Value
+                : initialLicensureDate.Value.AddMonths(18);
+            yield return new LicenseMilestone(
+                user.Id,
+                "postlicensing-deadline",
+                postlicensingDueDate,
+                isFlorida
+                    ? "Florida first-renewal postlicensing education requirement"
+                    : isNorthCarolina ? "North Carolina 90-hour postlicensing education requirement" : "Your 90-hour postlicensing education requirement",
+                user.State,
+                CourseComplianceTypes.Postlicensing,
+                user.DisplayName);
+        }
+
+        var continuingEducationDueDate = user.ContinuingEducationDueDate;
+        if (!continuingEducationDueDate.HasValue && isFlorida && user.PostlicensingCompletedAt.HasValue)
+        {
+            continuingEducationDueDate = renewalDueDate;
+        }
+        if (!continuingEducationDueDate.HasValue && isNorthCarolina && user.PostlicensingCompletedAt.HasValue)
+        {
+            continuingEducationDueDate = LicenseEducationRules.GetNorthCarolinaCeDueDate(asOfUtc);
+        }
+
+        if (continuingEducationDueDate.HasValue)
+        {
+            yield return new LicenseMilestone(
+                user.Id,
+                "continuing-education-deadline",
+                continuingEducationDueDate.Value,
+                isNorthCarolina ? "North Carolina annual continuing education requirement" : "Your continuing education requirement",
+                user.State,
+                CourseComplianceTypes.ContinuingEducation,
+                user.DisplayName);
+        }
+
+        if (user.LicenseRenewalDueDate.HasValue)
+        {
+            yield return new LicenseMilestone(
+                user.Id,
+                "license-renewal-deadline",
+                user.LicenseRenewalDueDate.Value,
+                "Your annual broker license renewal",
+                user.State,
+                CourseComplianceTypes.ContinuingEducation,
+                user.DisplayName);
+        }
+
+        if (user.IsBicEligible && user.BicUpdateCourseDueDate.HasValue)
+        {
+            yield return new LicenseMilestone(
+                user.Id,
+                "bic-update-course-deadline",
+                user.BicUpdateCourseDueDate.Value,
+                "Your BIC Update Course and elective CE requirement",
+                user.State,
+                CourseComplianceTypes.ContinuingEducation,
+                user.DisplayName);
+        }
+        else if (!user.IsBicEligible && user.BrokerageExperienceStartDate.HasValue && user.BicCourseCompletedAt is null)
+        {
+            yield return new LicenseMilestone(
+                user.Id,
+                "bic-readiness-review",
+                user.BrokerageExperienceStartDate.Value.AddYears(2),
+                "Your BIC eligibility experience milestone; review the 12-hour BIC course and application",
+                user.State,
+                null,
+                user.DisplayName);
+        }
     }
+
+    private async Task<List<Guid>> GetComplianceRecipientsAsync(Guid subjectUserId)
+    {
+        var recipientIds = new HashSet<Guid> { subjectUserId };
+        var brokerIds = await _dbContext.BrokerLearnerAssignments
+            .Where(assignment => assignment.LearnerUserId == subjectUserId)
+            .Join(_dbContext.UserAccounts.Where(user => user.IsActive), assignment => assignment.BrokerUserId, user => user.Id, (_, user) => user.Id)
+            .ToListAsync();
+        recipientIds.UnionWith(brokerIds);
+
+        var adminIds = await _dbContext.UserAccounts
+            .Where(user => user.IsActive && user.Role == "Admin")
+            .Select(user => user.Id)
+            .ToListAsync();
+        recipientIds.UnionWith(adminIds);
+        return recipientIds.ToList();
+    }
+
+    private sealed record LicenseMilestone(
+        Guid UserId,
+        string ReminderType,
+        DateTime DueAtUtc,
+        string Description,
+        string? State,
+        string? RequiredComplianceType,
+        string SubjectDisplayName);
 }

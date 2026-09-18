@@ -297,6 +297,28 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("CompletionCertificates");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.ComplianceReminderLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SentAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ComplianceReminderLogs");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.Course", b =>
                 {
                     b.Property<Guid>("Id")
@@ -312,10 +334,8 @@ namespace Lms.Application.Data.Migrations
 
                     b.Property<string>("ComplianceType")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT")
-                        .HasDefaultValue("");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("ContinuingEducationType")
                         .HasMaxLength(40)
@@ -329,10 +349,8 @@ namespace Lms.Application.Data.Migrations
 
                     b.Property<string>("DeliveryMethod")
                         .IsRequired()
-                        .ValueGeneratedOnAdd()
                         .HasMaxLength(40)
-                        .HasColumnType("TEXT")
-                        .HasDefaultValue("DistanceEducation");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
                         .HasColumnType("TEXT");
@@ -349,24 +367,16 @@ namespace Lms.Application.Data.Migrations
                     b.Property<bool>("IsPublished")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("Jurisdiction")
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Level")
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("MinimumAttendancePercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(80);
+                        .HasColumnType("INTEGER");
 
                     b.Property<int>("MinimumPassingPercent")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(75);
+                        .HasColumnType("INTEGER");
 
                     b.Property<Guid?>("OwnerInstructorId")
                         .HasColumnType("TEXT");
@@ -376,9 +386,7 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("RequiredInstructionalMinutes")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(0);
+                        .HasColumnType("INTEGER");
 
                     b.Property<bool>("RequiresProctoredExam")
                         .HasColumnType("INTEGER");
@@ -405,6 +413,10 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("StartsAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Title")
@@ -451,9 +463,9 @@ namespace Lms.Application.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserAccountId", "EndedAtUtc");
+                    b.HasIndex("CourseId");
 
-                    b.HasIndex("CourseId", "UserAccountId", "StartedAtUtc");
+                    b.HasIndex("UserAccountId");
 
                     b.ToTable("CourseActivitySessions");
                 });
@@ -575,6 +587,51 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("CourseCheckpointOptions");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.CourseEligibilityPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ComplianceType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContinuingEducationType")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("EffectiveThrough")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("EligibilityMessage")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("LicenseLevel")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("State", "LicenseLevel", "ComplianceType", "EffectiveFrom");
+
+                    b.ToTable("CourseEligibilityPolicies");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.CourseReminder", b =>
                 {
                     b.Property<Guid>("Id")
@@ -606,6 +663,43 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("CourseReminders");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.CourseSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CommissionNotifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("PendingChangeAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ScheduleChangeReportedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ScheduledEndAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ScheduledStartAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.ToTable("CourseSessions");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.Enrollment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -622,6 +716,9 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("CompletedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CompletionReportSubmittedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ConsentStatus")
@@ -695,6 +792,9 @@ namespace Lms.Application.Data.Migrations
                     b.Property<bool>("ClosedBookConfirmed")
                         .HasColumnType("INTEGER");
 
+                    b.Property<DateTime?>("CommissionReportedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<Guid>("CourseId")
                         .HasColumnType("TEXT");
 
@@ -728,11 +828,9 @@ namespace Lms.Application.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ExternalSessionId");
+                    b.HasIndex("CourseId");
 
                     b.HasIndex("UserAccountId");
-
-                    b.HasIndex("CourseId", "UserAccountId", "ExpiresAtUtc");
 
                     b.ToTable("ExamProctoringSessions");
                 });
@@ -886,6 +984,34 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("LessonProgresses");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.LicenseComplianceReminder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DueAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReminderType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SentAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserAccountId", "ReminderType", "DueAtUtc")
+                        .IsUnique();
+
+                    b.ToTable("LicenseComplianceReminders");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.Module", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1001,7 +1127,6 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CommissionCourseNumber")
-                        .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("CourseId")
@@ -1009,12 +1134,10 @@ namespace Lms.Application.Data.Migrations
 
                     b.Property<string>("CourseTitle")
                         .IsRequired()
-                        .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("DeliveryMethod")
                         .IsRequired()
-                        .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("DisclosurePublishedAtUtc")
@@ -1026,12 +1149,10 @@ namespace Lms.Application.Data.Migrations
 
                     b.Property<string>("DisclosureVersion")
                         .IsRequired()
-                        .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ElectronicSignature")
                         .IsRequired()
-                        .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("EnrollmentId")
@@ -1051,31 +1172,25 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("ProctoringFee")
-                        .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("StudentEmail")
                         .IsRequired()
-                        .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("StudentLegalName")
                         .IsRequired()
-                        .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SupportEmail")
                         .IsRequired()
-                        .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("SupportTelephone")
                         .IsRequired()
-                        .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("TuitionAndFees")
-                        .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -1084,9 +1199,9 @@ namespace Lms.Application.Data.Migrations
 
                     b.HasIndex("EnrollmentId");
 
-                    b.HasIndex("PaymentTransactionId");
+                    b.HasIndex("LearnerId");
 
-                    b.HasIndex("LearnerId", "CourseId", "AcknowledgedAtUtc");
+                    b.HasIndex("PaymentTransactionId");
 
                     b.ToTable("PolicyDisclosureAcknowledgments");
                 });
@@ -1102,22 +1217,18 @@ namespace Lms.Application.Data.Migrations
 
                     b.Property<string>("CourseTitle")
                         .IsRequired()
-                        .HasMaxLength(120)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("DiscountAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("LineSubtotal")
-                        .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("LineTotal")
-                        .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("PaymentTransactionId")
@@ -1127,11 +1238,9 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<decimal>("TaxAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -1197,6 +1306,209 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("Refunds");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryDataSnapshot", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal?>("AcquisitionCost")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ImportedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ParserVersion")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("RetrievedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ReviewedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ReviewedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceName")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SourceUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("State", "Status", "RetrievedAtUtc");
+
+                    b.ToTable("RegulatoryDataSnapshots");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryFirm", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LegalName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("LicenseIssuedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("QualifyingBrokerName")
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SnapshotId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TradeName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SnapshotId", "State", "LicenseNumber")
+                        .IsUnique();
+
+                    b.ToTable("RegulatoryFirms");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryFirmLicenseeAffiliation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BrokerInChargeName")
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("FirmId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsBrokerInCharge")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("LicenseeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("RelationshipEffectiveDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SnapshotId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FirmId");
+
+                    b.HasIndex("LicenseeId");
+
+                    b.HasIndex("SnapshotId", "FirmId", "LicenseeId")
+                        .IsUnique();
+
+                    b.ToTable("RegulatoryFirmLicenseeAffiliations");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryLicensee", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("ElectiveHours")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsBicEligible")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly?>("LicenseIssuedDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseLevel")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("LicenseRenewalDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseStatus")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseType")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("PostlicensingHours")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("SnapshotId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("UpdateHours")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SnapshotId", "State", "LicenseNumber")
+                        .IsUnique();
+
+                    b.ToTable("RegulatoryLicensees");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.RetakeGrant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1236,6 +1548,11 @@ namespace Lms.Application.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AddressState")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("AdvertisedName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1256,9 +1573,15 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("EducationDirectorDesignatedAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("EducationDirectorName")
                         .IsRequired()
                         .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("EducationDirectorOrientationVideoViewedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("InstructorLicenseNumber")
@@ -1310,7 +1633,7 @@ namespace Lms.Application.Data.Migrations
 
                     b.Property<string>("State")
                         .IsRequired()
-                        .HasMaxLength(2)
+                        .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("StreetAddress")
@@ -1390,6 +1713,12 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("HireReportedToCommissionAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastObservationAtUtc")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("LicenseNumber")
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
@@ -1417,7 +1746,7 @@ namespace Lms.Application.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("SchoolProfileId", "Role");
+                    b.HasIndex("SchoolProfileId");
 
                     b.ToTable("SchoolStaffMembers");
                 });
@@ -1537,6 +1866,24 @@ namespace Lms.Application.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("BicCourseCompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("BicDesignationAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("BicEligibleAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("BicUpdateCourseDueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("BrokerageExperienceStartDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ContinuingEducationDueDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -1573,8 +1920,15 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("LicenseRenewalDueDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("LicenseStatus")
                         .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseType")
+                        .HasMaxLength(10)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LockoutEndUtc")
@@ -1590,21 +1944,77 @@ namespace Lms.Application.Data.Migrations
                     b.Property<DateTime?>("PasswordUpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("PermanentAddress")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("PostlicensingCompletedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Role")
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("State")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("BicEligibleAt");
+
+                    b.HasIndex("ContinuingEducationDueDate");
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("InitialLicensureDate");
+
+                    b.HasIndex("LicenseRenewalDueDate");
 
                     b.HasIndex("LockoutEndUtc");
 
                     b.HasIndex("PasswordExpiresAt");
 
                     b.ToTable("UserAccounts");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.UserRegulatoryLicenseLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("RegulatoryLicenseeId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("RegulatorySnapshotId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("VerifiedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("VerifiedByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RegulatoryLicenseeId");
+
+                    b.HasIndex("UserAccountId")
+                        .IsUnique();
+
+                    b.HasIndex("RegulatorySnapshotId", "RegulatoryLicenseeId");
+
+                    b.ToTable("UserRegulatoryLicenseLinks");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.AssessmentAnswer", b =>
@@ -1636,8 +2046,7 @@ namespace Lms.Application.Data.Migrations
 
                     b.HasOne("Lms.Domain.Entities.ExamProctoringSession", "ExamProctoringSession")
                         .WithOne("AssessmentAttempt")
-                        .HasForeignKey("Lms.Domain.Entities.AssessmentAttempt", "ExamProctoringSessionId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("Lms.Domain.Entities.AssessmentAttempt", "ExamProctoringSessionId");
 
                     b.HasOne("Lms.Domain.Entities.UserAccount", "UserAccount")
                         .WithMany("AssessmentAttempts")
@@ -1786,6 +2195,17 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("Enrollment");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.CourseSession", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.Enrollment", b =>
                 {
                     b.HasOne("Lms.Domain.Entities.Course", "Course")
@@ -1885,6 +2305,17 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("UserAccount");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.LicenseComplianceReminder", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.UserAccount", "UserAccount")
+                        .WithMany()
+                        .HasForeignKey("UserAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("UserAccount");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.Module", b =>
                 {
                     b.HasOne("Lms.Domain.Entities.Course", "Course")
@@ -1931,24 +2362,22 @@ namespace Lms.Application.Data.Migrations
                     b.HasOne("Lms.Domain.Entities.Course", "Course")
                         .WithMany()
                         .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Lms.Domain.Entities.Enrollment", "Enrollment")
                         .WithMany()
-                        .HasForeignKey("EnrollmentId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("EnrollmentId");
 
                     b.HasOne("Lms.Domain.Entities.UserAccount", "Learner")
                         .WithMany()
                         .HasForeignKey("LearnerId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Lms.Domain.Entities.PaymentTransaction", "PaymentTransaction")
                         .WithMany("PolicyDisclosureAcknowledgments")
-                        .HasForeignKey("PaymentTransactionId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("PaymentTransactionId");
 
                     b.Navigation("Course");
 
@@ -1964,7 +2393,7 @@ namespace Lms.Application.Data.Migrations
                     b.HasOne("Lms.Domain.Entities.Course", "Course")
                         .WithMany()
                         .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Lms.Domain.Entities.PaymentTransaction", "PaymentTransaction")
@@ -1987,6 +2416,55 @@ namespace Lms.Application.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("PaymentTransaction");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryFirm", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.RegulatoryDataSnapshot", "Snapshot")
+                        .WithMany("Firms")
+                        .HasForeignKey("SnapshotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Snapshot");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryFirmLicenseeAffiliation", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.RegulatoryFirm", "Firm")
+                        .WithMany("LicenseeAffiliations")
+                        .HasForeignKey("FirmId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.RegulatoryLicensee", "Licensee")
+                        .WithMany("FirmAffiliations")
+                        .HasForeignKey("LicenseeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.RegulatoryDataSnapshot", "Snapshot")
+                        .WithMany()
+                        .HasForeignKey("SnapshotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Firm");
+
+                    b.Navigation("Licensee");
+
+                    b.Navigation("Snapshot");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryLicensee", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.RegulatoryDataSnapshot", "Snapshot")
+                        .WithMany("Licensees")
+                        .HasForeignKey("SnapshotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Snapshot");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.RetakeGrant", b =>
@@ -2097,6 +2575,33 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("RecipientUser");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.UserRegulatoryLicenseLink", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.RegulatoryLicensee", "RegulatoryLicensee")
+                        .WithMany()
+                        .HasForeignKey("RegulatoryLicenseeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.RegulatoryDataSnapshot", "RegulatorySnapshot")
+                        .WithMany()
+                        .HasForeignKey("RegulatorySnapshotId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.UserAccount", "UserAccount")
+                        .WithMany("RegulatoryLicenseLinks")
+                        .HasForeignKey("UserAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("RegulatoryLicensee");
+
+                    b.Navigation("RegulatorySnapshot");
+
+                    b.Navigation("UserAccount");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.AssessmentAttempt", b =>
                 {
                     b.Navigation("Answers");
@@ -2171,6 +2676,23 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("Refunds");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryDataSnapshot", b =>
+                {
+                    b.Navigation("Firms");
+
+                    b.Navigation("Licensees");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryFirm", b =>
+                {
+                    b.Navigation("LicenseeAffiliations");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryLicensee", b =>
+                {
+                    b.Navigation("FirmAffiliations");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.SchoolProfile", b =>
                 {
                     b.Navigation("StaffMembers");
@@ -2197,6 +2719,8 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("ModuleCheckpointProgresses");
 
                     b.Navigation("Notifications");
+
+                    b.Navigation("RegulatoryLicenseLinks");
                 });
 #pragma warning restore 612, 618
         }

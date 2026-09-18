@@ -1,0 +1,289 @@
+@page "/admin/regulatory-directory"
+@attribute [Authorize(Roles = "Admin")]
+@using System.Security.Claims
+@using System.Text.Json
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@inject IRegulatoryDirectoryService RegulatoryDirectoryService
+@inject IUserAccountService UserAccountService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<PageTitle>Regulatory Directory</PageTitle>
+
+<div class="page-header-row">
+    <div>
+        <h1>Regulatory Directory</h1>
+        <p class="muted-text">Weekly licensing snapshots</p>
+            <button type="button" class="secondary-btn" @onclick="RefreshAsync" disabled="@_isWorking">Refresh records</button>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(_message))
+{
+    <p class="@(_hasError ? "auth-error" : "auth-help")">@_message</p>
+}
+
+<section class="card">
+    <h2>Import Snapshot</h2>
+    <div class="form-field">
+        <label for="regulatory-snapshot-json">Normalized snapshot JSON</label>
+        <textarea id="regulatory-snapshot-json" rows="14" @bind="_snapshotJson" disabled="@_isWorking"></textarea>
+    </div>
+    <div class="course-actions">
+        <button type="button" class="btn-primary" @onclick="ImportAsync" disabled="@(_isWorking || string.IsNullOrWhiteSpace(_snapshotJson))">Import for review</button>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Recent Snapshots</h2>
+    @if (_snapshots.Count == 0)
+    {
+        <p class="muted-text">No regulatory snapshots have been imported.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>State</th>
+                        <th>Source</th>
+                        <th>Retrieved</th>
+                        <th>Cost</th>
+                        <th>Records</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var snapshot in _snapshots)
+                    {
+                        <tr>
+                            <td>@snapshot.State</td>
+                            <td>@snapshot.SourceName</td>
+                            <td>@snapshot.RetrievedAtUtc.ToString("yyyy-MM-dd HH:mm 'UTC'")</td>
+                            <td>@(snapshot.AcquisitionCost.HasValue ? $"${snapshot.AcquisitionCost.Value:F2}" : "Not recorded")</td>
+                            <td>@snapshot.FirmCount firms, @snapshot.LicenseeCount licensees</td>
+                            <td><span class="status-pill @GetStatusClass(snapshot.Status)">@GetStatusText(snapshot.Status)</span></td>
+                            <td>
+                                @if (snapshot.Status == RegulatorySnapshotStatuses.PendingReview)
+                                {
+                                    <button type="button" class="secondary-btn" @onclick="() => ApproveAsync(snapshot.SnapshotId)" disabled="@_isWorking">Approve</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<section class="card">
+    <h2>Approved licensees</h2>
+    <p class="muted-text">Review captured state records before linking them to local user accounts.</p>
+    @if (_licensees.Count == 0)
+    {
+        <p class="muted-text">No approved licensee records are available.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>State</th>
+                        <th>Licensee</th>
+                        <th>License</th>
+                        <th>Status</th>
+                        <th>Issued</th>
+                        <th>Renewal</th>
+                        <th>Linked account</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var licensee in _licensees)
+                    {
+                        <tr>
+                            <td>@licensee.State</td>
+                            <td>@licensee.Name</td>
+                            <td>@licensee.LicenseNumber (@licensee.LicenseLevel)</td>
+                            <td>@licensee.LicenseStatus</td>
+                            <td>@(licensee.LicenseIssuedDate?.ToString("yyyy-MM-dd") ?? "Not reported")</td>
+                            <td>@(licensee.LicenseRenewalDate?.ToString("yyyy-MM-dd") ?? "Not reported")</td>
+                            <td>@GetLinkedUserText(licensee.LinkedUserId)</td>
+                            <td>
+                                <select value="@GetSelectedUserId(licensee)" @onchange="args => SelectUser(licensee.LicenseeId, args.Value?.ToString())" disabled="@_isWorking">
+                                    <option value="">Select account</option>
+                                    @foreach (var user in _users)
+                                    {
+                                        <option value="@user.Id">@user.DisplayName (@user.Email)</option>
+                                    }
+                                </select>
+                                <button type="button" class="secondary-btn" @onclick="() => LinkAsync(licensee.LicenseeId)" disabled="@(_isWorking || !HasSelectedUser(licensee.LicenseeId))">Link</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private List<RegulatorySnapshotSummary> _snapshots = new();
+    private List<RegulatoryLicenseeSummary> _licensees = new();
+    private List<UserAccount> _users = new();
+    private readonly Dictionary<Guid, Guid> _selectedUsers = new();
+    private string _snapshotJson = string.Empty;
+    private string? _message;
+    private bool _hasError;
+    private bool _isWorking;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = (await UserAccountService.GetAllAsync()).Where(user => user.IsActive).OrderBy(user => user.DisplayName).ToList();
+        await RefreshSnapshotsAsync();
+        await RefreshLicenseesAsync();
+    }
+
+    private async Task ImportAsync()
+    {
+        try
+        {
+            _isWorking = true;
+            var snapshot = JsonSerializer.Deserialize<RegulatorySnapshotImport>(_snapshotJson, _jsonOptions)
+                ?? throw new InvalidOperationException("The snapshot JSON is empty or invalid.");
+            await RegulatoryDirectoryService.ImportAsync(snapshot);
+            _snapshotJson = string.Empty;
+            _hasError = false;
+            _message = "Snapshot imported and ready for review.";
+            await RefreshSnapshotsAsync();
+        }
+        catch (JsonException)
+        {
+            _hasError = true;
+            _message = "The snapshot JSON is invalid.";
+        }
+        catch (InvalidOperationException exception)
+        {
+            _hasError = true;
+            _message = exception.Message;
+        }
+        finally
+        {
+            _isWorking = false;
+        }
+    }
+
+    private async Task ApproveAsync(Guid snapshotId)
+    {
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var actorIdValue = authenticationState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(actorIdValue, out var actorId))
+        {
+            _hasError = true;
+            _message = "Your session is out of date. Please sign in again.";
+            return;
+        }
+
+        _isWorking = true;
+        var actorEmail = authenticationState.User.FindFirst(ClaimTypes.Email)?.Value ?? authenticationState.User.Identity?.Name ?? "admin";
+        var approved = await RegulatoryDirectoryService.ApproveAsync(snapshotId, actorId, actorEmail);
+        _hasError = !approved;
+        _message = approved ? "Snapshot approved." : "The snapshot could not be approved.";
+        await RefreshSnapshotsAsync();
+        await RefreshLicenseesAsync();
+        _isWorking = false;
+    }
+
+    private async Task RefreshSnapshotsAsync()
+    {
+        _snapshots = await RegulatoryDirectoryService.GetRecentSnapshotsAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        _isWorking = true;
+        await RefreshSnapshotsAsync();
+        await RefreshLicenseesAsync();
+        _message = "Regulatory records refreshed.";
+        _hasError = false;
+        _isWorking = false;
+    }
+
+    private async Task RefreshLicenseesAsync()
+    {
+        _licensees = await RegulatoryDirectoryService.GetApprovedLicenseesAsync();
+    }
+
+    private void SelectUser(Guid licenseeId, string? rawUserId)
+    {
+        if (Guid.TryParse(rawUserId, out var userId))
+        {
+            _selectedUsers[licenseeId] = userId;
+        }
+        else
+        {
+            _selectedUsers.Remove(licenseeId);
+        }
+    }
+
+    private string GetSelectedUserId(RegulatoryLicenseeSummary licensee)
+    {
+        return _selectedUsers.TryGetValue(licensee.LicenseeId, out var selectedUserId)
+            ? selectedUserId.ToString()
+            : licensee.LinkedUserId?.ToString() ?? string.Empty;
+    }
+
+    private bool HasSelectedUser(Guid licenseeId) => _selectedUsers.ContainsKey(licenseeId);
+
+    private string GetLinkedUserText(Guid? userId)
+    {
+        return userId is Guid id
+            ? _users.FirstOrDefault(user => user.Id == id)?.Email ?? "Linked account"
+            : "Not linked";
+    }
+
+    private async Task LinkAsync(Guid licenseeId)
+    {
+        if (!_selectedUsers.TryGetValue(licenseeId, out var userId))
+        {
+            return;
+        }
+
+        var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!Guid.TryParse(authenticationState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var actorId))
+        {
+            _hasError = true;
+            _message = "Your session is out of date. Please sign in again.";
+            return;
+        }
+
+        _isWorking = true;
+        var actorEmail = authenticationState.User.FindFirst(ClaimTypes.Email)?.Value ?? authenticationState.User.Identity?.Name ?? "admin";
+        var linked = await RegulatoryDirectoryService.LinkLicenseeToUserAsync(userId, licenseeId, actorId, actorEmail);
+        _hasError = !linked;
+        _message = linked ? "Licensee linked to the user account." : "The licensee could not be linked.";
+        _selectedUsers.Remove(licenseeId);
+        await RefreshLicenseesAsync();
+        _isWorking = false;
+    }
+
+    private static string GetStatusClass(string status) => status switch
+    {
+        RegulatorySnapshotStatuses.Approved => "status-pill-approved",
+        RegulatorySnapshotStatuses.Rejected => "status-pill-changes",
+        _ => "status-pill-pending"
+    };
+
+    private static string GetStatusText(string status) => status switch
+    {
+        RegulatorySnapshotStatuses.PendingReview => "Pending review",
+        RegulatorySnapshotStatuses.Approved => "Approved",
+        RegulatorySnapshotStatuses.Rejected => "Rejected",
+        _ => status
+    };
+}

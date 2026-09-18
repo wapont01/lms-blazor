@@ -5,13 +5,13 @@
 @using Microsoft.JSInterop
 @using Lms.Application.Services
 @using Lms.Domain.Entities
-@implements IAsyncDisposable
+@implements IDisposable
 @inject ICourseService CourseService
 @inject IEnrollmentService EnrollmentService
 @inject IModuleCheckpointService CheckpointService
 @inject IAssessmentService AssessmentService
-@inject ICourseActivityService CourseActivityService
 @inject ILearnerDashboardService LearnerDashboardService
+@inject ICourseActivityService CourseActivityService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
@@ -73,7 +73,6 @@ else
 			}
 
 			<h2>Course Menu</h2>
-			<a class="compliance-menu-link" href="@BuildComplianceResourcesUri()">Compliance Resources</a>
 			@if (!MenuLinksEnabled)
 			{
 				<p class="menu-lock-note">Menu unlocks after you begin the timed course.</p>
@@ -93,7 +92,7 @@ else
 
 					<section class="lesson-menu-module @(isCurrentModule ? "is-active-module" : string.Empty)">
 						<button type="button" class="menu-module-toggle" @onclick="(() => ToggleModuleExpanded(module.Id))" aria-expanded="@isExpanded" disabled="@forceExpandedMenu">
-							<span class="module-toggle-label">@GetModuleMenuLabel(module)</span>
+							<span class="module-toggle-label">@module.Title</span>
 							<span class="module-toggle-icon @(isExpanded ? "is-expanded" : string.Empty)" aria-hidden="true">▸</span>
 						</button>
 						@if (isExpanded && moduleLessons.Count == 0)
@@ -118,14 +117,6 @@ else
 										}
 									</li>
 								}
-								@if (_course.UsesUnitBasedStructure)
-								{
-									var unitAssessment = GetUnitAssessment(module.Id);
-									<li class="unit-assessment-menu-item">
-										<span>Unit Assessment</span>
-										<strong class="@GetUnitAssessmentStatusClass(unitAssessment)">@GetUnitAssessmentStatus(unitAssessment)</strong>
-									</li>
-								}
 							</ul>
 						}
 					</section>
@@ -135,21 +126,11 @@ else
 		}
 
 		<section class="lesson-main-column">
-			@if (_isPreviewMode)
-			{
-				<section class="flow-feedback-banner" aria-live="polite">
-					<p class="muted-text">Preview Mode: learner progress, checkpoints, and assessment attempts are not being saved.</p>
-					<div class="checkpoint-actions">
-						<button type="button" class="secondary-button" @onclick="ExitPreview">Exit Preview</button>
-					</div>
-				</section>
-			}
-
 			<h1 class="lesson-page-title">@_course!.Title</h1>
 
 			<section class="course-summary-strip" aria-label="Lesson summary">
 				<div class="summary-chip">
-					<span class="summary-label">@(_course.UsesUnitBasedStructure ? "Unit" : "Module")</span>
+					<span class="summary-label">Module</span>
 					<strong>@_currentModuleTitle</strong>
 				</div>
 				<div class="summary-chip">
@@ -189,12 +170,8 @@ else
 					<section class="final-assessment-gate" aria-label="Final assessment announcement">
 						<h2>Final Assessment</h2>
 						<p>You have reached the final assessment. It contains @_finalAssessment!.Questions.Count questions and is scored automatically.</p>
-						@if (RequiresProctorVerification)
-						{
-							<p class="auth-error">Waiting for proctor verification. Williams Land Realty must verify your identity and open a closed-book exam session before you can begin.</p>
-						}
 						<div class="timed-start-actions">
-							<button type="button" class="timer-start-button" @onclick="BeginFinalAssessmentAsync" disabled="@RequiresProctorVerification">Begin Final Assessment</button>
+							<button type="button" class="timer-start-button" @onclick="BeginFinalAssessmentAsync">Begin Final Assessment</button>
 							<button type="button" class="secondary-button" @onclick="GoPreviousInCourseAsync">Back</button>
 						</div>
 					</section>
@@ -279,7 +256,7 @@ else
 						}
 						<div class="checkpoint-actions">
 							<button type="button" class="checkpoint-submit-button" @onclick="GoToCourseOverview">Back to Course Overview</button>
-							@if (_finalAssessmentPassed && !_isPreviewMode)
+							@if (_finalAssessmentPassed)
 							{
 								<button type="button" class="secondary-button" @onclick="GoToLearnerCertificates">View Certificate</button>
 							}
@@ -299,7 +276,7 @@ else
 
 				@if (_activeCheckpoint is not null)
 				{
-					<section class="module-checkpoint" aria-label="@(_course.UsesUnitBasedStructure ? "Unit assessment" : "Module checkpoint quiz")">
+					<section class="module-checkpoint" aria-label="Module checkpoint quiz">
 						<h2>@_activeCheckpoint.Title</h2>
 						@if (!_showCheckpointResult)
 						{
@@ -332,7 +309,7 @@ else
 						}
 						else
 						{
-							<h3>@(_course.UsesUnitBasedStructure ? "Unit Assessment Result" : "Checkpoint Result")</h3>
+							<h3>Checkpoint Result</h3>
 							<p class="@(_checkpointPassed ? null : "assessment-failure-text")">@(_checkpointPassed ? "Success" : "Result: Failure")</p>
 							<p class="muted-text">Score: @_checkpointMatchedCorrectCount of @_checkpointTotalCorrectCount correct selections</p>
 
@@ -356,7 +333,7 @@ else
 								}
 								else
 								{
-									<button type="button" class="secondary-button" @onclick="RetakeCheckpoint">@(_course.UsesUnitBasedStructure ? "Re-take Unit Assessment" : "Re-take Checkpoint")</button>
+									<button type="button" class="secondary-button" @onclick="RetakeCheckpoint">Re-take Checkpoint</button>
 									<p class="muted-text">Use the Next arrow to continue regardless.</p>
 								}
 							</div>
@@ -398,8 +375,6 @@ else
 	[Parameter] public Guid CourseId { get; set; }
 	[Parameter] public Guid LessonId { get; set; }
 	[SupplyParameterFromQuery(Name = "learnerId")] public Guid? LearnerId { get; set; }
-	[SupplyParameterFromQuery(Name = "preview")] public string? Preview { get; set; }
-	[SupplyParameterFromQuery(Name = "previewSession")] public string? PreviewSession { get; set; }
 
 	private Course? _course;
 	private Guid? _viewerUserId;
@@ -407,7 +382,6 @@ else
 	private Guid? _learnerContextUserId;
 	private bool _isAuthenticated;
 	private bool _isAdminViewer;
-	private bool _isPreviewMode;
 	private bool _isEnrolled;
 	private bool _hasPaidAccess = true;
 	private decimal _enrollmentProgressPercent;
@@ -452,13 +426,12 @@ else
 	private decimal _finalAssessmentScorePercent;
 	private bool _finalAssessmentPassed;
 	private string? _finalAssessmentResultMessage;
-	private DateTime? _completionTimestampUtc;
 	private readonly List<FinalAssessmentAnswerReviewItem> _finalAssessmentAnswerReview = new();
 	private DateTime? _timedSessionStartedAtUtc;
-	private Guid? _activitySessionId;
-	private DateTime _lastActivityPulseAtUtc;
 	private bool _isTimerStateLoaded;
 	private Timer? _timerRefresh;
+	private Guid? _activityLogSessionId;
+	private Timer? _activityHeartbeat;
 	private bool _showFinalAssessmentAnnouncement;
 	private bool _isFinalAssessmentOpen;
 	private int _highestUnlockedTrackedLessonIndex;
@@ -486,6 +459,20 @@ else
 		&& !_showFinalAssessmentResults;
 	private bool ShowFinalAssessmentAnnouncement => _showFinalAssessmentAnnouncement && _finalAssessment is not null;
 	private bool ShowFinalAssessmentQuiz => _isFinalAssessmentOpen && _finalAssessment is not null && !_showFinalAssessmentResults;
+	private bool IsTestShortcutEnabled => string.Equals(Environment.GetEnvironmentVariable("LMS_TEST_SHORTCUT"), "1", StringComparison.Ordinal);
+
+	private async Task ApplyTestShortcutIfEnabledAsync()
+	{
+		if (!IsTestShortcutEnabled || !_userId.HasValue || _progressTrackedLessons.Count == 0)
+		{
+			return;
+		}
+
+		_timedSessionStartedAtUtc ??= DateTime.UtcNow.AddDays(-1);
+		_highestUnlockedTrackedLessonIndex = _progressTrackedLessons.Count - 1;
+		_isTimerStateLoaded = true;
+		await EnrollmentService.UpdateProgressAsync(_userId.Value, CourseId, 100m);
+	}
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -499,9 +486,6 @@ else
 			_viewerUserId = parsedUserId;
 		}
 
-		_isPreviewMode = IsPreviewRequested(Preview)
-			&& (authState.User.IsInRole("Instructor") || authState.User.IsInRole("Admin"));
-
 		_isInitialized = true;
 
 		_course = await CourseService.GetByIdAsync(CourseId);
@@ -513,17 +497,6 @@ else
 		BuildOrderedLessons();
 		_checkpointDefinitions = await CheckpointService.GetCheckpointDefinitionsAsync(CourseId);
 		ResolveCurrentLesson();
-
-		if (_isPreviewMode)
-		{
-			_isEnrolled = true;
-			_hasPaidAccess = true;
-			_learnerContextUserId = null;
-			_userId = null;
-			await RefreshFinalAssessmentStateAsync();
-			await EvaluateFlowGatesOnLessonLoadAsync();
-			return;
-		}
 
 		if (_viewerUserId.HasValue)
 		{
@@ -546,6 +519,7 @@ else
 					await RefreshLessonStateAsync();
 					_passedCheckpointKeys = await CheckpointService.GetPassedCheckpointKeysAsync(_userId.Value, _course.Id);
 					await RefreshFinalAssessmentStateAsync();
+					await ApplyTestShortcutIfEnabledAsync();
 					if (EnforceAssessmentTerminalOverviewLock())
 					{
 						return;
@@ -569,7 +543,7 @@ else
 			return;
 		}
 
-		if (!_isPreviewMode && _viewerUserId.HasValue)
+		if (_viewerUserId.HasValue)
 		{
 			var learnerSelection = await LearnerDashboardService.ResolveLearnerContextAsync(_viewerUserId.Value, _isAdminViewer, LearnerId);
 			_learnerContextUserId = learnerSelection.Context.LearnerUserId;
@@ -583,17 +557,6 @@ else
 		}
 
 		ResolveCurrentLesson();
-
-		if (_isPreviewMode)
-		{
-			_isEnrolled = true;
-			_hasPaidAccess = true;
-			_learnerContextUserId = null;
-			_userId = null;
-			await RefreshFinalAssessmentStateAsync();
-			await EvaluateFlowGatesOnLessonLoadAsync();
-			return;
-		}
 
 		if (_userId.HasValue)
 		{
@@ -618,6 +581,7 @@ else
 			await RefreshLessonStateAsync();
 			_passedCheckpointKeys = await CheckpointService.GetPassedCheckpointKeysAsync(_userId.Value, _course.Id);
 			await RefreshFinalAssessmentStateAsync();
+			await ApplyTestShortcutIfEnabledAsync();
 			if (EnforceAssessmentTerminalOverviewLock())
 			{
 				return;
@@ -635,10 +599,6 @@ else
 			if (_isEnrolled)
 			{
 				await EnforceProgressiveLessonAccessAsync();
-				if (_isPreviewMode)
-				{
-					await EvaluateFlowGatesOnLessonLoadAsync();
-				}
 			}
 			StateHasChanged();
 		}
@@ -814,42 +774,6 @@ else
 			.Any(lesson => lesson.Id == lessonId);
 	}
 
-	private string GetModuleMenuLabel(Module module)
-	{
-		if (_course?.UsesUnitBasedStructure != true)
-		{
-			return module.Title;
-		}
-
-		var unitNumber = _orderedModules.Where(candidate => !IsGettingStartedModule(candidate)).OrderBy(candidate => candidate.OrderIndex).ToList().FindIndex(candidate => candidate.Id == module.Id) + 1;
-		return $"Unit {unitNumber}: {module.Title}";
-	}
-
-	private ModuleCheckpointDefinition? GetUnitAssessment(Guid moduleId)
-	{
-		return _checkpointDefinitions.FirstOrDefault(definition => definition.ModuleId == moduleId && definition.LessonId is null && definition.GatesProgression);
-	}
-
-	private string GetUnitAssessmentStatus(ModuleCheckpointDefinition? assessment)
-	{
-		if (assessment is null)
-		{
-			return "Configuration required";
-		}
-
-		return _passedCheckpointKeys.Contains(assessment.Key) ? "Passed" : "Required";
-	}
-
-	private string GetUnitAssessmentStatusClass(ModuleCheckpointDefinition? assessment)
-	{
-		if (assessment is null)
-		{
-			return "is-missing";
-		}
-
-		return _passedCheckpointKeys.Contains(assessment.Key) ? "is-passed" : "is-required";
-	}
-
 	private decimal CalculateLearnerFlowProgressPercent()
 	{
 		if (_currentLesson is null || IsGettingStartedLesson(_currentLesson.Id) || _progressTrackedLessons.Count == 0)
@@ -1007,10 +931,6 @@ else
 		{
 			// Keep unlock state in-memory if local storage is temporarily unavailable.
 		}
-		catch (JSDisconnectedException)
-		{
-			// Circuit was mid-transition (e.g. enhanced navigation); keep unlock state in-memory.
-		}
 	}
 
 	private async Task GoPreviousInCourseAsync()
@@ -1067,12 +987,6 @@ else
 			return;
 		}
 
-		if (HasMissingProgressionGateForCurrentModule())
-		{
-			_checkpointMessage = "This Unit requires a passing Unit assessment before you can advance.";
-			return;
-		}
-
 		if (_currentLessonPages.Count > 1 && _currentLessonPageIndex < _currentLessonPages.Count - 1)
 		{
 			_currentLessonPageIndex++;
@@ -1080,7 +994,7 @@ else
 
 			if (IsTimedSessionRunning && IsAtFinalLessonBoundary())
 			{
-				if (TryBeginPendingCheckpointForCurrentLesson(null))
+				if (TryBeginEndOfModuleCheckpoint(null))
 				{
 					return;
 				}
@@ -1097,7 +1011,7 @@ else
 
 		if (_currentLessonIndexInCourse >= _orderedLessons.Count - 1)
 		{
-			if (TryBeginPendingCheckpointForCurrentLesson(null))
+			if (TryBeginEndOfModuleCheckpoint(null))
 			{
 				return;
 			}
@@ -1113,7 +1027,7 @@ else
 		}
 
 		var nextLesson = _orderedLessons[_currentLessonIndexInCourse + 1];
-		if (TryBeginPendingCheckpointForCurrentLesson(nextLesson.Id))
+		if (TryBeginEndOfModuleCheckpoint(nextLesson.Id))
 		{
 			return;
 		}
@@ -1124,10 +1038,7 @@ else
 		await Task.CompletedTask;
 	}
 
-	// Triggers whenever the current lesson (at its last page) has a matching, unpassed checkpoint
-	// that is set to gate progression and is anchored either to this specific lesson or, if the
-	// checkpoint has no lesson anchor, to the end of the current module (when this is its last lesson).
-	private bool TryBeginPendingCheckpointForCurrentLesson(Guid? nextLessonId)
+	private bool TryBeginEndOfModuleCheckpoint(Guid? nextLessonId)
 	{
 		if (_currentLesson is null)
 		{
@@ -1136,42 +1047,36 @@ else
 
 		var currentModule = _orderedModules.FirstOrDefault(module => module.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
 
-		if (currentModule is null)
-		{
-			return false;
-		}
-
-		var atLastPageOfLesson = _currentLessonPages.Count == 0 || _currentLessonPageIndex >= _currentLessonPages.Count - 1;
-		if (!atLastPageOfLesson)
+		if (currentModule is null || IsGettingStartedModule(currentModule))
 		{
 			return false;
 		}
 
 		var orderedModuleLessons = currentModule.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
-		var isLastLessonOfModule = orderedModuleLessons.Count > 0 && orderedModuleLessons[^1].Id == _currentLesson.Id;
+		if (orderedModuleLessons.Count == 0)
+		{
+			return false;
+		}
 
-		var checkpoint = _checkpointDefinitions.FirstOrDefault(item =>
-			item.GatesProgression
-			&& item.ModuleId == currentModule.Id
-			&& (item.LessonId == _currentLesson.Id || (item.LessonId is null && isLastLessonOfModule))
-			&& !_passedCheckpointKeys.Contains(item.Key));
+		var lastLessonInModule = orderedModuleLessons[^1];
+		var atLastLessonOfModule = lastLessonInModule.Id == _currentLesson.Id;
+		var atLastPageOfLesson = _currentLessonPages.Count == 0 || _currentLessonPageIndex >= _currentLessonPages.Count - 1;
 
+		if (!atLastLessonOfModule || !atLastPageOfLesson)
+		{
+			return false;
+		}
+
+		var checkpointKey = ModuleCheckpointService.BuildModuleCheckpointKey(currentModule.Id);
+		var checkpoint = _checkpointDefinitions.FirstOrDefault(item => string.Equals(item.Key, checkpointKey, StringComparison.OrdinalIgnoreCase));
 		if (checkpoint is null)
 		{
 			return false;
 		}
 
-		ActivateCheckpoint(checkpoint, nextLessonId, completesCourse: nextLessonId is null && IsAtFinalLessonBoundary());
-		return true;
-	}
-
-	// Centralizes the fields set whenever any checkpoint (lesson-anchored, end-of-module,
-	// start-of-module, or a catch-up scan result) is presented to the learner.
-	private void ActivateCheckpoint(ModuleCheckpointDefinition checkpoint, Guid? nextLessonId = null, bool completesCourse = false)
-	{
 		_activeCheckpoint = checkpoint;
 		_pendingCheckpointNextLessonId = nextLessonId;
-		_checkpointCompletesCourse = completesCourse;
+		_checkpointCompletesCourse = nextLessonId is null && IsAtFinalLessonBoundary();
 		_checkpointMessage = null;
 		_showCheckpointResult = false;
 		_checkpointPassed = false;
@@ -1180,11 +1085,12 @@ else
 		_checkpointMatchedCorrectCount = 0;
 		_checkpointTotalCorrectCount = 0;
 		AutoFillCheckpointAnswers();
+		return true;
 	}
 
 	private async Task<bool> TryBeginFinalAssessmentAsync(bool skipModuleCheckpointGate = false)
 	{
-		if (!skipModuleCheckpointGate && TryBeginPendingCheckpointForCurrentLesson(null))
+		if (!skipModuleCheckpointGate && TryBeginEndOfModuleCheckpoint(null))
 		{
 			return true;
 		}
@@ -1225,28 +1131,25 @@ else
 			_isFinalAssessmentOpen = false;
 		}
 
-		if (_course?.UsesUnitBasedStructure == true && HasMissingProgressionGateForCurrentModule())
-		{
-			_checkpointMessage = "This Unit requires a passing Unit assessment before you can continue.";
-			return;
-		}
-
 		if (_activeCheckpoint is null)
 		{
-			var pendingCheckpoint = FindPendingGateCheckpointBeforeCurrentPosition();
+			var pendingCheckpoint = FindPendingModuleCheckpointForCurrentPosition();
 			if (pendingCheckpoint is not null)
 			{
-				ActivateCheckpoint(pendingCheckpoint);
+				_activeCheckpoint = pendingCheckpoint;
+				_checkpointMessage = null;
+				_showCheckpointResult = false;
+				_checkpointPassed = false;
+				_checkpointResultMessage = null;
+				_checkpointHintLevel = GetCheckpointHintLevel(pendingCheckpoint.Key);
+				_checkpointMatchedCorrectCount = 0;
+				_checkpointTotalCorrectCount = 0;
+				AutoFillCheckpointAnswers();
 				return;
 			}
 		}
 
-		if (_activeCheckpoint is null && TryBeginStartOfModuleCheckpoint())
-		{
-			return;
-		}
-
-		if (_activeCheckpoint is null && TryBeginPendingCheckpointForCurrentLesson(null))
+		if (_activeCheckpoint is null && TryBeginEndOfModuleCheckpoint(null))
 		{
 			return;
 		}
@@ -1257,105 +1160,33 @@ else
 		}
 	}
 
-	// Triggers when the learner is about to view the first lesson of a module and that module has an
-	// unpassed, gating checkpoint anchored to the start of the module (appears before any lesson).
-	private bool TryBeginStartOfModuleCheckpoint()
+	private ModuleCheckpointDefinition? FindPendingModuleCheckpointForCurrentPosition()
 	{
 		if (_currentLesson is null)
 		{
-			return false;
-		}
-
-		var currentModule = _orderedModules.FirstOrDefault(module => module.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
-		if (currentModule is null)
-		{
-			return false;
-		}
-
-		var orderedModuleLessons = currentModule.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
-		var isFirstLessonOfModule = orderedModuleLessons.Count > 0 && orderedModuleLessons[0].Id == _currentLesson.Id;
-		if (!isFirstLessonOfModule)
-		{
-			return false;
-		}
-
-		var checkpoint = _checkpointDefinitions.FirstOrDefault(item =>
-			item.GatesProgression
-			&& item.ModuleId == currentModule.Id
-			&& item.LessonId == CourseCheckpointDefinition.StartOfModuleAnchor
-			&& !_passedCheckpointKeys.Contains(item.Key));
-
-		if (checkpoint is null)
-		{
-			return false;
-		}
-
-		ActivateCheckpoint(checkpoint);
-		return true;
-	}
-
-	private bool HasMissingProgressionGateForCurrentModule()
-	{
-		if (_course is null || !_course.UsesUnitBasedStructure || _currentLesson is null)
-		{
-			return false;
+			return null;
 		}
 
 		var currentModule = _orderedModules.FirstOrDefault(module => module.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
 		if (currentModule is null || IsGettingStartedModule(currentModule))
 		{
-			return false;
-		}
-
-		return !_checkpointDefinitions.Any(item => item.GatesProgression && item.ModuleId == currentModule.Id);
-	}
-
-	private ModuleCheckpointDefinition? FindPendingGateCheckpointBeforeCurrentPosition()
-	{
-		if (_currentLesson is null || _orderedLessons.Count == 0)
-		{
 			return null;
 		}
 
-		var currentIndex = _orderedLessons.FindIndex(lesson => lesson.Id == _currentLesson.Id);
-		if (currentIndex <= 0)
-		{
-			return null;
-		}
+		var priorTrackedModules = _orderedModules
+			.Where(module => module.OrderIndex < currentModule.OrderIndex && !IsGettingStartedModule(module))
+			.OrderBy(module => module.OrderIndex)
+			.ToList();
 
-		for (var index = 0; index < currentIndex; index++)
+		foreach (var module in priorTrackedModules)
 		{
-			var priorLesson = _orderedLessons[index];
-			var priorModule = _orderedModules.FirstOrDefault(module => module.Lessons.Any(lesson => lesson.Id == priorLesson.Id));
-			if (priorModule is null)
+			var checkpointKey = ModuleCheckpointService.BuildModuleCheckpointKey(module.Id);
+			if (_passedCheckpointKeys.Contains(checkpointKey))
 			{
 				continue;
 			}
 
-			var orderedModuleLessons = priorModule.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
-			var isFirstLessonOfModule = orderedModuleLessons.Count > 0 && orderedModuleLessons[0].Id == priorLesson.Id;
-			var isLastLessonOfModule = orderedModuleLessons.Count > 0 && orderedModuleLessons[^1].Id == priorLesson.Id;
-
-			if (isFirstLessonOfModule)
-			{
-				var startCheckpoint = _checkpointDefinitions.FirstOrDefault(item =>
-					item.GatesProgression
-					&& item.ModuleId == priorModule.Id
-					&& item.LessonId == CourseCheckpointDefinition.StartOfModuleAnchor
-					&& !_passedCheckpointKeys.Contains(item.Key));
-
-				if (startCheckpoint is not null)
-				{
-					return startCheckpoint;
-				}
-			}
-
-			var checkpoint = _checkpointDefinitions.FirstOrDefault(item =>
-				item.GatesProgression
-				&& item.ModuleId == priorModule.Id
-				&& (item.LessonId == priorLesson.Id || (item.LessonId is null && isLastLessonOfModule))
-				&& !_passedCheckpointKeys.Contains(item.Key));
-
+			var checkpoint = _checkpointDefinitions.FirstOrDefault(item => string.Equals(item.Key, checkpointKey, StringComparison.OrdinalIgnoreCase));
 			if (checkpoint is not null)
 			{
 				return checkpoint;
@@ -1462,7 +1293,6 @@ else
 		_passedCheckpointKeys.Add(completedCheckpointKey);
 		_checkpointFailedAttemptsByKey.Remove(completedCheckpointKey);
 		await PersistCheckpointHintStateAsync();
-		await PersistPreviewCheckpointStateAsync();
 		_activeCheckpoint = null;
 		_selectedCheckpointOptionKeys.Clear();
 		_pendingCheckpointNextLessonId = null;
@@ -1473,26 +1303,6 @@ else
 		_checkpointHintLevel = 1;
 		_checkpointMatchedCorrectCount = 0;
 		_checkpointTotalCorrectCount = 0;
-
-		// A module can have multiple checkpoints sharing the same anchor (same lesson,
-		// start-of-module, or end-of-module); surface the next unpassed one here instead of
-		// letting it get skipped by an immediate navigation away from the current position.
-		var nextPendingCheckpoint = FindPendingGateCheckpointBeforeCurrentPosition();
-		if (nextPendingCheckpoint is not null)
-		{
-			ActivateCheckpoint(nextPendingCheckpoint);
-			return;
-		}
-
-		if (TryBeginStartOfModuleCheckpoint())
-		{
-			return;
-		}
-
-		if (TryBeginPendingCheckpointForCurrentLesson(pendingNextLessonId))
-		{
-			return;
-		}
 
 		if (pendingNextLessonId.HasValue)
 		{
@@ -1541,13 +1351,9 @@ else
 		}
 
 		_timedSessionStartedAtUtc = DateTime.UtcNow;
-		if (_userId.HasValue && !_isPreviewMode)
-		{
-			_activitySessionId = await CourseActivityService.StartAsync(_userId.Value, CourseId);
-			_lastActivityPulseAtUtc = DateTime.UtcNow;
-		}
 		_highestUnlockedTrackedLessonIndex = Math.Max(_highestUnlockedTrackedLessonIndex, GetHighestUnlockedTrackedLessonIndex());
 		StartTimerRefresh();
+		await StartAttendanceTrackingAsync();
 
 		try
 		{
@@ -1557,10 +1363,6 @@ else
 		catch (JSException)
 		{
 			// Keep session in-memory if local storage is temporarily unavailable.
-		}
-		catch (JSDisconnectedException)
-		{
-			// Circuit was mid-transition (e.g. enhanced navigation); keep session in-memory.
 		}
 
 		if (IsAtFinalLessonBoundary() && await TryBeginFinalAssessmentAsync())
@@ -1572,7 +1374,7 @@ else
 	private async Task BeginFinalAssessmentAsync()
 	{
 		await RefreshFinalAssessmentStateAsync();
-		if (_finalAssessment is null || RequiresProctorVerification)
+		if (_finalAssessment is null)
 		{
 			return;
 		}
@@ -1647,17 +1449,9 @@ else
 		AssessmentAttemptSummary? attempt = null;
 		if (_userId.HasValue)
 		{
-			try
-			{
-				attempt = await AssessmentService.SubmitAttemptAsync(CourseId, _userId.Value, answers);
-			}
-			catch (InvalidOperationException exception)
-			{
-				_checkpointMessage = exception.Message;
-				return;
-			}
-
+			attempt = await AssessmentService.SubmitAttemptAsync(CourseId, _userId.Value, answers);
 			_finalAssessmentEligibility = await AssessmentService.GetEligibilityAsync(CourseId, _userId.Value);
+			// Recalculate from persisted lesson progress so certificate issuance uses the current completion state.
 			await EnrollmentService.ReconcileCompletionAsync(_userId.Value, CourseId);
 			correctCount = attempt.CorrectAnswers;
 			totalQuestions = attempt.TotalQuestions;
@@ -1666,7 +1460,6 @@ else
 		var passed = attempt?.Passed == true || (totalQuestions > 0 && correctCount == totalQuestions);
 		await StopTimedCourseAsync();
 
-		_completionTimestampUtc = attempt?.SubmittedAt ?? DateTime.UtcNow;
 		_finalAssessmentElapsedText = elapsedText;
 		_finalAssessmentCorrectAnswers = correctCount;
 		_finalAssessmentTotalQuestions = totalQuestions;
@@ -1675,13 +1468,6 @@ else
 		_finalAssessmentResultMessage = passed
 			? "Pass. Assessment requirements are satisfied."
 			: "Not passed yet. Review the hints below and retake when available.";
-
-		if (passed)
-		{
-			GoToCourseOverview();
-			return;
-		}
-
 		_showFinalAssessmentResults = true;
 		_showFinalAssessmentAnnouncement = false;
 		_isFinalAssessmentOpen = false;
@@ -1702,7 +1488,6 @@ else
 			_finalAssessmentEligibility = await AssessmentService.GetEligibilityAsync(_course.Id, _userId.Value);
 			_hasFinalAssessmentRetakeGrantOverride = _finalAssessmentEligibility?.HasRetakeGrantOverride == true;
 			_isFinalAssessmentRetakeLimitReached = _finalAssessmentEligibility is { RequiresAssessment: true, HasPassed: false } eligibility
-				&& !eligibility.HasUnlimitedAttempts
 				&& eligibility.AttemptsUsed >= eligibility.AttemptsAllowed;
 			var assessmentHistory = await AssessmentService.GetAttemptHistoryAsync(_course.Id, _userId.Value);
 			_passedFinalAssessmentOnFirstAttempt = assessmentHistory
@@ -1712,16 +1497,8 @@ else
 		}
 	}
 
-	private bool RequiresProctorVerification => !_isPreviewMode
-		&& _finalAssessmentEligibility?.RequiresProctorVerification == true;
-
 	private bool EnforceAssessmentTerminalOverviewLock()
 	{
-		if (_isPreviewMode)
-		{
-			return false;
-		}
-
 		if (_finalAssessmentEligibility?.RequiresAssessment != true)
 		{
 			return false;
@@ -1825,11 +1602,6 @@ else
 		_timerRefresh?.Dispose();
 		_timerRefresh = null;
 		_timedSessionStartedAtUtc = null;
-		if (_activitySessionId.HasValue && _userId.HasValue)
-		{
-			await CourseActivityService.EndAsync(_activitySessionId.Value, _userId.Value);
-			_activitySessionId = null;
-		}
 
 		try
 		{
@@ -1839,28 +1611,13 @@ else
 		{
 			// Ignore browser storage failures when ending the timed session.
 		}
-		catch (JSDisconnectedException)
-		{
-			// Circuit was mid-transition (e.g. enhanced navigation); ignore and continue.
-		}
 	}
 
 	private void GoToCourseOverview()
 	{
 		if (_finalAssessmentPassed)
 		{
-			var completedAtUtc = AssessmentCompletionTimestampResolver.GetCompletionTimestampUtc(
-				_completionTimestampUtc,
-				null,
-				DateTime.UtcNow);
-
-			NavigationManager.NavigateTo(BuildCourseOverviewUri(
-				"Successfully Completed",
-				_finalAssessmentElapsedText,
-				_finalAssessmentScorePercent,
-				_finalAssessmentCorrectAnswers,
-				_finalAssessmentTotalQuestions,
-				completedAtUtc));
+			NavigationManager.NavigateTo(BuildCourseOverviewUri("Successfully Completed"));
 			return;
 		}
 
@@ -1869,12 +1626,6 @@ else
 
 	private void GoToLearnerCertificates()
 	{
-		if (_isPreviewMode)
-		{
-			ExitPreview();
-			return;
-		}
-
 		NavigationManager.NavigateTo(BuildLearnerDashboardUri());
 	}
 
@@ -1891,11 +1642,6 @@ else
 			if (DateTime.TryParse(storedUtc, out var parsedUtc))
 			{
 				_timedSessionStartedAtUtc = DateTime.SpecifyKind(parsedUtc, DateTimeKind.Utc);
-				if (_userId.HasValue && !_isPreviewMode)
-				{
-					_activitySessionId = await CourseActivityService.StartAsync(_userId.Value, CourseId);
-					_lastActivityPulseAtUtc = DateTime.UtcNow;
-				}
 				var storedUnlockIndex = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", BuildProgressUnlockStorageKey());
 				if (int.TryParse(storedUnlockIndex, out var parsedUnlockIndex))
 				{
@@ -1907,6 +1653,7 @@ else
 				}
 
 				StartTimerRefresh();
+				await StartAttendanceTrackingAsync();
 			}
 
 			var storedHintState = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", BuildCheckpointHintStorageKey());
@@ -1927,29 +1674,10 @@ else
 					}
 				}
 			}
-
-			if (_isPreviewMode)
-			{
-				var storedPassedCheckpointState = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", BuildPreviewPassedCheckpointStorageKey());
-				if (!string.IsNullOrWhiteSpace(storedPassedCheckpointState))
-				{
-					var parsedPassedCheckpointState = JsonSerializer.Deserialize<List<string>>(storedPassedCheckpointState);
-					if (parsedPassedCheckpointState is not null)
-					{
-						_passedCheckpointKeys = new HashSet<string>(
-							parsedPassedCheckpointState.Where(key => !string.IsNullOrWhiteSpace(key)),
-							StringComparer.OrdinalIgnoreCase);
-					}
-				}
-			}
 		}
 		catch (JSException)
 		{
 			// Continue without persisted timer state if browser storage is inaccessible.
-		}
-		catch (JSDisconnectedException)
-		{
-			// Circuit was mid-transition (e.g. enhanced navigation); continue without persisted state.
 		}
 		catch (JsonException)
 		{
@@ -1963,69 +1691,31 @@ else
 
 	private string BuildTimedSessionStorageKey()
 	{
-		var actor = GetStorageActorKey();
+		var actor = _userId?.ToString("D") ?? "anonymous";
 		return $"lms:course-timer:{CourseId:D}:{actor}";
 	}
 
 	private string BuildProgressUnlockStorageKey()
 	{
-		var actor = GetStorageActorKey();
+		var actor = _userId?.ToString("D") ?? "anonymous";
 		return $"lms:course-unlock:{CourseId:D}:{actor}";
 	}
 
 	private string BuildLessonUri(Guid lessonId, Guid? learnerUserId = null)
 	{
 		var lessonUri = $"/courses/{CourseId}/lessons/{lessonId}";
-		var queryParts = new List<string>();
-
-		if (_isPreviewMode)
-		{
-			queryParts.Add("preview=1");
-
-			if (!string.IsNullOrWhiteSpace(PreviewSession))
-			{
-				queryParts.Add($"previewSession={Uri.EscapeDataString(PreviewSession)}");
-			}
-		}
-
 		var resolvedLearnerUserId = learnerUserId ?? _learnerContextUserId;
-		if (resolvedLearnerUserId.HasValue && _isAdminViewer)
-		{
-			queryParts.Add($"learnerId={Uri.EscapeDataString(resolvedLearnerUserId.Value.ToString())}");
-		}
-
-		if (queryParts.Count == 0)
+		if (!resolvedLearnerUserId.HasValue || !_isAdminViewer)
 		{
 			return lessonUri;
 		}
 
-		return $"{lessonUri}?{string.Join("&", queryParts)}";
+		return $"{lessonUri}?learnerId={Uri.EscapeDataString(resolvedLearnerUserId.Value.ToString())}";
 	}
 
-	private string BuildComplianceResourcesUri()
-	{
-		return $"/courses/{CourseId}/compliance-resources";
-	}
-
-	private string BuildCourseOverviewUri(
-		string? finalAssessmentResult = null,
-		string? finalAssessmentElapsed = null,
-		decimal? finalAssessmentScore = null,
-		int? finalAssessmentCorrect = null,
-		int? finalAssessmentTotal = null,
-		DateTime? completedAtUtc = null)
+	private string BuildCourseOverviewUri(string? finalAssessmentResult = null)
 	{
 		var queryParts = new List<string>();
-
-		if (_isPreviewMode)
-		{
-			queryParts.Add("preview=1");
-
-			if (!string.IsNullOrWhiteSpace(PreviewSession))
-			{
-				queryParts.Add($"previewSession={Uri.EscapeDataString(PreviewSession)}");
-			}
-		}
 
 		if (_learnerContextUserId.HasValue && _isAdminViewer)
 		{
@@ -2037,31 +1727,6 @@ else
 			queryParts.Add($"finalAssessmentResult={Uri.EscapeDataString(finalAssessmentResult)}");
 		}
 
-		if (!string.IsNullOrWhiteSpace(finalAssessmentElapsed))
-		{
-			queryParts.Add($"finalAssessmentElapsed={Uri.EscapeDataString(finalAssessmentElapsed)}");
-		}
-
-		if (finalAssessmentScore.HasValue)
-		{
-			queryParts.Add($"finalAssessmentScore={Uri.EscapeDataString(finalAssessmentScore.Value.ToString(System.Globalization.CultureInfo.InvariantCulture))}");
-		}
-
-		if (finalAssessmentCorrect.HasValue)
-		{
-			queryParts.Add($"finalAssessmentCorrect={finalAssessmentCorrect.Value}");
-		}
-
-		if (finalAssessmentTotal.HasValue)
-		{
-			queryParts.Add($"finalAssessmentTotal={finalAssessmentTotal.Value}");
-		}
-
-		if (completedAtUtc.HasValue)
-		{
-			queryParts.Add($"finalAssessmentCompletedAt={Uri.EscapeDataString(completedAtUtc.Value.ToString("O", System.Globalization.CultureInfo.InvariantCulture))}");
-		}
-
 		return queryParts.Count == 0
 			? $"/courses/{CourseId}"
 			: $"/courses/{CourseId}?{string.Join("&", queryParts)}";
@@ -2069,11 +1734,6 @@ else
 
 	private string BuildLearnerDashboardUri()
 	{
-		if (_isPreviewMode)
-		{
-			return BuildExitPreviewUri();
-		}
-
 		if (_learnerContextUserId.HasValue && _isAdminViewer)
 		{
 			return $"/learner?learnerId={Uri.EscapeDataString(_learnerContextUserId.Value.ToString())}";
@@ -2084,13 +1744,8 @@ else
 
 	private string BuildCheckpointHintStorageKey()
 	{
-		var actor = GetStorageActorKey();
+		var actor = _userId?.ToString("D") ?? "anonymous";
 		return $"lms:checkpoint-hints:{CourseId:D}:{actor}";
-	}
-
-	private string BuildPreviewPassedCheckpointStorageKey()
-	{
-		return $"lms:preview-checkpoints:{CourseId:D}:{GetStorageActorKey()}";
 	}
 
 	private int GetCheckpointHintLevel(string checkpointKey)
@@ -2120,67 +1775,31 @@ else
 		{
 			// Keep hint progression in memory if local storage is temporarily unavailable.
 		}
-		catch (JSDisconnectedException)
-		{
-			// Circuit was mid-transition (e.g. enhanced navigation); keep hint progression in memory.
-		}
 	}
 
-	private async Task PersistPreviewCheckpointStateAsync()
+	// Records real instructional time for in-person/synchronous/blended courses (21 NCAC 58H .0207 attendance requirement); distance-only courses rely on lesson completion instead.
+	private async Task StartAttendanceTrackingAsync()
 	{
-		if (!_isPreviewMode)
+		if (_activityLogSessionId.HasValue || !_userId.HasValue || !_isEnrolled || _course is null)
 		{
 			return;
 		}
 
 		try
 		{
-			if (_passedCheckpointKeys.Count == 0)
+			_activityLogSessionId = await CourseActivityService.StartAsync(_userId.Value, _course.Id);
+			_activityHeartbeat = new Timer(_ =>
 			{
-				await JSRuntime.InvokeVoidAsync("localStorage.removeItem", BuildPreviewPassedCheckpointStorageKey());
-				return;
-			}
-
-			var json = JsonSerializer.Serialize(_passedCheckpointKeys.OrderBy(key => key, StringComparer.OrdinalIgnoreCase).ToList());
-			await JSRuntime.InvokeVoidAsync("localStorage.setItem", BuildPreviewPassedCheckpointStorageKey(), json);
+				if (_activityLogSessionId.HasValue && _userId.HasValue)
+				{
+					_ = CourseActivityService.PulseAsync(_activityLogSessionId.Value, _userId.Value);
+				}
+			}, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
 		}
-		catch (JSException)
+		catch (InvalidOperationException)
 		{
-			// Keep preview checkpoint state in memory if browser storage is temporarily unavailable.
+			// No active enrollment (e.g. instructor/admin browsing) — skip attendance tracking.
 		}
-		catch (JSDisconnectedException)
-		{
-			// Circuit was mid-transition (e.g. enhanced navigation); keep preview checkpoint state in memory.
-		}
-	}
-
-	private string BuildExitPreviewUri()
-	{
-		return "/instructor";
-	}
-
-	private void ExitPreview()
-	{
-		// Force a full page load; enhanced navigation can leave a stale render after the final assessment's JS interop teardown.
-		NavigationManager.NavigateTo(BuildExitPreviewUri(), forceLoad: true);
-	}
-
-	private string GetStorageActorKey()
-	{
-		if (_isPreviewMode && _viewerUserId.HasValue)
-		{
-			var session = string.IsNullOrWhiteSpace(PreviewSession) ? "default" : PreviewSession;
-			return $"preview:{_viewerUserId.Value:D}:{session}";
-		}
-
-		return _userId?.ToString("D") ?? "anonymous";
-	}
-
-	private static bool IsPreviewRequested(string? preview)
-	{
-		return !string.IsNullOrWhiteSpace(preview)
-			&& !string.Equals(preview, "0", StringComparison.OrdinalIgnoreCase)
-			&& !string.Equals(preview, "false", StringComparison.OrdinalIgnoreCase);
 	}
 
 	private void StartTimerRefresh()
@@ -2192,16 +1811,7 @@ else
 
 		_timerRefresh = new Timer(_ =>
 		{
-			_ = InvokeAsync(async () =>
-			{
-				if (_activitySessionId.HasValue && _userId.HasValue && DateTime.UtcNow - _lastActivityPulseAtUtc >= TimeSpan.FromMinutes(1))
-				{
-					await CourseActivityService.PulseAsync(_activitySessionId.Value, _userId.Value);
-					_lastActivityPulseAtUtc = DateTime.UtcNow;
-				}
-
-				StateHasChanged();
-			});
+			_ = InvokeAsync(StateHasChanged);
 		}, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 	}
 
@@ -2299,12 +1909,14 @@ else
 		ResolveCurrentLesson();
 	}
 
-	public async ValueTask DisposeAsync()
+	public void Dispose()
 	{
 		_timerRefresh?.Dispose();
-		if (_activitySessionId.HasValue && _userId.HasValue)
+		_activityHeartbeat?.Dispose();
+
+		if (_activityLogSessionId.HasValue && _userId.HasValue)
 		{
-			await CourseActivityService.EndAsync(_activitySessionId.Value, _userId.Value);
+			_ = CourseActivityService.EndAsync(_activityLogSessionId.Value, _userId.Value);
 		}
 	}
 }

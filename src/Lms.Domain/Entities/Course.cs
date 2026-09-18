@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Lms.Domain.Entities;
 
@@ -39,7 +40,6 @@ public class Course
     public string? CommissionCourseNumber { get; set; }
 
     public int? CompletionWindowDays { get; set; }
-
     public bool RequiresProctoredExam { get; set; }
 
     [Range(0, 100000)]
@@ -57,9 +57,12 @@ public class Course
     public bool IsPrelicensingOrPostlicensing => string.Equals(ComplianceType, CourseComplianceTypes.Prelicensing, StringComparison.OrdinalIgnoreCase)
         || string.Equals(ComplianceType, CourseComplianceTypes.Postlicensing, StringComparison.OrdinalIgnoreCase);
 
+    // NC 21 NCAC 58H .0207(a)-(b): only in-person/synchronous/blended delivery requires time-based attendance; pure distance courses satisfy attendance via full unit/assessment completion instead.
+    public bool RequiresTimedAttendance => DeliveryMethod is CourseDeliveryMethods.InPerson or CourseDeliveryMethods.SynchronousDistanceLearning or CourseDeliveryMethods.Blended;
+
     public string SectionLabel => UsesUnitBasedStructure ? "Unit" : "Module";
 
-    public string? Jurisdiction { get; set; }
+    public string? State { get; set; }
 
     [Range(0, 100000)]
     public decimal Price { get; set; }
@@ -164,7 +167,6 @@ public static class CourseReviewStatuses
     public const string Rejected = "Rejected";
     public const string Approved = "Approved";
 
-    // Rejected courses can still be resubmitted within this window; after it lapses, rejection becomes final.
     public const int RejectionResubmissionWindowDays = 30;
 
     public static string ToDisplayText(string reviewStatus) => reviewStatus switch
@@ -201,7 +203,6 @@ public class Lesson
 
     [Required(ErrorMessage = "Title is required.")]
     public string Title { get; set; } = string.Empty;
-
     public string ContentType { get; set; } = "Text";
     public string? ContentUrl { get; set; }
 
@@ -210,7 +211,6 @@ public class Lesson
 
     [Range(1, int.MaxValue, ErrorMessage = "Duration Minutes must be greater than 0.")]
     public int DurationMinutes { get; set; }
-
     public int OrderIndex { get; set; }
     public bool IsRequired { get; set; } = true;
 
@@ -237,10 +237,31 @@ public class UserAccount
     [StringLength(40)]
     public string? LicenseNumber { get; set; }
 
+    [Phone]
+    [StringLength(40)]
+    public string? PhoneNumber { get; set; }
+
+    [StringLength(500)]
+    public string? PermanentAddress { get; set; }
+
+    [StringLength(10)]
+    public string? LicenseType { get; set; }
+
+    [StringLength(40)]
+    public string? State { get; set; }
+
     [StringLength(40)]
     public string? LicenseStatus { get; set; }
 
     public DateTime? InitialLicensureDate { get; set; }
+    public DateTime? PostlicensingCompletedAt { get; set; }
+    public DateTime? BrokerageExperienceStartDate { get; set; }
+    public DateTime? BicCourseCompletedAt { get; set; }
+    public DateTime? BicEligibleAt { get; set; }
+    public DateTime? BicDesignationAt { get; set; }
+    public DateTime? ContinuingEducationDueDate { get; set; }
+    public DateTime? LicenseRenewalDueDate { get; set; }
+    public DateTime? BicUpdateCourseDueDate { get; set; }
     public bool IsBicEligible { get; set; }
 
     [Required]
@@ -268,6 +289,7 @@ public class UserAccount
     public ICollection<SystemNotification> Notifications { get; set; } = new List<SystemNotification>();
     public ICollection<ExamProctoringSession> ExamProctoringSessions { get; set; } = new List<ExamProctoringSession>();
     public ICollection<CourseActivitySession> CourseActivitySessions { get; set; } = new List<CourseActivitySession>();
+    public ICollection<UserRegulatoryLicenseLink> RegulatoryLicenseLinks { get; set; } = new List<UserRegulatoryLicenseLink>();
 }
 
 public class BrokerLearnerAssignment
@@ -304,6 +326,20 @@ public class SystemNotification
     public DateTime? ReadAt { get; set; }
 
     public UserAccount? RecipientUser { get; set; }
+}
+
+public class LicenseComplianceReminder
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserAccountId { get; set; }
+
+    [Required]
+    [StringLength(80)]
+    public string ReminderType { get; set; } = string.Empty;
+
+    public DateTime DueAtUtc { get; set; }
+    public DateTime SentAtUtc { get; set; } = DateTime.UtcNow;
+    public UserAccount? UserAccount { get; set; }
 }
 
 public class ModuleCheckpointProgress
@@ -344,20 +380,23 @@ public class CourseCheckpointDefinition
     public string Description { get; set; } = string.Empty;
 
     public Guid? ModuleId { get; set; }
-
-    // Where this checkpoint sits relative to its module's lessons: null = end of module (or, when set,
-    // the ID of the lesson it should appear immediately after). StartOfModuleAnchor is a sentinel value
-    // (Guid.Empty, never a real lesson ID) meaning "before any lesson in the module" — instructors can
-    // freely move a checkpoint to any of these anchor points; none of them make it "belong" to a lesson.
     public Guid? LessonId { get; set; }
     public bool GatesProgression { get; set; }
-
-    // Sentinel LessonId value meaning "appears before any lesson in the module" (the start of the module).
     public static readonly Guid StartOfModuleAnchor = Guid.Empty;
-
-    // Position among sibling checkpoints anchored to the same LessonId (or the same "end of module"
-    // group when LessonId is null); lets instructors reorder checkpoints independently of Title.
     public int OrderIndex { get; set; }
+
+    [NotMapped]
+    public bool IsFinal
+    {
+        get => ModuleId is null;
+        set
+        {
+            if (value)
+            {
+                ModuleId = null;
+            }
+        }
+    }
 
     public Course? Course { get; set; }
     public Module? Module { get; set; }
@@ -381,6 +420,34 @@ public class CourseCheckpointOption
     public int OrderIndex { get; set; }
 
     public CourseCheckpointDefinition? CourseCheckpointDefinition { get; set; }
+}
+
+public class CourseSession
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid CourseId { get; set; }
+    public DateTime ScheduledStartAtUtc { get; set; }
+    public DateTime ScheduledEndAtUtc { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public bool IsCancelled { get; set; }
+
+    // NC 21 NCAC 58H .0404: Commission must be notified 10 days before a scheduled course; late changes/cancellations (within 5 days of start) must be reported within 24 hours.
+    public DateTime? CommissionNotifiedAtUtc { get; set; }
+    public DateTime? PendingChangeAtUtc { get; set; }
+    public DateTime? ScheduleChangeReportedAtUtc { get; set; }
+
+    public Course? Course { get; set; }
+}
+
+public class ComplianceReminderLog
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+
+    [StringLength(60)]
+    public string Category { get; set; } = string.Empty;
+
+    public Guid EntityId { get; set; }
+    public DateTime SentAtUtc { get; set; } = DateTime.UtcNow;
 }
 
 public class Enrollment
@@ -410,6 +477,9 @@ public class Enrollment
     public decimal ProgressPercent { get; set; }
     public bool Completed { get; set; }
     public Guid? PaymentTransactionId { get; set; }
+
+    // NC 21 NCAC 58H .0207(f): completion must be reported to the Commission within 7 days.
+    public DateTime? CompletionReportSubmittedAtUtc { get; set; }
 
     public UserAccount? UserAccount { get; set; }
     public Course? Course { get; set; }
@@ -598,6 +668,9 @@ public class ExamProctoringSession
 
     [StringLength(500)]
     public string? SecurityIncidentNotes { get; set; }
+
+    // NC 21 NCAC 58H .0203: cheating incidents must be reported to the Commission within 10 days.
+    public DateTime? CommissionReportedAtUtc { get; set; }
 
     public Course? Course { get; set; }
     public UserAccount? UserAccount { get; set; }

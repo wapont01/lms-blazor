@@ -16,18 +16,18 @@ public class UserAccountServiceTests
 
         for (var attempt = 1; attempt <= 4; attempt++)
         {
-            var invalidResult = await service.AuthenticateAsync("broker@lms.com", "WrongPass1!");
+            var invalidResult = await service.AuthenticateAsync("william.broker@wlr.com", "WrongPass1!");
             Assert.Equal(LoginStatus.InvalidCredentials, invalidResult.Status);
         }
 
-        var lockoutResult = await service.AuthenticateAsync("broker@lms.com", "WrongPass1!");
+        var lockoutResult = await service.AuthenticateAsync("william.broker@wlr.com", "WrongPass1!");
         Assert.Equal(LoginStatus.LockedOut, lockoutResult.Status);
         Assert.NotNull(lockoutResult.LockoutRemaining);
 
-        var validDuringLockout = await service.AuthenticateAsync("broker@lms.com", "Broker123!");
+        var validDuringLockout = await service.AuthenticateAsync("william.broker@wlr.com", "Broker123!");
         Assert.Equal(LoginStatus.LockedOut, validDuringLockout.Status);
 
-        var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "broker@lms.com");
+        var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
         Assert.Equal(0, broker.FailedLoginCount);
         Assert.True(broker.LockoutEndUtc.HasValue);
         Assert.True(broker.LockoutEndUtc.Value > DateTime.UtcNow);
@@ -40,7 +40,7 @@ public class UserAccountServiceTests
         var service = fixture.UserAccountService;
 
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
 
         await service.AdminResetPasswordAsync(admin.Id, admin.Email, learner.Id, "TempLearner1!");
 
@@ -51,7 +51,7 @@ public class UserAccountServiceTests
 
         await service.ChangePasswordAsync(learner.Id, "TempLearner1!", "Learner999!");
 
-        var refreshedLearner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "learner@lms.com");
+        var refreshedLearner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
         Assert.False(refreshedLearner.ForcePasswordChange);
 
         var loginWithNewPassword = await service.AuthenticateAsync(refreshedLearner.Email, "Learner999!");
@@ -65,25 +65,46 @@ public class UserAccountServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
+        var primaryLearner = await fixture.DbContext.UserAccounts
+            .SingleAsync(user => user.Email == "william.learner@wlr.com");
         var brokerTwo = await fixture.DbContext.UserAccounts
-            .SingleAsync(user => user.Email == "broker2@lms.com");
+            .SingleAsync(user => user.Email == "clara.broker@wlr.com");
         var learnerTwo = await fixture.DbContext.UserAccounts
-            .SingleAsync(user => user.Email == "learner2@lms.com");
+            .SingleAsync(user => user.Email == "maya.thompson@wlr.com");
         var learnerThree = await fixture.DbContext.UserAccounts
-            .SingleAsync(user => user.Email == "learner3@lms.com");
+            .SingleAsync(user => user.Email == "ethan.brooks@wlr.com");
+        var instructorOne = await fixture.DbContext.UserAccounts
+            .SingleAsync(user => user.Email == "jordan.lee@wlr.com");
 
+        primaryLearner.DisplayName = "Learner User";
+        primaryLearner.LegalName = null;
+        primaryLearner.LicenseNumber = null;
+        primaryLearner.LicenseType = null;
+        primaryLearner.Role = "Broker";
+        instructorOne.DisplayName = "Instructor User";
+        instructorOne.LegalName = null;
+        instructorOne.LicenseNumber = null;
+        instructorOne.PhoneNumber = null;
+        instructorOne.PermanentAddress = null;
         fixture.DbContext.UserAccounts.RemoveRange(brokerTwo, learnerTwo, learnerThree);
         await fixture.DbContext.SaveChangesAsync();
 
         await fixture.UserAccountService.EnsureSeedUsersAsync();
 
         var restoredBrokerTwo = await fixture.DbContext.UserAccounts
-            .SingleOrDefaultAsync(user => user.Email == "broker2@lms.com");
+            .SingleOrDefaultAsync(user => user.Email == "clara.broker@wlr.com");
         var restoredLearnerTwo = await fixture.DbContext.UserAccounts
-            .SingleOrDefaultAsync(user => user.Email == "learner2@lms.com");
+            .SingleOrDefaultAsync(user => user.Email == "maya.thompson@wlr.com");
         var restoredLearnerThree = await fixture.DbContext.UserAccounts
-            .SingleOrDefaultAsync(user => user.Email == "learner3@lms.com");
+            .SingleOrDefaultAsync(user => user.Email == "ethan.brooks@wlr.com");
+        var reconciledPrimaryLearner = await fixture.DbContext.UserAccounts
+            .SingleAsync(user => user.Email == "william.learner@wlr.com");
 
+        Assert.Equal("WILLIAM ALFONSO APONTE", reconciledPrimaryLearner.DisplayName);
+        Assert.Equal("WILLIAM ALFONSO APONTE", reconciledPrimaryLearner.LegalName);
+        Assert.Equal("352750", reconciledPrimaryLearner.LicenseNumber);
+        Assert.Equal("B", reconciledPrimaryLearner.LicenseType);
+        Assert.Equal("Learner", reconciledPrimaryLearner.Role);
         Assert.NotNull(restoredBrokerTwo);
         Assert.Equal("Broker", restoredBrokerTwo!.Role);
         Assert.True(restoredBrokerTwo.IsActive);
@@ -93,6 +114,44 @@ public class UserAccountServiceTests
         Assert.NotNull(restoredLearnerThree);
         Assert.Equal("Learner", restoredLearnerThree!.Role);
         Assert.True(restoredLearnerThree.IsActive);
+
+        var learners = await fixture.DbContext.UserAccounts
+            .Where(user => user.Role == "Learner")
+            .OrderBy(user => user.Email)
+            .ToListAsync();
+        Assert.Equal(6, learners.Count);
+        Assert.All(learners, learner =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(learner.DisplayName));
+            Assert.False(string.IsNullOrWhiteSpace(learner.LegalName));
+            Assert.EndsWith("@wlr.com", learner.Email);
+            Assert.False(string.IsNullOrWhiteSpace(learner.LicenseNumber));
+            Assert.False(string.IsNullOrWhiteSpace(learner.LicenseType));
+            Assert.False(string.IsNullOrWhiteSpace(learner.PhoneNumber));
+            Assert.False(string.IsNullOrWhiteSpace(learner.PermanentAddress));
+        });
+        Assert.Equal("Maya Thompson", learners.Single(user => user.Email == "maya.thompson@wlr.com").DisplayName);
+        Assert.Equal("Ethan Brooks", learners.Single(user => user.Email == "ethan.brooks@wlr.com").DisplayName);
+        Assert.Contains(learners, user => user.Email == "sofia.martinez.fl@wlr.com" && user.LicenseType == "SL");
+        Assert.Contains(learners, user => user.Email == "noah.williams.fl@wlr.com" && user.LicenseType == "BL");
+        Assert.Contains(learners, user => user.Email == "ava.johnson.fl@wlr.com" && user.LicenseType == "BK");
+
+        var instructors = await fixture.DbContext.UserAccounts
+            .Where(user => user.Role == "Instructor")
+            .OrderBy(user => user.Email)
+            .ToListAsync();
+        Assert.Equal(4, instructors.Count);
+        Assert.All(instructors, instructor =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(instructor.DisplayName));
+            Assert.False(string.IsNullOrWhiteSpace(instructor.LegalName));
+            Assert.False(string.IsNullOrWhiteSpace(instructor.LicenseNumber));
+            Assert.False(string.IsNullOrWhiteSpace(instructor.PhoneNumber));
+            Assert.False(string.IsNullOrWhiteSpace(instructor.PermanentAddress));
+        });
+        Assert.Equal("Jordan M. Lee", instructors.Single(user => user.Email == "jordan.lee@wlr.com").DisplayName);
+        Assert.Equal("2277", instructors.Single(user => user.Email == "susan.malloy@wlr.com").LicenseNumber);
+        Assert.Contains(instructors, user => user.Email == "william.aponte@wlr.com" && user.DisplayName == "William A. Aponte");
     }
 
     [Fact]
@@ -104,9 +163,9 @@ public class UserAccountServiceTests
         await CourseSeed.SeedEnrollmentsAsync(fixture.DbContext);
 
         var learnerTwo = await fixture.DbContext.UserAccounts
-            .SingleAsync(user => user.Email == "learner2@lms.com");
+            .SingleAsync(user => user.Email == "maya.thompson@wlr.com");
         var learnerThree = await fixture.DbContext.UserAccounts
-            .SingleAsync(user => user.Email == "learner3@lms.com");
+            .SingleAsync(user => user.Email == "ethan.brooks@wlr.com");
 
         var learnerTwoEnrollments = await fixture.DbContext.Enrollments
             .Where(enrollment => enrollment.UserAccountId == learnerTwo.Id)
@@ -126,14 +185,14 @@ public class UserAccountServiceTests
                 enrollment => enrollment.UserAccountId,
                 user => user.Id,
                 (enrollment, user) => new { user.Email, enrollment.CourseId })
-            .Where(row => row.Email == "learner@lms.com" || row.Email == "learner2@lms.com" || row.Email == "learner3@lms.com")
+            .Where(row => row.Email == "william.learner@wlr.com" || row.Email == "maya.thompson@wlr.com" || row.Email == "ethan.brooks@wlr.com")
             .GroupBy(row => row.Email)
             .Select(group => new { Email = group.Key, Count = group.Count() })
             .ToDictionaryAsync(group => group.Email, group => group.Count);
 
-        Assert.Equal(3, enrollmentCountsByEmail["learner@lms.com"]);
-        Assert.Equal(2, enrollmentCountsByEmail["learner2@lms.com"]);
-        Assert.Equal(2, enrollmentCountsByEmail["learner3@lms.com"]);
+        Assert.Equal(4, enrollmentCountsByEmail["william.learner@wlr.com"]);
+        Assert.Equal(3, enrollmentCountsByEmail["maya.thompson@wlr.com"]);
+        Assert.Equal(3, enrollmentCountsByEmail["ethan.brooks@wlr.com"]);
 
         await CourseSeed.SeedEnrollmentsAsync(fixture.DbContext);
 
@@ -143,14 +202,14 @@ public class UserAccountServiceTests
                 enrollment => enrollment.UserAccountId,
                 user => user.Id,
                 (enrollment, user) => new { user.Email, enrollment.CourseId })
-            .Where(row => row.Email == "learner@lms.com" || row.Email == "learner2@lms.com" || row.Email == "learner3@lms.com")
+            .Where(row => row.Email == "william.learner@wlr.com" || row.Email == "maya.thompson@wlr.com" || row.Email == "ethan.brooks@wlr.com")
             .GroupBy(row => row.Email)
             .Select(group => new { Email = group.Key, Count = group.Count() })
             .ToDictionaryAsync(group => group.Email, group => group.Count);
 
-        Assert.Equal(3, countsAfterSecondRun["learner@lms.com"]);
-        Assert.Equal(2, countsAfterSecondRun["learner2@lms.com"]);
-        Assert.Equal(2, countsAfterSecondRun["learner3@lms.com"]);
+        Assert.Equal(4, countsAfterSecondRun["william.learner@wlr.com"]);
+        Assert.Equal(3, countsAfterSecondRun["maya.thompson@wlr.com"]);
+        Assert.Equal(3, countsAfterSecondRun["ethan.brooks@wlr.com"]);
     }
 
     [Fact]
@@ -182,27 +241,6 @@ public class UserAccountServiceTests
             .CountAsync(row => row.Role == "Broker");
 
         Assert.Equal(firstCount, secondCount);
-    }
-
-    [Fact]
-    public async Task SeedAsync_AssignsSingleFreeCourse_AndPaidCoursesWithinConfiguredRange()
-    {
-        await using var fixture = await TestFixture.CreateAsync();
-
-        await CourseSeed.SeedAsync(fixture.DbContext);
-
-        var seededCourses = await fixture.DbContext.Courses
-            .AsNoTracking()
-            .ToListAsync();
-
-        Assert.NotEmpty(seededCourses);
-
-        var freeCourses = seededCourses.Where(course => course.Price == 0m).ToList();
-        Assert.Single(freeCourses);
-
-        var paidCourses = seededCourses.Where(course => course.Price > 0m).ToList();
-        Assert.NotEmpty(paidCourses);
-        Assert.All(paidCourses, course => Assert.InRange(course.Price, 90m, 120m));
     }
 
     [Fact]

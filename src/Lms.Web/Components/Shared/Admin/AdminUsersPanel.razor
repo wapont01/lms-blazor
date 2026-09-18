@@ -45,9 +45,11 @@
         <table class="simple-table">
             <thead>
                 <tr>
-                    <th>Email</th>
                     <th>Display</th>
                     <th>Role</th>
+                    <th>State</th>
+                    <th>Florida equivalent</th>
+                    <th>Email</th>
                     <th>Password Expires</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -57,7 +59,6 @@
                 @foreach (var user in Users)
                 {
                     <tr>
-                        <td>@user.Email</td>
                         <td>@user.DisplayName</td>
                         <td>
                             <select value="@user.Role" @onchange="@(args => ChangeRoleAsync(user.Id, args.Value?.ToString() ?? user.Role))">
@@ -67,6 +68,9 @@
                                 }
                             </select>
                         </td>
+                        <td>@(user.State ?? "-")</td>
+                        <td>@GetLicenseCategory(user)</td>
+                        <td>@user.Email</td>
                         <td>@(user.PasswordExpiresAt?.ToString("u") ?? "Not set")</td>
                         <td>@(user.IsActive ? "Active" : "Inactive")</td>
                         <td>
@@ -81,6 +85,46 @@
                                     @oninput="@(args => SetResetPassword(user.Id, args.Value?.ToString() ?? string.Empty))" />
                                 <button type="button" @onclick="() => OnResetPassword.InvokeAsync(user.Id)">Reset Password</button>
                             </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="7">
+                            <details>
+                                <summary>License compliance</summary>
+                                <div class="form-grid">
+                                    @{ var education = LicenseEducationRules.CalculateForState(user.State, user.InitialLicensureDate, user.PostlicensingCompletedAt, user.ContinuingEducationDueDate, user.LicenseRenewalDueDate, DateTime.UtcNow); }
+                                    <div class="form-field">
+                                        <label>Education phase</label>
+                                        <strong>@education.Phase@(education.IsPostlicensingOverdue ? " (overdue)" : string.Empty)</strong>
+                                        @if (education.ElapsedDays.HasValue)
+                                        {
+                                            <small class="muted-text">@education.ElapsedDays days elapsed</small>
+                                        }
+                                    </div>
+                                    <div class="form-field"><label>Expected post-license date</label><span>@(education.ExpectedPostlicensingDate?.ToString("yyyy-MM-dd") ?? "Not set")</span></div>
+                                    <div class="form-field"><label>Expected CE date</label><span>@(education.ExpectedContinuingEducationDate?.ToString("yyyy-MM-dd") ?? "Set CE or renewal due date")</span></div>
+                                    <div class="form-field">
+                                        <label>License status</label>
+                                        <select value="@user.LicenseStatus" @onchange="args => SetLicenseStatus(user, args.Value?.ToString())">
+                                            <option value="">Not set</option>
+                                            <option value="Provisional Broker (PB)">Provisional Broker (PB)</option>
+                                            <option value="Broker (B)">Broker (B)</option>
+                                            <option value="BIC Eligible">Broker-in-Charge (BIC) Eligible</option>
+                                            <option value="Designated BIC">Designated Broker-in-Charge (BIC)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-field"><label>Initial licensure</label><InputDate @bind-Value="user.InitialLicensureDate" /></div>
+                                    <div class="form-field"><label>Postlicensing completed</label><InputDate @bind-Value="user.PostlicensingCompletedAt" /></div>
+                                    <div class="form-field"><label>Brokerage experience started</label><InputDate @bind-Value="user.BrokerageExperienceStartDate" /></div>
+                                    <div class="form-field"><label>BIC course completed</label><InputDate @bind-Value="user.BicCourseCompletedAt" /></div>
+                                    <div class="form-field"><label>BIC eligible date</label><InputDate @bind-Value="user.BicEligibleAt" /></div>
+                                    <div class="form-field"><label>BIC designation date</label><InputDate @bind-Value="user.BicDesignationAt" /></div>
+                                    <div class="form-field"><label>Continuing education due</label><InputDate @bind-Value="user.ContinuingEducationDueDate" /></div>
+                                    <div class="form-field"><label>License renewal due</label><InputDate @bind-Value="user.LicenseRenewalDueDate" /></div>
+                                    <div class="form-field"><label>BIC Update Course due</label><InputDate @bind-Value="user.BicUpdateCourseDueDate" /></div>
+                                </div>
+                                <button type="button" @onclick="() => OnSaveLicenseCompliance.InvokeAsync(user)">Save license compliance</button>
+                            </details>
                         </td>
                     </tr>
                 }
@@ -120,8 +164,23 @@
     [Parameter]
     public Func<Guid, string, Task> ChangeRole { get; set; } = (_, _) => Task.CompletedTask;
 
+    [Parameter]
+    public EventCallback<UserAccount> OnSaveLicenseCompliance { get; set; }
+
     private Task ChangeRoleAsync(Guid userId, string role)
     {
         return ChangeRole(userId, role);
+    }
+
+    private static void SetLicenseStatus(UserAccount user, string? status)
+    {
+        user.LicenseStatus = string.IsNullOrWhiteSpace(status) ? null : status;
+        user.IsBicEligible = status is "BIC Eligible" or "Designated BIC";
+    }
+
+    private static string GetLicenseCategory(UserAccount user)
+    {
+        var category = DistanceLearningProfileCatalog.ToDisplayLicenseCategory(user.State, user.LicenseType);
+        return string.IsNullOrWhiteSpace(category) ? "-" : category;
     }
 }

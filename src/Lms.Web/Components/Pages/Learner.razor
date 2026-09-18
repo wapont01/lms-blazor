@@ -5,16 +5,17 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ILearnerDashboardService LearnerDashboardService
 @inject IDueDateReminderService DueDateReminderService
+@inject IRegulatoryComplianceService RegulatoryComplianceService
 @inject NavigationManager NavigationManager
 
 <PageTitle>Learner Courses</PageTitle>
 
 <h1>Learner Courses</h1>
-@if (_isAdminViewer || _dashboardContext?.IsAdminViewer == true)
+@if (_dashboardContext?.IsAdminViewer == true)
 {
     <p>
         <strong>Viewing learner:</strong>
-        <select @key="@SelectedLearnerValue" value="@SelectedLearnerValue" @onchange="OnLearnerSelectionChanged" disabled="@(_learnerOptions.Count == 0)">
+        <select value="@(_dashboardContext.LearnerUserId?.ToString() ?? string.Empty)" @onchange="OnLearnerSelectionChanged" disabled="@(_learnerOptions.Count == 0)">
             @if (_learnerOptions.Count == 0)
             {
                 <option value="">No learner accounts available</option>
@@ -29,13 +30,13 @@
         </select>
     </p>
 
-    @if (_dashboardContext?.LearnerUserId.HasValue == true)
+    @if (_dashboardContext.LearnerUserId.HasValue)
     {
         <p>@_dashboardContext.Email · @_dashboardContext.EnrolledCourseCount enrolled · @_dashboardContext.CompletedCourseCount completed</p>
     }
 }
 
-@if ((_isAdminViewer || _dashboardContext?.IsAdminViewer == true) && _dashboardContext?.LearnerUserId.HasValue != true)
+@if (_dashboardContext?.IsAdminViewer == true && !_dashboardContext.LearnerUserId.HasValue)
 {
     <p>No learner accounts available.</p>
 }
@@ -46,6 +47,32 @@ else if (_courses.Count == 0)
 else
 {
     <LearnerDashboardCourses Courses="_courses" LearnerId="GetActiveLearnerId()" />
+}
+
+@if (_regulatoryCompliance is not null)
+{
+    <section class="card due-date-card">
+        <h2>License Compliance</h2>
+        <p><strong>@_regulatoryCompliance.State</strong> license @_regulatoryCompliance.LicenseNumber</p>
+        <p>@_regulatoryCompliance.LicenseeName · @(_regulatoryCompliance.LicenseLevel ?? "Level not reported") · @(_regulatoryCompliance.LicenseStatus ?? "Status not reported")</p>
+        <div class="stats-grid">
+            <article class="stat-card"><h3>Renewal</h3><p>@(_regulatoryCompliance.RenewalDate?.ToString("yyyy-MM-dd") ?? "Not reported")</p></article>
+            <article class="stat-card"><h3>Update Hours</h3><p>@(_regulatoryCompliance.UpdateHours?.ToString() ?? "Not reported")</p></article>
+            <article class="stat-card"><h3>Elective Hours</h3><p>@(_regulatoryCompliance.ElectiveHours?.ToString() ?? "Not reported")</p></article>
+            <article class="stat-card"><h3>Postlicensing Hours</h3><p>@(_regulatoryCompliance.PostlicensingHours?.ToString() ?? "Not reported")</p></article>
+        </div>
+        @if (_regulatoryCompliance.RecommendedCourseMessages.Count > 0)
+        {
+            <h3>Available Course Paths</h3>
+            <ul>
+                @foreach (var message in _regulatoryCompliance.RecommendedCourseMessages)
+                {
+                    <li>@message</li>
+                }
+            </ul>
+        }
+        <p class="muted-text">Verified regulatory snapshot retrieved @_regulatoryCompliance.SnapshotRetrievedAtUtc.ToString("yyyy-MM-dd HH:mm 'UTC'"). Recheck the regulator record before a compliance decision.</p>
+    </section>
 }
 
 @if (_dueDates.Count > 0)
@@ -83,6 +110,7 @@ else
     private bool _isAdminViewer;
     private bool _isInitialized;
     private List<LearnerDueDateRow> _dueDates = new();
+    private RegulatoryLicenseComplianceStatus? _regulatoryCompliance;
 
     protected override async Task OnInitializedAsync()
     {
@@ -120,6 +148,7 @@ else
         if (activeLearnerId.HasValue)
         {
             _dueDates = await DueDateReminderService.GetLearnerDueDatesAsync(activeLearnerId.Value, upcomingOnly: false, take: 6);
+            _regulatoryCompliance = await RegulatoryComplianceService.GetUserComplianceStatusAsync(activeLearnerId.Value);
         }
 
         NormalizeLearnerQuery();
@@ -132,17 +161,19 @@ else
             return;
         }
 
-        if (!LearnerId.HasValue)
+        if (_dashboardContext.LearnerUserId.HasValue)
         {
+            if (LearnerId != _dashboardContext.LearnerUserId.Value)
+            {
+                NavigationManager.NavigateTo(BuildLearnerUri(_dashboardContext.LearnerUserId.Value), replace: true);
+            }
             return;
         }
 
-        if (_dashboardContext.LearnerUserId.HasValue && _learnerOptions.Any(option => option.UserId == LearnerId.Value))
+        if (LearnerId.HasValue)
         {
-            return;
+            NavigationManager.NavigateTo("/learner", replace: true);
         }
-
-        // Preserve the requested learner context so admin empty-state views remain stable.
     }
 
     private Task OnLearnerSelectionChanged(ChangeEventArgs eventArgs)
@@ -160,11 +191,6 @@ else
         NavigationManager.NavigateTo(BuildLearnerUri(selectedLearnerId), replace: true);
         return Task.CompletedTask;
     }
-
-    private string SelectedLearnerValue =>
-        LearnerId.HasValue
-            ? LearnerId.Value.ToString("D")
-            : _dashboardContext?.LearnerUserId?.ToString("D") ?? string.Empty;
 
     private string GetEmptyStateMessage()
     {

@@ -1,6 +1,6 @@
 using Lms.Domain.Entities;
 
-namespace Lms.Web.Components.Shared;
+namespace Lms.Web.Components.Pages;
 
 public sealed record SupportEnrollmentCourseDisplay(string Title, string SourceLabel, string SourceCssClass);
 

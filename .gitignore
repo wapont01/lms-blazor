@@ -35,6 +35,15 @@ Lms.Web/App_Data/*.db
 Lms.Web/App_Data/*.db-*
 src/Lms.Web/App_Data/*.db
 src/Lms.Web/App_Data/*.db-*
+src/App_Data/
+
+# NCREC crawler page cache
+src/tools/.ncrec-cache/
+
+# Scratch and verification artifacts
+ef_migration_output.txt
+src/test-output.txt
+src/*.png
 
 # Playwright artifacts
 playwright-report/

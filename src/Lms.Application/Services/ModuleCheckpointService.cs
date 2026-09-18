@@ -18,8 +18,7 @@ public sealed record ModuleCheckpointDefinition(
     string Prompt,
     string Description,
     Guid? ModuleId,
-    Guid? LessonId,
-    bool GatesProgression,
+    bool IsFinal,
     List<ModuleCheckpointOption> Options);
 public sealed record ModuleCheckpointSubmitResult(bool IsPassed, string Message, HashSet<string> CorrectOptionKeys);
 
@@ -46,7 +45,8 @@ public sealed class ModuleCheckpointService : IModuleCheckpointService
             .AsNoTracking()
             .Include(definition => definition.Options)
             .Where(definition => definition.CourseId == courseId)
-            .OrderBy(definition => definition.Title)
+            .OrderBy(definition => definition.ModuleId == null ? 1 : 0)
+            .ThenBy(definition => definition.Title)
             .ToListAsync();
 
         if (importedDefinitions.Count > 0)
@@ -58,8 +58,7 @@ public sealed class ModuleCheckpointService : IModuleCheckpointService
                     definition.Prompt,
                     definition.Description,
                     definition.ModuleId,
-                    definition.LessonId,
-                    definition.GatesProgression,
+                    definition.IsFinal,
                     definition.Options
                         .OrderBy(option => option.OrderIndex)
                         .Select(option => new ModuleCheckpointOption(option.Key, option.Label, option.IsCorrect))
@@ -89,9 +88,21 @@ public sealed class ModuleCheckpointService : IModuleCheckpointService
                 $"Select all lessons that belong to '{module.Title}'.",
                 "Choose every correct answer. You must match the full set to continue.",
                 module.Id,
+                false,
+                options));
+        }
+
+        if (trackedModules.Count > 0)
+        {
+            var finalOptions = BuildFinalCheckpointOptions(trackedModules);
+            definitions.Add(new ModuleCheckpointDefinition(
+                FinalCheckpointKey,
+                "Checkpoint",
+                "Select all modules that are part of this course.",
+                "Choose every correct answer.",
                 null,
                 true,
-                options));
+                finalOptions));
         }
 
         return definitions;
@@ -168,6 +179,8 @@ public sealed class ModuleCheckpointService : IModuleCheckpointService
         return $"module:{moduleId:D}";
     }
 
+    public const string FinalCheckpointKey = "course:final";
+
     private static List<ModuleCheckpointOption> BuildModuleCheckpointOptions(Module module, List<Module> trackedModules)
     {
         var options = new List<ModuleCheckpointOption>();
@@ -217,6 +230,36 @@ public sealed class ModuleCheckpointService : IModuleCheckpointService
             }
 
             options.Add(new ModuleCheckpointOption(ToOptionKey(fallback, false, options.Count), fallback, false));
+        }
+
+        return options.Take(4).ToList();
+    }
+
+    private static List<ModuleCheckpointOption> BuildFinalCheckpointOptions(List<Module> trackedModules)
+    {
+        var options = new List<ModuleCheckpointOption>();
+
+        var correctModules = trackedModules
+            .Select(module => module.Title)
+            .Where(title => !string.IsNullOrWhiteSpace(title))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(2)
+            .ToList();
+
+        if (correctModules.Count == 1)
+        {
+            correctModules.Add($"{correctModules[0]} (Advanced)");
+        }
+
+        foreach (var moduleTitle in correctModules)
+        {
+            options.Add(new ModuleCheckpointOption(ToOptionKey(moduleTitle, true, options.Count), moduleTitle, true));
+        }
+
+        var distractors = GenericDistractors.Take(2).ToList();
+        foreach (var distractor in distractors)
+        {
+            options.Add(new ModuleCheckpointOption(ToOptionKey(distractor, false, options.Count), distractor, false));
         }
 
         return options.Take(4).ToList();

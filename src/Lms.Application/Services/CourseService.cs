@@ -13,21 +13,11 @@ public interface ICourseService
     Task UpdateAsync(Course course);
     Task<Module> AddModuleAsync(Guid courseId, Module module);
     Task UpdateModuleAsync(Module module);
-    Task<bool> DeleteModuleAsync(Guid moduleId);
     Task<Lesson> AddLessonAsync(Guid moduleId, Lesson lesson);
     Task UpdateLessonAsync(Lesson lesson);
-    Task DeleteLessonAsync(Guid lessonId);
-    Task MoveModuleAsync(Guid moduleId, bool moveUp);
-    Task MoveModuleToPositionAsync(Guid moduleId, int targetPosition);
-    Task MoveLessonAsync(Guid lessonId, bool moveUp);
-    Task MoveLessonToPositionAsync(Guid lessonId, int targetPosition);
-    Task MoveCheckpointAsync(Guid checkpointId, bool moveUp);
-    // Jumps a checkpoint to an absolute position among ALL of a module's lessons + checkpoints, re-anchoring it as needed.
-    Task MoveCheckpointToPositionAsync(Guid checkpointId, int targetPosition);
     Task ImportCourseStructureAsync(Guid courseId, string importText);
     Task<List<CourseCheckpointDefinition>> GetCheckpointDefinitionsForEditingAsync(Guid courseId);
     Task<CourseCheckpointDefinition> SaveCheckpointDefinitionAsync(CheckpointDefinitionEditorModel editor);
-    Task<bool> SetCheckpointGatesProgressionAsync(Guid checkpointDefinitionId, bool gatesProgression);
     Task DeleteCheckpointDefinitionAsync(Guid checkpointDefinitionId);
     Task<List<Course>> GetCoursesForInstructorAsync(Guid instructorId);
     Task<bool> SubmitForReviewAsync(Guid courseId, Guid instructorId);
@@ -41,8 +31,7 @@ public sealed class CheckpointDefinitionEditorModel
     public Guid? Id { get; set; }
     public Guid CourseId { get; set; }
     public Guid? ModuleId { get; set; }
-    public Guid? LessonId { get; set; }
-    public bool GatesProgression { get; set; }
+    public bool IsFinal { get; set; }
     public string Title { get; set; } = "Checkpoint";
     public string Prompt { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
@@ -108,8 +97,6 @@ public class CourseService : ICourseService
 
     public async Task<Course> CreateAsync(Course course)
     {
-        ApplyComplianceDefaults(course);
-        ValidateComplianceConfiguration(course);
         course.CreatedAt = DateTime.UtcNow;
         course.UpdatedAt = null;
         _dbContext.Courses.Add(course);
@@ -128,8 +115,6 @@ public class CourseService : ICourseService
             return;
         }
 
-        ApplyComplianceDefaults(course);
-        ValidateComplianceConfiguration(course);
         _dbContext.Entry(existingCourse).CurrentValues.SetValues(course);
         existingCourse.UpdatedAt = DateTime.UtcNow;
 
@@ -149,12 +134,7 @@ public class CourseService : ICourseService
 
     public async Task<bool> SubmitForReviewAsync(Guid courseId, Guid instructorId)
     {
-        var course = await _dbContext.Courses
-            .Include(course => course.Modules)
-                .ThenInclude(module => module.Lessons)
-            .Include(course => course.Assessments)
-                .ThenInclude(assessment => assessment.Questions)
-            .FirstOrDefaultAsync(course => course.Id == courseId);
+        var course = await GetCourseForPublishingAsync(courseId);
         if (course is null || course.OwnerInstructorId != instructorId)
         {
             return false;
@@ -165,17 +145,7 @@ public class CourseService : ICourseService
             return false;
         }
 
-        if (course.ReviewStatus == CourseReviewStatuses.Rejected && !CourseReviewStatuses.CanResubmitAfterRejection(course.ReviewedAt, DateTime.UtcNow))
-        {
-            return false;
-        }
-
-        var checkpoints = await _dbContext.CourseCheckpointDefinitions
-            .Include(checkpoint => checkpoint.Options)
-            .Where(checkpoint => checkpoint.CourseId == courseId)
-            .ToListAsync();
-
-        if (!CourseAuthoringProgressHelper.Evaluate(course, checkpoints).Items.All(item => item.IsComplete))
+        if (!DistanceLearningComplianceValidator.Validate(course).IsValid)
         {
             return false;
         }
@@ -192,8 +162,13 @@ public class CourseService : ICourseService
 
     public async Task<bool> ApproveCourseAsync(Guid courseId, Guid adminUserId)
     {
-        var course = await _dbContext.Courses.FirstOrDefaultAsync(course => course.Id == courseId);
+        var course = await GetCourseForPublishingAsync(courseId);
         if (course is null)
+        {
+            return false;
+        }
+
+        if (!DistanceLearningComplianceValidator.Validate(course).IsValid)
         {
             return false;
         }
@@ -207,6 +182,14 @@ public class CourseService : ICourseService
 
         await _dbContext.SaveChangesAsync();
         return true;
+    }
+
+    private Task<Course?> GetCourseForPublishingAsync(Guid courseId)
+    {
+        return _dbContext.Courses
+            .Include(course => course.Modules)
+                .ThenInclude(module => module.Lessons)
+            .FirstOrDefaultAsync(course => course.Id == courseId);
     }
 
     public async Task<bool> RequestChangesAsync(Guid courseId, Guid adminUserId, string note)
@@ -276,29 +259,6 @@ public class CourseService : ICourseService
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task<bool> DeleteModuleAsync(Guid moduleId)
-    {
-        var module = await _dbContext.Modules.FirstOrDefaultAsync(existing => existing.Id == moduleId);
-        if (module is null)
-        {
-            return true;
-        }
-
-        // Guard: only allow deleting an empty module so lessons/checkpoints are never silently orphaned.
-        var hasLessons = await _dbContext.Lessons.AnyAsync(lesson => lesson.ModuleId == moduleId);
-        var hasCheckpoints = await _dbContext.CourseCheckpointDefinitions.AnyAsync(checkpoint => checkpoint.ModuleId == moduleId);
-        if (hasLessons || hasCheckpoints)
-        {
-            return false;
-        }
-
-        var courseId = module.CourseId;
-        _dbContext.Modules.Remove(module);
-        await _dbContext.SaveChangesAsync();
-        await RenumberModulesAsync(courseId);
-        return true;
-    }
-
     public async Task<Lesson> AddLessonAsync(Guid moduleId, Lesson lesson)
     {
         var nextOrderIndex = await _dbContext.Lessons
@@ -323,412 +283,6 @@ public class CourseService : ICourseService
         }
 
         _dbContext.Entry(existingLesson).CurrentValues.SetValues(lesson);
-        await _dbContext.SaveChangesAsync();
-    }
-
-    public async Task DeleteLessonAsync(Guid lessonId)
-    {
-        var lesson = await _dbContext.Lessons.FirstOrDefaultAsync(existing => existing.Id == lessonId);
-        if (lesson is null)
-        {
-            return;
-        }
-
-        // LessonId is a plain scalar anchor (no FK), so checkpoints pointing here would otherwise
-        // dangle; fall them back to "end of module" instead of leaving them inert.
-        var anchoredCheckpoints = await _dbContext.CourseCheckpointDefinitions
-            .Where(checkpoint => checkpoint.LessonId == lessonId)
-            .ToListAsync();
-        foreach (var checkpoint in anchoredCheckpoints)
-        {
-            checkpoint.LessonId = null;
-        }
-
-        var moduleId = lesson.ModuleId;
-        _dbContext.Lessons.Remove(lesson);
-        await _dbContext.SaveChangesAsync();
-        await RenumberLessonsAsync(moduleId);
-    }
-
-    public async Task MoveModuleAsync(Guid moduleId, bool moveUp)
-    {
-        var module = await _dbContext.Modules.FirstOrDefaultAsync(existing => existing.Id == moduleId);
-        if (module is null)
-        {
-            return;
-        }
-
-        var siblings = await _dbContext.Modules
-            .Where(existing => existing.CourseId == module.CourseId)
-            .OrderBy(existing => existing.OrderIndex)
-            .ToListAsync();
-
-        var index = siblings.FindIndex(existing => existing.Id == moduleId);
-        var swapIndex = moveUp ? index - 1 : index + 1;
-        if (index < 0 || swapIndex < 0 || swapIndex >= siblings.Count)
-        {
-            return;
-        }
-
-        (siblings[index].OrderIndex, siblings[swapIndex].OrderIndex) = (siblings[swapIndex].OrderIndex, siblings[index].OrderIndex);
-        await _dbContext.SaveChangesAsync();
-    }
-
-    // Jumps a module directly to a 1-based target position (rather than swapping one step at a time),
-    // re-sequencing every sibling's OrderIndex to a clean 1..N run in the new order.
-    public async Task MoveModuleToPositionAsync(Guid moduleId, int targetPosition)
-    {
-        var module = await _dbContext.Modules.FirstOrDefaultAsync(existing => existing.Id == moduleId);
-        if (module is null)
-        {
-            return;
-        }
-
-        var siblings = await _dbContext.Modules
-            .Where(existing => existing.CourseId == module.CourseId)
-            .OrderBy(existing => existing.OrderIndex)
-            .ToListAsync();
-
-        var currentIndex = siblings.FindIndex(existing => existing.Id == moduleId);
-        var targetIndex = targetPosition - 1;
-        if (currentIndex < 0 || targetIndex < 0 || targetIndex >= siblings.Count || targetIndex == currentIndex)
-        {
-            return;
-        }
-
-        siblings.RemoveAt(currentIndex);
-        siblings.Insert(targetIndex, module);
-        for (var i = 0; i < siblings.Count; i++)
-        {
-            siblings[i].OrderIndex = i + 1;
-        }
-
-        await _dbContext.SaveChangesAsync();
-    }
-
-    public async Task MoveLessonAsync(Guid lessonId, bool moveUp)
-    {
-        var lesson = await _dbContext.Lessons.FirstOrDefaultAsync(existing => existing.Id == lessonId);
-        if (lesson is null)
-        {
-            return;
-        }
-
-        var siblings = await _dbContext.Lessons
-            .Where(existing => existing.ModuleId == lesson.ModuleId)
-            .OrderBy(existing => existing.OrderIndex)
-            .ToListAsync();
-
-        var index = siblings.FindIndex(existing => existing.Id == lessonId);
-        var swapIndex = moveUp ? index - 1 : index + 1;
-        if (index < 0 || swapIndex < 0 || swapIndex >= siblings.Count)
-        {
-            return;
-        }
-
-        // Swapping OrderIndex only (lessons keep their own identity/id): any checkpoints anchored to
-        // either lesson stay anchored to the same LessonId, so they naturally travel with their lesson.
-        (siblings[index].OrderIndex, siblings[swapIndex].OrderIndex) = (siblings[swapIndex].OrderIndex, siblings[index].OrderIndex);
-        await _dbContext.SaveChangesAsync();
-    }
-
-    // Jumps a lesson directly to a 1-based target position within its module (rather than swapping one
-    // step at a time), re-sequencing every sibling's OrderIndex to a clean 1..N run in the new order.
-    // Any checkpoints anchored to a lesson stay anchored by LessonId, so they travel with it automatically.
-    // targetPosition is a whole-module position (same numbering as the module page's "Move to position"
-    // dropdown, over lessons + checkpoints combined), not a lesson-only index — checkpoints keep anchoring
-    // to their referenced lesson's Id, so they don't need any adjustment when lessons are reordered.
-    public async Task MoveLessonToPositionAsync(Guid lessonId, int targetPosition)
-    {
-        var lesson = await _dbContext.Lessons.FirstOrDefaultAsync(existing => existing.Id == lessonId);
-        if (lesson is null)
-        {
-            return;
-        }
-
-        var lessons = await _dbContext.Lessons
-            .Where(existing => existing.ModuleId == lesson.ModuleId)
-            .OrderBy(existing => existing.OrderIndex)
-            .ToListAsync();
-
-        var allModuleCheckpoints = await _dbContext.CourseCheckpointDefinitions
-            .Where(existing => existing.ModuleId == lesson.ModuleId)
-            .ToListAsync();
-
-        var sequence = BuildModuleSequence(lessons, allModuleCheckpoints);
-        var positionableCount = sequence.Count(item => item is not ModuleEndMarker);
-        var currentSequenceIndex = sequence.FindIndex(item => item is Lesson existingLesson && existingLesson.Id == lessonId);
-        var currentPositionableIndex = sequence.Take(currentSequenceIndex).Count(item => item is not ModuleEndMarker);
-        var targetPositionableIndex = targetPosition - 1;
-
-        if (currentSequenceIndex < 0 || targetPositionableIndex < 0 || targetPositionableIndex >= positionableCount || targetPositionableIndex == currentPositionableIndex)
-        {
-            return;
-        }
-
-        sequence.RemoveAt(currentSequenceIndex);
-        var insertSequenceIndex = PositionableIndexToSequenceIndex(sequence, targetPositionableIndex);
-        sequence.Insert(Math.Min(insertSequenceIndex, sequence.Count), lesson);
-
-        var orderIndex = 0;
-        foreach (var item in sequence)
-        {
-            if (item is Lesson sequencedLesson)
-            {
-                orderIndex++;
-                sequencedLesson.OrderIndex = orderIndex;
-            }
-        }
-
-        await _dbContext.SaveChangesAsync();
-    }
-
-    // Checkpoints don't have a single global OrderIndex like modules/lessons: their display position is
-    // "anchor lesson (or end-of-module) + OrderIndex among siblings sharing that same anchor". Moving a
-    // checkpoint past the edge of its sibling group re-anchors it to the neighboring lesson slot instead,
-    // which is how it crosses a lesson boundary in the flattened, learner-facing sequence.
-    public async Task MoveCheckpointAsync(Guid checkpointId, bool moveUp)
-    {
-        var checkpoint = await _dbContext.CourseCheckpointDefinitions.FirstOrDefaultAsync(existing => existing.Id == checkpointId);
-        if (checkpoint is null || checkpoint.ModuleId is null)
-        {
-            // The final (course-level) checkpoint has no module/lesson anchor to reorder against.
-            return;
-        }
-
-        var moduleId = checkpoint.ModuleId.Value;
-
-        var lessons = await _dbContext.Lessons
-            .Where(lesson => lesson.ModuleId == moduleId)
-            .OrderBy(lesson => lesson.OrderIndex)
-            .ToListAsync();
-
-        // Anchor slots in flattened order: a virtual "start of module" slot first, then each lesson in
-        // turn, then a virtual "end of module" slot last.
-        var anchorSlots = new List<Guid?> { CourseCheckpointDefinition.StartOfModuleAnchor };
-        anchorSlots.AddRange(lessons.Select(lesson => (Guid?)lesson.Id));
-        anchorSlots.Add(null);
-        var currentAnchorIndex = anchorSlots.FindIndex(anchor => anchor == checkpoint.LessonId);
-        if (currentAnchorIndex < 0)
-        {
-            return;
-        }
-
-        var allModuleCheckpoints = await _dbContext.CourseCheckpointDefinitions
-            .Where(existing => existing.ModuleId == moduleId)
-            .ToListAsync();
-
-        var group = allModuleCheckpoints
-            .Where(existing => existing.LessonId == checkpoint.LessonId)
-            .OrderBy(existing => existing.OrderIndex)
-            .ThenBy(existing => existing.Title, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        var positionInGroup = group.FindIndex(existing => existing.Id == checkpointId);
-
-        if (moveUp)
-        {
-            if (positionInGroup > 0)
-            {
-                var sibling = group[positionInGroup - 1];
-                (checkpoint.OrderIndex, sibling.OrderIndex) = (sibling.OrderIndex, checkpoint.OrderIndex);
-            }
-            else if (currentAnchorIndex > 0)
-            {
-                var targetAnchor = anchorSlots[currentAnchorIndex - 1];
-                var targetGroup = allModuleCheckpoints.Where(existing => existing.LessonId == targetAnchor).ToList();
-                var maxOrder = targetGroup.Count > 0 ? targetGroup.Max(existing => existing.OrderIndex) : 0;
-                checkpoint.LessonId = targetAnchor;
-                checkpoint.OrderIndex = maxOrder + 1;
-            }
-        }
-        else
-        {
-            if (positionInGroup < group.Count - 1)
-            {
-                var sibling = group[positionInGroup + 1];
-                (checkpoint.OrderIndex, sibling.OrderIndex) = (sibling.OrderIndex, checkpoint.OrderIndex);
-            }
-            else if (currentAnchorIndex < anchorSlots.Count - 1)
-            {
-                var targetAnchor = anchorSlots[currentAnchorIndex + 1];
-                var targetGroup = allModuleCheckpoints.Where(existing => existing.LessonId == targetAnchor).ToList();
-                var minOrder = targetGroup.Count > 0 ? targetGroup.Min(existing => existing.OrderIndex) : 0;
-                checkpoint.LessonId = targetAnchor;
-                checkpoint.OrderIndex = minOrder - 1;
-            }
-        }
-
-        await _dbContext.SaveChangesAsync();
-    }
-
-    // Reorders a checkpoint by jumping it to an absolute position among ALL of the module's lessons and
-    // checkpoints combined (the same numbering the module page's "Move to position" dropdown shows), then
-    // re-derives its anchor (start-of-module, a specific lesson, or end-of-module) and OrderIndex from
-    // wherever it lands in that flattened sequence — this is how the dropdown re-anchors a checkpoint
-    // across a lesson boundary in a single jump, instead of one step at a time like the ↑/↓ arrows.
-    public async Task MoveCheckpointToPositionAsync(Guid checkpointId, int targetPosition)
-    {
-        var checkpoint = await _dbContext.CourseCheckpointDefinitions.FirstOrDefaultAsync(existing => existing.Id == checkpointId);
-        if (checkpoint is null || checkpoint.ModuleId is null)
-        {
-            return;
-        }
-
-        var moduleId = checkpoint.ModuleId.Value;
-
-        var lessons = await _dbContext.Lessons
-            .Where(lesson => lesson.ModuleId == moduleId)
-            .OrderBy(lesson => lesson.OrderIndex)
-            .ToListAsync();
-
-        var allModuleCheckpoints = await _dbContext.CourseCheckpointDefinitions
-            .Where(existing => existing.ModuleId == moduleId)
-            .ToListAsync();
-
-        var sequence = BuildModuleSequence(lessons, allModuleCheckpoints);
-
-        // ModuleEndMarker isn't a real learner-facing item, so it's excluded from position numbering.
-        var positionableCount = sequence.Count(item => item is not ModuleEndMarker);
-        var currentSequenceIndex = sequence.FindIndex(item => item is CourseCheckpointDefinition existing && existing.Id == checkpointId);
-        var currentPositionableIndex = sequence.Take(currentSequenceIndex).Count(item => item is not ModuleEndMarker);
-        var targetPositionableIndex = targetPosition - 1;
-
-        if (currentSequenceIndex < 0 || targetPositionableIndex < 0 || targetPositionableIndex >= positionableCount || targetPositionableIndex == currentPositionableIndex)
-        {
-            return;
-        }
-
-        // Work out where the checkpoint lands by counting positions in the sequence with the checkpoint
-        // itself removed first, so the target index isn't thrown off by the checkpoint's own old slot.
-        sequence.RemoveAt(currentSequenceIndex);
-        var markerIndex = sequence.FindIndex(item => item is ModuleEndMarker);
-        var insertSequenceIndex = PositionableIndexToSequenceIndex(sequence, targetPositionableIndex);
-
-        // Landing exactly on the boundary between "anchored to the last lesson" and "end of module" is
-        // ambiguous — default to true end-of-module (null anchor), matching what an instructor jumping a
-        // checkpoint to the last slot would expect, rather than silently anchoring it to the last lesson.
-        if (insertSequenceIndex == markerIndex)
-        {
-            insertSequenceIndex++;
-        }
-
-        sequence.Insert(Math.Min(insertSequenceIndex, sequence.Count), checkpoint);
-
-        // Re-derive every checkpoint's anchor and OrderIndex among its new siblings from its place in the sequence.
-        Guid? anchor = CourseCheckpointDefinition.StartOfModuleAnchor;
-        var orderInAnchor = 0;
-        foreach (var item in sequence)
-        {
-            if (item is Lesson lesson)
-            {
-                anchor = lesson.Id;
-                orderInAnchor = 0;
-                continue;
-            }
-
-            if (item is ModuleEndMarker)
-            {
-                anchor = null;
-                orderInAnchor = 0;
-                continue;
-            }
-
-            var existingCheckpoint = (CourseCheckpointDefinition)item;
-            orderInAnchor++;
-            existingCheckpoint.LessonId = anchor;
-            existingCheckpoint.OrderIndex = orderInAnchor;
-        }
-
-        await _dbContext.SaveChangesAsync();
-    }
-
-    // Marker separating "anchored to the last lesson" from "end of module (null anchor)" checkpoints in a
-    // flattened module sequence — both groups sit at the tail with nothing else between them, so without an
-    // explicit boundary that distinction would be lost when re-deriving anchors after a jump-to-position move.
-    private sealed class ModuleEndMarker
-    {
-    }
-
-    // Flattens a module's lessons and checkpoints into the single learner-facing sequence (start-of-module
-    // checkpoints, lesson, its anchored checkpoints, next lesson, ..., end-of-module checkpoints last),
-    // matching the module page's display/numbering order.
-    private static List<object> BuildModuleSequence(List<Lesson> lessons, List<CourseCheckpointDefinition> checkpoints)
-    {
-        var ordered = checkpoints
-            .OrderBy(existing => existing.LessonId == CourseCheckpointDefinition.StartOfModuleAnchor
-                ? -1
-                : existing.LessonId.HasValue ? lessons.FindIndex(lesson => lesson.Id == existing.LessonId.Value) : int.MaxValue)
-            .ThenBy(existing => existing.OrderIndex)
-            .ThenBy(existing => existing.Title, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var sequence = new List<object>();
-        sequence.AddRange(ordered.Where(existing => existing.LessonId == CourseCheckpointDefinition.StartOfModuleAnchor));
-
-        foreach (var lesson in lessons)
-        {
-            sequence.Add(lesson);
-            sequence.AddRange(ordered.Where(existing => existing.LessonId == lesson.Id));
-        }
-
-        sequence.Add(new ModuleEndMarker());
-        sequence.AddRange(ordered.Where(existing => existing.LessonId is null));
-
-        return sequence;
-    }
-
-    // Maps a 1-based-minus-one "learner-facing" position (over lessons + checkpoints only) to its index in
-    // a sequence that also contains the invisible ModuleEndMarker.
-    private static int PositionableIndexToSequenceIndex(List<object> sequence, int positionableIndex)
-    {
-        var seen = 0;
-        for (var i = 0; i < sequence.Count; i++)
-        {
-            if (sequence[i] is ModuleEndMarker)
-            {
-                continue;
-            }
-
-            if (seen == positionableIndex)
-            {
-                return i;
-            }
-
-            seen++;
-        }
-
-        return sequence.Count;
-    }
-
-
-    // Reassigns 1..N sequential OrderIndex values (preserving relative order) so deletions never leave gaps or stale numbering.
-    private async Task RenumberModulesAsync(Guid courseId)
-    {
-        var modules = await _dbContext.Modules
-            .Where(module => module.CourseId == courseId)
-            .OrderBy(module => module.OrderIndex)
-            .ToListAsync();
-
-        for (var index = 0; index < modules.Count; index++)
-        {
-            modules[index].OrderIndex = index + 1;
-        }
-
-        await _dbContext.SaveChangesAsync();
-    }
-
-    private async Task RenumberLessonsAsync(Guid moduleId)
-    {
-        var lessons = await _dbContext.Lessons
-            .Where(lesson => lesson.ModuleId == moduleId)
-            .OrderBy(lesson => lesson.OrderIndex)
-            .ToListAsync();
-
-        for (var index = 0; index < lessons.Count; index++)
-        {
-            lessons[index].OrderIndex = index + 1;
-        }
-
         await _dbContext.SaveChangesAsync();
     }
 
@@ -816,21 +370,15 @@ public class CourseService : ICourseService
                     ? null
                     : createdModules.FirstOrDefault(module => string.Equals(module.Title, parsedCheckpoint.ModuleTitle, StringComparison.OrdinalIgnoreCase))?.Id;
 
-                var lessonId = moduleId is null || parsedCheckpoint.LessonTitle is null
-                    ? (Guid?)null
-                    : createdModules.First(module => module.Id == moduleId.Value).Lessons
-                        .FirstOrDefault(lesson => string.Equals(lesson.Title, parsedCheckpoint.LessonTitle, StringComparison.OrdinalIgnoreCase))?.Id;
-
                 var definitionEntity = new CourseCheckpointDefinition
                 {
                     CourseId = courseId,
-                    Key = moduleId is null ? ToCheckpointKey(parsedCheckpoint.Title) : ModuleCheckpointService.BuildModuleCheckpointKey(moduleId.Value),
+                    Key = parsedCheckpoint.IsFinal ? ModuleCheckpointService.FinalCheckpointKey : (moduleId is null ? ToCheckpointKey(parsedCheckpoint.Title) : ModuleCheckpointService.BuildModuleCheckpointKey(moduleId.Value)),
                     Title = parsedCheckpoint.Title,
                     Prompt = parsedCheckpoint.Prompt,
                     Description = parsedCheckpoint.Description,
                     ModuleId = moduleId,
-                    LessonId = lessonId,
-                    GatesProgression = parsedCheckpoint.GatesProgression
+                    IsFinal = parsedCheckpoint.IsFinal
                 };
 
                 _dbContext.CourseCheckpointDefinitions.Add(definitionEntity);
@@ -886,7 +434,8 @@ public class CourseService : ICourseService
             .AsNoTracking()
             .Include(definition => definition.Options)
             .Where(definition => definition.CourseId == courseId)
-            .OrderBy(definition => definition.Title)
+            .OrderBy(definition => definition.ModuleId == null ? 1 : 0)
+            .ThenBy(definition => definition.Title)
             .ToListAsync();
     }
 
@@ -898,7 +447,6 @@ public class CourseService : ICourseService
                 .FirstOrDefaultAsync(definition => definition.Id == editor.Id.Value)
             : null;
 
-        var isNewCheckpoint = entity is null;
         if (entity is null)
         {
             entity = new CourseCheckpointDefinition
@@ -911,19 +459,11 @@ public class CourseService : ICourseService
         entity.Title = editor.Title.Trim();
         entity.Prompt = editor.Prompt.Trim();
         entity.Description = editor.Description?.Trim() ?? string.Empty;
-        entity.GatesProgression = editor.GatesProgression;
-        entity.ModuleId = editor.ModuleId;
-        entity.LessonId = editor.LessonId;
-
-        // Key is only assigned once, at creation: it doubles as the CourseId+Key uniqueness
-        // guard, and modules can now have more than one checkpoint, so re-deriving it from
-        // ModuleId on every save would collide with a sibling checkpoint's key.
-        if (isNewCheckpoint)
-        {
-            entity.Key = entity.ModuleId is null
-                ? ToCheckpointKey(entity.Title)
-                : await BuildUniqueModuleCheckpointKeyAsync(entity.ModuleId.Value, entity.CourseId);
-        }
+        entity.IsFinal = editor.IsFinal;
+        entity.ModuleId = editor.IsFinal ? null : editor.ModuleId;
+        entity.Key = editor.IsFinal
+            ? ModuleCheckpointService.FinalCheckpointKey
+            : (entity.ModuleId is null ? ToCheckpointKey(entity.Title) : ModuleCheckpointService.BuildModuleCheckpointKey(entity.ModuleId.Value));
 
         var keepOptionIds = new HashSet<Guid>();
         for (var index = 0; index < editor.Options.Count; index++)
@@ -935,11 +475,8 @@ public class CourseService : ICourseService
 
             if (optionEntity is null)
             {
-                // Id defaults to a non-empty Guid, so EF's graph tracking can't infer this is new;
-                // add it to the DbSet explicitly or it gets treated as an update to a missing row.
                 optionEntity = new CourseCheckpointOption();
                 entity.Options.Add(optionEntity);
-                _dbContext.CourseCheckpointOptions.Add(optionEntity);
             }
 
             optionEntity.Label = optionInput.Label.Trim();
@@ -961,19 +498,6 @@ public class CourseService : ICourseService
 
         await _dbContext.SaveChangesAsync();
         return entity;
-    }
-
-    public async Task<bool> SetCheckpointGatesProgressionAsync(Guid checkpointDefinitionId, bool gatesProgression)
-    {
-        var entity = await _dbContext.CourseCheckpointDefinitions.FindAsync(checkpointDefinitionId);
-        if (entity is null)
-        {
-            return false;
-        }
-
-        entity.GatesProgression = gatesProgression;
-        await _dbContext.SaveChangesAsync();
-        return true;
     }
 
     public async Task DeleteCheckpointDefinitionAsync(Guid checkpointDefinitionId)
@@ -1077,7 +601,8 @@ public class CourseService : ICourseService
                     Title = "Checkpoint",
                     Prompt = "Select every correct answer.",
                     Description = string.Empty,
-                    ModuleTitle = line["[checkpoint]".Length..].Trim()
+                    ModuleTitle = line["[checkpoint]".Length..].Trim(),
+                    IsFinal = string.Equals(line["[checkpoint]".Length..].Trim(), "final", StringComparison.OrdinalIgnoreCase)
                 };
                 document.Checkpoints.Add(currentCheckpoint);
                 continue;
@@ -1230,12 +755,9 @@ public class CourseService : ICourseService
             case "module":
                 checkpoint.ModuleTitle = keyValue[1];
                 break;
-            case "lesson":
-                checkpoint.LessonTitle = keyValue[1];
-                break;
-            case "gatesprogression":
-                bool.TryParse(keyValue[1], out var gatesProgression);
-                checkpoint.GatesProgression = gatesProgression;
+            case "isfinal":
+                bool.TryParse(keyValue[1], out var isFinal);
+                checkpoint.IsFinal = isFinal;
                 break;
         }
     }
@@ -1344,30 +866,6 @@ public class CourseService : ICourseService
         return string.IsNullOrWhiteSpace(cleaned) ? "checkpoint" : cleaned.ToLowerInvariant();
     }
 
-    private async Task<string> BuildUniqueModuleCheckpointKeyAsync(Guid moduleId, Guid courseId)
-    {
-        var baseKey = ModuleCheckpointService.BuildModuleCheckpointKey(moduleId);
-        var existingKeys = await _dbContext.CourseCheckpointDefinitions
-            .Where(definition => definition.CourseId == courseId && definition.ModuleId == moduleId)
-            .Select(definition => definition.Key)
-            .ToListAsync();
-
-        if (!existingKeys.Contains(baseKey, StringComparer.OrdinalIgnoreCase))
-        {
-            return baseKey;
-        }
-
-        var suffix = 2;
-        string candidate;
-        do
-        {
-            candidate = $"{baseKey}-{suffix}";
-            suffix++;
-        } while (existingKeys.Contains(candidate, StringComparer.OrdinalIgnoreCase));
-
-        return candidate;
-    }
-
     private static string ToCheckpointOptionKey(string label, int index)
     {
         var cleaned = new string(label.Where(char.IsLetterOrDigit).ToArray());
@@ -1377,74 +875,6 @@ public class CourseService : ICourseService
         }
 
         return $"option-{cleaned.ToLowerInvariant()}-{index}";
-    }
-
-    private static void ApplyComplianceDefaults(Course course)
-    {
-        if (course is null)
-        {
-            return;
-        }
-
-        if (string.Equals(course.ComplianceType, CourseComplianceTypes.ContinuingEducation, StringComparison.OrdinalIgnoreCase))
-        {
-            if (!ContinuingEducationTypes.IsValid(course.ContinuingEducationType))
-            {
-                course.ContinuingEducationType = ContinuingEducationTypes.Elective;
-            }
-        }
-        else
-        {
-            course.ContinuingEducationType = null;
-        }
-
-        if (course.IsPrelicensingOrPostlicensing)
-        {
-            course.RequiresProctoredExam = true;
-            course.CompletionWindowDays ??= 180;
-        }
-        else if (string.Equals(course.ComplianceType, CourseComplianceTypes.ContinuingEducation, StringComparison.OrdinalIgnoreCase))
-        {
-            if (string.Equals(course.DeliveryMethod, CourseDeliveryMethods.DistanceEducation, StringComparison.OrdinalIgnoreCase))
-            {
-                course.CompletionWindowDays ??= 30;
-            }
-        }
-
-        if (!course.UsesUnitBasedStructure)
-        {
-            return;
-        }
-
-        if (course.RequiredInstructionalMinutes <= 0)
-        {
-            course.RequiredInstructionalMinutes = course.ComplianceType switch
-            {
-                CourseComplianceTypes.Prelicensing => 4500,
-                CourseComplianceTypes.Postlicensing => 1800,
-                CourseComplianceTypes.ContinuingEducation => Math.Max(course.CreditHours, 4) * 60,
-                _ => Math.Max(course.DurationHours, 1) * 60
-            };
-        }
-
-        if (course.MinimumPassingPercent <= 0)
-        {
-            course.MinimumPassingPercent = 75;
-        }
-
-        if (course.MinimumAttendancePercent <= 0)
-        {
-            course.MinimumAttendancePercent = 80;
-        }
-    }
-
-    private static void ValidateComplianceConfiguration(Course course)
-    {
-        var validationError = RegulatoryCoursePolicy.ValidateConfiguration(course);
-        if (!string.IsNullOrWhiteSpace(validationError))
-        {
-            throw new InvalidOperationException(validationError);
-        }
     }
 
     private async Task EnsureCourseIntroStructureAsync(Guid courseId)
@@ -1555,8 +985,7 @@ public class CourseService : ICourseService
         public string Prompt { get; set; } = "Select every correct answer.";
         public string Description { get; set; } = string.Empty;
         public string? ModuleTitle { get; set; }
-        public string? LessonTitle { get; set; }
-        public bool GatesProgression { get; set; }
+        public bool IsFinal { get; set; }
         public List<ParsedCheckpointOption> Options { get; } = new();
     }
 

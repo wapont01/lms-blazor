@@ -8,6 +8,7 @@
 @inject IAuditLogService AuditLogService
 @inject IEnrollmentService EnrollmentService
 @inject IAssessmentService AssessmentService
+@inject IComplianceReportingService ComplianceReportingService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Admin</PageTitle>
@@ -23,6 +24,7 @@
 			Courses="_courses"
 			CourseError="@_courseError"
 			CourseMessage="@_courseMessage"
+			OnTogglePublish="TogglePublishAsync"
 			OnToggleArchive="ToggleArchiveAsync"
 			OnSavePrice="SaveCoursePriceAsync"
 			OnApproveCourse="ApproveCourseAsync"
@@ -38,7 +40,6 @@
 			Courses="_courses"
 			Users="_users"
 			AssessmentCourseIdText="@_assessmentCourseIdText"
-			ActiveCourseTitle="@GetSelectedAssessmentCourseTitle()"
 			OnAssessmentCourseChanged="OnAssessmentCourseChanged"
 			OnLoadAssessmentEditor="LoadAssessmentEditorAsync"
 			AssessmentEditor="_assessmentEditor"
@@ -52,15 +53,6 @@
 			ResetCooldownTimerOnRetakeGrant="_resetCooldownTimerOnRetakeGrant"
 			ResetCooldownTimerOnRetakeGrantChanged="OnResetCooldownTimerOnRetakeGrantChanged"
 			OnGrantRetake="GrantRetakeAsync"
-			ProctorCompanyName="@ProctoringDefaults.CompanyName"
-			ProctoringValidForMinutes="_proctoringValidForMinutes"
-			ProctoringValidForMinutesChanged="OnProctoringValidForMinutesChanged"
-			ActiveProctoringSession="_activeProctoringSession"
-			OnRegisterProctoringSession="RegisterProctoringSessionAsync"
-			ProctoringIncidentNotes="_proctoringIncidentNotes"
-			ProctoringIncidentNotesChanged="OnProctoringIncidentNotesChanged"
-			OnExpireProctoringSession="ExpireProctoringSessionAsync"
-			OnReportProctoringIncident="ReportProctoringIncidentAsync"
 			RetakeGrants="_retakeGrants"
 			GetRetakeGrantDraft="GetRetakeGrantDraft"
 			SetRetakeGrantDraft="SetRetakeGrantDraft"
@@ -80,7 +72,8 @@
 			SetResetPassword="SetResetPassword"
 			OnToggleUser="ToggleUserAsync"
 			OnResetPassword="ResetPasswordAsync"
-			ChangeRole="ChangeRoleAsync" />
+			ChangeRole="ChangeRoleAsync"
+			OnSaveLicenseCompliance="SaveLicenseComplianceAsync" />
 	}
 
 	@if (IsSectionVisible("audit"))
@@ -104,6 +97,38 @@
 			CertificateRows="_certificateRows"
 			BuildVerifyLink="BuildVerifyLink"
 			OnRenewCertificate="RenewCertificateAsync" />
+	}
+
+	@if (IsSectionVisible("compliance"))
+	{
+		<AdminCompliancePanel
+			PendingReports="_pendingCompletionReports"
+			OnMarkSubmitted="MarkCompletionReportSubmittedAsync"
+			SummaryYear="_summaryYear"
+			SummaryMonth="_summaryMonth"
+			SummaryYearChanged="OnSummaryYearChangedAsync"
+			SummaryMonthChanged="OnSummaryMonthChangedAsync"
+			SummaryRows="_summaryRows"
+			PendingCheatingIncidents="_pendingCheatingIncidents"
+			OnMarkCheatingIncidentReported="MarkCheatingIncidentReportedAsync"
+			EducationDirectorOrientation="_educationDirectorOrientation"
+			OnMarkEducationDirectorOrientationViewed="MarkEducationDirectorOrientationViewedAsync"
+			InstructorCompliance="_instructorCompliance"
+			OnMarkInstructorHireReported="MarkInstructorHireReportedAsync"
+			OnRecordInstructorObservation="RecordInstructorObservationAsync"
+			RetentionSummary="_retentionSummary"
+			Courses="_courses"
+			PendingScheduleNotifications="_pendingScheduleNotifications"
+			PendingScheduleChangeReports="_pendingScheduleChangeReports"
+			OnMarkScheduleNotificationSent="MarkScheduleNotificationSentAsync"
+			OnMarkScheduleChangeReported="MarkScheduleChangeReportedAsync"
+			OnScheduleSession="ScheduleCourseSessionAsync"
+			ScheduleWarnings="_scheduleWarnings"
+			OnProcessReminders="ProcessComplianceRemindersAsync"
+			LastReminderRunResult="_lastReminderRunResult"
+			ScheduledSessions="_scheduledSessions"
+			OnRescheduleSession="RescheduleCourseSessionAsync"
+			OnCancelSession="CancelCourseSessionAsync" />
 	}
 	
 	@if (IsSectionVisible("logs"))
@@ -171,6 +196,19 @@
 	private List<AuditLog> _auditLogs = new();
 	private CertificateComplianceSummary _certificateSummary = new(0, 0, 0, 0, 0);
 	private List<CertificateComplianceRow> _certificateRows = new();
+	private List<CourseCompletionReportRow> _pendingCompletionReports = new();
+	private List<MonthlySummaryReportRow> _summaryRows = new();
+	private List<CheatingIncidentReportRow> _pendingCheatingIncidents = new();
+	private EducationDirectorOrientationStatus _educationDirectorOrientation = new("Education Director", null, null, null, false);
+	private List<InstructorComplianceRow> _instructorCompliance = new();
+	private List<RetentionCategorySummary> _retentionSummary = new();
+	private List<PendingScheduleNotificationRow> _pendingScheduleNotifications = new();
+	private List<PendingScheduleChangeReportRow> _pendingScheduleChangeReports = new();
+	private List<ScheduledCourseSessionRow> _scheduledSessions = new();
+	private List<string> _scheduleWarnings = new();
+	private int? _lastReminderRunResult;
+	private int _summaryYear = DateTime.UtcNow.Year;
+	private int _summaryMonth = DateTime.UtcNow.Month;
 	private readonly Dictionary<Guid, string> _resetPasswords = new();
 	private AssessmentEditorModel? _assessmentEditor;
 	private Guid? _assessmentCourseId;
@@ -180,9 +218,6 @@
 	private Guid? _retakeLearnerId;
 	private int _retakeGrantAttempts = 1;
 	private bool _resetCooldownTimerOnRetakeGrant = true;
-	private int _proctoringValidForMinutes = 120;
-	private ExamProctoringSessionView? _activeProctoringSession;
-	private string _proctoringIncidentNotes = string.Empty;
 	private List<RetakeGrantView> _retakeGrants = new();
 	private readonly Dictionary<Guid, int> _retakeGrantDraftAttempts = new();
 	private string _auditFilterActor = string.Empty;
@@ -201,7 +236,7 @@
 	private Course _draft = new()
 	{
 		Level = "Beginner",
-		Jurisdiction = "General",
+		State = "General",
 		DurationHours = 0,
 		CreditHours = 0,
 		Price = 0m
@@ -226,6 +261,7 @@
 		await LoadAssessmentEditorAsync();
 		await RefreshAuditAsync();
 		await RefreshCertificatesAsync();
+		await RefreshComplianceReportsAsync();
 
 		if (_selectedLogsLearnerId is null)
 		{
@@ -259,6 +295,7 @@
 			"users" => "users",
 			"audit" => "audit",
 			"certificates" => "certificates",
+			"compliance" => "compliance",
 			"logs" => "logs",
 			_ => "dashboard"
 		};
@@ -273,6 +310,7 @@
 			"users" => "Users",
 			"audit" => "Audit",
 			"certificates" => "Certificates",
+			"compliance" => "Compliance Reports",
 			"logs" => "Learner Logs",
 			_ => "Dashboard"
 		};
@@ -304,7 +342,7 @@
 		_draft = new Course
 		{
 			Level = "Beginner",
-			Jurisdiction = "General",
+			State = "General",
 			DurationHours = 0,
 			CreditHours = 0,
 			Price = 0m
@@ -312,6 +350,17 @@
 
 		await RefreshCoursesAsync();
 		_courseMessage = "Course created.";
+	}
+
+	private async Task TogglePublishAsync(Course course)
+	{
+		_courseError = null;
+		_courseMessage = null;
+
+		course.IsPublished = !course.IsPublished;
+		await CourseService.UpdateAsync(course);
+		await RefreshCoursesAsync();
+		_courseMessage = course.IsPublished ? "Course published." : "Course unpublished.";
 	}
 
 	private async Task ToggleArchiveAsync(Course course)
@@ -429,7 +478,7 @@
 		}
 	}
 
-	private async Task OnAssessmentCourseChanged(ChangeEventArgs args)
+	private Task OnAssessmentCourseChanged(ChangeEventArgs args)
 	{
 		_assessmentCourseIdText = args.Value?.ToString() ?? string.Empty;
 		_assessmentCourseId = Guid.TryParse(_assessmentCourseIdText, out var parsed) ? parsed : null;
@@ -438,17 +487,7 @@
 		_assessmentMessage = null;
 		_retakeGrants.Clear();
 		_retakeGrantDraftAttempts.Clear();
-		await RefreshActiveProctoringSessionAsync();
-	}
-
-	private string? GetSelectedAssessmentCourseTitle()
-	{
-		if (!_assessmentCourseId.HasValue)
-		{
-			return null;
-		}
-
-		return _courses.FirstOrDefault(course => course.Id == _assessmentCourseId.Value)?.Title;
+		return Task.CompletedTask;
 	}
 
 	private async Task LoadAssessmentEditorAsync()
@@ -478,8 +517,6 @@
 		{
 			_retakeLearnerId ??= _users.FirstOrDefault(user => user.Role == "Learner")?.Id;
 		}
-
-		await RefreshActiveProctoringSessionAsync();
 	}
 
 	private void AddAssessmentQuestion()
@@ -543,10 +580,10 @@
 		}
 	}
 
-	private async Task OnRetakeLearnerChanged(ChangeEventArgs args)
+	private Task OnRetakeLearnerChanged(ChangeEventArgs args)
 	{
 		_retakeLearnerId = Guid.TryParse(args.Value?.ToString(), out var parsed) ? parsed : null;
-		await RefreshActiveProctoringSessionAsync();
+		return Task.CompletedTask;
 	}
 
 	private string GetRetakeLearnerIdText()
@@ -564,104 +601,6 @@
 	{
 		_resetCooldownTimerOnRetakeGrant = value;
 		return Task.CompletedTask;
-	}
-
-	private Task OnProctoringValidForMinutesChanged(int value)
-	{
-		_proctoringValidForMinutes = Math.Clamp(value, 5, 240);
-		return Task.CompletedTask;
-	}
-
-	private Task OnProctoringIncidentNotesChanged(string value)
-	{
-		_proctoringIncidentNotes = value;
-		return Task.CompletedTask;
-	}
-
-	private async Task RegisterProctoringSessionAsync()
-	{
-		_assessmentError = null;
-		_assessmentMessage = null;
-
-		if (!_assessmentCourseId.HasValue || !_retakeLearnerId.HasValue)
-		{
-			_assessmentError = "Select both course and learner before opening a proctored exam session.";
-			return;
-		}
-
-		if (!_actorUserId.HasValue)
-		{
-			_assessmentError = "Unable to identify the signed in admin account.";
-			return;
-		}
-
-		try
-		{
-			_activeProctoringSession = await AssessmentService.RegisterProctoringSessionAsync(
-				_assessmentCourseId.Value,
-				_retakeLearnerId.Value,
-				ProctoringDefaults.CompanyName,
-				null,
-				_proctoringValidForMinutes,
-				_actorUserId.Value,
-				_actorEmail);
-			_assessmentMessage = $"Proctored exam session opened with {ProctoringDefaults.CompanyName}.";
-			await RefreshAuditAsync();
-		}
-		catch (InvalidOperationException exception)
-		{
-			_assessmentError = exception.Message;
-		}
-	}
-
-	private async Task RefreshActiveProctoringSessionAsync()
-	{
-		_activeProctoringSession = _assessmentCourseId.HasValue && _retakeLearnerId.HasValue
-			? await AssessmentService.GetActiveProctoringSessionAsync(_assessmentCourseId.Value, _retakeLearnerId.Value)
-			: null;
-	}
-
-	private async Task ExpireProctoringSessionAsync()
-	{
-		if (_activeProctoringSession is null || !_actorUserId.HasValue)
-		{
-			_assessmentError = "No active proctoring session is available to expire.";
-			return;
-		}
-
-		try
-		{
-			await AssessmentService.ExpireProctoringSessionAsync(_activeProctoringSession.Id, _actorUserId.Value, _actorEmail);
-			_activeProctoringSession = null;
-			_assessmentMessage = "Proctored exam session expired.";
-			await RefreshAuditAsync();
-		}
-		catch (InvalidOperationException exception)
-		{
-			_assessmentError = exception.Message;
-		}
-	}
-
-	private async Task ReportProctoringIncidentAsync()
-	{
-		if (_activeProctoringSession is null || !_actorUserId.HasValue)
-		{
-			_assessmentError = "No active proctoring session is available for incident reporting.";
-			return;
-		}
-
-		try
-		{
-			await AssessmentService.ReportProctoringIncidentAsync(_activeProctoringSession.Id, _proctoringIncidentNotes, _actorUserId.Value, _actorEmail);
-			_activeProctoringSession = null;
-			_proctoringIncidentNotes = string.Empty;
-			_assessmentMessage = "Security incident recorded and the proctored exam session was closed.";
-			await RefreshAuditAsync();
-		}
-		catch (InvalidOperationException exception)
-		{
-			_assessmentError = exception.Message;
-		}
 	}
 
 	private async Task GrantRetakeAsync()
@@ -791,6 +730,27 @@
 		await RefreshAuditAsync();
 	}
 
+	private async Task SaveLicenseComplianceAsync(UserAccount user)
+	{
+		await UserAccountService.UpdateLicenseComplianceAsync(
+			user.Id,
+			user.LicenseStatus,
+			user.InitialLicensureDate,
+			user.PostlicensingCompletedAt,
+			user.BrokerageExperienceStartDate,
+			user.BicCourseCompletedAt,
+			user.BicEligibleAt,
+			user.BicDesignationAt,
+			user.ContinuingEducationDueDate,
+			user.LicenseRenewalDueDate,
+			user.BicUpdateCourseDueDate,
+			user.IsBicEligible,
+			_actorUserId,
+			_actorEmail);
+		await RefreshUsersAsync();
+		await RefreshAuditAsync();
+	}
+
 	private async Task ToggleUserAsync(Guid userId)
 	{
 		await UserAccountService.ToggleActiveAsync(userId, _actorUserId, _actorEmail);
@@ -862,6 +822,160 @@
 	private static string BuildVerifyLink(string certificateNumber, string verificationCode)
 	{
 		return $"/verify-certificate?certificateNumber={Uri.EscapeDataString(certificateNumber)}&verificationCode={Uri.EscapeDataString(verificationCode)}";
+	}
+
+	private async Task RefreshComplianceReportsAsync()
+	{
+		_pendingCompletionReports = await ComplianceReportingService.GetPendingCourseCompletionReportsAsync();
+		_summaryRows = await ComplianceReportingService.GetMonthlySummaryReportAsync(_summaryYear, _summaryMonth);
+		_pendingCheatingIncidents = await ComplianceReportingService.GetPendingCheatingIncidentReportsAsync();
+		_educationDirectorOrientation = await ComplianceReportingService.GetEducationDirectorOrientationStatusAsync();
+		_instructorCompliance = await ComplianceReportingService.GetInstructorComplianceStatusAsync();
+		_retentionSummary = await ComplianceReportingService.GetRecordRetentionSummaryAsync();
+		_pendingScheduleNotifications = await ComplianceReportingService.GetPendingScheduleNotificationsAsync();
+		_pendingScheduleChangeReports = await ComplianceReportingService.GetPendingScheduleChangeReportsAsync();
+		_scheduledSessions = await ComplianceReportingService.GetScheduledCourseSessionsAsync();
+	}
+
+	private async Task ScheduleCourseSessionAsync(AdminCompliancePanel.CourseScheduleDraft draft)
+	{
+		_scheduleWarnings = new();
+
+		if (!_actorUserId.HasValue || !Guid.TryParse(draft.CourseId, out var courseId))
+		{
+			return;
+		}
+
+		var result = await ComplianceReportingService.ScheduleCourseSessionAsync(courseId, draft.StartLocal.ToUniversalTime(), draft.EndLocal.ToUniversalTime(), _actorUserId.Value, _actorEmail);
+		_scheduleWarnings = result.Warnings;
+		await RefreshComplianceReportsAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task MarkScheduleNotificationSentAsync(Guid sessionId)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await ComplianceReportingService.MarkScheduleNotificationSentAsync(sessionId, _actorUserId.Value, _actorEmail);
+		await RefreshComplianceReportsAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task RescheduleCourseSessionAsync((Guid SessionId, DateTime NewStartUtc, DateTime NewEndUtc) request)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await ComplianceReportingService.RescheduleCourseSessionAsync(request.SessionId, request.NewStartUtc, request.NewEndUtc, _actorUserId.Value, _actorEmail);
+		await RefreshComplianceReportsAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task CancelCourseSessionAsync(Guid sessionId)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await ComplianceReportingService.CancelCourseSessionAsync(sessionId, _actorUserId.Value, _actorEmail);
+		await RefreshComplianceReportsAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task MarkScheduleChangeReportedAsync(Guid sessionId)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await ComplianceReportingService.MarkScheduleChangeReportedAsync(sessionId, _actorUserId.Value, _actorEmail);
+		await RefreshComplianceReportsAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task ProcessComplianceRemindersAsync()
+	{
+		var result = await ComplianceReportingService.ProcessComplianceRemindersAsync();
+		_lastReminderRunResult = result.NotificationsSent;
+	}
+
+	private async Task MarkCompletionReportSubmittedAsync(Guid enrollmentId)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await ComplianceReportingService.MarkCourseCompletionReportSubmittedAsync(enrollmentId, _actorUserId.Value, _actorEmail);
+		await RefreshComplianceReportsAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task OnSummaryYearChangedAsync(int year)
+	{
+		_summaryYear = year;
+		_summaryRows = await ComplianceReportingService.GetMonthlySummaryReportAsync(_summaryYear, _summaryMonth);
+	}
+
+	private async Task OnSummaryMonthChangedAsync(int month)
+	{
+		_summaryMonth = month;
+		_summaryRows = await ComplianceReportingService.GetMonthlySummaryReportAsync(_summaryYear, _summaryMonth);
+	}
+
+	private async Task MarkCheatingIncidentReportedAsync(Guid proctoringSessionId)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await ComplianceReportingService.MarkCheatingIncidentReportedAsync(proctoringSessionId, _actorUserId.Value, _actorEmail);
+		await RefreshComplianceReportsAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task MarkEducationDirectorOrientationViewedAsync()
+	{
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await ComplianceReportingService.MarkEducationDirectorOrientationViewedAsync(_actorUserId.Value, _actorEmail);
+		await RefreshComplianceReportsAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task MarkInstructorHireReportedAsync(Guid staffMemberId)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await ComplianceReportingService.MarkInstructorHireReportedAsync(staffMemberId, _actorUserId.Value, _actorEmail);
+		await RefreshComplianceReportsAsync();
+		await RefreshAuditAsync();
+	}
+
+	private async Task RecordInstructorObservationAsync(Guid staffMemberId)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			return;
+		}
+
+		await ComplianceReportingService.RecordInstructorObservationAsync(staffMemberId, _actorUserId.Value, _actorEmail);
+		await RefreshComplianceReportsAsync();
+		await RefreshAuditAsync();
 	}
 
 	private async Task ApplyAuditFilterAsync()
