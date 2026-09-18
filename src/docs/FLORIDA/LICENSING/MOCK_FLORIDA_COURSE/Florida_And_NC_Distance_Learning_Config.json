@@ -1,0 +1,193 @@
+{
+  "courseTemplate": {
+    "courseId": "fl-distance-learning-fundamentals",
+    "title": "Florida Real Estate Distance Learning Fundamentals",
+    "deliveryMode": "distance_learning_only",
+    "stateCode": "FL",
+    "isMock": true,
+    "version": "1.0",
+    "audience": [
+      "prospective_sales_associate",
+      "new_broker",
+      "active_licensure_renewal",
+      "education_provider_model"
+    ],
+    "estimatedHours": 7,
+    "requiredCompletionRate": 100,
+    "assessments": [
+      {
+        "type": "final_exam",
+        "required": true,
+        "passingScore": 75,
+        "verificationRequired": true
+      }
+    ],
+    "modules": [
+      {
+        "moduleId": "module-01",
+        "title": "Licensing Foundations",
+        "order": 1,
+        "lessons": [
+          {
+            "lessonId": "lesson-01",
+            "title": "Florida Licensing Foundations",
+            "order": 1,
+            "durationMinutes": 45,
+            "type": "instructional",
+            "required": true,
+            "summary": "Introduces Florida real estate regulation, licensing categories, and the role of the Florida Real Estate Commission."
+          },
+          {
+            "lessonId": "lesson-02",
+            "title": "Distance Learning, Provider Rules, and Compliance",
+            "order": 2,
+            "durationMinutes": 45,
+            "type": "instructional",
+            "required": true,
+            "summary": "Explains online delivery compliance, provider qualifications, recordkeeping, and student verification."
+          },
+          {
+            "lessonId": "lesson-03",
+            "title": "Postlicensure Education, Continuing Education, and Renewal",
+            "order": 3,
+            "durationMinutes": 45,
+            "type": "instructional",
+            "required": true,
+            "summary": "Explains renewal-linked education requirements and why compliance deadlines matter to active licensure."
+          }
+        ]
+      },
+      {
+        "moduleId": "module-02",
+        "title": "Professional Practice and Compliance",
+        "order": 2,
+        "lessons": [
+          {
+            "lessonId": "lesson-04",
+            "title": "Brokerage Relationships and Disclosure",
+            "order": 4,
+            "durationMinutes": 50,
+            "type": "instructional",
+            "required": true,
+            "summary": "Reviews brokerage relationship types, legal duties, and required disclosures."
+          },
+          {
+            "lessonId": "lesson-05",
+            "title": "Contracts, Trust Funds, and Transaction Compliance",
+            "order": 5,
+            "durationMinutes": 50,
+            "type": "instructional",
+            "required": true,
+            "summary": "Covers transaction handling, contract basics, trust-account obligations, and recordkeeping."
+          },
+          {
+            "lessonId": "lesson-06",
+            "title": "Final Assessment and Renewal Readiness",
+            "order": 6,
+            "durationMinutes": 35,
+            "type": "assessment",
+            "required": true,
+            "summary": "Final review of Florida compliance, renewal readiness, and LMS-based accountability."
+          }
+        ]
+      }
+    ]
+  },
+  "stateProfiles": {
+    "FL": {
+      "stateCode": "FL",
+      "agency": "Florida Real Estate Commission",
+      "regulatoryBody": "Division of Real Estate",
+      "deliveryMode": "distance_learning_only",
+      "courseCategories": [
+        "prelicense",
+        "postlicensure",
+        "continuing_education"
+      ],
+      "licenseTypes": [
+        "sales_associate",
+        "broker",
+        "broker_associate"
+      ],
+      "crossStateLicenseMappings": {
+        "NC.provisional_broker": "FL.sales_associate",
+        "NC.broker": "FL.broker"
+      },
+      "providerRequirements": {
+        "permitRequired": true,
+        "providerType": "registered_school_or_approved_provider",
+        "instructorPermitRequired": true,
+        "advertisingTruthRequired": true,
+        "recordRetentionRequired": true,
+        "identityVerificationRequired": true
+      },
+      "courseRules": {
+        "finalExamRequired": true,
+        "passingScore": 75,
+        "completionDeadlineRequired": true,
+        "renewalComplianceTrackingRequired": true,
+        "personallyCompletedWorkRequired": true,
+        "distanceLearningSupported": true
+      },
+      "schedulingRules": {
+        "supportsOnlineOnly": true,
+        "proctoringRequired": true,
+        "completionTrackingRequired": true,
+        "progressVerificationRequired": true,
+        "providerAssignmentRequired": true
+      }
+    },
+    "NC": {
+      "stateCode": "NC",
+      "agency": "North Carolina Real Estate Commission",
+      "regulatoryBody": "North Carolina Real Estate Commission",
+      "deliveryMode": "distance_learning_only",
+      "courseCategories": [
+        "prelicensing",
+        "continuing_education",
+        "postlicensing"
+      ],
+      "licenseTypes": [
+        "provisional_broker",
+        "broker",
+        "broker_in_charge"
+      ],
+      "providerRequirements": {
+        "permitRequired": true,
+        "providerType": "certified_education_provider",
+        "instructorPermitRequired": true,
+        "advertisingTruthRequired": true,
+        "recordRetentionRequired": true,
+        "identityVerificationRequired": true
+      },
+      "courseRules": {
+        "finalExamRequired": true,
+        "passingScore": 75,
+        "completionDeadlineRequired": true,
+        "renewalComplianceTrackingRequired": true,
+        "personallyCompletedWorkRequired": true,
+        "distanceLearningSupported": true
+      },
+      "schedulingRules": {
+        "supportsOnlineOnly": true,
+        "proctoringRequired": true,
+        "completionTrackingRequired": true,
+        "progressVerificationRequired": true,
+        "providerAssignmentRequired": true
+      }
+    }
+  },
+  "sharedRules": {
+    "allStates": {
+      "deliveryMode": "distance_learning_only",
+      "studentMustCompleteRequiredWorkPersonally": true,
+      "identityVerificationRequired": true,
+      "progressTrackingRequired": true,
+      "recordsRetentionRequired": true,
+      "providerQualificationRequired": true,
+      "instructorQualificationRequired": true,
+      "assessmentVerificationRequired": true,
+      "renewalComplianceTrackingRequired": true
+    }
+  }
+}

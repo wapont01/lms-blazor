@@ -12,7 +12,7 @@ Website: https://www.WilliamsLandRealty.com
 **Legal name of Education Provider:** WILLIAMS LAND REALTY LLC
 **Education Provider number:** [REQUIRED BEFORE PUBLICATION]
 **Education Director:** William Aponte
-**Faculty and full-time officials:** William Aponte, Instructor and Corporate Officer
+**Faculty and full-time officials:** William Aponte, Instructor and Corporate Official
 **Instructor license number:** [REQUIRED BEFORE PUBLICATION]
 
 > This document follows the North Carolina Real Estate Commission Policies & Procedures Disclosure Template revised July 2025. Bracketed items must be completed and this notice removed before submission or student distribution.
