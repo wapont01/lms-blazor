@@ -163,7 +163,7 @@ else
                 @if (firstLesson is not null)
                 {
                     <div class="course-start-row">
-                        <button type="button" class="pager-arrow" aria-label="Start Course" disabled="@IsAssessmentOverviewStartDisabled" @onclick='@(() => NavigationManager.NavigateTo(BuildLessonUri(firstLesson.Id)))'>→</button>
+                        <button type="button" class="pager-arrow" aria-label="Start Course" disabled="@IsAssessmentOverviewStartDisabled" @onclick='@(() => StartCourse(firstLesson.Id))'>→</button>
                     </div>
                 }
             </section>
@@ -361,6 +361,18 @@ else
         _isEnrolled = true;
         _message = "Enrollment completed. You can now track lesson completion.";
         await RefreshEnrollmentExperienceAsync();
+    }
+
+    // anonymous visitors go to sign-in/sign-up with this course preserved as the return destination
+    private void StartCourse(Guid lessonId)
+    {
+        if (!_isAuthenticated)
+        {
+            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString($"/courses/{Id}")}");
+            return;
+        }
+
+        NavigationManager.NavigateTo(BuildLessonUri(lessonId));
     }
 
     private bool IsLessonCompleted(Guid lessonId)

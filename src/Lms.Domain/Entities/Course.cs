@@ -279,6 +279,9 @@ public class UserAccount
     public int FailedLoginCount { get; set; }
     public DateTime? LockoutEndUtc { get; set; }
 
+    // null = marketing email allowed; a timestamp records when the user opted out (CAN-SPAM suppression)
+    public DateTime? MarketingEmailOptOutAtUtc { get; set; }
+
     public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     public ICollection<LessonProgress> LessonProgresses { get; set; } = new List<LessonProgress>();
     public ICollection<CompletionCertificate> CompletionCertificates { get; set; } = new List<CompletionCertificate>();

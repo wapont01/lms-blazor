@@ -11,6 +11,8 @@ public interface IUserAccountService
     Task<List<UserAccount>> GetAllAsync();
     Task<UserAccount?> GetByIdAsync(Guid id);
     Task<UserAccount> CreateAsync(string email, string displayName, string password, string role, Guid? actorUserId = null, string? actorEmail = null);
+    Task<UserAccount> RegisterLearnerAsync(string email, string displayName, string password, string? state = null, string? licenseNumber = null, bool marketingOptIn = true);
+    Task SetMarketingEmailPreferenceAsync(Guid userId, bool optIn);
     Task UpdateRoleAsync(Guid userId, string role, Guid? actorUserId = null, string? actorEmail = null);
     Task UpdateLicenseComplianceAsync(Guid userId, string? licenseStatus, DateTime? initialLicensureDate, DateTime? postlicensingCompletedAt, DateTime? brokerageExperienceStartDate, DateTime? bicCourseCompletedAt, DateTime? bicEligibleAt, DateTime? bicDesignationAt, DateTime? continuingEducationDueDate, DateTime? licenseRenewalDueDate, DateTime? bicUpdateCourseDueDate, bool isBicEligible, Guid? actorUserId = null, string? actorEmail = null);
     Task ToggleActiveAsync(Guid userId, Guid? actorUserId = null, string? actorEmail = null);
@@ -236,6 +238,50 @@ public class UserAccountService : IUserAccountService
         await _auditLogService.WriteAsync(actorUserId, actorEmail, "user.created", "UserAccount", user.Id, $"Role={user.Role}");
 
         return user;
+    }
+
+    public async Task<UserAccount> RegisterLearnerAsync(string email, string displayName, string password, string? state = null, string? licenseNumber = null, bool marketingOptIn = true)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+
+        if (await _dbContext.UserAccounts.AnyAsync(existing => existing.Email == normalizedEmail))
+        {
+            throw new InvalidOperationException("A user with this email already exists.");
+        }
+
+        EnsurePasswordComplexity(password);
+
+        var now = DateTime.UtcNow;
+        var user = new UserAccount
+        {
+            Email = normalizedEmail,
+            DisplayName = displayName.Trim(),
+            State = NormalizeOptional(state),
+            LicenseNumber = NormalizeOptional(licenseNumber),
+            MarketingEmailOptOutAtUtc = marketingOptIn ? null : now,
+            PasswordHash = HashPassword(password),
+            Role = "Learner",
+            IsActive = true,
+            CreatedAt = now,
+            PasswordUpdatedAt = now,
+            PasswordExpiresAt = now.AddDays(PasswordExpiryDays)
+        };
+
+        _dbContext.UserAccounts.Add(user);
+        await _dbContext.SaveChangesAsync();
+        await _auditLogService.WriteAsync(user.Id, user.Email, "user.self-registered", "UserAccount", user.Id, $"State={user.State ?? ""};License={user.LicenseNumber ?? ""};Marketing={(marketingOptIn ? "opt-in" : "opt-out")}");
+
+        return user;
+    }
+
+    public async Task SetMarketingEmailPreferenceAsync(Guid userId, bool optIn)
+    {
+        var user = await _dbContext.UserAccounts.FirstOrDefaultAsync(existing => existing.Id == userId)
+            ?? throw new InvalidOperationException("User account was not found.");
+
+        user.MarketingEmailOptOutAtUtc = optIn ? null : DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync();
+        await _auditLogService.WriteAsync(user.Id, user.Email, "user.marketing-preference.updated", "UserAccount", user.Id, optIn ? "opt-in" : "opt-out");
     }
 
     public async Task UpdateRoleAsync(Guid userId, string role, Guid? actorUserId = null, string? actorEmail = null)

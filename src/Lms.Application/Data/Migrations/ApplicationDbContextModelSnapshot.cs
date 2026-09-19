@@ -1503,6 +1503,8 @@ namespace Lms.Application.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("State", "LicenseNumber");
+
                     b.HasIndex("SnapshotId", "State", "LicenseNumber")
                         .IsUnique();
 
@@ -1932,6 +1934,9 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LockoutEndUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("MarketingEmailOptOutAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("PasswordExpiresAt")

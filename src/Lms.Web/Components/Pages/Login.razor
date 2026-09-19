@@ -29,6 +29,8 @@
         <button type="submit">Sign in</button>
     </form>
 
+    <p class="auth-help">New here? <a href="/register?returnUrl=@Uri.EscapeDataString(GetReturnUrl())">Create an account</a> and start purchasing courses right away.</p>
+
     @if (IsSsoEnabled())
     {
         <form method="get" action="/auth/sso/login" class="auth-form auth-sso-form">

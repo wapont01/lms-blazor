@@ -1,0 +1,91 @@
+@page "/register"
+@attribute [AllowAnonymous]
+@using Microsoft.AspNetCore.Authorization
+
+<PageTitle>Create account</PageTitle>
+
+<div class="card auth-card">
+    <h1>Create your account</h1>
+    <p class="auth-help">Sign up and start purchasing courses immediately — no approval needed.</p>
+
+    @if (_hasError)
+    {
+        <p class="auth-error">@GetErrorMessage()</p>
+    }
+
+    <form method="post" action="/auth/register" class="auth-form">
+        <input type="hidden" name="returnUrl" value="@GetReturnUrl()" />
+
+        <div class="form-field">
+            <label>Full name</label>
+            <input type="text" name="displayName" autocomplete="name" required />
+        </div>
+
+        <div class="form-field">
+            <label>Email</label>
+            <input type="email" name="email" autocomplete="username" required />
+        </div>
+
+        <div class="form-field">
+            <label>Password</label>
+            <input type="password" name="password" autocomplete="new-password" required minlength="10" />
+            <small>At least 10 characters with uppercase, lowercase, number, and special character.</small>
+        </div>
+
+        <div class="form-field">
+            <label>Confirm password</label>
+            <input type="password" name="confirmPassword" autocomplete="new-password" required />
+        </div>
+
+        <div class="form-field">
+            <label>License state (optional)</label>
+            <select name="state">
+                <option value="">— No license yet —</option>
+                <option value="North Carolina">North Carolina</option>
+                <option value="Florida">Florida</option>
+            </select>
+        </div>
+
+        <div class="form-field">
+            <label>License number (optional)</label>
+            <input type="text" name="licenseNumber" />
+            <small>If you already hold a license, we use it to personalize deadlines and course recommendations. You can add it later.</small>
+        </div>
+
+        <div class="form-field">
+            <label style="display:flex;align-items:center;gap:0.5rem;font-weight:normal;">
+                <input type="checkbox" name="marketingEmails" value="true" checked style="width:auto;" />
+                Send me course recommendations and license-deadline alerts by email
+            </label>
+            <small>You can change this anytime from your account page.</small>
+        </div>
+
+        <button type="submit">Create account</button>
+    </form>
+
+    <p class="auth-help">Already have an account? <a href="/login?returnUrl=@Uri.EscapeDataString(GetReturnUrl())">Sign in</a>.</p>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? Error { get; set; }
+
+    private bool _hasError => !string.IsNullOrWhiteSpace(Error);
+
+    private string GetReturnUrl() => string.IsNullOrWhiteSpace(ReturnUrl) ? "/courses" : ReturnUrl!;
+
+    private string GetErrorMessage()
+    {
+        return Error?.ToLowerInvariant() switch
+        {
+            "exists" => "An account with this email already exists. Try signing in instead.",
+            "mismatch" => "Password and confirmation do not match.",
+            "password" => "Password must be at least 10 characters and include uppercase, lowercase, number, and special character.",
+            "missing" => "Name, email, and password are required.",
+            _ => "Unable to create the account. Please review your details and try again."
+        };
+    }
+}

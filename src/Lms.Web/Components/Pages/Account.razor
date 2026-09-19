@@ -91,6 +91,27 @@
             <button type="submit">Update Password</button>
         </EditForm>
     </section>
+
+    <section class="card auth-card">
+        <h2>Email Preferences</h2>
+
+        @if (!string.IsNullOrWhiteSpace(_marketingMessage))
+        {
+            <p class="auth-help">@_marketingMessage</p>
+        }
+
+        <EditForm Model="_marketingModel" OnValidSubmit="UpdateMarketingPreferenceAsync" FormName="marketing-pref-form">
+            <AntiforgeryToken />
+            <div class="form-field">
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:normal;">
+                    <InputCheckbox @bind-Value="_marketingModel.OptIn" style="width:auto;" />
+                    Send me course recommendations and license-deadline alerts by email
+                </label>
+                <small>Transactional messages about your purchases and account are always sent.</small>
+            </div>
+            <button type="submit">Save Preference</button>
+        </EditForm>
+    </section>
 </div>
 
 @code {
@@ -99,11 +120,16 @@
     private string? _error;
     private string? _profileMessage;
     private string? _profileError;
+    private string? _marketingMessage;
     private bool _isInstructor;
     private bool _forceChangeRequired;
     private InstructorProfileModel _profileModel { get; set; } = new();
+    private MarketingPreferenceModel _marketingModel = new();
     [SupplyParameterFromForm(FormName = "change-password-form")]
     private ChangePasswordModel _model { get; set; } = new();
+
+    [SupplyParameterFromForm(FormName = "marketing-pref-form")]
+    private MarketingPreferenceModel? MarketingForm { get; set; }
 
     [SupplyParameterFromQuery]
     public string? ForceChange { get; set; }
@@ -117,6 +143,16 @@
         {
             _userId = parsedUserId;
             _isInstructor = authState.User.IsInRole("Instructor");
+            if (MarketingForm is not null)
+            {
+                _marketingModel = MarketingForm;
+            }
+            else
+            {
+                var account = await UserAccountService.GetByIdAsync(parsedUserId);
+                _marketingModel.OptIn = account?.MarketingEmailOptOutAtUtc is null;
+            }
+
             if (_isInstructor)
             {
                 var user = await UserAccountService.GetByIdAsync(parsedUserId);
@@ -134,6 +170,20 @@
         }
 
         _forceChangeRequired = string.Equals(ForceChange, "1", StringComparison.Ordinal);
+    }
+
+    private async Task UpdateMarketingPreferenceAsync()
+    {
+        _marketingMessage = null;
+        if (!_userId.HasValue)
+        {
+            return;
+        }
+
+        await UserAccountService.SetMarketingEmailPreferenceAsync(_userId.Value, _marketingModel.OptIn);
+        _marketingMessage = _marketingModel.OptIn
+            ? "You will receive course recommendations and deadline alerts."
+            : "You are opted out of marketing email.";
     }
 
     private async Task SaveInstructorProfileAsync()
@@ -206,6 +256,11 @@
 
         [System.ComponentModel.DataAnnotations.Required]
         public string ConfirmNewPassword { get; set; } = string.Empty;
+    }
+
+    private sealed class MarketingPreferenceModel
+    {
+        public bool OptIn { get; set; } = true;
     }
 
     private sealed class InstructorProfileModel

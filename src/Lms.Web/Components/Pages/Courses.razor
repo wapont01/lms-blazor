@@ -108,7 +108,7 @@
                             }
                             else
                             {
-                                <a href="/login?returnUrl=@Uri.EscapeDataString($"/courses")" class="btn-primary">Sign In to Enroll</a>
+                                <a href="/login?returnUrl=@Uri.EscapeDataString($"/courses?addToCart={course.Id}")" class="btn-primary">Sign In to Enroll</a>
                                 <a href="/courses/@course.Id" class="btn-secondary">Preview</a>
                             }
                         </div>
@@ -140,6 +140,9 @@
     private string _stateFilter = "All";
     private string _categoryFilter = "All";
 
+    [SupplyParameterFromQuery(Name = "addToCart")]
+    public Guid? AddToCartCourseId { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         _courses = await CourseService.GetPublishedCoursesAsync();
@@ -170,6 +173,47 @@
 
             var cart = await ShoppingCartService.GetCartWithCoursesAsync(userId);
             _cartItemCount = cart.Items.Sum(item => item.Quantity);
+
+            if (AddToCartCourseId.HasValue)
+            {
+                await HonorPurchaseIntentAsync(AddToCartCourseId.Value);
+            }
+        }
+    }
+
+    // resumes the course the visitor tried to buy before the sign-in/sign-up detour; idempotent across prerender+interactive passes
+    private async Task HonorPurchaseIntentAsync(Guid courseId)
+    {
+        var course = _courses.FirstOrDefault(candidate => candidate.Id == courseId);
+        if (course is null || !_userId.HasValue || _enrolledCourseIds.Contains(courseId))
+        {
+            return;
+        }
+
+        if (course.Price > 0 && _canPurchase)
+        {
+            var cart = await ShoppingCartService.GetCartWithCoursesAsync(_userId.Value);
+            if (!cart.Items.Any(item => item.CourseId == courseId))
+            {
+                await ShoppingCartService.AddToCartAsync(_userId.Value, course.Id, course.Title, course.Price);
+                cart = await ShoppingCartService.GetCartWithCoursesAsync(_userId.Value);
+            }
+
+            _cartItemCount = cart.Items.Sum(item => item.Quantity);
+            _message = $"'{course.Title}' is in your cart — continue to checkout when ready.";
+        }
+        else if (course.Price == 0 && _canEnroll)
+        {
+            try
+            {
+                await EnrollmentService.EnrollAsync(_userId.Value, course.Id);
+                _enrolledCourseIds.Add(course.Id);
+                _message = "Enrollment completed.";
+            }
+            catch (InvalidOperationException exception)
+            {
+                _message = exception.Message;
+            }
         }
     }
 
@@ -238,7 +282,7 @@
     {
         if (!_userId.HasValue)
         {
-            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/courses")}");
+            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString($"/courses?addToCart={course.Id}")}");
             return;
         }
 
@@ -257,7 +301,7 @@
     {
         if (!_userId.HasValue)
         {
-            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/courses")}");
+            NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString($"/courses?addToCart={courseId}")}");
             return;
         }
 

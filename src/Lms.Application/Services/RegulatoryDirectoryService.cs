@@ -12,6 +12,7 @@ public interface IRegulatoryDirectoryService
     Task<List<RegulatorySnapshotSummary>> GetRecentSnapshotsAsync(int take = 25);
     Task<List<RegulatoryLicenseeSummary>> GetApprovedLicenseesAsync(string? state = null, int take = 250);
     Task<bool> LinkLicenseeToUserAsync(Guid userId, Guid licenseeId, Guid actorUserId, string actorEmail);
+    Task<bool> TryAutoLinkLicenseAsync(Guid userId, string? state, string? licenseNumber);
 }
 
 public sealed record RegulatorySnapshotImport(
@@ -290,13 +291,52 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             return false;
         }
 
+        await ApplyLinkAsync(user, licensee, actorUserId, actorEmail, "regulatory-license.linked");
+        return true;
+    }
+
+    public async Task<bool> TryAutoLinkLicenseAsync(Guid userId, string? state, string? licenseNumber)
+    {
+        var normalizedState = Normalize(state);
+        var normalizedLicense = Normalize(licenseNumber)?.ToUpperInvariant();
+        if (normalizedState is null || normalizedLicense is null)
+        {
+            return false;
+        }
+
+        var user = await _dbContext.UserAccounts.FirstOrDefaultAsync(candidate => candidate.Id == userId);
+        if (user is null)
+        {
+            return false;
+        }
+
+        // license numbers are unique per state; prefer the most recently retrieved approved record.
+        // imported license numbers are stored uppercase, so an exact match keeps the (State, LicenseNumber) index usable
+        var licensee = await _dbContext.RegulatoryLicensees
+            .Include(candidate => candidate.Snapshot)
+            .Where(candidate => candidate.Snapshot!.Status == RegulatorySnapshotStatuses.Approved
+                && candidate.State == normalizedState
+                && candidate.LicenseNumber == normalizedLicense)
+            .OrderByDescending(candidate => candidate.Snapshot!.RetrievedAtUtc)
+            .FirstOrDefaultAsync();
+        if (licensee is null)
+        {
+            return false;
+        }
+
+        await ApplyLinkAsync(user, licensee, null, user.Email, "regulatory-license.auto-linked");
+        return true;
+    }
+
+    private async Task ApplyLinkAsync(UserAccount user, RegulatoryLicensee licensee, Guid? actorUserId, string actorEmail, string auditAction)
+    {
         var link = await _dbContext.UserRegulatoryLicenseLinks
-            .SingleOrDefaultAsync(candidate => candidate.UserAccountId == userId);
+            .SingleOrDefaultAsync(candidate => candidate.UserAccountId == user.Id);
         if (link is null)
         {
             _dbContext.UserRegulatoryLicenseLinks.Add(new UserRegulatoryLicenseLink
             {
-                UserAccountId = userId,
+                UserAccountId = user.Id,
                 RegulatorySnapshotId = licensee.SnapshotId,
                 RegulatoryLicenseeId = licensee.Id,
                 VerifiedAtUtc = DateTime.UtcNow,
@@ -318,8 +358,7 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
         user.InitialLicensureDate = licensee.LicenseIssuedDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         user.LicenseRenewalDueDate = licensee.LicenseRenewalDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         await _dbContext.SaveChangesAsync();
-        await _auditLogService.WriteAsync(actorUserId, actorEmail, "regulatory-license.linked", "UserAccount", user.Id, $"State={licensee.State};License={licensee.LicenseNumber};Licensee={licensee.Name}");
-        return true;
+        await _auditLogService.WriteAsync(actorUserId ?? user.Id, actorEmail, auditAction, "UserAccount", user.Id, $"State={licensee.State};License={licensee.LicenseNumber};Licensee={licensee.Name}");
     }
 
     private static string? Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

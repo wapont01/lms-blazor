@@ -1,5 +1,6 @@
 using Lms.Application.Services;
 using Lms.Application.Data;
+using Lms.Domain.Entities;
 using Lms.Web.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
@@ -273,6 +274,59 @@ app.MapPost("/auth/login", async (HttpContext httpContext, [FromForm] LoginForm 
     return Results.LocalRedirect(returnUrl);
 }).DisableAntiforgery().RequireRateLimiting("login");
 
+app.MapPost("/auth/register", async (HttpContext httpContext, [FromForm] RegisterForm form, IUserAccountService userAccountService, IRegulatoryDirectoryService regulatoryDirectoryService, IAuditLogService auditLogService) =>
+{
+    string Fail(string code) => $"/register?error={Uri.EscapeDataString(code)}";
+
+    if (string.IsNullOrWhiteSpace(form.Email) || string.IsNullOrWhiteSpace(form.DisplayName) || string.IsNullOrWhiteSpace(form.Password))
+    {
+        return Results.LocalRedirect(Fail("missing"));
+    }
+
+    if (!string.Equals(form.Password, form.ConfirmPassword, StringComparison.Ordinal))
+    {
+        return Results.LocalRedirect(Fail("mismatch"));
+    }
+
+    UserAccount newUser;
+    try
+    {
+        // unchecked checkboxes are absent from the form, which breaks record binding; read directly
+        var marketingOptIn = !string.IsNullOrEmpty(httpContext.Request.Form["marketingEmails"]);
+        newUser = await userAccountService.RegisterLearnerAsync(form.Email, form.DisplayName, form.Password, form.State, form.LicenseNumber, marketingOptIn);
+    }
+    catch (InvalidOperationException exception)
+    {
+        await auditLogService.WriteAsync(null, form.Email, "auth.register.failed", "UserAccount", null, exception.Message);
+        var code = exception.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase) ? "exists" : "password";
+        return Results.LocalRedirect(Fail(code));
+    }
+
+    // best-effort verified-license match; a failure here must never delay or break the purchase path
+    try
+    {
+        await regulatoryDirectoryService.TryAutoLinkLicenseAsync(newUser.Id, form.State, form.LicenseNumber);
+    }
+    catch (Exception exception)
+    {
+        await auditLogService.WriteAsync(newUser.Id, newUser.Email, "regulatory-license.auto-link.failed", "UserAccount", newUser.Id, exception.Message);
+    }
+
+    var claims = new List<Claim>
+    {
+        new(ClaimTypes.NameIdentifier, newUser.Id.ToString()),
+        new(ClaimTypes.Name, newUser.DisplayName),
+        new(ClaimTypes.Email, newUser.Email),
+        new(ClaimTypes.Role, newUser.Role)
+    };
+    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme, ClaimTypes.Name, ClaimTypes.Role);
+    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+    await auditLogService.WriteAsync(newUser.Id, newUser.Email, "auth.login.succeeded", "UserAccount", newUser.Id, "Post-registration sign-in");
+
+    var registerReturnUrl = string.IsNullOrWhiteSpace(form.ReturnUrl) ? "/courses" : form.ReturnUrl;
+    return Results.LocalRedirect(registerReturnUrl);
+}).DisableAntiforgery().RequireRateLimiting("login");
+
 app.MapPost("/auth/logout", async (HttpContext httpContext, IAuditLogService auditLogService) =>
 {
     var userIdClaim = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -529,3 +583,4 @@ static async Task<bool> SqliteColumnExistsAsync(ApplicationDbContext dbContext, 
 }
 
 record LoginForm(string Email, string Password, string? ReturnUrl);
+record RegisterForm(string Email, string DisplayName, string Password, string ConfirmPassword, string? State = null, string? LicenseNumber = null, string? ReturnUrl = null);

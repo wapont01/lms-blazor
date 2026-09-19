@@ -154,6 +154,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(licensee => licensee.LicenseLevel).HasMaxLength(20);
             entity.Property(licensee => licensee.LicenseStatus).HasMaxLength(40);
             entity.HasIndex(licensee => new { licensee.SnapshotId, licensee.State, licensee.LicenseNumber }).IsUnique();
+            entity.HasIndex(licensee => new { licensee.State, licensee.LicenseNumber });
             entity.HasOne(licensee => licensee.Snapshot)
                 .WithMany(snapshot => snapshot.Licensees)
                 .HasForeignKey(licensee => licensee.SnapshotId)
