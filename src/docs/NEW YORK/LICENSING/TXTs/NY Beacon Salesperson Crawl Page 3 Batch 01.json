@@ -1,0 +1,15 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Salesperson","rowsPerPage":30},"page":3,
+  "records":[
+    {"licensee":"Yradia Yraiza Moronta","licenseNumber":"10401330833","status":"Current","licenseExpiry":"06/02/2027","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"},
+    {"licensee":"Vimbanai Muringi","licenseNumber":"10401396305","status":"Current","licenseExpiry":"06/16/2027","firm":null},
+    {"licensee":"Brian Murphy","licenseNumber":"10401359317","status":"Current","licenseExpiry":"11/29/2027","firm":"JONCAR REALTY INC","firmType":"Principal Office:Princ Off","firmAddress":"451 MAIN ST, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"DAVID S NEIMAN","licenseNumber":"10401382853","status":"Current","licenseExpiry":"01/04/2028","firm":"COMPASS GREATER NY LLC","firmType":"Branch Office:Branch Office","firmAddress":"490 MAIN STREET, BEACON, NY DUTCHESS 12508 US","firmExpiry":"03/24/2028"},
+    {"licensee":"ANESHA T NESBITT","licenseNumber":"10401285703","status":"Current","licenseExpiry":"02/23/2028","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"},
+    {"licensee":"Monique Fallon Gabrielle Noel-Gunter","licenseNumber":"10401353413","status":"Current","licenseExpiry":"06/09/2027","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"},
+    {"licensee":"Kevin Oconnor","licenseNumber":"10401402367","status":"Current","licenseExpiry":"03/23/2028","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"},
+    {"licensee":"Jennifer Ogden","licenseNumber":"10401259650","status":"Current","licenseExpiry":"03/05/2028","firm":"ALLY REALTY","firmType":"Principal Office:Princ Off","firmAddress":"6 Eliza Street, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"Mona Orsulich","licenseNumber":"10401328687","status":"Current","licenseExpiry":"03/12/2028","firm":"JONCAR REALTY INC","firmType":"Principal Office:Princ Off","firmAddress":"451 MAIN ST, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"Veshtrim Osmani","licenseNumber":"10401377508","status":"Current","licenseExpiry":"06/19/2027","firm":"DANIEL AUBRY REALTY LLC","firmType":"Principal Office:Princ Off","firmAddress":"15 Water Street, BEACON, NY DUTCHESS 12508 US"}
+  ]
+}

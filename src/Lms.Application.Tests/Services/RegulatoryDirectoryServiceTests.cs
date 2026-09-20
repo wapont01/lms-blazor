@@ -70,6 +70,69 @@ public class RegulatoryDirectoryServiceTests
     }
 
     [Fact]
+    public async Task GetCampaignFirmTargetsAsync_RanksApprovedFirmsByUpcomingRenewals()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var snapshot = new RegulatoryDataSnapshot
+        {
+            State = "Texas",
+            SourceName = "TREC sample",
+            SourceUrl = "https://www.trec.texas.gov/campaign-test",
+            RetrievedAtUtc = new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc),
+            Status = RegulatorySnapshotStatuses.Approved
+        };
+        var soonFirm = new RegulatoryFirm
+        {
+            Snapshot = snapshot,
+            State = "Texas",
+            LicenseNumber = "9000001-BB",
+            LegalName = "Soon Renewal Realty",
+            QualifyingBrokerName = "Casey Broker"
+        };
+        var laterFirm = new RegulatoryFirm
+        {
+            Snapshot = snapshot,
+            State = "Texas",
+            LicenseNumber = "9000002-BB",
+            LegalName = "Later Renewal Realty"
+        };
+        var soonAgent = new RegulatoryLicensee
+        {
+            Snapshot = snapshot,
+            State = "Texas",
+            LicenseNumber = "100001-SA",
+            Name = "Amy Agent",
+            LicenseRenewalDate = today.AddMonths(2)
+        };
+        var laterBroker = new RegulatoryLicensee
+        {
+            Snapshot = snapshot,
+            State = "Texas",
+            LicenseNumber = "100002-B",
+            Name = "Blake Broker",
+            LicenseRenewalDate = today.AddMonths(20)
+        };
+        fixture.DbContext.RegulatoryDataSnapshots.Add(snapshot);
+        fixture.DbContext.RegulatoryFirms.AddRange(soonFirm, laterFirm);
+        fixture.DbContext.RegulatoryLicensees.AddRange(soonAgent, laterBroker);
+        fixture.DbContext.RegulatoryFirmLicenseeAffiliations.AddRange(
+            new RegulatoryFirmLicenseeAffiliation { Snapshot = snapshot, Firm = soonFirm, Licensee = soonAgent },
+            new RegulatoryFirmLicenseeAffiliation { Snapshot = snapshot, Firm = laterFirm, Licensee = laterBroker, IsBrokerInCharge = true });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var targets = await fixture.Service.GetCampaignFirmTargetsAsync("Texas");
+
+        Assert.Equal(2, targets.Count);
+        Assert.Equal("Soon Renewal Realty", targets[0].FirmName);
+        Assert.Equal("Casey Broker", targets[0].BrokerName);
+        Assert.Equal(today.AddMonths(2), targets[0].NextRenewalDate);
+        Assert.Equal(1, targets[0].RenewalsWithinTwelveMonths);
+        Assert.Equal("Blake Broker", targets[1].BrokerName);
+        Assert.Equal(0, targets[1].RenewalsWithinTwelveMonths);
+    }
+
+    [Fact]
     public async Task ImportAsync_PersistsPendingSnapshotAndApprovalMakesItCurrent()
     {
         await using var fixture = await TestFixture.CreateAsync();

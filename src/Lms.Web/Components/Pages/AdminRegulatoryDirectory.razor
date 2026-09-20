@@ -131,10 +131,64 @@
     }
 </section>
 
+<section class="card">
+    <h2>Campaign targets</h2>
+    <p class="muted-text">Approved firms with qualifying brokers and upcoming licensee renewals for sales outreach.</p>
+    <div class="form-field">
+        <label for="campaign-state-filter">State</label>
+        <select id="campaign-state-filter" value="@_campaignState" @onchange="OnCampaignStateChangedAsync" disabled="@_isWorking">
+            <option value="">All states</option>
+            @foreach (var state in _campaignStates)
+            {
+                <option value="@state">@state</option>
+            }
+        </select>
+    </div>
+    @if (_campaignTargets.Count == 0)
+    {
+        <p class="muted-text">No campaign targets are available.</p>
+    }
+    else
+    {
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>State</th>
+                        <th>Firm</th>
+                        <th>License</th>
+                        <th>Broker</th>
+                        <th>Licensees</th>
+                        <th>Next renewal</th>
+                        <th>Renewals in 12 months</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var target in _campaignTargets)
+                    {
+                        <tr>
+                            <td>@target.State</td>
+                            <td>@target.FirmName@(target.TradeName is null ? string.Empty : $" ({target.TradeName})")</td>
+                            <td>@target.FirmLicenseNumber</td>
+                            <td>@(target.BrokerName ?? "Not reported")</td>
+                            <td>@target.LicenseeCount</td>
+                            <td>@(target.NextRenewalDate?.ToString("yyyy-MM-dd") ?? "Not reported")</td>
+                            <td>@target.RenewalsWithinTwelveMonths</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
 @code {
     private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
     private List<RegulatorySnapshotSummary> _snapshots = new();
     private List<RegulatoryLicenseeSummary> _licensees = new();
+    private List<CampaignFirmTarget> _campaignTargets = new();
+    private List<string> _campaignStates = new();
+    private string _campaignState = string.Empty;
     private List<UserAccount> _users = new();
     private readonly Dictionary<Guid, Guid> _selectedUsers = new();
     private string _snapshotJson = string.Empty;
@@ -147,6 +201,23 @@
         _users = (await UserAccountService.GetAllAsync()).Where(user => user.IsActive).OrderBy(user => user.DisplayName).ToList();
         await RefreshSnapshotsAsync();
         await RefreshLicenseesAsync();
+        await RefreshCampaignTargetsAsync();
+    }
+
+    private async Task OnCampaignStateChangedAsync(ChangeEventArgs args)
+    {
+        _campaignState = args.Value?.ToString() ?? string.Empty;
+        await RefreshCampaignTargetsAsync();
+    }
+
+    private async Task RefreshCampaignTargetsAsync()
+    {
+        _campaignTargets = await RegulatoryDirectoryService.GetCampaignFirmTargetsAsync(
+            string.IsNullOrWhiteSpace(_campaignState) ? null : _campaignState);
+        if (string.IsNullOrWhiteSpace(_campaignState))
+        {
+            _campaignStates = _campaignTargets.Select(target => target.State).Distinct().OrderBy(state => state).ToList();
+        }
     }
 
     private async Task ImportAsync()
@@ -209,6 +280,7 @@
         _isWorking = true;
         await RefreshSnapshotsAsync();
         await RefreshLicenseesAsync();
+        await RefreshCampaignTargetsAsync();
         _message = "Regulatory records refreshed.";
         _hasError = false;
         _isWorking = false;

@@ -1,0 +1,11 @@
+{
+  "state":"New York","query":{"city":"Beacon","licenseType":"Corporate Broker","rowsPerPage":30},"resultCount":5,"status":"Current","detailProfilesPersisted":4,
+  "records":[
+    {"name":"DONNA M HARDISTY","licenseNumber":"10311203338","status":"Current","expiry":"08/16/2028","relatedFirm":"SAMS REALTY","firmType":"Principal Office:Princ Off","firmAddress":"412 MAIN ST, Beacon, NY, Dutchess, 12508, US"},
+    {"name":"JONATHAN R MILLER","licenseNumber":"31MI0887079","status":"Current","expiry":"08/12/2027","relatedFirm":"JONCAR REALTY INC","firmType":"Principal Office:Princ Off","firmAddress":"451 MAIN ST, Beacon, NY, Dutchess, 12508, US"},
+    {"name":"GERARD F MURRAY","licenseNumber":"31MU0483645","status":"Current","expiry":"07/25/2028","relatedFirm":"COBBLE HEIGHTS REALTY INC","firmType":"Principal Office:Princ Off","firmAddress":"59 Fieldstone Lane, Beacon Falls, CT, out of state, 06403, US"},
+    {"name":"jose santos","licenseNumber":"10311209303","status":"Current","expiry":"08/29/2027","relatedFirm":"K FORTUNA LIGHTHOUSE REALTY INC","firmType":"Principal Office:Princ Off","firmAddress":"9 Depuyster Ave, Beacon, NY, Orange, 12508, US"},
+    {"name":null,"licenseNumber":"31MU0483645","status":"Current","expiry":"07/25/2028","note":"Duplicate/incomplete-name public-list row; no separate detail profile."}
+  ],
+  "note":"Fresh-session retry completed the four named corporate broker detail links."
+}

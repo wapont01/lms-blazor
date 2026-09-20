@@ -163,6 +163,151 @@ public class DueDateReminderServiceTests
     }
 
     [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_DerivedRenewalDateSendsSoftReminder()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        learner.LicenseRenewalDueDate = new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc);
+        learner.LicenseRenewalDueDateSource = LicenseDateProvenance.Derived;
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc));
+
+        var notification = await fixture.DbContext.SystemNotifications.SingleAsync(item => item.RecipientUserId == learner.Id && item.Category == "license-compliance");
+        Assert.Equal("Estimated license date approaching", notification.Title);
+        Assert.Contains("Soft reminder only", notification.Message);
+        Assert.Contains("confirm the official date", notification.Message);
+    }
+
+    [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_UnknownRenewalDateDoesNotSendRenewalReminder()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        learner.LicenseRenewalDueDate = new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc);
+        learner.LicenseRenewalDueDateSource = LicenseDateProvenance.Unknown;
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc));
+
+        Assert.DoesNotContain(
+            await fixture.DbContext.SystemNotifications.Where(item => item.RecipientUserId == learner.Id).ToListAsync(),
+            item => item.Category == "license-compliance" && item.Message.Contains("license renewal", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_TexasAuthoritativeRenewalDrivesStateCeCycleReminder()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        learner.State = "TX";
+        learner.LicenseType = "SA";
+        learner.InitialLicensureDate = null;
+        learner.ContinuingEducationDueDate = null;
+        learner.LicenseRenewalDueDate = new DateTime(2026, 9, 25, 0, 0, 0, DateTimeKind.Utc);
+        learner.LicenseRenewalDueDateSource = LicenseDateProvenance.Authoritative;
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(new DateTime(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc));
+
+        var notifications = await fixture.DbContext.SystemNotifications
+            .Where(item => item.RecipientUserId == learner.Id && item.Category == "license-compliance")
+            .ToListAsync();
+
+        Assert.Contains(notifications, item =>
+            item.Title == "License requirement approaching" &&
+            item.Message.Contains("Texas Sales Agent continuing education requirement", StringComparison.Ordinal) &&
+            item.Message.Contains("18 hours per 2-year cycle", StringComparison.Ordinal));
+        Assert.True(await fixture.DbContext.LicenseComplianceReminders.AnyAsync(reminder =>
+            reminder.UserAccountId == learner.Id && reminder.ReminderType == "state-ce-cycle-deadline-authoritative"));
+    }
+
+    [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_ProjectedStateCeCycleSendsSoftReminderOnly()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        learner.State = "New York";
+        learner.LicenseType = "Salesperson";
+        learner.InitialLicensureDate = new DateTime(2024, 10, 5, 0, 0, 0, DateTimeKind.Utc);
+        learner.PostlicensingCompletedAt = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        learner.ContinuingEducationDueDate = null;
+        learner.LicenseRenewalDueDate = null;
+        learner.LicenseRenewalDueDateSource = LicenseDateProvenance.Unknown;
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc));
+
+        var notifications = await fixture.DbContext.SystemNotifications
+            .Where(item => item.RecipientUserId == learner.Id && item.Category == "license-compliance")
+            .ToListAsync();
+
+        Assert.Contains(notifications, item =>
+            item.Title == "Estimated license date approaching" &&
+            item.Message.Contains("Soft reminder only", StringComparison.Ordinal) &&
+            item.Message.Contains("New York Salesperson continuing education requirement", StringComparison.Ordinal) &&
+            item.Message.Contains("22.5 hours per 2-year cycle", StringComparison.Ordinal));
+        Assert.True(await fixture.DbContext.LicenseComplianceReminders.AnyAsync(reminder =>
+            reminder.UserAccountId == learner.Id && reminder.ReminderType == "state-ce-cycle-deadline-derived"));
+    }
+
+    [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_GeorgiaSalespersonGetsTwelveMonthPostlicensingDeadline()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        learner.State = "Georgia";
+        learner.LicenseType = "Salesperson";
+        learner.InitialLicensureDate = new DateTime(2025, 10, 1, 0, 0, 0, DateTimeKind.Utc);
+        learner.PostlicensingCompletedAt = null;
+        learner.ContinuingEducationDueDate = null;
+        learner.LicenseRenewalDueDate = null;
+        learner.LicenseRenewalDueDateSource = LicenseDateProvenance.Unknown;
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc));
+
+        var notifications = await fixture.DbContext.SystemNotifications
+            .Where(item => item.RecipientUserId == learner.Id && item.Category == "license-compliance")
+            .ToListAsync();
+
+        Assert.Contains(notifications, item =>
+            item.Message.Contains("Georgia Salesperson postlicensing education requirement", StringComparison.Ordinal));
+        var reminder = await fixture.DbContext.LicenseComplianceReminders.SingleAsync(item =>
+            item.UserAccountId == learner.Id && item.ReminderType == "postlicensing-deadline");
+        Assert.Equal(new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc), reminder.DueAtUtc);
+    }
+
+    [Fact]
+    public async Task ProcessLicenseComplianceRemindersAsync_SouthCarolinaAssociateHasNoPostlicensingDeadline()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        learner.State = "South Carolina";
+        learner.LicenseType = "Associate";
+        learner.InitialLicensureDate = new DateTime(2025, 5, 1, 0, 0, 0, DateTimeKind.Utc);
+        learner.PostlicensingCompletedAt = null;
+        learner.ContinuingEducationDueDate = null;
+        learner.LicenseRenewalDueDate = null;
+        learner.LicenseRenewalDueDateSource = LicenseDateProvenance.Unknown;
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.DueDateReminderService.ProcessLicenseComplianceRemindersAsync(new DateTime(2026, 10, 20, 0, 0, 0, DateTimeKind.Utc));
+
+        Assert.False(await fixture.DbContext.LicenseComplianceReminders.AnyAsync(item =>
+            item.UserAccountId == learner.Id && item.ReminderType == "postlicensing-deadline"));
+        Assert.DoesNotContain(
+            await fixture.DbContext.SystemNotifications.Where(item => item.RecipientUserId == learner.Id).ToListAsync(),
+            item => item.Message.Contains("postlicensing", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task ProcessLicenseComplianceRemindersAsync_NorthCarolinaCeNotifiesLearnerBrokerAndAdmins()
     {
         await using var fixture = await TestFixture.CreateAsync();

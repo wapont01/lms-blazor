@@ -1,0 +1,11 @@
+{
+  "state":"New York",
+  "source":"https://appext20.dos.ny.gov/nydos/selSearchType.do",
+  "query":{"searchBy":"City","city":"Beacon","licenseType":"Principal Office","rowsPerPage":30},
+  "resultCount":20,
+  "status":"All result rows Current",
+  "chunks":10,
+  "recordsPersisted":20,
+  "fieldsCaptured":["office/business name","license number","license status","main address","phone number when published","related licensee name","related license type","related license address","related license expiry"],
+  "note":"Saved in two-record chunks so the crawl can resume safely if the DOS system blocks or returns a warning. Related licensees include LLC brokers, corporate brokers, individual brokers, trade-name brokers, associate brokers, and salespeople."
+}

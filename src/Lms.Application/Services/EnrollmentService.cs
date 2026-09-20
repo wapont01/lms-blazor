@@ -45,6 +45,7 @@ public interface IEnrollmentService
     Task<List<LearnerLogItem>> GetLearnerLogsAsync(Guid learnerUserId, Guid? brokerUserId = null);
     Task<List<BrokerEnrollmentReportRow>> GetBrokerEnrollmentReportAsync(Guid brokerUserId, DateTime? fromUtc = null, DateTime? toUtc = null);
     Task ReconcileCompletionAsync(Guid userId, Guid courseId);
+    Task<bool> SubmitCertificationIdentityAsync(Guid userId, Guid courseId, string firstName, string lastName, string licenseNumber, string state, bool confirmPrintedName);
 }
 
 public sealed record BrokerDashboardSummary(int Learners, int ActiveEnrollments, int CompletedEnrollments, int AtRiskEnrollments);
@@ -1247,12 +1248,18 @@ public class EnrollmentService : IEnrollmentService
 
     private async Task EnsureCertificateStateAsync(Guid actorUserId, Enrollment enrollment, string? actorEmail)
     {
+        await PopulateCertificationSnapshotFromAccountAsync(enrollment);
         var certificate = await _dbContext.CompletionCertificates
             .FirstOrDefaultAsync(existing => existing.EnrollmentId == enrollment.Id);
 
         var hasPassedRequiredAssessment = await _assessmentService.HasPassedRequiredAssessmentAsync(enrollment.CourseId, enrollment.UserAccountId);
         var hasSatisfiedAttendance = await HasSatisfiedAttendanceRequirementAsync(enrollment.CourseId, enrollment.UserAccountId);
-        var certificateEligible = enrollment.Completed && hasPassedRequiredAssessment && hasSatisfiedAttendance;
+        var certificateEligible = enrollment.Completed && hasPassedRequiredAssessment && hasSatisfiedAttendance
+            && !string.IsNullOrWhiteSpace(enrollment.CertificationFirstName)
+            && !string.IsNullOrWhiteSpace(enrollment.CertificationLastName)
+            && !string.IsNullOrWhiteSpace(enrollment.CertificationLicenseNumber)
+            && !string.IsNullOrWhiteSpace(enrollment.CertificationState)
+            && enrollment.CertificationNameConfirmed;
 
         if (certificateEligible)
         {
@@ -1270,6 +1277,12 @@ public class EnrollmentService : IEnrollmentService
                     IssuedAt = issuedAt,
                     ExpiresAt = issuedAt.AddYears(1),
                     CompletedAtUtc = enrollment.CompletedAtUtc ?? issuedAt,
+                    CertificationFirstName = enrollment.CertificationFirstName,
+                    CertificationLastName = enrollment.CertificationLastName,
+                    CertificationLicenseNumber = enrollment.CertificationLicenseNumber,
+                    CertificationState = enrollment.CertificationState,
+                    CertificationIdentitySource = enrollment.CertificationIdentitySource,
+                    CertificationReviewStatus = "PendingReview",
                     InstructorName = regulatoryFields.InstructorName,
                     EducationDirectorName = regulatoryFields.EducationDirectorName,
                     CommissionCourseNumber = regulatoryFields.CommissionCourseNumber,
@@ -1319,6 +1332,57 @@ public class EnrollmentService : IEnrollmentService
             await _dbContext.SaveChangesAsync();
             await _auditLogService.WriteAsync(actorUserId, actorEmail, "certificate.revoked", "CompletionCertificate", certificate.Id, certificate.CertificateNumber);
         }
+    }
+
+    private async Task PopulateCertificationSnapshotFromAccountAsync(Enrollment enrollment)
+    {
+        if (!string.IsNullOrWhiteSpace(enrollment.CertificationFirstName))
+        {
+            return;
+        }
+
+        var user = enrollment.UserAccount ?? await _dbContext.UserAccounts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(candidate => candidate.Id == enrollment.UserAccountId);
+        if (user is null || string.IsNullOrWhiteSpace(user.LicenseNumber) || string.IsNullOrWhiteSpace(user.State))
+        {
+            return;
+        }
+
+        var printedName = (user.LegalName ?? user.DisplayName).Trim();
+        var nameParts = printedName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (nameParts.Length < 2)
+        {
+            return;
+        }
+
+        enrollment.CertificationFirstName = nameParts[0];
+        enrollment.CertificationLastName = string.Join(' ', nameParts.Skip(1));
+        enrollment.CertificationLicenseNumber = user.LicenseNumber;
+        enrollment.CertificationState = user.State;
+        enrollment.CertificationIdentitySource = "AccountProfile";
+        enrollment.CertificationNameConfirmed = true;
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<bool> SubmitCertificationIdentityAsync(Guid userId, Guid courseId, string firstName, string lastName, string licenseNumber, string state, bool confirmPrintedName)
+    {
+        var enrollment = await _dbContext.Enrollments
+            .FirstOrDefaultAsync(candidate => candidate.UserAccountId == userId && candidate.CourseId == courseId);
+        if (enrollment is null || !enrollment.Completed || !confirmPrintedName)
+        {
+            return false;
+        }
+
+        enrollment.CertificationFirstName = firstName.Trim();
+        enrollment.CertificationLastName = lastName.Trim();
+        enrollment.CertificationLicenseNumber = licenseNumber.Trim();
+        enrollment.CertificationState = state.Trim();
+        enrollment.CertificationIdentitySource = "LearnerEntered";
+        enrollment.CertificationNameConfirmed = true;
+        await _dbContext.SaveChangesAsync();
+        await ReconcileCompletionAsync(userId, courseId);
+        return true;
     }
 
     // NC 21 NCAC 58H .0207(a)-(b): in-person/synchronous/blended courses require minimum tracked attendance minutes before a certificate is eligible.

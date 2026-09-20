@@ -1,0 +1,12 @@
+{
+  "state": "West Virginia",
+  "sourcePage": "https://rec.wv.gov/About/Pages/Active-Licensee-Rosters.aspx",
+  "capturedAt": "2026-09-19",
+  "downloads": [
+    {"licenseCategory":"Salesperson","sourceFile":"Salespersons Active.xlsx","sourceUrl":"https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx","rows":3953,"uniqueLicenseNumbers":3945,"duplicateRelationshipRows":8},
+    {"licenseCategory":"Associate Broker","sourceFile":"AB Active.xlsx","sourceUrl":"https://rec.wv.gov/About/Documents/Active%20Rosters/AB%20Active.xlsx","rows":371,"uniqueLicenseNumbers":371,"duplicateRelationshipRows":0},
+    {"licenseCategory":"Broker","sourceFile":"Broker Active.xlsx","sourceUrl":"https://rec.wv.gov/About/Documents/Active%20Rosters/Broker%20Active.xlsx","rows":846,"uniqueLicenseNumbers":815,"duplicateRelationshipRows":31}
+  ],
+  "totalRows":5170,
+  "note":"Rows include company affiliation relationships. Repeated license numbers are preserved because one licensee may be associated with multiple companies. Workbooks include names, license numbers, company numbers/names, branch identifiers, email, and company address fields. No LMS roster import has been performed."
+}

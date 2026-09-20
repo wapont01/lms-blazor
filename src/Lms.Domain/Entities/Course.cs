@@ -261,6 +261,8 @@ public class UserAccount
     public DateTime? BicDesignationAt { get; set; }
     public DateTime? ContinuingEducationDueDate { get; set; }
     public DateTime? LicenseRenewalDueDate { get; set; }
+    [StringLength(20)]
+    public string LicenseRenewalDueDateSource { get; set; } = LicenseDateProvenance.Unknown;
     public DateTime? BicUpdateCourseDueDate { get; set; }
     public bool IsBicEligible { get; set; }
 
@@ -484,6 +486,23 @@ public class Enrollment
     // NC 21 NCAC 58H .0207(f): completion must be reported to the Commission within 7 days.
     public DateTime? CompletionReportSubmittedAtUtc { get; set; }
 
+    [StringLength(80)]
+    public string? CertificationFirstName { get; set; }
+
+    [StringLength(80)]
+    public string? CertificationLastName { get; set; }
+
+    [StringLength(40)]
+    public string? CertificationLicenseNumber { get; set; }
+
+    [StringLength(40)]
+    public string? CertificationState { get; set; }
+
+    [StringLength(40)]
+    public string CertificationIdentitySource { get; set; } = "Pending";
+
+    public bool CertificationNameConfirmed { get; set; }
+
     public UserAccount? UserAccount { get; set; }
     public Course? Course { get; set; }
     public ICollection<CourseReminder> Reminders { get; set; } = new List<CourseReminder>();
@@ -546,6 +565,26 @@ public class CompletionCertificate
     public DateTime IssuedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddYears(1);
     public DateTime CompletedAtUtc { get; set; } = DateTime.UtcNow;
+
+    [StringLength(80)]
+    public string? CertificationFirstName { get; set; }
+
+    [StringLength(80)]
+    public string? CertificationLastName { get; set; }
+
+    [StringLength(40)]
+    public string? CertificationLicenseNumber { get; set; }
+
+    [StringLength(40)]
+    public string? CertificationState { get; set; }
+
+    [StringLength(40)]
+    public string CertificationIdentitySource { get; set; } = "Pending";
+
+    [StringLength(40)]
+    public string CertificationReviewStatus { get; set; } = "PendingIdentity";
+
+    public DateTime? CommissionSubmittedAtUtc { get; set; }
 
     [StringLength(160)]
     public string? InstructorName { get; set; }

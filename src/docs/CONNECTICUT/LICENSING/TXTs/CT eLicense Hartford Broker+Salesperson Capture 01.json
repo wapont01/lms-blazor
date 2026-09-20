@@ -1,0 +1,103 @@
+{
+  "state": "Connecticut",
+  "source": "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+  "capturedAt": "2026-09-19",
+  "parserVersion": "ct-elicense-hartford-broker-salesperson-v1",
+  "query": {
+    "city": "Hartford",
+    "country": "UNITED STATES",
+    "licenseTypesSelected": [
+      "REAL ESTATE BROKER",
+      "REAL ESTATE SALESPERSON"
+    ]
+  },
+  "resultCount": 500,
+  "recordsPerPage": 10,
+  "searchEvidence": {
+    "resultText": "Showing 500 result(s).",
+    "firstRows": [
+      {
+        "name": "A1 BUSINESS & REALTY LLC",
+        "credential": "REB.0794798",
+        "credentialDescription": "REAL ESTATE BROKER",
+        "status": "ACTIVE",
+        "statusReason": "CURRENT",
+        "city": "HARTFORD",
+        "dba": "",
+        "detailUrl": "javascript:DisplayLicenceDetail('2468132~|~1209118~|~0~|~A1 BUSINESS & REALTY LLC~|~251875066~|~0~|~fe677819-639c-4695-bdef-ab769a20c480~|~0006a5f265504fd62218a54ba7df94308e1dcd9fc5a40dcc734f077a7b0b0b3a~|~')"
+      },
+      {
+        "name": "A1 BUSINESS & REALTY LLC",
+        "credential": "REB.0789157",
+        "credentialDescription": "REAL ESTATE BROKER",
+        "status": "INACTIVE",
+        "statusReason": "EXPIRED MORE THAN 3 YEARS - MUST REAPPLY",
+        "city": "HARTFORD",
+        "dba": "",
+        "detailUrl": "javascript:DisplayLicenceDetail('976770~|~1209118~|~0~|~A1 BUSINESS & REALTY LLC~|~251875066~|~0~|~f2098462-7461-4d7c-9806-ba7173af6b49~|~0006a5f265504fd62218a54ba7df94308e1dcd9fc5a40dcc734f077a7b0b0b3a~|~')"
+      },
+      {
+        "name": "AARON A HILL",
+        "credential": "RES.0805360",
+        "credentialDescription": "REAL ESTATE SALESPERSON",
+        "status": "EXPIRED APPLICATION",
+        "statusReason": "NEW APPLICATION REQUIRED",
+        "city": "HARTFORD",
+        "dba": "",
+        "detailUrl": "javascript:DisplayLicenceDetail('1390665~|~1646365~|~0~|~AARON A HILL~|~251875066~|~0~|~eb60895f-57a0-4cb8-b566-461910d7e66c~|~0006a5f265504fd62218a54ba7df94308e1dcd9fc5a40dcc734f077a7b0b0b3a~|~')"
+      }
+    ]
+  },
+  "fullPaginationEvidence": {
+    "pages": 50,
+    "recordsPerPage": 10,
+    "uniqueRecords": 500,
+    "credentialDescriptionCounts": {
+      "REAL ESTATE BROKER": 134,
+      "REAL ESTATE SALESPERSON": 366
+    },
+    "classificationBasis": "Exact Credential Description text in each result row",
+    "deduplicationNote": "Page 11 was observed in two paging windows and counted once."
+  },
+  "firmDetailRequirements": [
+    "Business or firm name",
+    "Credential/license number",
+    "Credential type",
+    "Status and status reason",
+    "Effective date",
+    "Expiration date",
+    "First issuance date on record",
+    "Business address",
+    "DBA or alias",
+    "Broker supervisor, designee, or responsible individual"
+  ],
+  "detailCoverage": {
+    "fullyDetailedFirmRecords": 2,
+    "note": "The portal's Details action opens an iframe modal. A1 Business & Realty LLC and Avante Management Group Inc. are fully detailed; the remaining firm records still require opening their detail modals."
+  },
+  "firmEntityCrawl": {
+    "query": "REAL ESTATE BROKER, Hartford, UNITED STATES",
+    "brokerRowsReviewed": 255,
+    "candidateBusinessEntityRows": 94,
+    "candidateDistinctBusinessNames": 89,
+    "entityClassification": "Conservative business-name indicators such as LLC, Inc., Realty, Associates, Group, Company, Management, and similar legal-entity terms",
+    "verifiedFirmProfiles": [
+      {
+        "legalName": "AVANTE MANAGEMENT GROUP INC",
+        "credential": "REB.0751211",
+        "credentialType": "REAL ESTATE BROKER",
+        "status": "INACTIVE",
+        "statusReason": "EXPIRED MORE THAN 3 YEARS - MUST REAPPLY",
+        "dbaOrAlias": "ODIS P COLEMAN",
+        "address": "98 GARDEN ST, HARTFORD, CT 06105",
+        "effectiveDate": "06/01/1996",
+        "expirationDate": "05/31/1997",
+        "firstIssuanceDateOnRecord": "Not Recorded",
+        "brokerDesignee": ""
+      }
+    ],
+    "blockedBy": "The portal displayed 'Max. Results Viewed Before Captcha.' while opening additional Details profiles. No CAPTCHA bypass was attempted.",
+    "nextSafeStep": "Resume in small manually verified batches after the portal challenge, or request the official Connecticut business-license export."
+  },
+  "note": "The firm detail fields are more important than the aggregate count. The combined search produces 500 Hartford records, but firm records should be retained with their address, license dates, status, DBA, and broker supervisor or designee."
+}

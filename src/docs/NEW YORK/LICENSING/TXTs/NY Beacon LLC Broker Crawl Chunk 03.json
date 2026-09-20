@@ -1,0 +1,7 @@
+{
+  "state":"New York","query":{"city":"Beacon","licenseType":"Limited Liability Company Broker","rowsPerPage":30},"resultCount":8,"status":"Current","chunk":3,
+  "records":[
+    {"licensee":"FRANK T PIETRZAK","licenseNumber":"49PI0836775","status":"Current","expiry":"05/02/2028","practiceAddress":"30 BEEKMAN ST UNIT 111, Beacon, NY, Dutchess, 12508, US","phone":"8455054109","relatedFirm":"HARMAX LLC","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"30 BEEKMAN ST UNIT 111, Beacon, NY, Dutchess, 12508, US"},
+    {"licensee":"QELE QELAJ","licenseNumber":"10491203323","status":"Current","expiry":"05/15/2027","practiceAddress":"906 Wolcott Ave, Beacon, NY, Dutchess, 12508, US","relatedFirm":"ACELA PROPERTY MANAGEMENT LLC","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"906 Wolcott Ave, Beacon, NY, Dutchess, 12508, US"}
+  ]
+}

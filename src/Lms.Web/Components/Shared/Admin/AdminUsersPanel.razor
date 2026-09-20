@@ -121,6 +121,14 @@
                                     <div class="form-field"><label>BIC designation date</label><InputDate @bind-Value="user.BicDesignationAt" /></div>
                                     <div class="form-field"><label>Continuing education due</label><InputDate @bind-Value="user.ContinuingEducationDueDate" /></div>
                                     <div class="form-field"><label>License renewal due</label><InputDate @bind-Value="user.LicenseRenewalDueDate" /></div>
+                                    <div class="form-field">
+                                        <label>Renewal date source</label>
+                                        <select @bind="user.LicenseRenewalDueDateSource">
+                                            <option value="Unknown">Unknown</option>
+                                            <option value="Derived">Derived (soft reminder)</option>
+                                            <option value="Authoritative">Authoritative (hard reminder)</option>
+                                        </select>
+                                    </div>
                                     <div class="form-field"><label>BIC Update Course due</label><InputDate @bind-Value="user.BicUpdateCourseDueDate" /></div>
                                 </div>
                                 <button type="button" @onclick="() => OnSaveLicenseCompliance.InvokeAsync(user)">Save license compliance</button>

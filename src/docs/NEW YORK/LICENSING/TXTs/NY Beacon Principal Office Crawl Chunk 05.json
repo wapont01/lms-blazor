@@ -1,0 +1,7 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Principal Office","rowsPerPage":30},"resultCount":20,"status":"Current","chunk":5,
+  "records":[
+    {"name":"HARMAX LLC","licenseNumber":"109929528","status":"Current","address":"30 BEEKMAN ST UNIT 111, Beacon, NY, Dutchess, 12508, US","phone":"8455054109","relatedLicensees":[{"name":"PIETRZAK, FRANK T","licenseType":"Limited Liability Company Broker:LL Comp Broker","address":"30 BEEKMAN ST UNIT 111, Beacon, NY, Dutchess, 12508, US","licenseExpiry":"05/02/2028"}]},
+    {"name":"HUDSON HIGHLANDS PROPERTIES LLC","licenseNumber":"109930921","status":"Current","address":"29C HUDSON VIEW DR, Beacon, NY, Dutchess, 12508, US","phone":"2016798098","relatedLicensees":[{"name":"LIEBERMAN, TINA","licenseType":"Limited Liability Company Broker:LL Comp Broker","address":"29C HUDSON VIEW DR, Beacon, NY, Dutchess, 12508, US","licenseExpiry":"12/23/2027"}]}
+  ]
+}

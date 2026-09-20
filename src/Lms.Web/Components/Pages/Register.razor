@@ -17,11 +17,6 @@
         <input type="hidden" name="returnUrl" value="@GetReturnUrl()" />
 
         <div class="form-field">
-            <label>Full name</label>
-            <input type="text" name="displayName" autocomplete="name" required />
-        </div>
-
-        <div class="form-field">
             <label>Email</label>
             <input type="email" name="email" autocomplete="username" required />
         </div>
@@ -38,24 +33,9 @@
         </div>
 
         <div class="form-field">
-            <label>License state (optional)</label>
-            <select name="state">
-                <option value="">— No license yet —</option>
-                <option value="North Carolina">North Carolina</option>
-                <option value="Florida">Florida</option>
-            </select>
-        </div>
-
-        <div class="form-field">
-            <label>License number (optional)</label>
-            <input type="text" name="licenseNumber" />
-            <small>If you already hold a license, we use it to personalize deadlines and course recommendations. You can add it later.</small>
-        </div>
-
-        <div class="form-field">
             <label style="display:flex;align-items:center;gap:0.5rem;font-weight:normal;">
                 <input type="checkbox" name="marketingEmails" value="true" checked style="width:auto;" />
-                Send me course recommendations and license-deadline alerts by email
+                Send me license-deadline alerts and course recommendations
             </label>
             <small>You can change this anytime from your account page.</small>
         </div>

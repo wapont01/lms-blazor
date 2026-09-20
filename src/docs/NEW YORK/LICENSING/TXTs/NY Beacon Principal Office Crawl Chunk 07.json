@@ -1,0 +1,7 @@
+{
+  "state":"New York","query":{"city":"Beacon","licenseType":"Principal Office","rowsPerPage":30},"resultCount":20,"status":"Current","chunk":7,
+  "records":[
+    {"name":"K FORTUNA LIGHTHOUSE REALTY INC","licenseNumber":"10991235617","status":"Current","address":"9 Depuyster Ave, Beacon, NY, Orange, 12508, US","phone":"8455220057","relatedLicensees":[{"name":"santos, jose","licenseType":"Corporate Broker:Corp. Broker","licenseExpiry":"08/29/2027"},{"name":"Miller, Brett Miller","licenseType":"Salesperson:Salesperson","licenseExpiry":"02/04/2028"},{"name":"mccormack, caroline","licenseType":"Salesperson:Salesperson","licenseExpiry":"02/06/2028"},{"name":"Sotomayor, ANDREA","licenseType":"Salesperson:Salesperson","licenseExpiry":"09/22/2027"},{"name":"Rivas, Michelle April","licenseType":"Salesperson:Salesperson","licenseExpiry":"07/14/2028"},{"name":"Domoulin , Michael Kenneth","licenseType":"Salesperson:Salesperson","licenseExpiry":"09/12/2028"}]},
+    {"name":"KAUFMAN JEREMY","licenseNumber":"10991218316","status":"Current","address":"71 W. Center Street, Beacon, NY, Dutchess, 12508, US","phone":"718-810-7474","relatedLicensees":[{"name":"KAUFMAN, JEREMY B","licenseType":"Individual Broker:Indv. Broker","licenseExpiry":"07/14/2027"}]}
+  ]
+}

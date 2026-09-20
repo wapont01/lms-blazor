@@ -1,0 +1,7 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Principal Office","rowsPerPage":30},"resultCount":20,"status":"Current","chunk":1,
+  "records":[
+    {"name":"ACELA PROPERTY MANAGEMENT LLC","licenseNumber":"10991212330","status":"Current","address":"906 Wolcott Ave, Beacon, NY, Dutchess, 12508, US","phone":"845-440-8977","relatedLicensees":[{"name":"QELAJ, QELE","licenseType":"Limited Liability Company Broker:LL Comp Broker","address":"906 Wolcott Ave, Beacon, NY, Dutchess, 12508, US","licenseExpiry":"05/15/2027"}]},
+    {"name":"ALLY REALTY","licenseNumber":"10991238344","status":"Current","address":"6 Eliza Street, Beacon, NY, Dutchess, 12508, US","phone":"9144940141","relatedLicensees":[{"name":"Ruperto, Anthony","licenseType":"Associate Broker:Assoc. Broker","address":"6 Eliza Street, Beacon, NY, Dutchess, 12508, US","licenseExpiry":"06/06/2028"}]}
+  ]
+}

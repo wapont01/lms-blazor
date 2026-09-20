@@ -1,0 +1,22 @@
+{
+  "state":"Connecticut",
+  "source":"https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+  "capturedAt":"2026-09-19",
+  "parserVersion":"ct-elicense-hartford-broker-v1",
+  "query":{"licenseType":"REAL ESTATE BROKER","city":"Hartford"},
+  "resultCount":255,
+  "recordsPerPage":10,
+  "firstPageSample":[
+    {"name":"A1 BUSINESS & REALTY LLC","credential":"REB.0794798","status":"ACTIVE","statusReason":"CURRENT","city":"HARTFORD","dba":"","detailFields":{"address":"42 ROSEMONT ST FL 3, HARTFORD, CT 06120-1120","effectiveDate":"12/01/2024","expirationDate":"11/30/2026","firstIssuanceDateOnRecord":"05/22/2023","brokerDesignee":"JACQUELINE O JOHNSON"}},
+    {"name":"A1 BUSINESS & REALTY LLC","credential":"REB.0789157","status":"INACTIVE","statusReason":"EXPIRED MORE THAN 3 YEARS - MUST REAPPLY","city":"HARTFORD","dba":""},
+    {"name":"ABE GILES","credential":"REB.0259530","status":"INACTIVE","statusReason":"","city":"HARTFORD","dba":"ABE GILES HOME IMPROVEMENT"},
+    {"name":"ABEND & ASSOCIATES","credential":"REB.0750684","status":"INACTIVE","statusReason":"","city":"HARTFORD","dba":"PETER G HELIE"},
+    {"name":"ABSOLUTE REALTY LLC","credential":"REB.0788106","status":"INACTIVE","statusReason":"DUE TO NON-RENEWAL OF CREDENTIAL","city":"HARTFORD","dba":""},
+    {"name":"AFFORDABLE HOMES INC","credential":"REB.0751186","status":"INACTIVE","statusReason":"","city":"HARTFORD","dba":"STEPHEN FRANCIS TORREY"},
+    {"name":"AGRIVEST LLC","credential":"REB.0750969","status":"INACTIVE","statusReason":"","city":"HARTFORD","dba":"JAMES B MCCANDLESS"},
+    {"name":"AGRIVEST LLC","credential":"REB.0751222","status":"INACTIVE","statusReason":"EXPIRED MORE THAN 3 YEARS - MUST REAPPLY","city":"HARTFORD","dba":"JAMES B MCCANDLESS"},
+    {"name":"ALICIA Y HILL","credential":"REB.0790579","status":"QUALIFIED","statusReason":"DESIGNEE FOR A BUSINESS ENTITY","city":"HARTFORD","dba":""},
+    {"name":"ALMA J GAYLE","credential":"REB.0790396","status":"ACTIVE","statusReason":"CURRENT","city":"HARTFORD","dba":""}
+  ],
+  "note":"Search reports are capped by the portal at the returned result count. Details open in an iframe modal and expose address, effective date, expiration date, first issuance date, and broker designee. No LMS import performed."
+}

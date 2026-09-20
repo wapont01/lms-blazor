@@ -201,13 +201,21 @@ public class DueDateReminderService : IDueDateReminderService
             var recipients = await GetComplianceRecipientsAsync(milestone.UserId);
             foreach (var recipientId in recipients)
             {
+                var reminderTitle = milestone.IsAuthoritative
+                    ? overdue ? "License requirement overdue" : "License requirement approaching"
+                    : overdue ? "Estimated license date passed" : "Estimated license date approaching";
+                var reminderMessage = milestone.IsAuthoritative
+                    ? overdue
+                        ? $"{milestone.Description} for {milestone.SubjectDisplayName} was due on {milestone.DueAtUtc:yyyy-MM-dd}."
+                        : $"{milestone.Description} for {milestone.SubjectDisplayName} is due on {milestone.DueAtUtc:yyyy-MM-dd}."
+                    : overdue
+                        ? $"Estimated reminder only: {milestone.Description} for {milestone.SubjectDisplayName} was estimated for {milestone.DueAtUtc:yyyy-MM-dd}; confirm the official date before treating this as overdue."
+                        : $"Soft reminder only: {milestone.Description} for {milestone.SubjectDisplayName} is estimated for {milestone.DueAtUtc:yyyy-MM-dd}; confirm the official date before taking compliance action.";
                 await _notificationService.CreateAsync(
                     recipientId,
                     "license-compliance",
-                    overdue ? "License requirement overdue" : "License requirement approaching",
-                    overdue
-                        ? $"{milestone.Description} for {milestone.SubjectDisplayName} was due on {milestone.DueAtUtc:yyyy-MM-dd}."
-                        : $"{milestone.Description} for {milestone.SubjectDisplayName} is due on {milestone.DueAtUtc:yyyy-MM-dd}.");
+                    reminderTitle,
+                    reminderMessage);
             }
 
             var offerings = await GetStateAwareOfferingsAsync(milestone);
@@ -269,8 +277,28 @@ public class DueDateReminderService : IDueDateReminderService
             ?? linkedLicensee?.LicenseIssuedDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var renewalDueDate = user.LicenseRenewalDueDate
             ?? linkedLicensee?.LicenseRenewalDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var renewalDateSource = user.LicenseRenewalDueDate.HasValue
+            ? user.LicenseRenewalDueDateSource
+            : renewalDueDate.HasValue ? LicenseDateProvenance.Authoritative : LicenseDateProvenance.Unknown;
+        var hasCatalogPolicy = StateLicenseRenewalPolicyCatalog.TryResolve(
+            user.State, user.LicenseType ?? linkedLicensee?.LicenseLevel, out var renewalPolicy);
 
-        if (initialLicensureDate.HasValue && user.PostlicensingCompletedAt is null &&
+        if (initialLicensureDate.HasValue && user.PostlicensingCompletedAt is null && hasCatalogPolicy)
+        {
+            // Catalog-driven state (e.g. Georgia salesperson): enforce postlicensing only when the policy says so.
+            if (renewalPolicy!.HasPostlicensingDeadline)
+            {
+                yield return new LicenseMilestone(
+                    user.Id,
+                    "postlicensing-deadline",
+                    initialLicensureDate.Value.AddMonths(12),
+                    $"{renewalPolicy.State} {renewalPolicy.LicenseCategory} postlicensing education requirement",
+                    user.State,
+                    CourseComplianceTypes.Postlicensing,
+                    user.DisplayName);
+            }
+        }
+        else if (initialLicensureDate.HasValue && user.PostlicensingCompletedAt is null &&
             ((!isNorthCarolina || isNorthCarolinaProvisional) || isFlorida))
         {
             var postlicensingDueDate = isFlorida && renewalDueDate.HasValue
@@ -309,17 +337,50 @@ public class DueDateReminderService : IDueDateReminderService
                 CourseComplianceTypes.ContinuingEducation,
                 user.DisplayName);
         }
+        else if (hasCatalogPolicy)
+        {
+            // Policy-driven CE cycle: hard only when the renewal date came from an authoritative source.
+            var cycleIsAuthoritative = renewalDueDate.HasValue && LicenseDateProvenance.IsAuthoritative(renewalDateSource);
+            var cycleDueDate = renewalDueDate;
+            if (!cycleDueDate.HasValue && initialLicensureDate.HasValue)
+            {
+                var projected = initialLicensureDate.Value.AddYears(renewalPolicy!.RenewalCycleYears);
+                while (projected < asOfUtc)
+                {
+                    projected = projected.AddYears(renewalPolicy.RenewalCycleYears);
+                }
 
-        if (user.LicenseRenewalDueDate.HasValue)
+                cycleDueDate = projected;
+            }
+
+            if (cycleDueDate.HasValue)
+            {
+                var requiredHours = renewalPolicy!.ContinuingEducation.TotalHours;
+                yield return new LicenseMilestone(
+                    user.Id,
+                    cycleIsAuthoritative ? "state-ce-cycle-deadline-authoritative" : "state-ce-cycle-deadline-derived",
+                    cycleDueDate.Value,
+                    $"{renewalPolicy.State} {renewalPolicy.LicenseCategory} continuing education requirement ({requiredHours:0.#} hours per {renewalPolicy.RenewalCycleYears}-year cycle)",
+                    user.State,
+                    CourseComplianceTypes.ContinuingEducation,
+                    user.DisplayName,
+                    cycleIsAuthoritative);
+            }
+        }
+
+        if (renewalDueDate.HasValue && !string.Equals(renewalDateSource, LicenseDateProvenance.Unknown, StringComparison.OrdinalIgnoreCase))
         {
             yield return new LicenseMilestone(
                 user.Id,
-                "license-renewal-deadline",
-                user.LicenseRenewalDueDate.Value,
+                LicenseDateProvenance.IsAuthoritative(renewalDateSource)
+                    ? "license-renewal-deadline-authoritative"
+                    : "license-renewal-deadline-derived",
+                renewalDueDate.Value,
                 "Your annual broker license renewal",
                 user.State,
                 CourseComplianceTypes.ContinuingEducation,
-                user.DisplayName);
+                user.DisplayName,
+                LicenseDateProvenance.IsAuthoritative(renewalDateSource));
         }
 
         if (user.IsBicEligible && user.BicUpdateCourseDueDate.HasValue)
@@ -370,5 +431,6 @@ public class DueDateReminderService : IDueDateReminderService
         string Description,
         string? State,
         string? RequiredComplianceType,
-        string SubjectDisplayName);
+        string SubjectDisplayName,
+        bool IsAuthoritative = true);
 }

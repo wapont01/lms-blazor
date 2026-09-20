@@ -1,0 +1,8 @@
+{
+  "state":"New York",
+  "source":"https://appext20.dos.ny.gov/nydos/selSearchType.do",
+  "query":{"searchBy":"City","city":"Beacon","licenseType":"Partnership Broker","rowsPerPage":30},
+  "resultCount":0,
+  "status":"No results matched your search criteria",
+  "records":[]
+}

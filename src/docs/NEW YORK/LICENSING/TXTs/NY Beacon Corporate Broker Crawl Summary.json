@@ -1,0 +1,12 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Corporate Broker","rowsPerPage":30},"resultCount":5,"status":"All result rows Current",
+  "listRecords":[
+    {"name":"DONNA M HARDISTY","licenseNumber":"10311203338","status":"Current","expiry":"08/16/2028"},
+    {"name":"JONATHAN R MILLER","licenseNumber":"31MI0887079","status":"Current","expiry":"08/12/2027"},
+    {"name":"GERARD F MURRAY","licenseNumber":"31MU0483645","status":"Current","expiry":"07/25/2028"},
+    {"name":"jose santos","licenseNumber":"10311209303","status":"Current","expiry":"08/29/2027"},
+    {"name":null,"licenseNumber":"31MU0483645","status":"Current","expiry":"07/25/2028","note":"Duplicate/incomplete-name row in public results."}
+  ],
+  "verifiedDetailProfiles":[{"name":"JONATHAN R MILLER","licenseNumber":"31MI0887079","status":"Current","expiry":"08/12/2027","practiceAddress":"451 MAIN ST, Beacon, NY, Dutchess, 12508, US","phone":"8454538049","relatedFirm":"JONCAR REALTY INC","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"451 MAIN ST, Beacon, NY, Dutchess, 12508, US"}],
+  "detailStatus":"Additional detail navigation was interrupted by a DOS session/navigation warning; resume in small fresh-session chunks before treating all five profiles as complete."
+}

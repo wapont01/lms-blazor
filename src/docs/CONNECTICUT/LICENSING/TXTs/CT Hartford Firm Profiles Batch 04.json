@@ -1,0 +1,24 @@
+{
+  "state": "Connecticut",
+  "source": "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+  "capturedAt": "2026-09-19",
+  "query": {"city": "Hartford", "country": "UNITED STATES", "licenseType": "REAL ESTATE BROKER"},
+  "captureType": "business-entity-profile",
+  "records": [
+    {
+      "legalName": "ANCHOR COMPANIES",
+      "credential": "REB.0751197",
+      "credentialType": "REAL ESTATE BROKER",
+      "status": "INACTIVE",
+      "statusReason": "EXPIRED MORE THAN 3 YEARS - MUST REAPPLY",
+      "dbaOrAlias": "MICHAEL R LEVIN",
+      "address": "ONE CORPORATE CENTER 17TH FLR, HARTFORD, CT 06103",
+      "effectiveDate": "06/01/1996",
+      "expirationDate": "05/31/1997",
+      "firstIssuanceDateOnRecord": "Not Recorded",
+      "brokerDesignee": ""
+    }
+  ],
+  "contactFields": {"email": "Not published", "phone": "Not published"},
+  "note": "Captured from a fresh browser session. The next Hartford page was inspected and this was the business-entity record visible there; the other visible rows were individual broker names."
+}

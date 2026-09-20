@@ -1,0 +1,7 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Principal Office","rowsPerPage":30},"resultCount":20,"status":"Current","chunk":4,
+  "records":[
+    {"name":"GRUBNER SAMUEL M","licenseNumber":"10991232863","status":"Current","address":"14 ROBINSON STREET, Beacon, NY, Dutchess, 12508, US","phone":null,"relatedLicensees":[{"name":"GRUBNER, SAMUEL m","licenseType":"Individual Broker:Indv. Broker","address":"14 ROBINSON STREET, Beacon, NY, Dutchess, 12508, US","licenseExpiry":"05/13/2028"}]},
+    {"name":"HARDISTY DONNA M","licenseNumber":"109929499","status":"Current","address":"412 MAIN ST, Beacon, NY, Dutchess, 12508, US","phone":"845-831-0344","relatedLicensees":[{"name":"HARDISTY, DONNA M","licenseType":"Individual Broker:Indv. Broker","address":"412 MAIN ST, Beacon, NY, Dutchess, 12508, US","licenseExpiry":"01/16/2028"}]}
+  ]
+}

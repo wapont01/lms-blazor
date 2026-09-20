@@ -35,7 +35,8 @@ public sealed record LearnerDashboardCourseCard(
     decimal DurationHours,
     decimal ProgressPercent,
     string Status,
-    Guid? CertificateId);
+    Guid? CertificateId,
+    bool CertificationIdentitySubmitted);
 
 public sealed class LearnerDashboardService : ILearnerDashboardService
 {
@@ -155,6 +156,7 @@ public sealed class LearnerDashboardService : ILearnerDashboardService
             var progress = enrollment.ProgressPercent;
             var status = GetBaseStatus(enrollment);
             Guid? certificateId = null;
+            var certificationIdentitySubmitted = !string.IsNullOrWhiteSpace(enrollment.CertificationFirstName);
 
             if (eligibility.HasPassed)
             {
@@ -191,7 +193,8 @@ public sealed class LearnerDashboardService : ILearnerDashboardService
                 enrollment.Course?.DurationHours ?? 0m,
                 progress,
                 status,
-                certificateId));
+                certificateId,
+                certificationIdentitySubmitted));
         }
 
         var completedCourseCount = courses.Count(course => string.Equals(course.Status, "Completed", StringComparison.OrdinalIgnoreCase));

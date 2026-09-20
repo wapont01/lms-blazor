@@ -1,0 +1,69 @@
+{
+  "state":"Virginia",
+  "source":"https://www.dpor.virginia.gov/LicenseLookup",
+  "query":{"board":"Real Estate Board","licenseType":"Real Estate Firm License","location":"Richmond"},
+  "parserVersion":"va-dpor-firm-licensee-ce-v1",
+  "captureNote":"Followed the official result license-number forms, opened the firm Related Licenses tab, opened the individual license detail, opened the Continuing Education tab, then used browser back navigation through the chain to the firm result list.",
+  "firm": {
+    "name":"STEWART FINE PROPERTIES LLC",
+    "dba":"RICH AND BES STEWART",
+    "licenseNumber":"0226023723",
+    "licenseType":"Real Estate Firm License",
+    "firmType":"LLC - Limited Liability Company",
+    "rank":"Business Entity License",
+    "address":"7518 ELKHARDT ROAD, RICHMOND, VA 23225",
+    "initialCertificationDate":"2012-01-30",
+    "expirationDate":"2028-01-31",
+    "inChargeOf":"LINDSEY, VICKI ANN"
+  },
+  "relatedLicensees": [
+    {
+      "name":"STEWART, RICHARD WAGNER",
+      "licenseNumber":"0225101524",
+      "licenseType":"Real Estate Individual",
+      "relationType":"Associate Broker",
+      "expirationDate":"2026-12-31",
+      "status":"Active",
+      "rank":"Broker License",
+      "type":"Associate Broker License",
+      "address":"HEATHSVILLE, VA 22473",
+      "initialCertificationDate":"2006-08-25",
+      "rankEffectiveDate":"2014-12-10",
+      "continuingEducation": {
+        "periodStart":"2025-01-01",
+        "periodEnd":"2026-12-31",
+        "totalRequiredHours":26,
+        "totalEarnedHours":26,
+        "totalDeficitHours":0,
+        "requirements":[
+          {"requirement":"Broker Management (CE) - 6 hours","requiredHours":6,"earnedHours":6,"deficitHours":0},
+          {"requirement":"Broker Supervision (CE)","requiredHours":2,"earnedHours":2,"deficitHours":0},
+          {"requirement":"Ethics and Standards of Conduct (CE)","requiredHours":3,"earnedHours":3,"deficitHours":0},
+          {"requirement":"Fair Housing (CE)","requiredHours":2,"earnedHours":2,"deficitHours":0},
+          {"requirement":"Legal Updates w/ Flood Content (CE) 2hrs","requiredHours":2,"earnedHours":2,"deficitHours":0},
+          {"requirement":"Real Estate Agency (CE) 2hrs","requiredHours":2,"earnedHours":2,"deficitHours":0},
+          {"requirement":"Real Estate Contracts (CE) 2hrs","requiredHours":2,"earnedHours":2,"deficitHours":0},
+          {"requirement":"Real Estate Related Subjects (CE) 5hrs","requiredHours":5,"earnedHours":5,"deficitHours":0}
+        ]
+      }
+    },
+    {
+      "name":"STEWART, ELIZABETH FISHER",
+      "licenseNumber":"0225175044",
+      "licenseType":"Real Estate Individual",
+      "relationType":"Firm - Salesperson",
+      "expirationDate":"2028-08-31"
+    }
+  ],
+  "relatedFirmFromLicensee": {
+    "name":"GOLD POINT REAL ESTATE LLC",
+    "licenseNumber":"0226009417",
+    "licenseType":"Real Estate Firm License",
+    "relationType":"Related Firm",
+    "expirationDate":"2027-04-30",
+    "dba":"GOLD POINT REAL ESTATE",
+    "initialCertificationDate":"2005-04-06",
+    "address":"7518 ELKHARDT STREET, RICHMOND, VA 23225",
+    "inChargeOf":"LINDSEY, VICKI ANN"
+  }
+}

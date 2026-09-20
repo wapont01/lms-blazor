@@ -1,0 +1,39 @@
+{
+  "state":"Texas",
+  "strategyName":"Texas TREC Active Broker or Sales Agent Roster Lookup Strategy",
+  "source":"https://www.trec.texas.gov/license-search/",
+  "query":{"licenseTypeFilter":"Broker or Sales Agent","licenseStatus":"Active","nameOrLicense":"","firstResultPage":1},
+  "entityLicenseSearchExample":{"nameOrLicense":"596861-BB","licenseTypeFilter":"Broker or Sales Agent","licenseStatus":"Active","matchedEntity":"Pecan Classic Realty, L.L.C.","matchedLicenseType":"Broker Company","matchedStatus":"Active"},
+  "resultPages":"18630",
+  "recordsPerVisiblePage":10,
+  "importantTaxonomyNote":"TREC's Broker or Sales Agent filter is combined. Classify each returned record from its exact License Type/detail profile; do not treat the query category as broker-only.",
+  "firstPageSample":[
+    {"name":"Pecan Classic Realty, L.L.C.","licenseNumber":"596861-BB","licenseType":"Real Estate - Business Broker License","status":"Active","expirationDate":"07/31/2028","detailProfile":{"entityType":"Business entity","designatedBroker":"Wise, Annamaria","designatedBrokerLicense":"535139-B","designatedBrokerLicenseType":"Broker Individual","designatedBrokerExpiration":"09/30/2027","sponsoredSalesAgents":6,"sponsoredAgents":["Book, Kenneth D","Durham, Kimberly Ann","Jacob Raley","Meyer, Giselle","Papenfuss, Gabriela","Shipley, Veronique Michelle"]}},
+    {"name":"A Bobadilla, cosme Artemio","licenseNumber":"620392-SA","licenseType":"Real Estate - Sales Agent License","status":"Active","expirationDate":"06/30/2027","detailProfile":{"entityType":"Individual","delegatedSupervisor":"No","sponsoringBroker":"Texas Premier Realty LLC","sponsoringBrokerLicense":"9014663-BB","sponsoringBrokerLicenseType":"Broker Company","sponsoringBrokerExpiration":"04/30/2028","ceSummary":"TREC detail states 18 hours CE per license period, including 4-hour Legal Update I, 4-hour Legal Update II, 3-hour contract-related coursework, and when applicable 6-hour Broker Responsibility."}},
+    {"name":"A Briseno, Julissa","licenseNumber":"763111-SA","licenseType":"Real Estate - Sales Agent License","status":"Active","expirationDate":"06/30/2027"},
+    {"name":"A Porras, Marco Aurelio","licenseNumber":"564194-SA","licenseType":"Real Estate - Sales Agent License","status":"Active","expirationDate":"01/30/2027"},
+    {"name":"A Schuette, Denise","licenseNumber":"716269-SA","licenseType":"Real Estate - Sales Agent License","status":"Active","expirationDate":"01/30/2027"},
+    {"name":"Aad, Roger","licenseNumber":"692211-B","licenseType":"Real Estate - Individual Broker License","status":"Active","expirationDate":"07/31/2027"},
+    {"name":"Aadimoolam, Namitha","licenseNumber":"821871-SA","licenseType":"Real Estate - Sales Agent License","status":"Active","expirationDate":"04/30/2028"},
+    {"name":"Aandahl, Serene Wister","licenseNumber":"705101-SA","licenseType":"Real Estate - Sales Agent License","status":"Active","expirationDate":"05/31/2028"},
+    {"name":"Aanenson, Elin","licenseNumber":"793579-SA","licenseType":"Real Estate - Sales Agent License","status":"Active","expirationDate":"09/30/2028"},
+    {"name":"Elysian Realty LLC","licenseNumber":"9013710-BB","licenseType":"Real Estate - Business Broker License","status":"Active","expirationDate":"06/30/2027"}
+  ],
+  "additionalEntityProfile": {
+    "name":"Elysian Realty LLC",
+    "licenseNumber":"9013710-BB",
+    "licenseType":"Broker Company",
+    "status":"Active",
+    "expirationDate":"06/30/2027",
+    "businessAddress":"6025 Del Roy Dr, Dallas, Texas 75230",
+    "businessPhone":"(214)912-9152",
+    "designatedBroker":"Aarant, Dave",
+    "designatedBrokerLicense":"350137-B",
+    "designatedBrokerExpiration":"05/31/2027",
+    "sponsoredAgents":[]
+  },
+  "capturedFields":["name","license number","license type","status","expiration date","designated broker","sponsoring broker","sponsored agents","CE requirement summary when shown"],
+  "entityRule":"Business Broker records are entity candidates; Individual Broker and Sales Agent records are individual licensees. Active firms and their related active personnel should be retained for campaigns; inactive records belong in historical storage.",
+  "renewalReminderRule":"Texas reminders must use the exact license type and expiration date. Sales agents have person-specific CE/sponsorship reminders; business broker records identify the firm and designated broker, not a person course recipient.",
+  "note":"The first result page was sampled. No statewide bulk export or all-page crawl was claimed."
+}

@@ -15,13 +15,14 @@ public class SelfRegistrationTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var user = await fixture.UserAccountService.RegisterLearnerAsync(
-            "New.Agent@Example.com", "New Agent", "NewAgent123!", "North Carolina", "999999");
+            "New.Agent@Example.com", "NewAgent123!");
 
         Assert.Equal("new.agent@example.com", user.Email);
+        Assert.Equal("Guest Learner", user.DisplayName);
         Assert.Equal("Learner", user.Role);
         Assert.True(user.IsActive);
-        Assert.Equal("North Carolina", user.State);
-        Assert.Equal("999999", user.LicenseNumber);
+        Assert.Null(user.State);
+        Assert.Null(user.LicenseNumber);
 
         var login = await fixture.UserAccountService.AuthenticateAsync("new.agent@example.com", "NewAgent123!");
         Assert.Equal(LoginStatus.Succeeded, login.Status);
@@ -36,7 +37,7 @@ public class SelfRegistrationTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var user = await fixture.UserAccountService.RegisterLearnerAsync(
-            "quiet.agent@example.com", "Quiet Agent", "QuietAgent12!", marketingOptIn: false);
+            "quiet.agent@example.com", "QuietAgent12!", marketingOptIn: false);
         Assert.NotNull(user.MarketingEmailOptOutAtUtc);
 
         await fixture.UserAccountService.SetMarketingEmailPreferenceAsync(user.Id, optIn: true);
@@ -79,7 +80,7 @@ public class SelfRegistrationTests
         await fixture.DbContext.SaveChangesAsync();
 
         var user = await fixture.UserAccountService.RegisterLearnerAsync(
-            "jazmin.martinez@example.com", "Jazmin Martinez", "JazminPb123!", "North Carolina", "368498");
+            "jazmin.martinez@example.com", "JazminPb123!");
 
         Assert.True(await fixture.DirectoryService.TryAutoLinkLicenseAsync(user.Id, "North Carolina", "368498"));
 
@@ -102,16 +103,16 @@ public class SelfRegistrationTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var user = await fixture.UserAccountService.RegisterLearnerAsync(
-            "no.match@example.com", "No Match", "NoMatch1234!", "North Carolina", "000000");
+            "no.match@example.com", "NoMatch1234!");
 
         Assert.False(await fixture.DirectoryService.TryAutoLinkLicenseAsync(user.Id, "North Carolina", "000000"));
         Assert.False(await fixture.DirectoryService.TryAutoLinkLicenseAsync(user.Id, null, null));
 
         Assert.False(await fixture.DbContext.UserRegulatoryLicenseLinks.AnyAsync(candidate => candidate.UserAccountId == user.Id));
 
-        // self-reported values stay, account remains fully usable
+        // the minimal account remains fully usable
         var refreshed = await fixture.DbContext.UserAccounts.SingleAsync(candidate => candidate.Id == user.Id);
-        Assert.Equal("000000", refreshed.LicenseNumber);
+        Assert.Null(refreshed.LicenseNumber);
         Assert.True(refreshed.IsActive);
         var login = await fixture.UserAccountService.AuthenticateAsync("no.match@example.com", "NoMatch1234!");
         Assert.Equal(LoginStatus.Succeeded, login.Status);

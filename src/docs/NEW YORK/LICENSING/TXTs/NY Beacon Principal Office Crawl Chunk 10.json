@@ -1,0 +1,7 @@
+{
+  "state":"New York","query":{"city":"Beacon","licenseType":"Principal Office","rowsPerPage":30},"resultCount":20,"status":"Current","chunk":10,
+  "records":[
+    {"name":"SCHREIBER REALTY GROUP LLC","licenseNumber":"10991205261","status":"Current","address":"320 HUDSON AVE, Beacon, NY, Dutchess, 12508, US","phone":"845 440 6255","relatedLicensees":[{"name":"SCHREIBER, GREGORY D","licenseType":"Limited Liability Company Broker:LL Comp Broker","licenseExpiry":"03/16/2028"},{"name":"Yeaple, Olivia","licenseType":"Salesperson:Salesperson","licenseExpiry":"07/05/2027"}]},
+    {"name":"VELEZ DONATO JR","licenseNumber":"10991240837","status":"Current","address":"2 BLUE GRASS LANE, Beacon, NY, Dutchess, 12508-2902, US","phone":"917 337 1665","relatedLicensees":[{"name":"Velez, Donato","licenseType":"Individual Broker:Indv. Broker","licenseExpiry":"12/23/2026"}]}
+  ]
+}

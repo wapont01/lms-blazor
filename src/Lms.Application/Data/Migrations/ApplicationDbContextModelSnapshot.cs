@@ -231,8 +231,37 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("CertificationFirstName")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificationIdentitySource")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificationLastName")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificationLicenseNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificationReviewStatus")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificationState")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("CommissionCourseNumber")
                         .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CommissionSubmittedAtUtc")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CompletedAtUtc")
@@ -710,6 +739,30 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("AssessmentReminderSentAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificationFirstName")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificationIdentitySource")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificationLastName")
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificationLicenseNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("CertificationNameConfirmed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CertificationState")
+                        .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("Completed")
@@ -1923,6 +1976,11 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LicenseRenewalDueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LicenseRenewalDueDateSource")
+                        .IsRequired()
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LicenseStatus")

@@ -94,6 +94,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(user => user.PhoneNumber).HasMaxLength(40);
             entity.Property(user => user.PermanentAddress).HasMaxLength(500);
             entity.Property(user => user.LicenseType).HasMaxLength(10);
+            entity.Property(user => user.LicenseRenewalDueDateSource).HasMaxLength(20).IsRequired().HasDefaultValue(LicenseDateProvenance.Unknown);
             entity.Property(user => user.Role).HasMaxLength(40).IsRequired();
             entity.HasIndex(user => user.Email).IsUnique();
             entity.HasIndex(user => user.PasswordExpiresAt);

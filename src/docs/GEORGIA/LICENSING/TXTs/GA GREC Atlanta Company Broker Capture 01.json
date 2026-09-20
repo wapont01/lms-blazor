@@ -1,0 +1,48 @@
+{
+  "state": "Georgia",
+  "city": "Atlanta",
+  "source": "https://ata.grec.state.ga.us/Account/Search",
+  "query": {
+    "entityType": "Company",
+    "firmType": "Real Estate",
+    "city": "Atlanta"
+  },
+  "parserVersion": "ga-grec-atlanta-company-broker-v1",
+  "captureNote": "First accessible result page returned 20 company rows. Broker licenses exposed by company rows were searched through the portal's Find a Real Estate Agent workflow. No deep crawl or anti-automation bypass was used.",
+  "firms": [
+    {"name":"1 CHICK DEEP ENTERPRISES LLC","city":"Atlanta","license":"79303","status":"ACTIVE","renewalDue":"10/31/2029","phone":"4044268899","email":"deegetsitdone@gmail.com","dba":"NEW FREEDOM REALTY PARTNERS","activeAgents":1,"brokerLicense":"296643"},
+    {"name":"1 FAITH PROPERTY MANAGEMENT LLC","city":"Atlanta","license":"76840","status":"LAPSED FEES","renewalDue":"08/31/2026","phone":"4044901111","email":"edd@eddst.com","dba":"","activeAgents":0,"brokerLicense":null},
+    {"name":"1028 WEST LLC","city":"Atlanta","license":"77637","status":"ACTIVE","renewalDue":"09/30/2027","phone":"4049746631","email":"strategy@1028west.com","dba":"","activeAgents":1,"brokerLicense":"367733"},
+    {"name":"1280 WEST REALTY LLC","city":"Atlanta","license":"47486","status":"LAPSED FEES","renewalDue":"10/31/2008","phone":"4048531620","email":"","dba":"","activeAgents":0,"brokerLicense":null},
+    {"name":"1ST & MAIN REALTY LLC","city":"Atlanta","license":"78497","status":"LAPSED FEES","renewalDue":"12/31/2024","phone":"4047352551","email":"1standmainrealty@gmail.com","dba":"","activeAgents":0,"brokerLicense":null},
+    {"name":"1ST CHOICE REALTY OF ATLANTA INC","city":"Atlanta","license":"82139","status":"ACTIVE","renewalDue":"02/28/2029","phone":"6785249984","email":"1stchoicerealtyofatlanta@gmail.com","dba":"","activeAgents":1,"brokerLicense":"348818"},
+    {"name":"1ST CLASS REAL ESTATE CRIMSON LLC","city":"Atlanta","license":"80264","status":"ACTIVE","renewalDue":"11/30/2026","phone":"8889792737","email":"derek.sanders@1crecrimson.com","dba":"","activeAgents":2,"brokerLicense":"343954"},
+    {"name":"1ST INVESTMENT & DEVELOPMENT INC","city":"Atlanta","license":"52579","status":"LAPSED FEES","renewalDue":"03/31/2014","phone":"7704528104","email":"hankuk@bellsouth.net","dba":"","activeAgents":0,"brokerLicense":null},
+    {"name":"1ST METROPOLITAN ATLANTA REALTY INC","city":"Atlanta","license":"58387","status":"CLOSED","renewalDue":"08/31/2011","phone":"4043899700","email":"","dba":"1ST METRO REALTY","activeAgents":0,"brokerLicense":null},
+    {"name":"1ST PRIORITY ONE REAL ESTATE INC","city":"Atlanta","license":"76077","status":"ACTIVE","renewalDue":"07/31/2030","phone":"8663062115","email":"diona@1priorityonere.com","dba":"","activeAgents":1,"brokerLicense":"377811"},
+    {"name":"1ST STEP REAL ESTATE SERVICES LLC","city":"Atlanta","license":"81624","status":"ACTIVE","renewalDue":"06/30/2028","phone":"4049532941","email":"1ststeprealestate@gmail.com","dba":"","activeAgents":1,"brokerLicense":"359926"},
+    {"name":"1ST VISION REAL ESTATE INC","city":"Atlanta","license":"77618","status":"ACTIVE","renewalDue":"09/30/2027","phone":"6787775071","email":"roy.clark60@gmail.com","dba":"","activeAgents":1,"brokerLicense":"130027"},
+    {"name":"20 WEST REALTY LLC","city":"Atlanta","license":"76917","status":"ACTIVE","renewalDue":"10/31/2026","phone":"6787788855","email":"melanie.fields@20westrealty.com","dba":"","activeAgents":7,"brokerLicense":"355751"},
+    {"name":"222 REAL ESTATE COMPANY LLC","city":"Atlanta","license":"66383","status":"LAPSED FEES","renewalDue":"04/30/2018","phone":"8283338595","email":"","dba":"","activeAgents":0,"brokerLicense":null},
+    {"name":"24 HOUR ATLANTA REALTY LLC","city":"Atlanta","license":"65763","status":"ACTIVE","renewalDue":"06/30/2029","phone":"4045509532","email":"curtislmoorer@gmail.com","dba":"","activeAgents":2,"brokerLicense":"302150"},
+    {"name":"360 MANAGEMENT & CONSULTING","city":"Atlanta","license":"63004","status":"LAPSED FEES","renewalDue":"03/31/2014","phone":"4046316406","email":"","dba":"","activeAgents":0,"brokerLicense":null},
+    {"name":"381 ALPHA BRAVO LLC","city":"Atlanta","license":"61670","status":"ACTIVE","renewalDue":"11/30/2028","phone":"4042360043","email":"john@chapmanhallrealtors.com","dba":"CHAPMAN HALL REALTY","activeAgents":119,"brokerLicense":"262837"},
+    {"name":"3M REALTY CONSULTANTS LLC","city":"Atlanta","license":"82552","status":"ACTIVE","renewalDue":"09/30/2029","phone":"4049967579","email":"3mrealtyconsultantsllc@gmail.com","dba":"","activeAgents":1,"brokerLicense":"405375"},
+    {"name":"40TH STREET REALTY LLC","city":"Atlanta","license":"67413","status":"LAPSED FEES","renewalDue":"10/31/2019","phone":"4045838311","email":"barrydbacon@gmail.com","dba":"","activeAgents":0,"brokerLicense":null},
+    {"name":"95 KEY PROPERTY MANAGEMENT LLC","city":"Atlanta","license":"82482","status":"ACTIVE","renewalDue":"08/31/2029","phone":"4042825373","email":"paris@95keypropertymgmt.com","dba":"","activeAgents":1,"brokerLicense":"416412"}
+  ],
+  "brokers": [
+    {"license":"296643","name":"DIONNA INGRAM","type":"BRKR","status":"ACTIVE","renewalDue":"01/31/2030","firms":[{"name":"1 CHICK DEEP ENTERPRISES LLC","role":"QUALIFYING"}]},
+    {"license":"367733","name":"SHATIMA TANKSON","type":"BRKR","status":"ACTIVE","renewalDue":"12/31/2027","firms":[{"name":"1028 WEST LLC","role":"QUALIFYING"},{"name":"THE PREMIER WEST GROUP","role":"ABKR"},{"name":"WESTEN + CURTIS HOMES LLC","role":"QUALIFYING"}]},
+    {"license":"348818","name":"DHANAJAY GUPTA","type":"BRKR","status":"ACTIVE","renewalDue":"07/31/2027","firms":[{"name":"1ST CHOICE REALTY OF ATLANTA INC","role":"QUALIFYING"}]},
+    {"license":"343954","name":"DEREK SANDERS","type":"BRKR","status":"ACTIVE","renewalDue":"09/30/2027","firms":[{"name":"1ST CLASS REAL ESTATE CRIMSON LLC","role":"QUALIFYING"}]},
+    {"license":"377811","name":"DIONA MILLER","type":"BRKR","status":"ACTIVE","renewalDue":"08/31/2029","firms":[{"name":"1ST PRIORITY ONE REAL ESTATE INC","role":"QUALIFYING"}]},
+    {"license":"359926","name":"MIRANDA BEAUPIERRE","type":"BRKR","status":"ACTIVE","renewalDue":"04/30/2029","firms":[{"name":"1ST STEP REAL ESTATE SERVICES LLC","role":"QUALIFYING"}]},
+    {"license":"130027","name":"JOHN CLARK","type":"BRKR","status":"ACTIVE","renewalDue":"12/31/2028","firms":[{"name":"1ST VISION REAL ESTATE INC","role":"QUALIFYING"},{"name":"PREFERRED REALTY INVESTMENT COMPANY","role":"QUALIFYING"}]},
+    {"license":"355751","name":"MELANIE FIELDS","type":"BRKR","status":"ACTIVE","renewalDue":"02/28/2030","firms":[{"name":"20 WEST REALTY LLC","role":"QUALIFYING"}]},
+    {"license":"302150","name":"CURTIS MOORER","type":"BRKR","status":"ACTIVE","renewalDue":"11/30/2027","firms":[{"name":"24 HOUR ATLANTA REALTY LLC","role":"QUALIFYING"}]},
+    {"license":"262837","name":"JOHN HALLMAN","type":"BRKR","status":"ACTIVE","renewalDue":"09/30/2030","firms":[{"name":"381 ALPHA BRAVO LLC","role":"QUALIFYING"},{"name":"CREST REAL ESTATE OF GEORGIA LLC","role":"ABKR"},{"name":"CREST REAL ESTATE OF GEORGIA LLC","role":"QUALIFYING"}]},
+    {"license":"405375","name":"MIKE MOHELE","type":"BRKR","status":"ACTIVE","renewalDue":"09/30/2028","firms":[{"name":"3M REALTY CONSULTANTS LLC","role":"QUALIFYING"}]},
+    {"license":"416412","name":"PARIS MILNE","type":"BRKR","status":"ACTIVE","renewalDue":"03/31/2029","firms":[{"name":"95 KEY PROPERTY MANAGEMENT LLC","role":"QUALIFYING"}]}
+  ]
+}

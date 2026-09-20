@@ -1,0 +1,96 @@
+{
+  "state": "Connecticut",
+  "source": "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+  "capturedAt": "2026-09-19",
+  "query": {
+    "city": "Hartford",
+    "country": "UNITED STATES",
+    "licenseType": "REAL ESTATE BROKER"
+  },
+  "captureType": "business-entity-profile",
+  "records": [
+    {
+      "legalName": "A1 BUSINESS & REALTY LLC",
+      "credential": "REB.0794798",
+      "credentialType": "REAL ESTATE BROKER",
+      "status": "ACTIVE",
+      "statusReason": "CURRENT",
+      "dbaOrAlias": "",
+      "address": "42 ROSEMONT ST FL 3, HARTFORD, CT 06120-1120",
+      "effectiveDate": "12/01/2024",
+      "expirationDate": "11/30/2026",
+      "firstIssuanceDateOnRecord": "05/22/2023",
+      "brokerDesignee": "JACQUELINE O JOHNSON"
+    },
+    {
+      "legalName": "A1 BUSINESS & REALTY LLC",
+      "credential": "REB.0789157",
+      "credentialType": "REAL ESTATE BROKER",
+      "status": "INACTIVE",
+      "statusReason": "",
+      "dbaOrAlias": "",
+      "address": "42 ROSEMONT ST FL 3, HARTFORD, CT 06120-1120",
+      "effectiveDate": "04/01/2014",
+      "expirationDate": "03/31/2015",
+      "firstIssuanceDateOnRecord": "12/02/2010",
+      "brokerDesignee": "JACQUELINE O JOHNSON"
+    },
+    {
+      "legalName": "ABEND & ASSOCIATES",
+      "credential": "REB.0750684",
+      "credentialType": "REAL ESTATE BROKER",
+      "status": "INACTIVE",
+      "statusReason": "",
+      "dbaOrAlias": "PETER G HELIE",
+      "address": "153 OXFORD ST, HARTFORD, CT 06105",
+      "effectiveDate": "04/01/2003",
+      "expirationDate": "03/31/2004",
+      "firstIssuanceDateOnRecord": "Not Recorded",
+      "brokerDesignee": ""
+    },
+    {
+      "legalName": "ABSOLUTE REALTY LLC",
+      "credential": "REB.0788106",
+      "credentialType": "REAL ESTATE BROKER",
+      "status": "INACTIVE",
+      "statusReason": "DUE TO NON-RENEWAL OF CREDENTIAL",
+      "dbaOrAlias": "",
+      "address": "P.O.Box 1864, Hartford, CT 06144",
+      "effectiveDate": "12/01/2023",
+      "expirationDate": "11/30/2024",
+      "firstIssuanceDateOnRecord": "06/03/2008",
+      "brokerDesignee": "RICKY N BEST"
+    },
+    {
+      "legalName": "AFFORDABLE HOMES INC",
+      "credential": "REB.0751186",
+      "credentialType": "REAL ESTATE BROKER",
+      "status": "INACTIVE",
+      "statusReason": "",
+      "dbaOrAlias": "STEPHEN FRANCIS TORREY",
+      "address": "375D LEDYARD STREET, HARTFORD, CT 06114",
+      "effectiveDate": "04/01/2001",
+      "expirationDate": "03/31/2002",
+      "firstIssuanceDateOnRecord": "Not Recorded",
+      "brokerDesignee": ""
+    },
+    {
+      "legalName": "AVANTE MANAGEMENT GROUP INC",
+      "credential": "REB.0751211",
+      "credentialType": "REAL ESTATE BROKER",
+      "status": "INACTIVE",
+      "statusReason": "EXPIRED MORE THAN 3 YEARS - MUST REAPPLY",
+      "dbaOrAlias": "ODIS P COLEMAN",
+      "address": "98 GARDEN ST, HARTFORD, CT 06105",
+      "effectiveDate": "06/01/1996",
+      "expirationDate": "05/31/1997",
+      "firstIssuanceDateOnRecord": "Not Recorded",
+      "brokerDesignee": ""
+    }
+  ],
+  "contactFields": {
+    "email": "Not published in these Connecticut detail profiles",
+    "phone": "Not published in these Connecticut detail profiles"
+  },
+  "note": "Captured from a fresh browser session after the prior detail-view threshold. These are complete license profiles for business-name candidates; affiliated salesperson/broker rosters require additional relationship data not exposed in this detail modal."
+}

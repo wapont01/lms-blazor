@@ -1,0 +1,11 @@
+{
+  "state":"New York",
+  "source":"https://appext20.dos.ny.gov/nydos/selSearchType.do",
+  "query":{"searchBy":"City","city":"Beacon","licenseType":"Limited Liability Company Broker","rowsPerPage":30},
+  "resultCount":8,
+  "status":"All result rows Current",
+  "chunks":5,
+  "recordsPersisted":8,
+  "fieldsCaptured":["LLC broker name","license number","status","expiry date","practice address","related principal office name/type/address"],
+  "note":"Saved in small chunks for resumability. All eight current LLC broker records were captured."
+}

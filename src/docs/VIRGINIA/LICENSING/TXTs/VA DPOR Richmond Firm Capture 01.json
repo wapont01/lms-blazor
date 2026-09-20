@@ -1,0 +1,23 @@
+{
+  "state":"Virginia",
+  "source":"https://www.dpor.virginia.gov/LicenseLookup",
+  "query":{"board":"Real Estate Board","licenseType":"Real Estate Firm License","location":"Richmond"},
+  "parserVersion":"va-dpor-richmond-firm-v1",
+  "captureNote":"Official DPOR advanced lookup returned up to 200 capped results. One firm detail was opened through the normal result form. Individual filtering was not persisted because the embedded custom multi-select repeatedly submitted unrelated boards when automated.",
+  "firms":[
+    {
+      "name":"RITCHIE PROPERTIES LLC",
+      "dba":"RITCHIE PROPERTIES",
+      "licenseNumber":"0226023663",
+      "licenseType":"Real Estate Firm License",
+      "rank":"Firm License",
+      "address":"1501 SLEDD STREET, RICHMOND, VA 23220",
+      "initialCertificationDate":"2012-03-20",
+      "expirationDate":"2018-03-31",
+      "sourceUpdatedAt":"Sat Sep 19 02:50:18 EDT"
+    }
+  ],
+  "individuals":[],
+  "individualSearchResult":"Searching the firm name Ritchie Properties under the portal's individual lookup returned no records. The firm detail page exposed no embedded licensee links or associated-agent roster.",
+  "nextStep":"Use independent Virginia Real Estate Individual searches by name, license number, or address; do not infer firm relationships from the firm detail page."
+}

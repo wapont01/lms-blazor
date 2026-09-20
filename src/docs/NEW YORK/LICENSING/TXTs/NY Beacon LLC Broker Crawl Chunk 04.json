@@ -1,0 +1,4 @@
+{
+  "state":"New York","query":{"city":"Beacon","licenseType":"Limited Liability Company Broker","rowsPerPage":30},"resultCount":8,"status":"Current","chunk":4,
+  "records":[{"licensee":"Anthony Ruperto","licenseNumber":"10491212292","status":"Current","expiry":"03/27/2027","practiceAddress":"6 Eliza Street, Beacon, NY, Dutchess, 12508, US","relatedFirm":"ALLY REALTY","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"6 Eliza Street, Beacon, NY, Dutchess, 12508, US"}]
+}

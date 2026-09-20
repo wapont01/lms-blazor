@@ -1,0 +1,7 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Trade Name Broker","rowsPerPage":30},"resultCount":2,"status":"All result rows Current",
+  "records":[
+    {"licensee":"MARK A DIROCCO","licenseNumber":"37DI0849465","status":"Current","expiry":"02/22/2027","practiceAddress":"464 MAIN ST, Beacon, NY, Dutchess, 12508, US","relatedFirm":"M D BEACON REALTY","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"464 MAIN ST, Beacon, NY, Dutchess, 12508, US"},
+    {"licensee":"RON DONOFRIO","licenseNumber":"10371201458","status":"Current","expiry":"04/30/2027","practiceAddress":"105 N Elm St, Beacon, NY, Dutchess, 12508, US","relatedFirm":"HUDSON VALLEY CATSKILLS REALTY","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"105 N Elm St, Beacon, NY, Dutchess, 12508, US"}
+  ]
+}

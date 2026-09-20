@@ -1,0 +1,18 @@
+{
+  "state":"New York",
+  "source":"https://appext20.dos.ny.gov/nydos/selSearchType.do",
+  "query":{"searchBy":"City","city":"Beacon","licenseType":"Salesperson","rowsPerPage":30},
+  "page":1,"offset":5,
+  "records":[
+    {"licensee":"Dorothy L Bizzoco","licenseNumber":"10401375859","status":"Current","licenseExpiry":"12/19/2026","firm":"SAMS REALTY","firmType":"Principal Office:Princ Off","firmAddress":"412 MAIN ST, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"PHYLLIS BOBB","licenseNumber":"40BO1045381","status":"Current","licenseExpiry":"01/26/2027","firm":"JONCAR REALTY INC","firmType":"Principal Office:Princ Off","firmAddress":"451 MAIN ST, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"Stephanie Bogdan","licenseNumber":"10401378253","status":"Current","licenseExpiry":"07/13/2027","firm":"Corcoran Country LIving","firmType":"Branch Office:Branch Office","firmAddress":"215 MAIN STREET, BEACON, NY DUTCHESS 12508 US","firmExpiry":"03/21/2027"},
+    {"licensee":"Kevin Bonilla","licenseNumber":"10401399733","status":"Current","licenseExpiry":"11/11/2027","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"},
+    {"licensee":"Cortney Boutot","licenseNumber":"10401373290","status":"Current","licenseExpiry":"01/23/2027","firm":"JONCAR REALTY INC","firmType":"Principal Office:Princ Off","firmAddress":"451 MAIN ST, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"Robert John Brestovansky","licenseNumber":"10401387969","status":"Current","licenseExpiry":"07/10/2028","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"},
+    {"licensee":"ShaQuille Brown","licenseNumber":"10401334138","status":"Current","licenseExpiry":"08/30/2027","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"},
+    {"licensee":"CLAIRE D BROWNE","licenseNumber":"40BR1168452","status":"Current","licenseExpiry":"10/17/2027","firm":"COMPASS GREATER NY LLC","firmType":"Branch Office:Branch Office","firmAddress":"490 MAIN STREET, BEACON, NY DUTCHESS 12508 US","firmExpiry":"03/24/2028"},
+    {"licensee":"Kathleen Carey","licenseNumber":"10401365316","status":"Current","licenseExpiry":"05/12/2028","firm":"JONCAR REALTY INC","firmType":"Principal Office:Princ Off","firmAddress":"451 MAIN ST, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"JODI L CARROLL","licenseNumber":"10401238655","status":"Current","licenseExpiry":"01/14/2027","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"}
+  ]
+}

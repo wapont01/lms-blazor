@@ -1,0 +1,43 @@
+{
+  "state":"Hawaii",
+  "source":"https://mypvl.dcca.hawaii.gov/public-license-search/",
+  "capturedAt":"2026-09-19",
+  "parserVersion":"hi-mypvl-business-employee-v1",
+  "businesses":[
+    {
+      "query":"HALE ELUA INVESTMENTS LLC",
+      "records":[
+        {"licenseId":"RB-21851","licenseType":"REAL ESTATE BROKER ENTITY","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","originalLicenseDate":"09/03/2015","expirationDate":"12/31/2026","businessAddress":"2580 KEKAA DR. STE 108, LAHAINA, HI, 96761","tradeName":"KELLER WILLIAMS REALTY MAUI"},
+        {"licenseId":"RBO-21851-1","licenseType":"REAL ESTATE BRANCH OFFICE","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026","businessAddress":"2580 KEKAA DR. STE. 108, LAHAINA HI 96761"},
+        {"licenseId":"RBO-21851-3","licenseType":"REAL ESTATE BRANCH OFFICE","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026","businessAddress":"380 HUKULI'I PL #201 KIHEI HI 96753"},
+        {"licenseId":"RBO-21851-5","licenseType":"REAL ESTATE BRANCH OFFICE","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026","businessAddress":"100 PAUAHI ST #213 HILO HI 96720"},
+        {"licenseId":"RBO-21851-2","licenseType":"REAL ESTATE BRANCH OFFICE","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026","businessAddress":"2435 KAANAPALI PKWY #3 LAHAINA HI 96761"},
+        {"licenseId":"RBO-21851-4","licenseType":"REAL ESTATE BRANCH OFFICE","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026","businessAddress":"73-5619 KAUHOLA ST #208 KAILUA KONA HI 96740"}
+      ],
+      "employeeLinks":[
+        {"licenseId":"RS-80591","name":"AARON AH YOU","type":"REAL ESTATE SALESPERSON","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+        {"licenseId":"RS-84964","name":"ALAN PINEDA ASUNCION","type":"REAL ESTATE SALESPERSON","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+        {"licenseId":"RS-83850","name":"ALEXIS G BIHM","type":"REAL ESTATE SALESPERSON","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+        {"licenseId":"RS-86089","name":"ALI JANE BODICK","type":"REAL ESTATE SALESPERSON","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+        {"licenseId":"RS-82701","name":"AMANDA L COOPER","type":"REAL ESTATE SALESPERSON","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+        {"licenseId":"RS-79723","name":"ANGELA K CHING","type":"REAL ESTATE SALESPERSON","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+        {"licenseId":"RB-22703","name":"ANN M WILLIAMS","type":"REAL ESTATE BROKER","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+        {"licenseId":"RS-83655","name":"ANNA G DE MOURA MAIA","type":"REAL ESTATE SALESPERSON","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+        {"licenseId":"RB-24212","name":"ANTHONY FREDA","type":"REAL ESTATE BROKER","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+        {"licenseId":"RB-22019","name":"ANTHONY M BROWN","type":"REAL ESTATE BROKER","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"}
+      ]
+    },
+    {
+      "query":"HENRY C WILLIAMS",
+      "records":[{"licenseId":"RB-12660","licenseType":"REAL ESTATE BROKER","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","originalLicenseDate":"01/06/1982","expirationDate":"12/31/2026","tradeName":"","employerHistory":[{"name":"CLINT WILLIAMS REALTY","effectiveDate":"03/24/1986","terminationDate":"11/10/1987"}]}]
+    },
+    {
+      "query":"Alii Hawaii Realty Inc",
+      "records":[{"licenseId":"RB-23729","licenseType":"REAL ESTATE BROKER ENTITY","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","originalLicenseDate":"04/22/2022","expirationDate":"12/31/2026","businessAddress":"92-302 KEWAI PLACE, KAPOLEI, HI, 96707, UNITED STATES"}],
+      "employeeLinks":[],
+      "employeeTable":"NO DATA AVAILABLE IN TABLE",
+      "linkedHistoryRecords":[{"licenseId":"RB-21099","name":"SANDY XAY","licenseType":"REAL ESTATE BROKER","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"}]
+    }
+  ],
+  "note":"No LMS import performed. Business employee links were followed through public license-detail pages where available."
+}

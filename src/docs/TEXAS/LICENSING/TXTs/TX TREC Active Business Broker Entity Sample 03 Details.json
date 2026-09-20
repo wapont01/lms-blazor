@@ -1,0 +1,12 @@
+{
+  "state":"Texas","strategyName":"Texas TREC Active Entity License Search","source":"https://www.trec.texas.gov/license-search/","status":"Active",
+  "records":[
+    {"name":"Velora Homes Realty LLC","licenseNumber":"9017099-BB","expirationDate":"07/31/2028","dba":"Velora Realty","designatedBroker":{"name":"Abdul Jameel, Sofiya Begum","licenseNumber":"679514-B","expirationDate":"07/31/2028"},"sponsoredAgents":[{"name":"Abdur Rahman, Abdul Jameel","licenseNumber":"738887-SA","expirationDate":"06/30/2028"}]},
+    {"name":"Austin Skyline Realty, LLC","licenseNumber":"464505-BB","expirationDate":"09/30/2027","designatedBroker":{"name":"Wise, James","licenseNumber":"317266-B","expirationDate":"09/30/2027"},"sponsoredAgents":[{"name":"Nash, Katherine Alexandra Ables","licenseNumber":"811630-SA","expirationDate":"09/30/2027"}]},
+    {"name":"Weststar Properties, Inc.","licenseNumber":"598377-BB","expirationDate":"09/30/2028","designatedBroker":{"name":"Abraham, Arnella","licenseNumber":"472573-B","expirationDate":"10/31/2026"},"sponsoredAgents":[]},
+    {"name":"Red Real Estate Services, LLC","licenseNumber":"9009939-BB","expirationDate":"09/30/2028","designatedBroker":{"name":"Abuhamra, Sammy","licenseNumber":"642497-B","expirationDate":"05/31/2028"},"sponsoredAgents":[{"name":"Judith Abuhamra","licenseNumber":"736057-SA","expirationDate":"03/31/2028"},{"name":"Mendez, Patricia Beth","licenseNumber":"685344-SA","expirationDate":"03/31/2027"}]},
+    {"name":"Target Cost Realty L.L.C","licenseNumber":"9000262-BB","expirationDate":"03/31/2027","dbas":["Targetcost Consultants","Targetcost Realty LLC"],"designatedBroker":{"name":"Aburime, Ikponmwosa ODARO","licenseNumber":"489252-B","expirationDate":"01/30/2028"},"sponsoredAgentCount":19,"sponsoredAgentsCaptured":"All 19 names, license numbers, sponsor dates, and expiration dates were displayed in the TREC profile."},
+    {"name":"The Kase Group","licenseNumber":"9006301-BB","expirationDate":"07/31/2027","dbas":["TKG Net Lease, Inc."],"designatedBroker":{"name":"Abusharkh, Khalil Abusharkh","licenseNumber":"708586-B","expirationDate":"07/31/2028"},"sponsoredAgents":[]}
+  ],
+  "note":"These six active entity profiles were opened directly by license number after entity links were found while paging the active Broker or Sales Agent results. TREC entity profiles may expose DBAs, designated brokers, and a complete sponsored-agent roster."
+}

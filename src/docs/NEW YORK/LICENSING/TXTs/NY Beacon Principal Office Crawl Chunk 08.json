@@ -1,0 +1,7 @@
+{
+  "state":"New York","query":{"city":"Beacon","licenseType":"Principal Office","rowsPerPage":30},"resultCount":20,"status":"Current","chunk":8,
+  "records":[
+    {"name":"M D BEACON REALTY","licenseNumber":"109936675","status":"Current","address":"464 MAIN ST, Beacon, NY, Dutchess, 12508, US","phone":null,"relatedLicensees":[{"name":"Seyffert, Linda A.","licenseType":"Salesperson:Salesperson","licenseExpiry":"04/20/2028"},{"name":"DIROCCO, MARK A","licenseType":"Trade Name Broker:TN Broker","licenseExpiry":"02/22/2027"}]},
+    {"name":"MANISALI SERVICES LLC","licenseNumber":"10991239499","status":"Current","address":"135 MAIN ST, Beacon, NY, Dutchess, 12508, US","phone":null,"relatedLicensees":[{"name":"Manisali, Cem Barbaros","licenseType":"Limited Liability Company Broker:LL Comp Broker","licenseExpiry":"01/21/2028"},{"name":"Manisali, Serdar","licenseType":"Salesperson:Salesperson","licenseExpiry":"04/08/2028"}]}
+  ]
+}

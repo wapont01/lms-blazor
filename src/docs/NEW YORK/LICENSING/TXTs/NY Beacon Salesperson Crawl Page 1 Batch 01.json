@@ -1,0 +1,10 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Salesperson","rowsPerPage":30},"page":1,"offset":0,
+  "records":[
+    {"licensee":"Rebecca AGOSTA","licenseNumber":"10401229289","status":"Current","licenseExpiry":"04/05/2027","practiceAddress":"226 MAIN ST SUITE 1, BEACON, NY DUTCHESS 12508-2732","firm":"Berkshire Hathaway HomeServices Hudson Valley Properties","firmType":"Branch Office:Branch Office","firmAddress":"226 MAIN ST SUITE 1, BEACON, NY DUTCHESS 12508-2732","firmExpiry":"07/06/2027"},
+    {"licensee":"Daniel Amone","licenseNumber":"10401385711","status":"Current","licenseExpiry":"04/17/2028","practiceAddress":"226 MAIN ST SUITE 1, BEACON, NY DUTCHESS 12508-2732","firm":"Berkshire Hathaway HomeServices Hudson Valley Properties","firmType":"Branch Office:Branch Office","firmAddress":"226 MAIN ST SUITE 1, BEACON, NY DUTCHESS 12508-2732","firmExpiry":"07/06/2027"},
+    {"licensee":"Joseph Andreozzi","licenseNumber":"10401395460","status":"Current","licenseExpiry":"05/12/2027","firm":"PROPERTY CONSULTANT AND MANAGEMENT LLC","firmType":"Principal Office:Princ Off","firmAddress":"72 DUTCHESS TERR, BEACON, NY DUTCHESS 12508"},
+    {"licensee":"Michelle Bannerman","licenseNumber":"10401356044","status":"Current","licenseExpiry":"09/01/2027","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"},
+    {"licensee":"Andi Berisha","licenseNumber":"10401382255","status":"Current","licenseExpiry":"12/07/2027","firm":"Berkshire Hathaway HomeServices Hudson Valley Properties","firmType":"Branch Office:Branch Office","firmAddress":"226 MAIN ST SUITE 1, BEACON, NY DUTCHESS 12508-2732","firmExpiry":"07/06/2027"}
+  ]
+}

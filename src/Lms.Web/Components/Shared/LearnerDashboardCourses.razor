@@ -18,6 +18,10 @@
                     {
                         <a href="/certificates/@course.CertificateId.Value/download">Download Certificate</a>
                     }
+                    else if (course.Status == "Completed" && !course.CertificationIdentitySubmitted)
+                    {
+                        <a href="/certification/@course.CourseId">Complete Certification Details</a>
+                    }
                 </div>
             </div>
         }

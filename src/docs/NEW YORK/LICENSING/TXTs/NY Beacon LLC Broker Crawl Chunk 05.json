@@ -1,0 +1,4 @@
+{
+  "state":"New York","query":{"city":"Beacon","licenseType":"Limited Liability Company Broker","rowsPerPage":30},"resultCount":8,"status":"Current","chunk":5,
+  "records":[{"licensee":"GREGORY D SCHREIBER","licenseNumber":"10491201357","status":"Current","expiry":"03/16/2028","practiceAddress":"320 HUDSON AVE, Beacon, NY, Dutchess, 12508, US","relatedFirm":"SCHREIBER REALTY GROUP LLC","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"320 HUDSON AVE, Beacon, NY, Dutchess, 12508, US"}]
+}

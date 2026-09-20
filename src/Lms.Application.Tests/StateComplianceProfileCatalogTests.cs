@@ -11,6 +11,8 @@ public class StateComplianceProfileCatalogTests
     {
         var florida = DistanceLearningProfileCatalog.Get("Florida");
         var northCarolina = DistanceLearningProfileCatalog.Get("North Carolina");
+        var southCarolina = DistanceLearningProfileCatalog.Get("South Carolina");
+        var georgia = DistanceLearningProfileCatalog.Get("Georgia");
 
         Assert.Equal("Florida", florida.State);
         Assert.True(florida.Requirements.AllowsDistanceEducation);
@@ -21,6 +23,107 @@ public class StateComplianceProfileCatalogTests
         Assert.True(northCarolina.Requirements.AllowsDistanceEducation);
         Assert.True(northCarolina.Requirements.RequiresInstructorCameraVisibilityForSynchronousLearning);
         Assert.True(northCarolina.Requirements.RequiresAttendanceTrackingForSynchronousCourses);
+
+        Assert.Equal("South Carolina", southCarolina.State);
+        Assert.True(southCarolina.Requirements.AllowsDistanceEducation);
+        Assert.True(southCarolina.Requirements.RequiresProviderDisclosure);
+        Assert.True(southCarolina.Requirements.RequiresInstructorCameraVisibilityForSynchronousLearning);
+        Assert.True(southCarolina.Requirements.RequiresAttendanceTrackingForSynchronousCourses);
+        Assert.Equal(70, southCarolina.Requirements.MinimumPassingPercent);
+
+        Assert.Equal("Georgia", georgia.State);
+        Assert.True(georgia.Requirements.AllowsDistanceEducation);
+        Assert.True(georgia.Requirements.RequiresAttendanceTrackingForSynchronousCourses);
+        Assert.Equal(100, georgia.Requirements.MinimumAttendancePercent);
+    }
+
+    [Fact]
+    public void SouthCarolinaRenewalPolicies_UseBiennialCeRulesByLicenseCategory()
+    {
+        var associate = StateLicenseRenewalPolicyCatalog.Get("South Carolina", "Associate");
+        var broker = StateLicenseRenewalPolicyCatalog.Get("South Carolina", "Broker");
+        var bic = StateLicenseRenewalPolicyCatalog.Get("South Carolina", "Broker-in-Charge");
+
+        Assert.Equal(2, associate.RenewalCycleYears);
+        Assert.Equal(4, associate.RenewalWindowStartMonth);
+        Assert.Equal(6, associate.RenewalWindowEndMonth);
+        Assert.False(associate.HasPostlicensingDeadline);
+        Assert.Equal(10m, associate.ContinuingEducation.TotalHours);
+        Assert.Equal(4m, associate.ContinuingEducation.CoreHours);
+        Assert.Equal(6m, associate.ContinuingEducation.ElectiveHours);
+        Assert.Equal(0m, associate.ContinuingEducation.BicHours);
+
+        Assert.Equal(associate.ContinuingEducation.TotalHours, broker.ContinuingEducation.TotalHours);
+        Assert.Equal(associate.ContinuingEducation.CoreHours, broker.ContinuingEducation.CoreHours);
+        Assert.Equal(associate.ContinuingEducation.ElectiveHours, broker.ContinuingEducation.ElectiveHours);
+        Assert.False(broker.HasPostlicensingDeadline);
+
+        Assert.Equal(10m, bic.ContinuingEducation.TotalHours);
+        Assert.Equal(4m, bic.ContinuingEducation.CoreHours);
+        Assert.Equal(2m, bic.ContinuingEducation.ElectiveHours);
+        Assert.Equal(4m, bic.ContinuingEducation.BicHours);
+        Assert.False(bic.HasPostlicensingDeadline);
+    }
+
+    [Fact]
+    public void GeorgiaPoliciesAndCourseCatalog_ReflectGrecRequirements()
+    {
+        var salesperson = StateLicenseRenewalPolicyCatalog.Get("Georgia", "Salesperson");
+        var broker = StateLicenseRenewalPolicyCatalog.Get("Georgia", "Broker");
+
+        Assert.Equal(4, salesperson.RenewalCycleYears);
+        Assert.Equal(36m, salesperson.ContinuingEducation.TotalHours);
+        Assert.Equal(3m, salesperson.ContinuingEducation.LicenseLawHours);
+        Assert.True(salesperson.HasPostlicensingDeadline);
+        Assert.Equal(18m, broker.ContinuingEducation.BrokerCeHours);
+
+        Assert.Contains(GeorgiaCourseCatalog.All, course => course.Title == "Georgia Salesperson Prelicense" && course.RequiredHours == 75);
+        Assert.Contains(GeorgiaCourseCatalog.All, course => course.Title == "Georgia Salesperson Postlicense" && course.RequiredHours == 25 && course.HasFirstYearDeadline);
+        Assert.Contains(GeorgiaCourseCatalog.All, course => course.Title == "Georgia Broker Prelicense" && course.RequiredHours == 60);
+        Assert.Contains(GeorgiaCourseCatalog.All, course => course.Title == "Georgia Community Association Manager Prelicense" && course.RequiredHours == 25);
+        Assert.Contains(GeorgiaCourseCatalog.All, course => course.Title == "Georgia Continuing Education" && course.RequiredHours == 36);
+    }
+
+    [Fact]
+    public void NewStateProfiles_ExposeConfiguredDistanceDeliverySupport()
+    {
+        foreach (var state in new[] { "Arkansas", "Connecticut", "Hawaii", "Illinois", "New York", "Texas", "Virginia", "West Virginia" })
+        {
+            var profile = DistanceLearningProfileCatalog.Get(state);
+
+            Assert.True(profile.Requirements.AllowsDistanceEducation);
+            Assert.True(profile.Requirements.RequiresProviderDisclosure);
+            Assert.Contains(CourseDeliveryMethods.DistanceEducation, profile.AllowedDeliveryMethods);
+        }
+    }
+
+    [Fact]
+    public void StateRenewalPolicies_PreserveHighConfidenceHourRules()
+    {
+        var arkansas = StateLicenseRenewalPolicyCatalog.Get("Arkansas", "Salesperson");
+        var hawaii = StateLicenseRenewalPolicyCatalog.Get("Hawaii", "Broker");
+        var newYork = StateLicenseRenewalPolicyCatalog.Get("New York", "Broker");
+        var virginia = StateLicenseRenewalPolicyCatalog.Get("Virginia", "Broker");
+
+        Assert.Equal(7m, arkansas.ContinuingEducation.TotalHours);
+        Assert.Equal(20m, hawaii.ContinuingEducation.TotalHours);
+        Assert.Equal(6m, hawaii.ContinuingEducation.CoreHours);
+        Assert.Equal(14m, hawaii.ContinuingEducation.ElectiveHours);
+        Assert.Equal(22.5m, newYork.ContinuingEducation.TotalHours);
+        Assert.Equal(24m, virginia.ContinuingEducation.TotalHours);
+        Assert.Equal(19m, virginia.ContinuingEducation.CoreHours);
+    }
+
+    [Fact]
+    public void StateCourseCatalog_ContainsDocumentedCourseDefinitions()
+    {
+        Assert.Contains(StateCourseCatalog.ForState("Arkansas"), course => course.RequiredHours == 60 && course.CourseType == CourseComplianceTypes.Prelicensing);
+        Assert.Contains(StateCourseCatalog.ForState("Connecticut"), course => course.RequiredHours == 60);
+        Assert.Contains(StateCourseCatalog.ForState("Illinois"), course => course.RequiredHours == 75);
+        Assert.Contains(StateCourseCatalog.ForState("New York"), course => course.RequiredHours == 30);
+        Assert.Contains(StateCourseCatalog.ForState("Texas"), course => course.RequiredHours == 180);
+        Assert.Contains(StateCourseCatalog.ForState("Virginia"), course => course.HasFirstYearDeadline && course.RequiredHours == 30);
+        Assert.Contains(StateCourseCatalog.ForState("West Virginia"), course => course.RequiredHours == 90);
     }
 
     [Fact]

@@ -1,0 +1,30 @@
+{
+  "state":"Arkansas",
+  "source":"https://labor.arkansas.gov/licensing/real-estate-commission/arec-roster/agent-search/",
+  "query":{"city":"Little Rock","expirationDate":"2026","status":"Active"},
+  "parserVersion":"arec-license-prefix-classification-v1",
+  "prefixMap":{"EB":"Executive Broker","PB":"Principal Broker","AB":"Associate Broker","SA":"Salesperson"},
+  "records":[
+    {"licenseNumber":"PB00036246","licenseType":"Principal Broker"},
+    {"licenseNumber":"SA00101363","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00088878","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00082921","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00071618","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00089959","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00079986","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00082013","licenseType":"Salesperson"},
+    {"licenseNumber":"PB00066692","licenseType":"Principal Broker"},
+    {"licenseNumber":"SA00093577","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00101085","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00093101","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00091455","licenseType":"Salesperson"},
+    {"licenseNumber":"PB00007632","licenseType":"Principal Broker"},
+    {"licenseNumber":"SA00097060","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00098227","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00059595","licenseType":"Salesperson"},
+    {"licenseNumber":"SA00101331","licenseType":"Salesperson"},
+    {"licenseNumber":"EB00082129","licenseType":"Executive Broker"},
+    {"licenseNumber":"SA00098007","licenseType":"Salesperson"}
+  ],
+  "note":"All 20 first-page sample licenses classified from AREC's documented license-number prefix mapping. No LMS import performed."
+}

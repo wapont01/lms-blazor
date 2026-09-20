@@ -110,6 +110,7 @@ using (var scope = app.Services.CreateScope())
     await NcRecCaptureSeed.SeedAsync(dbContext);
     await NcRecCharlotteCaptureSeed.SeedAsync(dbContext);
     await NcRecNewLicenseCaptureSeed.SeedAsync(dbContext);
+    await StateRosterCaptureSeed.SeedAsync(dbContext);
     await CourseSeed.SeedEnrollmentsAsync(dbContext);
     var floridaProfile = await dbContext.SchoolProfiles
         .Include(profile => profile.StaffMembers)
@@ -278,7 +279,7 @@ app.MapPost("/auth/register", async (HttpContext httpContext, [FromForm] Registe
 {
     string Fail(string code) => $"/register?error={Uri.EscapeDataString(code)}";
 
-    if (string.IsNullOrWhiteSpace(form.Email) || string.IsNullOrWhiteSpace(form.DisplayName) || string.IsNullOrWhiteSpace(form.Password))
+    if (string.IsNullOrWhiteSpace(form.Email) || string.IsNullOrWhiteSpace(form.Password))
     {
         return Results.LocalRedirect(Fail("missing"));
     }
@@ -293,23 +294,13 @@ app.MapPost("/auth/register", async (HttpContext httpContext, [FromForm] Registe
     {
         // unchecked checkboxes are absent from the form, which breaks record binding; read directly
         var marketingOptIn = !string.IsNullOrEmpty(httpContext.Request.Form["marketingEmails"]);
-        newUser = await userAccountService.RegisterLearnerAsync(form.Email, form.DisplayName, form.Password, form.State, form.LicenseNumber, marketingOptIn);
+        newUser = await userAccountService.RegisterLearnerAsync(form.Email, form.Password, marketingOptIn);
     }
     catch (InvalidOperationException exception)
     {
         await auditLogService.WriteAsync(null, form.Email, "auth.register.failed", "UserAccount", null, exception.Message);
         var code = exception.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase) ? "exists" : "password";
         return Results.LocalRedirect(Fail(code));
-    }
-
-    // best-effort verified-license match; a failure here must never delay or break the purchase path
-    try
-    {
-        await regulatoryDirectoryService.TryAutoLinkLicenseAsync(newUser.Id, form.State, form.LicenseNumber);
-    }
-    catch (Exception exception)
-    {
-        await auditLogService.WriteAsync(newUser.Id, newUser.Email, "regulatory-license.auto-link.failed", "UserAccount", newUser.Id, exception.Message);
     }
 
     var claims = new List<Claim>
@@ -583,4 +574,4 @@ static async Task<bool> SqliteColumnExistsAsync(ApplicationDbContext dbContext, 
 }
 
 record LoginForm(string Email, string Password, string? ReturnUrl);
-record RegisterForm(string Email, string DisplayName, string Password, string ConfirmPassword, string? State = null, string? LicenseNumber = null, string? ReturnUrl = null);
+record RegisterForm(string Email, string Password, string ConfirmPassword, string? ReturnUrl = null);

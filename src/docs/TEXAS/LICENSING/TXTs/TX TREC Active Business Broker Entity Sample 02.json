@@ -1,0 +1,14 @@
+{
+  "state":"Texas","strategyName":"Texas TREC Active Entity License Search","source":"https://www.trec.texas.gov/license-search/","searchMethod":"Active Broker or Sales Agent results, retain exact Business Broker (-BB) entity links, then open entity license directly","entityRecords":[
+    {"name":"Pecan Classic Realty, L.L.C.","licenseNumber":"596861-BB","status":"Active","expirationDate":"07/31/2028","designatedBroker":"Wise, Annamaria","designatedBrokerLicense":"535139-B","sponsoredAgentCount":6},
+    {"name":"Elysian Realty LLC","licenseNumber":"9013710-BB","status":"Active","expirationDate":"06/30/2027","businessAddress":"6025 Del Roy Dr, Dallas, Texas 75230","businessPhone":"(214)912-9152","designatedBroker":"Aarant, Dave","designatedBrokerLicense":"350137-B","designatedBrokerExpiration":"05/31/2027","sponsoredAgentCount":0},
+    {"name":"Velora Homes Realty LLC","licenseNumber":"9017099-BB","status":"Active"},
+    {"name":"Austin Skyline Realty, LLC","licenseNumber":"464505-BB","status":"Active"},
+    {"name":"Weststar Properties, Inc.","licenseNumber":"598377-BB","status":"Active"},
+    {"name":"Red Real Estate Services, LLC","licenseNumber":"9009939-BB","status":"Active"},
+    {"name":"Target Cost Realty L.L.C","licenseNumber":"9000262-BB","status":"Active"},
+    {"name":"The Kase Group","licenseNumber":"9006301-BB","status":"Active"}
+  ],
+  "crawlEvidence":{"pagesScannedForEntityLinks":52,"additionalEntityLinksFound":6,"totalEntitySample":8},
+  "note":"The TREC detail application loads asynchronously. The first two entity profiles exposed complete relationships; the six additional entity links were verified as active Business Broker records and retained for subsequent detail retry if the dynamic detail request is delayed."
+}

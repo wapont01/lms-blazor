@@ -1,0 +1,51 @@
+{
+  "state":"Virginia",
+  "source":"https://www.dpor.virginia.gov/LicenseLookup",
+  "query":{"board":"Real Estate Board","licenseType":"Real Estate Firm License","location":"Richmond"},
+  "parserVersion":"va-dpor-firm-licensee-ce-v1",
+  "firm": {
+    "name":"ROY WHEELER REALTY COMPANY",
+    "licenseNumber":"0226023757",
+    "licenseType":"Real Estate Firm License",
+    "rank":"Branch Office License",
+    "address":"5574 RICHMOND ROAD, TROY, VA 22974",
+    "initialCertificationDate":"2012-02-15",
+    "expirationDate":"2028-02-29",
+    "inChargeOf":"CARDER, CAROL COOPER"
+  },
+  "relatedLicensees": [
+    {"name":"CARDER, CAROL COOPER","licenseNumber":"0225186990","licenseType":"Real Estate Individual","relationType":"Supervisory Broker","expirationDate":"2027-10-31"},
+    {"name":"MARSHALL, COLLEEN BECKER","licenseNumber":"0225235295","licenseType":"Real Estate Individual","relationType":"Branch Office Employee","expirationDate":"2027-04-30"},
+    {"name":"TUSTIAN, FIONA PAULINE","licenseNumber":"0225182386","licenseType":"Real Estate Individual","relationType":"Branch Office Employee","expirationDate":"2027-05-31"},
+    {"name":"BRUNELLE, RODNEY AUSTIN JR","licenseNumber":"0225046295","licenseType":"Real Estate Individual","relationType":"Branch Office Employee","expirationDate":"2027-07-31"},
+    {"name":"JOHNSON, ROBERT RUSSELL JR","licenseNumber":"0225245891","licenseType":"Real Estate Individual","relationType":"Branch Office Employee","expirationDate":"2028-04-30"},
+    {"name":"BOONE, ELIZABETH ANN","licenseNumber":"0225248237","licenseType":"Real Estate Individual","relationType":"Branch Office Employee","expirationDate":"2026-09-30"}
+  ],
+  "individualDetail": {
+    "name":"CARDER, CAROL COOPER",
+    "licenseNumber":"0225186990",
+    "licenseType":"Associate Broker License",
+    "status":"Active",
+    "rank":"Broker License",
+    "address":"CHARLOTTESVILLE, VA 22911",
+    "initialCertificationDate":"2008-02-25",
+    "rankEffectiveDate":"2023-10-11",
+    "expirationDate":"2027-10-31",
+    "continuingEducation": {
+      "periodStart":"2025-11-01",
+      "periodEnd":"2027-10-31",
+      "requirements":[
+        {"requirement":"Broker Management (CE) - 6 hours","requiredHours":6,"earnedHours":4,"deficitHours":2},
+        {"requirement":"Broker Supervision (CE)","requiredHours":2,"earnedHours":0,"deficitHours":2},
+        {"requirement":"Ethics and Standards of Conduct (CE)","requiredHours":3,"earnedHours":0,"deficitHours":3},
+        {"requirement":"Fair Housing (CE)","requiredHours":2,"earnedHours":0,"deficitHours":2},
+        {"requirement":"Legal Updates w/ Flood Content (CE) 2hrs","requiredHours":2,"earnedHours":0,"deficitHours":2},
+        {"requirement":"Real Estate Agency (CE) 2hrs","requiredHours":2,"earnedHours":0,"deficitHours":2},
+        {"requirement":"Real Estate Contracts (CE) 2hrs","requiredHours":2,"earnedHours":2,"deficitHours":0},
+        {"requirement":"Real Estate Related Subjects (CE) 5hrs","requiredHours":5,"earnedHours":5,"deficitHours":0},
+        {"requirement":"Surplus CE Hours","requiredHours":0,"earnedHours":8,"deficitHours":0}
+      ]
+    }
+  },
+  "navigationNote":"Returned through the Virginia portal's browser back navigation after traversing firm -> related licenses -> individual -> continuing education."
+}

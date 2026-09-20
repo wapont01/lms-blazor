@@ -1,0 +1,32 @@
+{
+  "state": "West Virginia",
+  "source": "https://www.arello.com/",
+  "capturedAt": "2026-09-19",
+  "sourceDataDate": "09/19/2026",
+  "parserVersion": "wv-arello-expiration-sample-v1",
+  "samples": [
+    {
+      "licenseNumber": "WV0006422",
+      "name": "DORSEY, DAVID H",
+      "licenseType": "SalesPerson",
+      "status": "Active",
+      "firstIssuedDate": "09/20/1974",
+      "lastRenewalDate": null,
+      "expirationDate": "06/30/2027",
+      "office": "Mountain Ridge Realty, LLC",
+      "officeAddress": "709 Beechurst Ave., Suite 30, Morgantown, WV 26505 USA"
+    },
+    {
+      "licenseNumber": "WV0014853",
+      "name": "DARBY, JAMES WHITNEY",
+      "licenseType": "SalesPerson",
+      "status": "Active",
+      "firstIssuedDate": "08/04/1977",
+      "lastRenewalDate": null,
+      "expirationDate": "06/30/2027",
+      "office": "CROSS LANES REALTY, INC",
+      "officeAddress": "108 Warrenbrook Dr., Nitro, WV 25143 USA"
+    }
+  ],
+  "note": "ARELLO manual lookup requires Cloudflare Turnstile verification. One sample was verified successfully; subsequent searches require a fresh manual challenge."
+}

@@ -1,0 +1,29 @@
+{
+  "state":"Hawaii",
+  "source":"https://mypvl.dcca.hawaii.gov/public-license-search/",
+  "capturedAt":"2026-09-19",
+  "parserVersion":"hi-mypvl-business-employee-v1",
+  "business":{
+    "licenseId":"RB-22161",
+    "name":"AFFF HOLDINGS LLC",
+    "licenseType":"REAL ESTATE BROKER ENTITY",
+    "status":"CURRENT, VALID & IN GOOD STANDING",
+    "activeStatus":"ACTIVE",
+    "entityType":"ORGANIZATION (LLC)",
+    "originalLicenseDate":"11/28/2016",
+    "expirationDate":"12/31/2026",
+    "tradeName":"FIRST HAWAIIAN REALTY",
+    "businessAddress":"300 WAI NANI WAY 101, HONOLULU, HI, 96815, UNITED STATES"
+  },
+  "employees":[
+    {"licenseId":"RB-13669","name":"EDWARD L BLOTTENBERGER","type":"REAL ESTATE BROKER","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+    {"licenseId":"RS-77373","name":"HOLLY PAGANO","type":"REAL ESTATE SALESPERSON","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+    {"licenseId":"RB-24534","name":"JASON GREGORY BAPTISTE","type":"REAL ESTATE BROKER","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+    {"licenseId":"RB-24144","name":"JULIA YANG FENG","type":"REAL ESTATE BROKER","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+    {"licenseId":"RB-20126","name":"PATRICIA N BALIO","type":"REAL ESTATE BROKER","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+    {"licenseId":"RS-61993","name":"PHOENIX DIEU","type":"REAL ESTATE SALESPERSON","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+    {"licenseId":"RS-81790","name":"RYAN K INAYOSHI","type":"REAL ESTATE SALESPERSON","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"},
+    {"licenseId":"RB-22215","name":"STEVEN J PAGANO","type":"REAL ESTATE BROKER","status":"CURRENT, VALID & IN GOOD STANDING","activeStatus":"ACTIVE","expirationDate":"12/31/2026"}
+  ],
+  "note":"Employee/license links were followed through public MyPVL detail pages. No LMS import performed."
+}

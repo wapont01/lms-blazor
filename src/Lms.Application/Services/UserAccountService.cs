@@ -11,10 +11,10 @@ public interface IUserAccountService
     Task<List<UserAccount>> GetAllAsync();
     Task<UserAccount?> GetByIdAsync(Guid id);
     Task<UserAccount> CreateAsync(string email, string displayName, string password, string role, Guid? actorUserId = null, string? actorEmail = null);
-    Task<UserAccount> RegisterLearnerAsync(string email, string displayName, string password, string? state = null, string? licenseNumber = null, bool marketingOptIn = true);
+    Task<UserAccount> RegisterLearnerAsync(string email, string password, bool marketingOptIn = true);
     Task SetMarketingEmailPreferenceAsync(Guid userId, bool optIn);
     Task UpdateRoleAsync(Guid userId, string role, Guid? actorUserId = null, string? actorEmail = null);
-    Task UpdateLicenseComplianceAsync(Guid userId, string? licenseStatus, DateTime? initialLicensureDate, DateTime? postlicensingCompletedAt, DateTime? brokerageExperienceStartDate, DateTime? bicCourseCompletedAt, DateTime? bicEligibleAt, DateTime? bicDesignationAt, DateTime? continuingEducationDueDate, DateTime? licenseRenewalDueDate, DateTime? bicUpdateCourseDueDate, bool isBicEligible, Guid? actorUserId = null, string? actorEmail = null);
+    Task UpdateLicenseComplianceAsync(Guid userId, string? licenseStatus, DateTime? initialLicensureDate, DateTime? postlicensingCompletedAt, DateTime? brokerageExperienceStartDate, DateTime? bicCourseCompletedAt, DateTime? bicEligibleAt, DateTime? bicDesignationAt, DateTime? continuingEducationDueDate, DateTime? licenseRenewalDueDate, string? licenseRenewalDueDateSource, DateTime? bicUpdateCourseDueDate, bool isBicEligible, Guid? actorUserId = null, string? actorEmail = null);
     Task ToggleActiveAsync(Guid userId, Guid? actorUserId = null, string? actorEmail = null);
     Task ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
     Task<UserAccount> UpdateInstructorProfileAsync(Guid userId, string email, string? licenseNumber, string? phoneNumber, string? permanentAddress);
@@ -240,7 +240,7 @@ public class UserAccountService : IUserAccountService
         return user;
     }
 
-    public async Task<UserAccount> RegisterLearnerAsync(string email, string displayName, string password, string? state = null, string? licenseNumber = null, bool marketingOptIn = true)
+    public async Task<UserAccount> RegisterLearnerAsync(string email, string password, bool marketingOptIn = true)
     {
         var normalizedEmail = email.Trim().ToLowerInvariant();
 
@@ -255,9 +255,7 @@ public class UserAccountService : IUserAccountService
         var user = new UserAccount
         {
             Email = normalizedEmail,
-            DisplayName = displayName.Trim(),
-            State = NormalizeOptional(state),
-            LicenseNumber = NormalizeOptional(licenseNumber),
+            DisplayName = "Guest Learner",
             MarketingEmailOptOutAtUtc = marketingOptIn ? null : now,
             PasswordHash = HashPassword(password),
             Role = "Learner",
@@ -269,7 +267,7 @@ public class UserAccountService : IUserAccountService
 
         _dbContext.UserAccounts.Add(user);
         await _dbContext.SaveChangesAsync();
-        await _auditLogService.WriteAsync(user.Id, user.Email, "user.self-registered", "UserAccount", user.Id, $"State={user.State ?? ""};License={user.LicenseNumber ?? ""};Marketing={(marketingOptIn ? "opt-in" : "opt-out")}");
+        await _auditLogService.WriteAsync(user.Id, user.Email, "user.self-registered", "UserAccount", user.Id, $"Marketing={(marketingOptIn ? "opt-in" : "opt-out")}");
 
         return user;
     }
@@ -298,7 +296,7 @@ public class UserAccountService : IUserAccountService
         await _auditLogService.WriteAsync(actorUserId, actorEmail, "user.role.updated", "UserAccount", user.Id, $"{previousRole} -> {role}");
     }
 
-    public async Task UpdateLicenseComplianceAsync(Guid userId, string? licenseStatus, DateTime? initialLicensureDate, DateTime? postlicensingCompletedAt, DateTime? brokerageExperienceStartDate, DateTime? bicCourseCompletedAt, DateTime? bicEligibleAt, DateTime? bicDesignationAt, DateTime? continuingEducationDueDate, DateTime? licenseRenewalDueDate, DateTime? bicUpdateCourseDueDate, bool isBicEligible, Guid? actorUserId = null, string? actorEmail = null)
+    public async Task UpdateLicenseComplianceAsync(Guid userId, string? licenseStatus, DateTime? initialLicensureDate, DateTime? postlicensingCompletedAt, DateTime? brokerageExperienceStartDate, DateTime? bicCourseCompletedAt, DateTime? bicEligibleAt, DateTime? bicDesignationAt, DateTime? continuingEducationDueDate, DateTime? licenseRenewalDueDate, string? licenseRenewalDueDateSource, DateTime? bicUpdateCourseDueDate, bool isBicEligible, Guid? actorUserId = null, string? actorEmail = null)
     {
         var user = await _dbContext.UserAccounts.FirstOrDefaultAsync(existing => existing.Id == userId);
         if (user is null)
@@ -315,6 +313,9 @@ public class UserAccountService : IUserAccountService
         user.BicDesignationAt = bicDesignationAt;
         user.ContinuingEducationDueDate = continuingEducationDueDate;
         user.LicenseRenewalDueDate = licenseRenewalDueDate;
+        user.LicenseRenewalDueDateSource = licenseRenewalDueDate.HasValue && LicenseDateProvenance.IsValid(licenseRenewalDueDateSource)
+            ? licenseRenewalDueDateSource!
+            : LicenseDateProvenance.Unknown;
         user.BicUpdateCourseDueDate = bicUpdateCourseDueDate;
         user.IsBicEligible = isBicEligible;
 

@@ -1,0 +1,17 @@
+{
+  "state":"New York",
+  "source":"https://appext20.dos.ny.gov/nydos/selSearchType.do",
+  "query":{"searchBy":"City","city":"Beacon","licenseType":"Salesperson","rowsPerPage":30},
+  "page":2,"records":[
+    {"licensee":"Alejandra Filiciotto","licenseNumber":"10401360161","status":"Current","licenseExpiry":"12/27/2027","firm":"Corcoran Country LIving","firmType":"Branch Office:Branch Office","firmAddress":"215 MAIN STREET, BEACON, NY DUTCHESS 12508 US","firmExpiry":"03/21/2027"},
+    {"licensee":"Ethan Fletcher","licenseNumber":"10401398094","status":"Current","licenseExpiry":"09/01/2027","firm":"ALLY REALTY","firmType":"Principal Office:Princ Off","firmAddress":"6 Eliza Street, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"thalassa GLASSON","licenseNumber":"10401263517","status":"Current","licenseExpiry":"06/11/2028","firm":"COMPASS GREATER NY LLC","firmType":"Branch Office:Branch Office","firmAddress":"490 MAIN STREET, BEACON, NY DUTCHESS 12508 US","firmExpiry":"03/24/2028"},
+    {"licensee":"Helene Goodworth","licenseNumber":"10401384094","status":"Current","licenseExpiry":"02/21/2028","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"},
+    {"licensee":"KARA R GREEN","licenseNumber":"40GR1082720","status":"Current","licenseExpiry":"07/14/2027","firm":"HUDSON HIGHLANDS PROPERTIES LLC","firmType":"Principal Office:Princ Off","firmAddress":"29C HUDSON VIEW DR, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"Gabriel H Greenberg","licenseNumber":"10401361079","status":"Current","licenseExpiry":"07/06/2028","firm":"COMPASS GREATER NY LLC","firmType":"Branch Office:Branch Office","firmAddress":"490 MAIN STREET, BEACON, NY DUTCHESS 12508 US","firmExpiry":"03/24/2028"},
+    {"licensee":"Maricela Guevara","licenseNumber":"10401369276","status":"Current","licenseExpiry":"09/02/2028","firm":"EXP REALTY","firmType":"Branch Office:Branch Office","firmAddress":"291 Main Streeet Suite 201 - 2nd Floor, BEACON, NY DUTCHESS 12508 US","firmExpiry":"01/02/2027"},
+    {"licensee":"Angela Hardisty","licenseNumber":"10401350156","status":"Current","licenseExpiry":"03/10/2027","firm":"SAMS REALTY","firmType":"Principal Office:Princ Off","firmAddress":"412 MAIN ST, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"ANTHONY P HARDISTY","licenseNumber":"10401241516","status":"Current","licenseExpiry":"12/16/2026","firm":"SAMS REALTY","firmType":"Principal Office:Princ Off","firmAddress":"412 MAIN ST, BEACON, NY DUTCHESS 12508 US"},
+    {"licensee":"RICHARD HEALY","licenseNumber":"40HE0813211","status":"Current","licenseExpiry":"04/20/2027","firm":"Corcoran Country LIving","firmType":"Branch Office:Branch Office","firmAddress":"215 MAIN STREET, BEACON, NY DUTCHESS 12508 US","firmExpiry":"03/21/2027"}
+  ]
+}

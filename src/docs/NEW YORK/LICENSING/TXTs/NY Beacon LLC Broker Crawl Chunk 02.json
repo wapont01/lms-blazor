@@ -1,0 +1,7 @@
+{
+  "state":"New York","query":{"city":"Beacon","licenseType":"Limited Liability Company Broker","rowsPerPage":30},"resultCount":8,"status":"Current","chunk":2,
+  "records":[
+    {"licensee":"TINA LIEBERMAN","licenseNumber":"49SI1098064","status":"Current","expiry":"12/23/2027","practiceAddress":"29C HUDSON VIEW DR, Beacon, NY, Dutchess, 12508, US","phone":"2016798098","relatedFirm":"HUDSON HIGHLANDS PROPERTIES LLC","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"29C HUDSON VIEW DR, Beacon, NY, Dutchess, 12508, US"},
+    {"licensee":"Cem Barbaros Manisali","licenseNumber":"10491212800","status":"Current","expiry":"01/21/2028","practiceAddress":"135 MAIN ST, Beacon, NY, Dutchess, 12508, US","relatedFirm":"MANISALI SERVICES LLC","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"135 MAIN ST, Beacon, NY, Dutchess, 12508, US"}
+  ]
+}

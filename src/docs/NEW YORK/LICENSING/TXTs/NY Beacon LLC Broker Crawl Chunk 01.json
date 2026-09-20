@@ -1,0 +1,7 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Limited Liability Company Broker","rowsPerPage":30},"resultCount":8,"status":"Current","chunk":1,
+  "records":[
+    {"licensee":"DANIEL LOUIS AUBRY","licenseNumber":"10491206060","status":"Current","expiry":"02/23/2028","practiceAddress":"15 Water Street, Beacon, NY, Dutchess, 12508, US","relatedFirm":"DANIEL AUBRY REALTY LLC","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"15 Water Street, Beacon, NY, Dutchess, 12508, US"},
+    {"licensee":"DIANE M FEILEN","licenseNumber":"10491210348","status":"Current","expiry":"10/04/2026","practiceAddress":"72 DUTCHESS TERR, Beacon, NY, Dutchess, 12508","relatedFirm":"PROPERTY CONSULTANT AND MANAGEMENT LLC","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"72 DUTCHESS TERR, Beacon, NY, Dutchess, 12508"}
+  ]
+}

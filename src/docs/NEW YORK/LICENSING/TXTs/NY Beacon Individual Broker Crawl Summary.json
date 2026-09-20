@@ -1,0 +1,13 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Individual Broker","rowsPerPage":30},"resultCount":5,"status":"All result rows Current",
+  "detailProfilesPersisted":5,
+  "listRecords":[
+    {"name":"RON DONOFRIO","licenseNumber":"10351204852","status":"Current","expiry":"11/29/2027"},
+    {"name":"SAMUEL m GRUBNER","licenseNumber":"10351216489","status":"Current","expiry":"05/13/2028"},
+    {"name":"DONNA M HARDISTY","licenseNumber":"35HA0207442","status":"Current","expiry":"01/16/2028"},
+    {"name":"JEREMY B KAUFMAN","licenseNumber":"10351209487","status":"Current","expiry":"07/14/2027"},
+    {"name":"Donato Velez JR","licenseNumber":"10351220027","status":"Current","expiry":"12/23/2026"}
+  ],
+  "verifiedDetailProfiles":[{"name":"SAMUEL m GRUBNER","licenseNumber":"10351216489","status":"Current","expiry":"05/13/2028","practiceAddress":"14 ROBINSON STREET, Beacon, NY, Dutchess, 12508, US","relatedFirm":"GRUBNER SAMUEL M","relatedFirmType":"Principal Office:Princ Off","relatedFirmAddress":"14 ROBINSON STREET, Beacon, NY, Dutchess, 12508, US"}],
+  "detailStatus":"All five current individual broker profiles were captured in small resumable chunks, including practice address and related principal office relationship."
+}

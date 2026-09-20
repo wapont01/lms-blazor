@@ -1,0 +1,54 @@
+{
+  "capturedAt": "2026-09-19",
+  "sources": [
+    {
+      "state": "Arkansas",
+      "lookupUrl": "https://labor.arkansas.gov/licensing/real-estate-commission/arec-roster/agent-search/",
+      "sourceType": "Agent roster lookup",
+      "status": "Friendly with limits",
+      "notes": "Little Rock query returned 2,295 records with 20 visible rows per page. Each row has a View Details modal exposing firm phone, CE flags, CE hours, and license-prefix classification. No CAPTCHA/session interruption observed; use resumable page captures."
+    },
+    {
+      "state": "South Carolina",
+      "lookupUrl": "https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19",
+      "sourceType": "Licensee lookup",
+      "status": "Troublesome",
+      "notes": "reCAPTCHA challenges and per-search session expiry interrupted bulk crawling. Use official roster request for bulk data; retain lookup for spot verification only."
+    },
+    {
+      "state": "Georgia",
+      "lookupUrl": "https://ata.grec.state.ga.us/Account/Search",
+      "sourceType": "Company and licensee lookup",
+      "status": "Friendly with limits",
+      "notes": "Company search exposes firm license, status, renewal date, active-agent count, and broker license. Broker lookup exposes affiliations, roles, status, renewal date, and license type. Result pages are limited; use resumable city/firm batches."
+    },
+    {
+      "state": "West Virginia",
+      "lookupUrl": "https://rec.wv.gov/About/Pages/Active-Licensee-Rosters.aspx",
+      "sourceType": "Official Excel rosters",
+      "status": "Friendly",
+      "notes": "Official Salesperson, Associate Broker, and Broker Excel downloads. Firm/company relationship fields are included."
+    },
+    {
+      "state": "West Virginia",
+      "lookupUrl": "https://www.arello.com/",
+      "sourceType": "License verification lookup",
+      "status": "Friendly after manual Turnstile verification",
+      "notes": "Returns license type, status, first-issued date, expiration date, and office. Cloudflare Turnstile requires a fresh human verification between lookup sessions."
+    },
+    {
+      "state": "Virginia",
+      "lookupUrl": "https://www.dpor.virginia.gov/LicenseLookup",
+      "sourceType": "Advanced firm and individual lookup",
+      "status": "Friendly with limits",
+      "notes": "Supports Real Estate Board firm search, Related Licenses, individual details, expiration dates, and Continuing Education tabs. Result sets are capped at 200 and filters are embedded custom controls."
+    },
+    {
+      "state": "Hawaii",
+      "lookupUrl": "https://mypvl.dcca.hawaii.gov/public-license-search/",
+      "sourceType": "Business, individual, and license-detail lookup",
+      "status": "Friendly with reCAPTCHA/loading caveat",
+      "notes": "Business/entity search exposes employee license links; detail pages expose license type, status, expiration, employer history, and related records. Some searches trigger Google reCAPTCHA or remain stuck loading; use resumable batches and preserve source timestamps."
+    }
+  ]
+}

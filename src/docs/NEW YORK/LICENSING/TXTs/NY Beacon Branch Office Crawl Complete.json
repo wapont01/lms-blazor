@@ -1,0 +1,10 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Branch Office","rowsPerPage":30},"resultCount":5,"status":"All result rows Current","detailCrawl":"Fresh-session detail navigation completed for all five branch-office result links.","records":[
+    {"name":"Berkshire Hathaway HomeServices Hudson Valley Properties","licenseNumber":"10391202781","status":"Current","expiry":"07/06/2027"},
+    {"name":"BERKSHIRE HATHAWAY HOMESERVICES HUDSON VALLEY PROPERTIES","licenseNumber":"10391201438","status":"Current","expiry":"02/26/2028"},
+    {"name":"COMPASS GREATER NY LLC","licenseNumber":"10391202556","status":"Current","expiry":"03/24/2028"},
+    {"name":"Corcoran Country LIving","licenseNumber":"10391203071","status":"Current","expiry":"03/21/2027"},
+    {"name":"EXP REALTY","licenseNumber":"10391202346","status":"Current","expiry":"01/02/2027"}
+  ],
+  "fieldsAttempted":["office name","license number","status","expiry","main address","phone","related licensees"]
+}

@@ -11,6 +11,7 @@ public interface IRegulatoryDirectoryService
     Task<RegulatoryDataSnapshot?> GetLatestApprovedSnapshotAsync(string state);
     Task<List<RegulatorySnapshotSummary>> GetRecentSnapshotsAsync(int take = 25);
     Task<List<RegulatoryLicenseeSummary>> GetApprovedLicenseesAsync(string? state = null, int take = 250);
+    Task<List<CampaignFirmTarget>> GetCampaignFirmTargetsAsync(string? state = null, int take = 100);
     Task<bool> LinkLicenseeToUserAsync(Guid userId, Guid licenseeId, Guid actorUserId, string actorEmail);
     Task<bool> TryAutoLinkLicenseAsync(Guid userId, string? state, string? licenseNumber);
 }
@@ -72,6 +73,17 @@ public sealed record RegulatoryLicenseeSummary(
     string? FirmLicenseNumber,
     bool IsBrokerInCharge,
     Guid? LinkedUserId);
+
+public sealed record CampaignFirmTarget(
+    string State,
+    string FirmName,
+    string FirmLicenseNumber,
+    string? TradeName,
+    string? BrokerName,
+    string? Address,
+    int LicenseeCount,
+    DateOnly? NextRenewalDate,
+    int RenewalsWithinTwelveMonths);
 
 public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
 {
@@ -280,6 +292,55 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
         }).ToList();
     }
 
+    public async Task<List<CampaignFirmTarget>> GetCampaignFirmTargetsAsync(string? state = null, int take = 100)
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var horizon = today.AddYears(1);
+        var query = _dbContext.RegulatoryFirms
+            .AsNoTracking()
+            .Include(firm => firm.Snapshot)
+            .Include(firm => firm.LicenseeAffiliations)
+                .ThenInclude(affiliation => affiliation.Licensee)
+            .Where(firm => firm.Snapshot!.Status == RegulatorySnapshotStatuses.Approved);
+        if (!string.IsNullOrWhiteSpace(state))
+        {
+            query = query.Where(firm => firm.State == state.Trim());
+        }
+
+        var firms = await query.ToListAsync();
+        return firms
+            .Select(firm =>
+            {
+                var licensees = firm.LicenseeAffiliations
+                    .Where(affiliation => affiliation.Licensee is not null)
+                    .Select(affiliation => affiliation.Licensee!)
+                    .DistinctBy(licensee => licensee.Id)
+                    .ToList();
+                var upcomingRenewals = licensees
+                    .Where(licensee => licensee.LicenseRenewalDate.HasValue && licensee.LicenseRenewalDate.Value >= today)
+                    .Select(licensee => licensee.LicenseRenewalDate!.Value)
+                    .ToList();
+                var brokerName = firm.QualifyingBrokerName
+                    ?? firm.LicenseeAffiliations.FirstOrDefault(affiliation => affiliation.IsBrokerInCharge)?.Licensee?.Name
+                    ?? firm.LicenseeAffiliations.Select(affiliation => affiliation.BrokerInChargeName).FirstOrDefault(name => name is not null);
+                return new CampaignFirmTarget(
+                    firm.State,
+                    firm.LegalName,
+                    firm.LicenseNumber,
+                    firm.TradeName,
+                    brokerName,
+                    firm.Address,
+                    licensees.Count,
+                    upcomingRenewals.Count == 0 ? null : upcomingRenewals.Min(),
+                    upcomingRenewals.Count(renewal => renewal <= horizon));
+            })
+            .OrderBy(target => target.NextRenewalDate ?? DateOnly.MaxValue)
+            .ThenBy(target => target.State)
+            .ThenBy(target => target.FirmName)
+            .Take(Math.Clamp(take, 1, 500))
+            .ToList();
+    }
+
     public async Task<bool> LinkLicenseeToUserAsync(Guid userId, Guid licenseeId, Guid actorUserId, string actorEmail)
     {
         var user = await _dbContext.UserAccounts.FirstOrDefaultAsync(candidate => candidate.Id == userId);
@@ -357,6 +418,9 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
         user.LicenseStatus = licensee.LicenseStatus;
         user.InitialLicensureDate = licensee.LicenseIssuedDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         user.LicenseRenewalDueDate = licensee.LicenseRenewalDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        user.LicenseRenewalDueDateSource = user.LicenseRenewalDueDate.HasValue
+            ? LicenseDateProvenance.Authoritative
+            : LicenseDateProvenance.Unknown;
         await _dbContext.SaveChangesAsync();
         await _auditLogService.WriteAsync(actorUserId ?? user.Id, actorEmail, auditAction, "UserAccount", user.Id, $"State={licensee.State};License={licensee.LicenseNumber};Licensee={licensee.Name}");
     }

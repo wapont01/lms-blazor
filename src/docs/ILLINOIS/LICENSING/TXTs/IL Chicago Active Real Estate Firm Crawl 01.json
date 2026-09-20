@@ -1,0 +1,110 @@
+{
+  "state": "Illinois",
+  "source": "https://online-dfpr.micropact.com/lookup/licenselookup.aspx",
+  "capturedAt": "2026-09-19",
+  "query": {
+    "city": "Chicago",
+    "licenseType": "REAL ESTATE",
+    "licenseStatus": "ACTIVE LICENSES ONLY",
+    "resultPages": 9
+  },
+  "records": [
+    {
+      "licenseeName": "KAZZ A DAWSON",
+      "cityStateZip": "Chicago, IL 60647",
+      "primaryLicense": {
+        "licenseNumber": "475219323",
+        "description": "Licensed Real Estate Broker",
+        "status": "ACTIVE",
+        "firstEffectiveDate": "05/15/2026",
+        "effectiveDate": "05/15/2026",
+        "expirationDate": "04/30/2028",
+        "managingBroker": "PATRICK J LOFTUS",
+        "everDisciplined": "N"
+      },
+      "firm": {
+        "licenseNumber": "481012055",
+        "description": "Licensed Real Estate Limited Liability Firm",
+        "status": "ACTIVE",
+        "firstEffectiveDate": "07/12/2013",
+        "effectiveDate": "08/05/2026",
+        "expirationDate": "10/31/2028",
+        "name": "RIVERS REALTY LLC",
+        "relationshipStatus": "Active",
+        "supervisor": "RIVERS REALTY LLC",
+        "everDisciplined": "N"
+      },
+      "otherPublishedLicenses": [
+        {"licenseNumber":"041601517","description":"REGISTERED PROFESSIONAL NURSE","status":"ACTIVE","expirationDate":"05/31/2028"},
+        {"licenseNumber":"043079913","description":"LICENSED PRACTICAL NURSE","status":"ACTIVE","expirationDate":"01/31/2027"},
+        {"licenseNumber":"129508530","description":"PERMANENT EMPLOYEE REGISTRATION","status":"ACTIVE","expirationDate":"05/31/2027"}
+      ]
+    },
+    {
+      "licenseeName": "DIANE M GENOUS",
+      "cityStateZip": "CHICAGO, IL 60640",
+      "primaryLicense": {
+        "licenseNumber": "475151497",
+        "description": "Licensed Real Estate Broker",
+        "status": "ACTIVE",
+        "firstEffectiveDate": "07/03/2012",
+        "effectiveDate": "04/23/2026",
+        "expirationDate": "04/30/2028",
+        "managingBroker": "PAULA C EHLERS",
+        "everDisciplined": "N"
+      },
+      "firm": {
+        "licenseNumber": "478008097",
+        "description": "Licensed Real Estate Broker Corporation",
+        "status": "ACTIVE",
+        "firstEffectiveDate": "09/13/1994",
+        "effectiveDate": "10/10/2024",
+        "expirationDate": "10/31/2026",
+        "name": "REALTY ASSOCIATES NETWORK INC",
+        "relationshipStatus": "Active",
+        "supervisor": "REALTY ASSOCIATES NETWORK INC",
+        "everDisciplined": "N"
+      },
+      "otherPublishedLicenses": [
+        {"licenseNumber":"043068328","description":"LICENSED PRACTICAL NURSE","status":"ACTIVE","expirationDate":"01/31/2027"},
+        {"licenseNumber":"476327712","description":"Licensed Real Estate Salesperson","status":"CANCELLED","expirationDate":"04/30/2012"}
+      ]
+    },
+    {
+      "licenseeName": "PAMELA S HURT",
+      "cityStateZip": "CHICAGO, IL 60644",
+      "primaryLicense": {
+        "licenseNumber": "475200434",
+        "description": "Licensed Real Estate Broker",
+        "status": "ACTIVE",
+        "firstEffectiveDate": "12/22/2021",
+        "effectiveDate": "02/12/2026",
+        "expirationDate": "04/30/2028",
+        "managingBroker": "PATRICK J LOFTUS",
+        "everDisciplined": "N"
+      },
+      "firm": {
+        "licenseNumber": "481012055",
+        "description": "Licensed Real Estate Limited Liability Firm",
+        "status": "ACTIVE",
+        "firstEffectiveDate": "07/12/2013",
+        "effectiveDate": "08/05/2026",
+        "expirationDate": "10/31/2028",
+        "name": "RIVERS REALTY LLC",
+        "relationshipStatus": "Active",
+        "supervisor": "RIVERS REALTY LLC",
+        "everDisciplined": "N"
+      },
+      "otherPublishedLicenses": [
+        {"licenseNumber":"041286617","description":"REGISTERED PROFESSIONAL NURSE","status":"ACTIVE","expirationDate":"05/31/2028"},
+        {"licenseNumber":"209007203","description":"ADVANCED PRACTICE REGISTERED NURSE","status":"ACTIVE","expirationDate":"05/31/2028"}
+      ]
+    }
+  ],
+  "contactFields": {
+    "email": "Not published in this detail profile",
+    "phone": "Not published in this detail profile",
+    "firmAddress": "Not shown in this individual detail modal"
+  },
+  "crawlRule": "Retain only active person-to-active-firm relationships for the operational roster. Preserve source details separately for audit."
+}

@@ -1,0 +1,89 @@
+@page "/certification/{CourseId:guid}"
+@attribute [Authorize(Roles = "Learner,Admin")]
+@using System.Security.Claims
+@using Lms.Application.Services
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IEnrollmentService EnrollmentService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Certification Details</PageTitle>
+
+<div class="card auth-card">
+    <h1>Certification Details</h1>
+    @if (_isEligible)
+    {
+        <p>Enter the identity and license information to be printed on your certificate and prepared for state commission review.</p>
+
+        @if (!string.IsNullOrWhiteSpace(_message))
+        {
+            <p class="auth-help">@_message</p>
+        }
+
+        <EditForm Model="_model" OnValidSubmit="SubmitAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <div class="form-field"><label>First name</label><InputText @bind-Value="_model.FirstName" /></div>
+            <div class="form-field"><label>Last name</label><InputText @bind-Value="_model.LastName" /></div>
+            <div class="form-field"><label>License number</label><InputText @bind-Value="_model.LicenseNumber" /></div>
+            <div class="form-field"><label>License state</label><InputText @bind-Value="_model.State" /></div>
+            <div class="form-field">
+                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:normal;">
+                    <InputCheckbox @bind-Value="_model.ConfirmPrintedName" style="width:auto;" />
+                    I confirm this is the name to print on my certificate.
+                </label>
+            </div>
+            <button type="submit">Submit Certification Details</button>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid CourseId { get; set; }
+    private Guid? _userId;
+    private bool _isEligible;
+    private string? _message;
+    private CertificationModel _model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var claim = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (Guid.TryParse(claim, out var userId))
+        {
+            _userId = userId;
+            var enrollment = await EnrollmentService.GetEnrollmentAsync(userId, CourseId);
+            _isEligible = enrollment?.Completed == true;
+            if (!_isEligible)
+            {
+                NavigationManager.NavigateTo("/learner", replace: true);
+            }
+        }
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (!_userId.HasValue)
+        {
+            return;
+        }
+
+        var submitted = await EnrollmentService.SubmitCertificationIdentityAsync(
+            _userId.Value, CourseId, _model.FirstName, _model.LastName, _model.LicenseNumber, _model.State, _model.ConfirmPrintedName);
+        _message = submitted
+            ? "Certification details submitted. Your certificate package is pending review."
+            : "Certification details could not be submitted until the course is complete and the printed name is confirmed.";
+    }
+
+    private sealed class CertificationModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        public string FirstName { get; set; } = string.Empty;
+        [System.ComponentModel.DataAnnotations.Required]
+        public string LastName { get; set; } = string.Empty;
+        [System.ComponentModel.DataAnnotations.Required]
+        public string LicenseNumber { get; set; } = string.Empty;
+        [System.ComponentModel.DataAnnotations.Required]
+        public string State { get; set; } = string.Empty;
+        public bool ConfirmPrintedName { get; set; }
+    }
+}

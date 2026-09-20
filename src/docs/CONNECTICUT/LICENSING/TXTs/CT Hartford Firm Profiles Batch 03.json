@@ -1,0 +1,44 @@
+{
+  "state": "Connecticut",
+  "source": "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+  "capturedAt": "2026-09-19",
+  "query": {
+    "city": "Hartford",
+    "country": "UNITED STATES",
+    "licenseType": "REAL ESTATE BROKER"
+  },
+  "captureType": "business-entity-profile",
+  "records": [
+    {
+      "legalName": "AGRIVEST LLC",
+      "credential": "REB.0750969",
+      "credentialType": "REAL ESTATE BROKER",
+      "status": "INACTIVE",
+      "statusReason": "",
+      "dbaOrAlias": "JAMES B MCCANDLESS",
+      "address": "242 TRUMBULL ST, HARTFORD, CT 06103-1205",
+      "effectiveDate": "04/01/2005",
+      "expirationDate": "03/31/2006",
+      "firstIssuanceDateOnRecord": "Not Recorded",
+      "brokerDesignee": ""
+    },
+    {
+      "legalName": "AGRIVEST LLC",
+      "credential": "REB.0751222",
+      "credentialType": "REAL ESTATE BROKER",
+      "status": "INACTIVE",
+      "statusReason": "",
+      "dbaOrAlias": "JAMES B MCCANDLESS",
+      "address": "242 TRUMBULL ST, HARTFORD, CT 06103-1205",
+      "effectiveDate": "06/01/1996",
+      "expirationDate": "05/31/1997",
+      "firstIssuanceDateOnRecord": "Not Recorded",
+      "brokerDesignee": ""
+    }
+  ],
+  "contactFields": {
+    "email": "Not published in these Connecticut detail profiles",
+    "phone": "Not published in these Connecticut detail profiles"
+  },
+  "note": "Captured from a fresh browser session. These are complete license profiles for a business-name candidate."
+}

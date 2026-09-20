@@ -1,0 +1,7 @@
+{
+  "state":"New York","source":"https://appext20.dos.ny.gov/nydos/selSearchType.do","query":{"searchBy":"City","city":"Beacon","licenseType":"Principal Office","rowsPerPage":30},"resultCount":20,"status":"Current","chunk":3,
+  "records":[
+    {"name":"DONOFRIO RON","licenseNumber":"10991209227","status":"Current","address":"105 N Elm St, Beacon, NY, Dutchess, 12508, US","phone":"954-650-2096","relatedLicensees":[{"name":"DONOFRIO, RON","licenseType":"Individual Broker:Indv. Broker","address":"105 N Elm St, Beacon, NY, Dutchess, 12508, US","licenseExpiry":"11/29/2027"}]},
+    {"name":"GOULBOURNE SHARON","licenseNumber":"109928367","status":"Current","address":"12 CROSSWAY RD, Beacon, NY, Dutchess, 12508, US","phone":"914 668 7153","relatedLicensees":[]}
+  ]
+}

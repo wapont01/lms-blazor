@@ -1,0 +1,43 @@
+{
+  "state":"Arkansas",
+  "source":"https://labor.arkansas.gov/licensing/real-estate-commission/arec-roster/agent-search/",
+  "capturedAt":"2026-09-19",
+  "parserVersion":"arec-little-rock-agent-v1",
+  "query":{"city":"Little Rock","expirationDate":"2026","status":"Active"},
+  "resultCount":2295,
+  "pageSize":20,
+  "records":[
+    {"name":"A. JOHN GRILLO II","licenseNumber":"PB00036246","address":"P O BOX 25433","city":"LITTLE ROCK","zip":"72221","firm":"JOHN GRILLO DEVELOPMENT CO","status":"Active","expirationDate":"2026-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"AARON PAUL MERSHON","licenseNumber":"SA00101363","address":"15213 HILLS ACRES RD.","city":"NORTH LITTLE ROCK","zip":"72117","firm":"EVERGREEN REALTY","status":"Active","expirationDate":"2027-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ABBIE SHERIE ROBINSON BROWN","licenseNumber":"SA00088878","address":"10515 WEST MARKHAM, STE E2","city":"LITTLE ROCK","zip":"72205","firm":"VR INVESTMENTS REALTY","status":"Active","expirationDate":"2026-12-31","ceAccrued":"7","upcomingCeFiled":"Yes"},
+    {"name":"ABBIE WEAVER STALNAKER","licenseNumber":"SA00082921","address":"1501 N. PIERCE, SUITE 107","city":"LITTLE ROCK","zip":"72207","firm":"THE PROPERTY GROUP","status":"Active","expirationDate":"2026-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ABBY L BERRY","licenseNumber":"SA00071618","address":"5317 JFK BLVD","city":"NORTH LITTLE ROCK","zip":"72116","firm":"MCKIMMEY ASSOCIATES, REALTORS","status":"Active","expirationDate":"2027-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ABIGAIL RUSH MILLER","licenseNumber":"SA00089959","address":"415 N. MCKINLEY ST. STE. 190-C","city":"LITTLE ROCK","zip":"72205","firm":"BERKSHIRE HATHAWAY HOMESERVICES ARKANSAS REALTY","status":"Active","expirationDate":"2026-12-31","ceAccrued":"7","upcomingCeFiled":"Yes"},
+    {"name":"ABRAM MATTHIAS BEALL","licenseNumber":"SA00079986","address":"5317 JFK BLVD","city":"NORTH LITTLE ROCK","zip":"72116","firm":"MCKIMMEY ASSOCIATES, REALTORS","status":"Active","expirationDate":"2026-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ADAM DAVIS DEACON","licenseNumber":"SA00082013","address":"6900 MORGAN CEMETARY RD","city":"LITTLE ROCK","zip":"72223","firm":"WILSON REAL ESTATE INVESTMENT SERVICES","status":"Active","expirationDate":"2027-12-31","ceAccrued":"7","upcomingCeFiled":"Yes"},
+    {"name":"ADAM GIPSON","licenseNumber":"PB00066692","address":"1824 GEORGIA AVE","city":"LITTLE ROCK","zip":"72207","firm":"MID SOUTH REALTY","status":"Active","expirationDate":"2026-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ADAM JOSEPH WIECHERN","licenseNumber":"SA00093577","address":"5600 KAVENAUGH BLVD STE.10","city":"LITTLE ROCK","zip":"72207","firm":"BAILEY AND COMPANY REAL ESTATE","status":"Active","expirationDate":"2026-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ADAM MICHAEL FORD","licenseNumber":"SA00101085","address":"400 W. CAPITAL STE. 1700","city":"LITTLE ROCK","zip":"72201","firm":"EXP COMMERCIAL","status":"Active","expirationDate":"2026-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ADAM RUSSELL DUNAWAY","licenseNumber":"SA00093101","address":"1501 N. UNIVERSITY AVE., SUITE 800","city":"LITTLE ROCK","zip":"72207","firm":"RPM GROUP REFERRAL","status":"Active","expirationDate":"2027-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ADANNA C MOGBO","licenseNumber":"SA00091455","address":"1401 KANIS PARK DRIVE #300","city":"LITTLE ROCK","zip":"72022","firm":"THE AGENCY REALTY COMPANY","status":"Active","expirationDate":"2027-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ADDIE MORRIS","licenseNumber":"PB00007632","address":"515 W 16TH ST","city":"LITTLE ROCK","zip":"72202","firm":"TOLTEC REALTY","status":"Active","expirationDate":"2026-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ADRIENNE OLIVIA JOHNSON","licenseNumber":"SA00097060","address":"11600 KANIS ROAD STE 100","city":"LITTLE ROCK","zip":"72211","firm":"CRYE-LEIKE REALTORS KANIS","status":"Active","expirationDate":"2026-12-31","ceAccrued":"7","upcomingCeFiled":"Yes"},
+    {"name":"AFZAL A MORANI","licenseNumber":"SA00098227","address":"12814 CANTRELL RD","city":"LITTLE ROCK","zip":"72223","firm":"KELLER WILLIAMS REALTY","status":"Active","expirationDate":"2027-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"AIMEE LONG","licenseNumber":"SA00059595","address":"1501 N. UNIVERSITY AVE STE 800","city":"LITTLE ROCK","zip":"72207","firm":"COLDWELL BANKER RPM GROUP","status":"Active","expirationDate":"2027-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"AJA MONEKE SMALL","licenseNumber":"SA00101331","address":"12814 CANTRELL RD","city":"LITTLE ROCK","zip":"72223","firm":"KELLER WILLIAMS REALTY","status":"Active","expirationDate":"2026-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"AKEISHA BURTON","licenseNumber":"EB00082129","address":"1619 S. MARTIN ST.","city":"LITTLE ROCK","zip":"72204","firm":"SSD REALTY GROUP","status":"Active","expirationDate":"2026-12-31","ceAccrued":"0","upcomingCeFiled":"No"},
+    {"name":"ALAN DAVID BREWER","licenseNumber":"SA00098007","address":"5317 JFK BLVD","city":"NORTH LITTLE ROCK","zip":"72116","firm":"MCKIMMEY ASSOCIATES, REALTORS","status":"Active","expirationDate":"2027-12-31","ceAccrued":"0","upcomingCeFiled":"No"}
+  ],
+  "detailModalSample": {
+    "name":"A. JOHN GRILLO II",
+    "licenseNumber":"PB00036246",
+    "address":"P O BOX 25433, LITTLE ROCK, AR 72221",
+    "firm":"JOHN GRILLO DEVELOPMENT CO",
+    "firmPhone":"5012247980",
+    "personalSafetyCourse":"N",
+    "requiredCeTopic":"Y",
+    "ceHoursAccrued":"0",
+    "licensePrefixMeaning":"PB = Principal Broker; EB = Executive Broker; SA = Salesperson; AB = Associate Broker"
+  },
+  "note":"First result page only; official AREC roster search reports 2,295 records for this query. Each row has a View Details modal that can be crawled for additional firm phone, CE flags, and CE hours. No LMS import performed."
+}

@@ -1,0 +1,11 @@
+{
+  "state":"New York","query":{"city":"Beacon","licenseType":"Branch Office","rowsPerPage":30},"resultCount":5,"status":"Current","detailProfilesPersisted":5,
+  "records":[
+    {"name":"Berkshire Hathaway HomeServices Hudson Valley Properties","licenseNumber":"10391202781","status":"Current","expiry":"07/06/2027","relatedLicenseesSummary":"Associate brokers Catherine Boyle Cole, Nancy J Rosaler, Michele A Rios, Lynn M Angelo, Margaret R Rose, plus additional related rows in official detail."},
+    {"name":"BERKSHIRE HATHAWAY HOMESERVICES HUDSON VALLEY PROPERTIES","licenseNumber":"10391201438","status":"Current","expiry":"02/26/2028","relatedPrincipalOffice":"BERKSHIRE HATHAWAY HOMESERVICES HUDSON VALLEY PROPERTIES, 892 Main Street, Fishkill, NY, Dutchess, 12524, US"},
+    {"name":"COMPASS GREATER NY LLC","licenseNumber":"10391202556","status":"Current","expiry":"03/24/2028","relatedLicenseesSummary":"Charlotte Anne Guernsey, Ninfa Meehan, Gregory Browne, all Associate Brokers."},
+    {"name":"Corcoran Country LIving","licenseNumber":"10391203071","status":"Current","expiry":"03/21/2027","relatedLicenseesSummary":"Lisa Jeanneret, Associate Broker."},
+    {"name":"EXP REALTY","licenseNumber":"10391202346","status":"Current","expiry":"01/02/2027","relatedLicenseesSummary":"Lisa M Maraday, Jason Dillon, Virginia E Corbett, Kevin C Smith Jr, all Associate Brokers."}
+  ],
+  "note":"Fresh-session retry completed all five branch-office detail links."
+}
