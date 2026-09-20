@@ -181,6 +181,84 @@ public class StateRosterCaptureSeedTests
             affiliation.SnapshotId == snapshot.Id && affiliation.LicenseeId == williams.Id));
     }
 
+    [Fact]
+    public async Task SeedAsync_ImportsGeorgiaGrecSample_WithQualifyingBrokers()
+    {
+        await using var fixture = await SeedFixture.CreateAsync();
+        var snapshot = await fixture.DbContext.RegulatoryDataSnapshots.SingleAsync(candidate => candidate.State == "Georgia");
+
+        Assert.Equal(20, await fixture.DbContext.RegulatoryFirms.CountAsync(firm => firm.SnapshotId == snapshot.Id));
+        Assert.Equal(12, await fixture.DbContext.RegulatoryLicensees.CountAsync(licensee => licensee.SnapshotId == snapshot.Id));
+        Assert.Equal(12, await fixture.DbContext.RegulatoryFirmLicenseeAffiliations.CountAsync(affiliation => affiliation.SnapshotId == snapshot.Id));
+
+        var chickDeep = await fixture.DbContext.RegulatoryFirms.SingleAsync(firm =>
+            firm.SnapshotId == snapshot.Id && firm.LicenseNumber == "79303");
+        Assert.Equal("NEW FREEDOM REALTY PARTNERS", chickDeep.TradeName);
+        Assert.Equal("DIONNA INGRAM", chickDeep.QualifyingBrokerName);
+
+        var ingramAffiliation = await fixture.DbContext.RegulatoryFirmLicenseeAffiliations
+            .Include(affiliation => affiliation.Licensee)
+            .SingleAsync(affiliation => affiliation.SnapshotId == snapshot.Id
+                && affiliation.Licensee!.LicenseNumber == "296643");
+        Assert.True(ingramAffiliation.IsBrokerInCharge);
+        Assert.Equal(new DateOnly(2030, 1, 31), ingramAffiliation.Licensee!.LicenseRenewalDate);
+
+        var lapsedFirm = await fixture.DbContext.RegulatoryFirms.SingleAsync(firm =>
+            firm.SnapshotId == snapshot.Id && firm.LicenseNumber == "76840");
+        Assert.Equal("LAPSED FEES", lapsedFirm.LicenseStatus);
+    }
+
+    [Fact]
+    public async Task SeedAsync_ImportsSouthCarolinaLlrSample_WithClassifiedAffiliations()
+    {
+        await using var fixture = await SeedFixture.CreateAsync();
+        var snapshot = await fixture.DbContext.RegulatoryDataSnapshots.SingleAsync(candidate => candidate.State == "South Carolina");
+
+        Assert.Equal(11, await fixture.DbContext.RegulatoryFirms.CountAsync(firm => firm.SnapshotId == snapshot.Id));
+        Assert.Equal(103, await fixture.DbContext.RegulatoryLicensees.CountAsync(licensee => licensee.SnapshotId == snapshot.Id));
+        Assert.Equal(103, await fixture.DbContext.RegulatoryFirmLicenseeAffiliations.CountAsync(affiliation => affiliation.SnapshotId == snapshot.Id));
+
+        var amRealty = await fixture.DbContext.RegulatoryFirms.SingleAsync(firm =>
+            firm.SnapshotId == snapshot.Id && firm.LicenseNumber == "2236");
+        Assert.Equal("A & M REALTY & CONST CO INC", amRealty.LegalName);
+        Assert.Equal("303 AIKEN HUNT CIRCLE COLUMBIA, SC 29223", amRealty.Address);
+        Assert.Equal("LINDA P MARSHALL", amRealty.QualifyingBrokerName);
+
+        var marshallAffiliation = await fixture.DbContext.RegulatoryFirmLicenseeAffiliations
+            .Include(affiliation => affiliation.Licensee)
+            .SingleAsync(affiliation => affiliation.SnapshotId == snapshot.Id
+                && affiliation.Licensee!.LicenseNumber == "18599");
+        Assert.True(marshallAffiliation.IsBrokerInCharge);
+        Assert.Equal("Broker in Charge", marshallAffiliation.Licensee!.LicenseLevel);
+
+        var boatwright = await fixture.DbContext.RegulatoryLicensees.SingleAsync(licensee =>
+            licensee.SnapshotId == snapshot.Id && licensee.LicenseNumber == "127018");
+        Assert.Equal("AMY MARIA BOATWRIGHT", boatwright.Name);
+        Assert.Equal("Associate", boatwright.LicenseLevel);
+        Assert.Equal(new DateOnly(2027, 6, 30), boatwright.LicenseRenewalDate);
+
+        var abdalla = await fixture.DbContext.RegulatoryFirms.SingleAsync(firm =>
+            firm.SnapshotId == snapshot.Id && firm.LicenseNumber == "5135");
+        Assert.Equal(new DateOnly(1980, 7, 8), abdalla.LicenseIssuedDate);
+        Assert.Equal("RAYMOND G ABDALLA", abdalla.QualifyingBrokerName);
+    }
+
+    [Fact]
+    public async Task SeedAsync_ImportsWestVirginiaArelloSamples_AsLicenseesOnly()
+    {
+        await using var fixture = await SeedFixture.CreateAsync();
+        var snapshot = await fixture.DbContext.RegulatoryDataSnapshots.SingleAsync(candidate => candidate.State == "West Virginia");
+
+        Assert.Equal(0, await fixture.DbContext.RegulatoryFirms.CountAsync(firm => firm.SnapshotId == snapshot.Id));
+        Assert.Equal(2, await fixture.DbContext.RegulatoryLicensees.CountAsync(licensee => licensee.SnapshotId == snapshot.Id));
+
+        var dorsey = await fixture.DbContext.RegulatoryLicensees.SingleAsync(licensee =>
+            licensee.SnapshotId == snapshot.Id && licensee.LicenseNumber == "WV0006422");
+        Assert.Equal("Salesperson", dorsey.LicenseLevel);
+        Assert.Equal(new DateOnly(1974, 9, 20), dorsey.LicenseIssuedDate);
+        Assert.Equal(new DateOnly(2027, 6, 30), dorsey.LicenseRenewalDate);
+    }
+
     private sealed class SeedFixture : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;

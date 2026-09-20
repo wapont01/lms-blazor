@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using System.Text;
 using System.Threading.RateLimiting;
 using System.Data.Common;
 
@@ -400,6 +401,45 @@ app.MapGet("/ops/background-jobs/health", async (ClaimsPrincipal user, IBackgrou
 
     var health = await monitor.HealthCheckAsync();
     return Results.Ok(health);
+}).RequireAuthorization();
+
+app.MapGet("/admin/campaign-targets.csv", async (ClaimsPrincipal user, string? state, IRegulatoryDirectoryService regulatoryDirectoryService) =>
+{
+    if (!user.IsInRole("Admin"))
+    {
+        return Results.Forbid();
+    }
+
+    var targets = await regulatoryDirectoryService.GetCampaignFirmTargetsAsync(state, take: 500);
+    var csv = new StringBuilder();
+    csv.AppendLine("State,Firm,TradeName,FirmLicense,Broker,Address,Licensees,NextRenewal,RenewalsWithin12Months");
+    foreach (var target in targets)
+    {
+        csv.AppendLine(string.Join(',',
+            CsvField(target.State),
+            CsvField(target.FirmName),
+            CsvField(target.TradeName),
+            CsvField(target.FirmLicenseNumber),
+            CsvField(target.BrokerName),
+            CsvField(target.Address),
+            target.LicenseeCount,
+            CsvField(target.NextRenewalDate?.ToString("yyyy-MM-dd")),
+            target.RenewalsWithinTwelveMonths));
+    }
+
+    return Results.File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", "campaign-targets.csv");
+
+    static string CsvField(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        return value.Contains(',') || value.Contains('"') || value.Contains('\n')
+            ? $"\"{value.Replace("\"", "\"\"")}\""
+            : value;
+    }
 }).RequireAuthorization();
 
 app.Run();

@@ -17,6 +17,9 @@ public static class StateRosterCaptureSeed
     private const string ArkansasSourceUrl = "https://labor.arkansas.gov/licensing/real-estate-commission/arec-roster/agent-search/";
     private const string VirginiaSourceUrl = "https://www.dpor.virginia.gov/LicenseLookup";
     private const string HawaiiSourceUrl = "https://mypvl.dcca.hawaii.gov/public-license-search/";
+    private const string GeorgiaSourceUrl = "https://ata.grec.state.ga.us/Account/Search";
+    private const string SouthCarolinaSourceUrl = "https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19";
+    private const string WestVirginiaSourceUrl = "https://www.arello.com/";
 
     private static readonly DateTime NewYorkRetrievedAtUtc = new(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime TexasRetrievedAtUtc = new(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc);
@@ -25,6 +28,9 @@ public static class StateRosterCaptureSeed
     private static readonly DateTime ArkansasRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime VirginiaRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime HawaiiRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime GeorgiaRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime SouthCarolinaRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime WestVirginiaRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
 
     public static async Task SeedAsync(ApplicationDbContext dbContext, string? workspaceRoot = null)
     {
@@ -41,6 +47,9 @@ public static class StateRosterCaptureSeed
         await SeedArkansasAsync(dbContext, root);
         await SeedVirginiaAsync(dbContext, root);
         await SeedHawaiiAsync(dbContext, root);
+        await SeedGeorgiaAsync(dbContext, root);
+        await SeedSouthCarolinaAsync(dbContext, root);
+        await SeedWestVirginiaAsync(dbContext, root);
     }
 
     private static async Task SeedNewYorkAsync(ApplicationDbContext dbContext, string root)
@@ -787,6 +796,264 @@ public static class StateRosterCaptureSeed
         }
 
         await PersistAsync(dbContext, snapshot, firms.Values, licensees.Values, affiliations);
+    }
+
+    private static async Task SeedGeorgiaAsync(ApplicationDbContext dbContext, string root)
+    {
+        if (await SnapshotExistsAsync(dbContext, "Georgia", GeorgiaSourceUrl, GeorgiaRetrievedAtUtc))
+        {
+            return;
+        }
+
+        var path = Path.Combine(root, "docs", "GEORGIA", "LICENSING", "TXTs", "GA GREC Atlanta Company Broker Capture 01.json");
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
+        var snapshot = CreateSnapshot("Georgia", "GREC license search (Atlanta company broker sample)", GeorgiaSourceUrl, GeorgiaRetrievedAtUtc, "ga-grec-atlanta-company-broker-v1");
+        var firms = new Dictionary<string, RegulatoryFirm>(StringComparer.OrdinalIgnoreCase);
+        var firmsByName = new Dictionary<string, RegulatoryFirm>(StringComparer.OrdinalIgnoreCase);
+        var licensees = new Dictionary<string, RegulatoryLicensee>(StringComparer.OrdinalIgnoreCase);
+        var affiliations = new List<RegulatoryFirmLicenseeAffiliation>();
+
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        if (document.RootElement.TryGetProperty("firms", out var firmArray) && firmArray.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var element in firmArray.EnumerateArray())
+            {
+                var licenseNumber = GetString(element, "license");
+                var name = GetString(element, "name");
+                if (licenseNumber is null || name is null || firms.ContainsKey(licenseNumber))
+                {
+                    continue;
+                }
+
+                var firm = new RegulatoryFirm
+                {
+                    Snapshot = snapshot,
+                    State = "Georgia",
+                    LicenseNumber = licenseNumber,
+                    LegalName = name,
+                    TradeName = NullIfEmpty(GetString(element, "dba")),
+                    LicenseStatus = GetString(element, "status")
+                };
+                firms[licenseNumber] = firm;
+                firmsByName.TryAdd(name, firm);
+            }
+        }
+
+        if (document.RootElement.TryGetProperty("brokers", out var brokerArray) && brokerArray.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var element in brokerArray.EnumerateArray())
+            {
+                var licenseNumber = GetString(element, "license");
+                var name = GetString(element, "name");
+                if (licenseNumber is null || name is null)
+                {
+                    continue;
+                }
+
+                var broker = GetOrAddLicensee(licensees, snapshot, "Georgia", licenseNumber, name,
+                    GetString(element, "type") ?? "BRKR", "Broker", ParseDate(GetString(element, "renewalDue")));
+                broker.LicenseStatus = GetString(element, "status") ?? broker.LicenseStatus;
+
+                if (!element.TryGetProperty("firms", out var brokerFirms) || brokerFirms.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (var brokerFirm in brokerFirms.EnumerateArray())
+                {
+                    var firmName = GetString(brokerFirm, "name");
+                    if (firmName is null || !firmsByName.TryGetValue(firmName, out var firm))
+                    {
+                        continue;
+                    }
+
+                    var isQualifying = string.Equals(GetString(brokerFirm, "role"), "QUALIFYING", StringComparison.OrdinalIgnoreCase);
+                    if (isQualifying)
+                    {
+                        firm.QualifyingBrokerName ??= name;
+                    }
+
+                    affiliations.Add(new RegulatoryFirmLicenseeAffiliation
+                    {
+                        Snapshot = snapshot,
+                        Firm = firm,
+                        Licensee = broker,
+                        IsBrokerInCharge = isQualifying,
+                        BrokerInChargeName = isQualifying ? name : null
+                    });
+                }
+            }
+        }
+
+        await PersistAsync(dbContext, snapshot, firms.Values, licensees.Values, affiliations);
+    }
+
+    private static async Task SeedSouthCarolinaAsync(ApplicationDbContext dbContext, string root)
+    {
+        if (await SnapshotExistsAsync(dbContext, "South Carolina", SouthCarolinaSourceUrl, SouthCarolinaRetrievedAtUtc))
+        {
+            return;
+        }
+
+        var docsDir = Path.Combine(root, "docs", "SOUTH CAROLINA", "LICENSING", "TXTs");
+        if (!Directory.Exists(docsDir))
+        {
+            return;
+        }
+
+        // Firm "n" concatenates name and street address; split at the first street-number token before ", SC zip".
+        var firmNameAddress = new System.Text.RegularExpressions.Regex(@"^(?<name>.+?)\s+(?<addr>\d[\w-]*\s.+,\s*SC\s*\d{5}(?:-\d{4})?)$");
+        var trailingDate = new System.Text.RegularExpressions.Regex(@"^(?<name>.+?)\s+(?<date>\d{2}/\d{2}/\d{4})$");
+
+        var classifications = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var typesPath = Path.Combine(docsDir, "SC LLR Columbia 20 License Types.json");
+        if (File.Exists(typesPath))
+        {
+            using var typesDocument = JsonDocument.Parse(File.ReadAllText(typesPath));
+            if (typesDocument.RootElement.TryGetProperty("classifications", out var classificationArray) && classificationArray.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var element in classificationArray.EnumerateArray())
+                {
+                    var license = GetString(element, "l");
+                    var type = GetString(element, "t");
+                    if (license is not null && type is not null)
+                    {
+                        classifications.TryAdd(license, type);
+                    }
+                }
+            }
+        }
+
+        var snapshot = CreateSnapshot("South Carolina", "LLR licensee lookup (Columbia office sample with affiliations)", SouthCarolinaSourceUrl, SouthCarolinaRetrievedAtUtc, "sc-llr-columbia20-links-v1");
+        var firms = new Dictionary<string, RegulatoryFirm>(StringComparer.OrdinalIgnoreCase);
+        var licensees = new Dictionary<string, RegulatoryLicensee>(StringComparer.OrdinalIgnoreCase);
+        var affiliations = new List<RegulatoryFirmLicenseeAffiliation>();
+
+        foreach (var path in EnumerateFiles(docsDir, "SC LLR Columbia 20 Links *.json"))
+        {
+            using var document = JsonDocument.Parse(File.ReadAllText(path));
+            if (!document.RootElement.TryGetProperty("firms", out var firmArray) || firmArray.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+
+            foreach (var element in firmArray.EnumerateArray())
+            {
+                var licenseNumber = GetString(element, "l");
+                var rawName = GetString(element, "n");
+                if (licenseNumber is null || rawName is null)
+                {
+                    continue;
+                }
+
+                if (!firms.TryGetValue(licenseNumber, out var firm))
+                {
+                    var nameMatch = firmNameAddress.Match(rawName);
+                    firm = new RegulatoryFirm
+                    {
+                        Snapshot = snapshot,
+                        State = "South Carolina",
+                        LicenseNumber = licenseNumber,
+                        LegalName = nameMatch.Success ? nameMatch.Groups["name"].Value : rawName,
+                        Address = nameMatch.Success ? nameMatch.Groups["addr"].Value : null,
+                        LicenseStatus = GetString(element, "s"),
+                        LicenseIssuedDate = ParseDate(GetString(element, "i"))
+                    };
+                    firms[licenseNumber] = firm;
+                }
+
+                if (!element.TryGetProperty("r", out var related) || related.ValueKind != JsonValueKind.Array)
+                {
+                    continue;
+                }
+
+                foreach (var relatedElement in related.EnumerateArray())
+                {
+                    var relatedLicense = GetString(relatedElement, "l");
+                    var relatedRaw = GetString(relatedElement, "n");
+                    if (relatedLicense is null || relatedRaw is null)
+                    {
+                        continue;
+                    }
+
+                    var dateMatch = trailingDate.Match(relatedRaw);
+                    var relatedName = dateMatch.Success ? dateMatch.Groups["name"].Value : relatedRaw;
+                    var renewalDate = dateMatch.Success ? ParseDate(dateMatch.Groups["date"].Value) : null;
+                    var classification = classifications.GetValueOrDefault(relatedLicense);
+
+                    var licensee = GetOrAddLicensee(licensees, snapshot, "South Carolina", relatedLicense, relatedName,
+                        classification ?? "Licensee", classification ?? "Licensee", renewalDate);
+
+                    var isInCharge = classification?.Contains("in Charge", StringComparison.OrdinalIgnoreCase) ?? false;
+                    if (isInCharge && classification!.StartsWith("Broker", StringComparison.OrdinalIgnoreCase))
+                    {
+                        firm.QualifyingBrokerName ??= relatedName;
+                    }
+
+                    affiliations.Add(new RegulatoryFirmLicenseeAffiliation
+                    {
+                        Snapshot = snapshot,
+                        Firm = firm,
+                        Licensee = licensee,
+                        IsBrokerInCharge = isInCharge,
+                        BrokerInChargeName = isInCharge ? relatedName : null
+                    });
+                }
+            }
+        }
+
+        await PersistAsync(dbContext, snapshot, firms.Values, licensees.Values, affiliations);
+    }
+
+    private static async Task SeedWestVirginiaAsync(ApplicationDbContext dbContext, string root)
+    {
+        if (await SnapshotExistsAsync(dbContext, "West Virginia", WestVirginiaSourceUrl, WestVirginiaRetrievedAtUtc))
+        {
+            return;
+        }
+
+        var path = Path.Combine(root, "docs", "WEST VIRGINIA", "LICENSING", "TXTs", "WV ARELLO Expiration Samples.json");
+        if (!File.Exists(path))
+        {
+            return;
+        }
+
+        var snapshot = CreateSnapshot("West Virginia", "ARELLO verified license samples", WestVirginiaSourceUrl, WestVirginiaRetrievedAtUtc, "wv-arello-expiration-sample-v1");
+        var licensees = new Dictionary<string, RegulatoryLicensee>(StringComparer.OrdinalIgnoreCase);
+
+        using var document = JsonDocument.Parse(File.ReadAllText(path));
+        if (document.RootElement.TryGetProperty("samples", out var samples) && samples.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var element in samples.EnumerateArray())
+            {
+                var licenseNumber = GetString(element, "licenseNumber");
+                var name = GetString(element, "name");
+                if (licenseNumber is null || name is null || licensees.ContainsKey(licenseNumber))
+                {
+                    continue;
+                }
+
+                // ARELLO exposes office names only (no office license numbers), so firms are not imported.
+                licensees[licenseNumber] = new RegulatoryLicensee
+                {
+                    Snapshot = snapshot,
+                    State = "West Virginia",
+                    LicenseNumber = licenseNumber,
+                    Name = name,
+                    LicenseType = GetString(element, "licenseType"),
+                    LicenseLevel = string.Equals(GetString(element, "licenseType"), "SalesPerson", StringComparison.OrdinalIgnoreCase) ? "Salesperson" : GetString(element, "licenseType"),
+                    LicenseStatus = GetString(element, "status"),
+                    LicenseIssuedDate = ParseDate(GetString(element, "firstIssuedDate")),
+                    LicenseRenewalDate = ParseDate(GetString(element, "expirationDate"))
+                };
+            }
+        }
+
+        await PersistAsync(dbContext, snapshot, Array.Empty<RegulatoryFirm>(), licensees.Values, Array.Empty<RegulatoryFirmLicenseeAffiliation>());
     }
 
     private static RegulatoryLicensee GetOrAddLicensee(

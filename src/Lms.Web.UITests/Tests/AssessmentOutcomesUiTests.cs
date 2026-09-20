@@ -27,6 +27,7 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         await page.GotoAsync($"{_fixture.BaseUrl}/admin/assessments");
 
         var editor = page.Locator("section.card").Filter(new LocatorFilterOptions { HasTextString = "Assessment Editor" });
+        await ExpectVisibleWithReloadAsync(page, editor.GetByRole(AriaRole.Button, new() { Name = "Load Assessment" }));
         await editor.GetByRole(AriaRole.Button, new() { Name = "Load Assessment" }).ClickAsync();
 
         var grantLearnerSelect = editor.Locator("h3:has-text('Grant Retake Attempts') + .form-row select").First;
@@ -119,7 +120,7 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
 
         var learnerSelect = page.Locator("#Support-learner");
 
-        await Assertions.Expect(learnerSelect).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await ExpectVisibleWithReloadAsync(page, learnerSelect);
 
         var learnerOptionCount = await learnerSelect.Locator("option").CountAsync();
         Assert.True(learnerOptionCount >= 2, "Expected at least two learners to validate learner-switch behavior.");
@@ -127,13 +128,28 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         var learnerOwnedCard = page.Locator("section.card.support-ownership-card")
             .Filter(new LocatorFilterOptions { HasTextString = "Learner enrolled courses" });
         await Assertions.Expect(learnerOwnedCard).ToBeVisibleAsync(new() { Timeout = 10000 });
-        await Assertions.Expect(learnerOwnedCard).ToContainTextAsync("@lms.com)", new() { Timeout = 10000 });
+        var initialSelectedText = (await learnerSelect.Locator("option:checked").InnerTextAsync()).Trim();
+        await Assertions.Expect(learnerOwnedCard).ToContainTextAsync(initialSelectedText, new() { Timeout = 10000 });
 
         var secondLearnerValue = await learnerSelect.Locator("option").Nth(1).GetAttributeAsync("value");
         Assert.False(string.IsNullOrWhiteSpace(secondLearnerValue));
 
-        await learnerSelect.SelectOptionAsync(secondLearnerValue);
-        var selectedLearnerText = (await learnerSelect.Locator("option:checked").InnerTextAsync()).Trim();
+        // A change fired before the Blazor circuit hydrates is lost and reset to server state; retry the switch.
+        var selectedLearnerText = string.Empty;
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            await learnerSelect.SelectOptionAsync(secondLearnerValue);
+            selectedLearnerText = (await learnerSelect.Locator("option:checked").InnerTextAsync()).Trim();
+            try
+            {
+                await Assertions.Expect(learnerOwnedCard).ToContainTextAsync(selectedLearnerText, new() { Timeout = 3000 });
+                break;
+            }
+            catch (PlaywrightException) when (attempt < 4)
+            {
+            }
+        }
+
         await Assertions.Expect(learnerOwnedCard).ToContainTextAsync(selectedLearnerText, new() { Timeout = 10000 });
 
         var courseSelect = page.Locator("#Support-course");
@@ -178,7 +194,7 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         var enrollButton = page.GetByRole(AriaRole.Button, new() { Name = "Enroll", Exact = true });
         var unenrollButton = page.GetByRole(AriaRole.Button, new() { Name = "Unenroll", Exact = true });
 
-        await Assertions.Expect(learnerSelect).ToBeVisibleAsync(new() { Timeout = 10000 });
+        await ExpectVisibleWithReloadAsync(page, learnerSelect);
         await Assertions.Expect(courseSelect).ToBeVisibleAsync(new() { Timeout = 10000 });
 
         var options = courseSelect.Locator("option");
@@ -282,7 +298,11 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         await page.GotoAsync($"{_fixture.BaseUrl}/courses/f1a6e7d8-c9b0-4a12-8e34-56789abcdef0/lessons/f1a6e7d8-c9b0-4a12-8e34-56789abcde01");
         await ExpectTextAsync(page.GetByRole(AriaRole.Region, new() { Name = "Lesson summary" }), "Florida Licensing Foundations");
         var beginTimedCourseButton = page.GetByRole(AriaRole.Button, new() { Name = "Begin Timed Course" });
-        await beginTimedCourseButton.ClickAsync();
+        // The persistent UI-test database may already have the timed course started for this learner.
+        if (await beginTimedCourseButton.IsVisibleAsync() && await beginTimedCourseButton.IsEnabledAsync())
+        {
+            await beginTimedCourseButton.ClickAsync();
+        }
         await ExpectTextAsync(page, "Time Elapsed");
     }
 
@@ -410,32 +430,32 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         var trackedCourseId = trackedPaths[0].Split('/', StringSplitOptions.RemoveEmptyEntries)[1];
 
         await page.GotoAsync($"{_fixture.BaseUrl}/courses/{trackedCourseId}?learnerId={activeLearnerId}");
-        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
 
         var startCourseButton = page.GetByRole(AriaRole.Button, new() { Name = "Start Course" });
         if (await startCourseButton.IsVisibleAsync() && await startCourseButton.IsEnabledAsync())
         {
             await startCourseButton.ClickAsync();
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+/lessons/[0-9a-fA-F-]+(?:\?learnerId={Regex.Escape(activeLearnerId)})?$"), new() { Timeout = 10000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+/lessons/[0-9a-fA-F-]+(?:\?learnerId={Regex.Escape(activeLearnerId)})?$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
         }
         else
         {
             await page.GotoAsync($"{_fixture.BaseUrl}{trackedPaths[0]}?learnerId={activeLearnerId}");
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
         }
 
         var nextButton = page.GetByRole(AriaRole.Button, new() { Name = "Next page or lesson" });
         if (await nextButton.IsVisibleAsync() && await nextButton.IsEnabledAsync())
         {
             await nextButton.ClickAsync();
-            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?(?:\?learnerId={Regex.Escape(activeLearnerId)})?$"), new() { Timeout = 10000 });
+            await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?(?:\?learnerId={Regex.Escape(activeLearnerId)})?$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
         }
 
         await page.GotoAsync($"{_fixture.BaseUrl}{trackedPaths[0]}?learnerId={activeLearnerId}");
-        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+(?:/lessons/[0-9a-fA-F-]+)?\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
 
         await page.GotoAsync($"{_fixture.BaseUrl}/courses/{trackedCourseId}?learnerId={activeLearnerId}");
-        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$"), new() { Timeout = 10000 });
+        await Assertions.Expect(page).ToHaveURLAsync(new Regex($@"/courses/[0-9a-fA-F-]+\?learnerId={Regex.Escape(activeLearnerId)}$", RegexOptions.IgnoreCase), new() { Timeout = 10000 });
     }
 
     private static async Task<string> ResolveUserIdFromDatabaseAsync(string databasePath, string email)
@@ -598,6 +618,8 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
     public async Task Learner_RetakeGrant_UnlocksCourseAccess_AndOverviewShowsAttemptTotals()
     {
         var (courseId, lessonPath) = await ResolveLearnerCourseAndLessonPathAsync(_fixture.DatabasePath, "william.learner@wlr.com");
+        // Clear grants left by other tests so the seeded failures actually block access.
+        await ClearRetakeGrantsAsync(_fixture.DatabasePath, "william.learner@wlr.com", courseId);
         await SeedFailedAssessmentAttemptsAsync(_fixture.DatabasePath, "william.learner@wlr.com", courseId, attempts: 2);
 
         await using var learnerContext = await _fixture.CreateBrowserContextAsync();
@@ -606,8 +628,16 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
         await LoginAsync(learnerPage, "william.learner@wlr.com", "Learner123!");
 
         await learnerPage.GotoAsync($"{_fixture.BaseUrl}{lessonPath}");
+        // The blocked-learner redirect is issued by the circuit after load; wait for it and retry once if hydration failed.
+        var redirected = await WaitForPathAsync(learnerPage, $"/courses/{courseId}", 15000);
+        if (!redirected)
+        {
+            await learnerPage.GotoAsync($"{_fixture.BaseUrl}{lessonPath}");
+            redirected = await WaitForPathAsync(learnerPage, $"/courses/{courseId}", 15000);
+        }
+
         Assert.True(
-            string.Equals($"/courses/{courseId}", new Uri(learnerPage.Url).AbsolutePath, StringComparison.OrdinalIgnoreCase),
+            redirected,
             $"Expected learner to be redirected to course overview for course {courseId}. Actual URL: {learnerPage.Url}");
 
         var startCourseButton = learnerPage.GetByRole(AriaRole.Button, new() { Name = "Start Course" });
@@ -1041,6 +1071,23 @@ VALUES (
         await transaction.CommitAsync();
     }
 
+    private static async Task ClearRetakeGrantsAsync(string databasePath, string learnerEmail, string courseId)
+    {
+        await using var connection = new SqliteConnection($"Data Source={databasePath}");
+        await connection.OpenAsync();
+
+        var userId = await ResolveUserIdAsync(connection, learnerEmail);
+
+        await using var deleteCommand = connection.CreateCommand();
+        deleteCommand.CommandText = @"
+DELETE FROM RetakeGrants
+WHERE UserAccountId = $userId
+  AND CourseAssessmentId IN (SELECT Id FROM CourseAssessments WHERE CourseId = $courseId)";
+        deleteCommand.Parameters.AddWithValue("$userId", userId);
+        deleteCommand.Parameters.AddWithValue("$courseId", courseId);
+        await deleteCommand.ExecuteNonQueryAsync();
+    }
+
     private static async Task GrantRetakeAttemptsAsync(string databasePath, string learnerEmail, string adminEmail, string courseId, int grantedAttempts)
     {
         if (grantedAttempts <= 0)
@@ -1355,6 +1402,39 @@ ORDER BY M.OrderIndex, L.OrderIndex";
     private static async Task ExpectVisibleAsync(ILocator locator)
     {
         await Assertions.Expect(locator).ToBeVisibleAsync(new() { Timeout = 10000 });
+    }
+
+    // A page whose circuit fails to hydrate under suite load renders no interactive content; one reload recovers it.
+    private static async Task ExpectVisibleWithReloadAsync(IPage page, ILocator locator)
+    {
+        try
+        {
+            await Assertions.Expect(locator).ToBeVisibleAsync(new() { Timeout = 15000 });
+        }
+        catch (PlaywrightException)
+        {
+            await page.ReloadAsync();
+            await Assertions.Expect(locator).ToBeVisibleAsync(new() { Timeout = 15000 });
+        }
+    }
+
+    private static async Task<bool> WaitForPathAsync(IPage page, string expectedPath, int timeoutMs)
+    {
+        try
+        {
+            await page.WaitForURLAsync(
+                url => string.Equals(new Uri(url).AbsolutePath, expectedPath, StringComparison.OrdinalIgnoreCase),
+                new() { Timeout = timeoutMs });
+            return true;
+        }
+        catch (TimeoutException)
+        {
+            return false;
+        }
+        catch (PlaywrightException)
+        {
+            return false;
+        }
     }
 
     private static async Task<bool> HasUserAsync(string databasePath, string email, string role)

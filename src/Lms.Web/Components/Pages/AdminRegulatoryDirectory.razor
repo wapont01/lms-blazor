@@ -144,6 +144,9 @@
             }
         </select>
     </div>
+    <div class="course-actions">
+        <a class="secondary-btn" href="@CampaignCsvUrl" target="_blank">Download CSV</a>
+    </div>
     @if (_campaignTargets.Count == 0)
     {
         <p class="muted-text">No campaign targets are available.</p>
@@ -203,6 +206,10 @@
         await RefreshLicenseesAsync();
         await RefreshCampaignTargetsAsync();
     }
+
+    private string CampaignCsvUrl => string.IsNullOrWhiteSpace(_campaignState)
+        ? "/admin/campaign-targets.csv"
+        : $"/admin/campaign-targets.csv?state={Uri.EscapeDataString(_campaignState)}";
 
     private async Task OnCampaignStateChangedAsync(ChangeEventArgs args)
     {
