@@ -817,6 +817,38 @@ public static class StateRosterCaptureSeed
         var licensees = new Dictionary<string, RegulatoryLicensee>(StringComparer.OrdinalIgnoreCase);
         var affiliations = new List<RegulatoryFirmLicenseeAffiliation>();
 
+        // Certification-of-licensure PDFs supply original license dates and addresses missing from the search rows.
+        var firmDetails = new Dictionary<string, (DateOnly? Issued, string? Address)>(StringComparer.OrdinalIgnoreCase);
+        var brokerIssueDates = new Dictionary<string, DateOnly?>(StringComparer.OrdinalIgnoreCase);
+        var detailsPath = Path.Combine(root, "docs", "GEORGIA", "LICENSING", "TXTs", "GA GREC Atlanta Certification Details 01.json");
+        if (File.Exists(detailsPath))
+        {
+            using var detailsDocument = JsonDocument.Parse(File.ReadAllText(detailsPath));
+            if (detailsDocument.RootElement.TryGetProperty("firms", out var detailFirms) && detailFirms.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var element in detailFirms.EnumerateArray())
+                {
+                    var license = GetString(element, "license");
+                    if (license is not null)
+                    {
+                        firmDetails[license] = (ParseDate(GetString(element, "originalLicenseDate")), GetString(element, "addressOfRecord"));
+                    }
+                }
+            }
+
+            if (detailsDocument.RootElement.TryGetProperty("brokers", out var detailBrokers) && detailBrokers.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var element in detailBrokers.EnumerateArray())
+                {
+                    var license = GetString(element, "license");
+                    if (license is not null)
+                    {
+                        brokerIssueDates[license] = ParseDate(GetString(element, "originalLicenseDate"));
+                    }
+                }
+            }
+        }
+
         using var document = JsonDocument.Parse(File.ReadAllText(path));
         if (document.RootElement.TryGetProperty("firms", out var firmArray) && firmArray.ValueKind == JsonValueKind.Array)
         {
@@ -836,7 +868,9 @@ public static class StateRosterCaptureSeed
                     LicenseNumber = licenseNumber,
                     LegalName = name,
                     TradeName = NullIfEmpty(GetString(element, "dba")),
-                    LicenseStatus = GetString(element, "status")
+                    LicenseStatus = GetString(element, "status"),
+                    LicenseIssuedDate = firmDetails.TryGetValue(licenseNumber, out var detail) ? detail.Issued : null,
+                    Address = firmDetails.TryGetValue(licenseNumber, out var addressDetail) ? addressDetail.Address : null
                 };
                 firms[licenseNumber] = firm;
                 firmsByName.TryAdd(name, firm);
@@ -857,6 +891,7 @@ public static class StateRosterCaptureSeed
                 var broker = GetOrAddLicensee(licensees, snapshot, "Georgia", licenseNumber, name,
                     GetString(element, "type") ?? "BRKR", "Broker", ParseDate(GetString(element, "renewalDue")));
                 broker.LicenseStatus = GetString(element, "status") ?? broker.LicenseStatus;
+                broker.LicenseIssuedDate ??= brokerIssueDates.GetValueOrDefault(licenseNumber);
 
                 if (!element.TryGetProperty("firms", out var brokerFirms) || brokerFirms.ValueKind != JsonValueKind.Array)
                 {
@@ -1178,6 +1213,11 @@ public static class StateRosterCaptureSeed
         if (DateOnly.TryParseExact(trimmed, "MM/dd/yyyy", out var parsed))
         {
             return parsed;
+        }
+
+        if (DateOnly.TryParseExact(trimmed, "M/d/yyyy", out var shortParsed))
+        {
+            return shortParsed;
         }
 
         return DateOnly.TryParseExact(trimmed, "yyyy-MM-dd", out var isoParsed) ? isoParsed : null;

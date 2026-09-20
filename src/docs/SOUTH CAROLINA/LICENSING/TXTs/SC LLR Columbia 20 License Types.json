@@ -1,33 +1,137 @@
-{"state":"South Carolina","source":"https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19","parserVersion":"sc-llr-types-v1","note":"License types confirmed one-by-one via LLR Licensee Lookup with human-solved reCAPTCHA. 'l'=license number, 't'=license type, 's'=status if shown.","classifications":[
-{"l":"1012","t":"Broker in Charge"},
-{"l":"1355","t":"Associate"},
-{"l":"1728","t":"Associate"},
-{"l":"3084","t":"Broker"},
-{"l":"4110","t":"Associate"},
-{"l":"5235","t":"Broker"},
-{"l":"5743","t":"Broker"},
-{"l":"6407","t":"Associate"},
-{"l":"13622","t":"Broker"},
-{"l":"15158","t":"Associate"},
-{"l":"15357","t":"Associate"},
-{"l":"17589","t":"Broker"},
-{"l":"17611","t":"Broker"},
-{"l":"17664","t":"Broker"},
-{"l":"17704","t":"Associate"},
-{"l":"17706","t":"Associate"},
-{"l":"18584","t":"Broker"},
-{"l":"18599","t":"Broker in Charge"},
-{"l":"22294","t":"Associate"},
-{"l":"25285","t":"Broker in Charge"},
-{"l":"25574","t":"Broker"},
-{"l":"122081","t":"Broker in Charge"},
-{"l":"125300","t":"Associate"},
-{"l":"3295","t":"Broker"},
-{"l":"102417","t":"Broker in Charge"},
-{"l":"127018","t":"Associate"},
-{"l":"121619","t":"Property Manager in Charge"},
-{"l":"83508","t":"Property Manager"},
-{"l":"149118","t":"Property Manager"},
-{"l":"135378","t":"Property Manager in Charge"},
-{"l":"79942","t":null,"s":"NoRecordFound"}
-]}
+{
+ "state": "South Carolina",
+ "source": "https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19",
+ "parserVersion": "sc-llr-types-v1",
+ "note": "License types confirmed one-by-one via LLR Licensee Lookup with human-solved reCAPTCHA. 'l'=license number, 't'=license type, 's'=status if shown. 2026-09-20: one additional classification (130480) captured before the lookup's reCAPTCHA quota lockout began rejecting all searches; remaining 72 unclassified licensees require LLR's paid Licensee List Request.",
+ "classifications": [
+  {
+   "l": "1012",
+   "t": "Broker in Charge"
+  },
+  {
+   "l": "1355",
+   "t": "Associate"
+  },
+  {
+   "l": "1728",
+   "t": "Associate"
+  },
+  {
+   "l": "3084",
+   "t": "Broker"
+  },
+  {
+   "l": "4110",
+   "t": "Associate"
+  },
+  {
+   "l": "5235",
+   "t": "Broker"
+  },
+  {
+   "l": "5743",
+   "t": "Broker"
+  },
+  {
+   "l": "6407",
+   "t": "Associate"
+  },
+  {
+   "l": "13622",
+   "t": "Broker"
+  },
+  {
+   "l": "15158",
+   "t": "Associate"
+  },
+  {
+   "l": "15357",
+   "t": "Associate"
+  },
+  {
+   "l": "17589",
+   "t": "Broker"
+  },
+  {
+   "l": "17611",
+   "t": "Broker"
+  },
+  {
+   "l": "17664",
+   "t": "Broker"
+  },
+  {
+   "l": "17704",
+   "t": "Associate"
+  },
+  {
+   "l": "17706",
+   "t": "Associate"
+  },
+  {
+   "l": "18584",
+   "t": "Broker"
+  },
+  {
+   "l": "18599",
+   "t": "Broker in Charge"
+  },
+  {
+   "l": "22294",
+   "t": "Associate"
+  },
+  {
+   "l": "25285",
+   "t": "Broker in Charge"
+  },
+  {
+   "l": "25574",
+   "t": "Broker"
+  },
+  {
+   "l": "122081",
+   "t": "Broker in Charge"
+  },
+  {
+   "l": "125300",
+   "t": "Associate"
+  },
+  {
+   "l": "3295",
+   "t": "Broker"
+  },
+  {
+   "l": "102417",
+   "t": "Broker in Charge"
+  },
+  {
+   "l": "127018",
+   "t": "Associate"
+  },
+  {
+   "l": "121619",
+   "t": "Property Manager in Charge"
+  },
+  {
+   "l": "83508",
+   "t": "Property Manager"
+  },
+  {
+   "l": "149118",
+   "t": "Property Manager"
+  },
+  {
+   "l": "135378",
+   "t": "Property Manager in Charge"
+  },
+  {
+   "l": "79942",
+   "t": null,
+   "s": "NoRecordFound"
+  },
+  {
+   "l": "130480",
+   "t": "Property Manager in Charge"
+  }
+ ]
+}

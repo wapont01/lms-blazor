@@ -196,12 +196,21 @@ public class StateRosterCaptureSeedTests
         Assert.Equal("NEW FREEDOM REALTY PARTNERS", chickDeep.TradeName);
         Assert.Equal("DIONNA INGRAM", chickDeep.QualifyingBrokerName);
 
+        var crimson = await fixture.DbContext.RegulatoryFirms.SingleAsync(firm =>
+            firm.SnapshotId == snapshot.Id && firm.LicenseNumber == "80264");
+        Assert.Equal(new DateOnly(2022, 11, 7), crimson.LicenseIssuedDate);
+        Assert.Equal("4330 STONEWALL TELL RD ATLANTA, GA 30349", crimson.Address);
+
         var ingramAffiliation = await fixture.DbContext.RegulatoryFirmLicenseeAffiliations
             .Include(affiliation => affiliation.Licensee)
             .SingleAsync(affiliation => affiliation.SnapshotId == snapshot.Id
                 && affiliation.Licensee!.LicenseNumber == "296643");
         Assert.True(ingramAffiliation.IsBrokerInCharge);
         Assert.Equal(new DateOnly(2030, 1, 31), ingramAffiliation.Licensee!.LicenseRenewalDate);
+
+        var sanders = await fixture.DbContext.RegulatoryLicensees.SingleAsync(licensee =>
+            licensee.SnapshotId == snapshot.Id && licensee.LicenseNumber == "343954");
+        Assert.Equal(new DateOnly(2010, 12, 29), sanders.LicenseIssuedDate);
 
         var lapsedFirm = await fixture.DbContext.RegulatoryFirms.SingleAsync(firm =>
             firm.SnapshotId == snapshot.Id && firm.LicenseNumber == "76840");

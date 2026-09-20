@@ -1,0 +1,242 @@
+{
+ "state": "Georgia",
+ "source": "https://ata.grec.state.ga.us/Account/ViewHistoryCertification",
+ "capturedAt": "2026-09-20",
+ "parserVersion": "ga-grec-certification-details-v1",
+ "note": "Certification-of-licensure PDFs fetched per firm/broker from the prior Atlanta company capture. GREC exposes no public firm-to-agent roster; sponsored agents are not listed on any public page or PDF.",
+ "firms": [
+  {
+   "license": "79303",
+   "name": "1 CHICK DEEP ENTERPRISES LLC",
+   "originalLicenseDate": "10/18/2021",
+   "expirationDate": "10/31/2029",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "675 PONCE DE LEON AVENUE SUITE 8500 ATLANTA, GA 30308"
+  },
+  {
+   "license": "76840",
+   "name": "1 FAITH PROPERTY MANAGEMENT LLC",
+   "originalLicenseDate": "8/24/2018",
+   "expirationDate": "8/31/2026",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "3355 LENOX ROAD SUITE 1000 ATLANTA, GA 30326"
+  },
+  {
+   "license": "77637",
+   "name": "1028 WEST LLC",
+   "originalLicenseDate": "9/17/2019",
+   "expirationDate": "9/30/2027",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "1100 PEACHTREE STREET NE SUITE 968 ATLANTA, GA 30309"
+  },
+  {
+   "license": "47486",
+   "name": "1280 WEST REALTY LLC",
+   "originalLicenseDate": "10/15/2004",
+   "expirationDate": "10/31/2008",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "1280 WEST PEACHTREE ST NW 200 ATLANTA, GA 30309"
+  },
+  {
+   "license": "78497",
+   "name": "1ST & MAIN REALTY LLC",
+   "originalLicenseDate": "12/2/2020",
+   "expirationDate": "12/31/2024",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "3464 ROXBORO ROAD NE UNIT 1103 ATLANTA, GA 30326"
+  },
+  {
+   "license": "82139",
+   "name": "1ST CHOICE REALTY OF ATLANTA INC",
+   "originalLicenseDate": "2/26/2025",
+   "expirationDate": "2/28/2029",
+   "organizationType": "Corporation",
+   "addressOfRecord": "812 STRATFORD CT ATLANTA, GA 30350"
+  },
+  {
+   "license": "80264",
+   "name": "1ST CLASS REAL ESTATE CRIMSON LLC",
+   "originalLicenseDate": "11/7/2022",
+   "expirationDate": "11/30/2026",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "4330 STONEWALL TELL RD ATLANTA, GA 30349"
+  },
+  {
+   "license": "52579",
+   "name": "1ST INVESTMENT & DEVELOPMENT INC",
+   "originalLicenseDate": "3/16/2006",
+   "expirationDate": "3/31/2014",
+   "organizationType": "Corporation",
+   "addressOfRecord": "5725 BUFORD HIGHWAY SUITE 108 ATLANTA, GA 30340"
+  },
+  {
+   "license": "58387",
+   "name": "1ST METROPOLITAN ATLANTA REALTY INC",
+   "originalLicenseDate": "8/27/2007",
+   "expirationDate": "8/31/2011",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "5180 ROSWELL ROAD SUITE 100 S ATLANTA, GA 30342"
+  },
+  {
+   "license": "76077",
+   "name": "1ST PRIORITY ONE REAL ESTATE INC",
+   "originalLicenseDate": "7/12/2017",
+   "expirationDate": "7/31/2030",
+   "organizationType": "Corporation"
+  },
+  {
+   "license": "81624",
+   "name": "1ST STEP REAL ESTATE SERVICES LLC",
+   "originalLicenseDate": "6/13/2024",
+   "expirationDate": "6/30/2028",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "3380 MADISON FARM PLACE SNELLVILLE, GA 30039"
+  },
+  {
+   "license": "77618",
+   "name": "1ST VISION REAL ESTATE INC",
+   "originalLicenseDate": "9/5/2019",
+   "expirationDate": "9/30/2027",
+   "organizationType": "Corporation",
+   "addressOfRecord": "1484 MCADOO DRIVE MARIETTA, GA 30064"
+  },
+  {
+   "license": "76917",
+   "name": "20 WEST REALTY LLC",
+   "originalLicenseDate": "10/1/2018",
+   "expirationDate": "10/31/2026",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "2187 CALVERTON LANE, SW ATLANTA, GA 30331"
+  },
+  {
+   "license": "66383",
+   "name": "222 REAL ESTATE COMPANY LLC",
+   "originalLicenseDate": "4/24/2014",
+   "expirationDate": "4/30/2018",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "525 BAKER CIRCLE NW ATLANTA, GA 30318"
+  },
+  {
+   "license": "65763",
+   "name": "24 HOUR ATLANTA REALTY LLC",
+   "originalLicenseDate": "6/5/2013",
+   "expirationDate": "6/30/2029",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "100 HARTSFIELD CENTRE PARKWAY SUITE 500 ATLANTA, GA 30354"
+  },
+  {
+   "license": "63004",
+   "name": "360 MANAGEMENT & CONSULTING",
+   "originalLicenseDate": "3/1/2010",
+   "expirationDate": "3/31/2014",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "201 17 TH STREET NW SUITE 300 ATLANTA, GA 30363"
+  },
+  {
+   "license": "61670",
+   "name": "381 ALPHA BRAVO LLC",
+   "originalLicenseDate": "11/18/2008",
+   "expirationDate": "11/30/2028",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "6100 LAKE FORREST DRIVE SUITE 120 ATLANTA, GA 30328"
+  },
+  {
+   "license": "82552",
+   "name": "3M REALTY CONSULTANTS LLC",
+   "originalLicenseDate": "9/5/2025",
+   "expirationDate": "9/30/2029",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "1055 HOWELL MILL ROAD 8 TH FLOOR ATLANTA, GA 30318"
+  },
+  {
+   "license": "67413",
+   "name": "40TH STREET REALTY LLC",
+   "originalLicenseDate": "10/6/2015",
+   "expirationDate": "10/31/2019",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "4219 10 PERIMETER SUMMIT NE ATLANTA, GA 30319"
+  },
+  {
+   "license": "82482",
+   "name": "95 KEY PROPERTY MANAGEMENT LLC",
+   "originalLicenseDate": "8/4/2025",
+   "expirationDate": "8/31/2029",
+   "organizationType": "Limited Liability Company",
+   "addressOfRecord": "2727 PACES FERRY ROAD SE SUITE 750 ATLANTA, GA 30339"
+  }
+ ],
+ "brokers": [
+  {
+   "license": "296643",
+   "name": "DIONNA INGRAM",
+   "originalLicenseDate": "11/14/2005",
+   "expirationDate": "1/31/2030"
+  },
+  {
+   "license": "367733",
+   "name": "SHATIMA TANKSON",
+   "originalLicenseDate": "1/25/2016",
+   "expirationDate": "12/31/2027"
+  },
+  {
+   "license": "348818",
+   "name": "DHANAJAY GUPTA",
+   "originalLicenseDate": "6/4/2012",
+   "expirationDate": "7/31/2027"
+  },
+  {
+   "license": "343954",
+   "name": "DEREK SANDERS",
+   "originalLicenseDate": "12/29/2010",
+   "expirationDate": "9/30/2027"
+  },
+  {
+   "license": "377811",
+   "name": "DIONA MILLER",
+   "originalLicenseDate": "7/12/2017",
+   "expirationDate": "8/31/2029"
+  },
+  {
+   "license": "359926",
+   "name": "MIRANDA BEAUPIERRE",
+   "originalLicenseDate": "10/10/2014",
+   "expirationDate": "4/30/2029"
+  },
+  {
+   "license": "130027",
+   "name": "JOHN CLARK",
+   "originalLicenseDate": "11/7/1985",
+   "expirationDate": "12/31/2028"
+  },
+  {
+   "license": "355751",
+   "name": "MELANIE FIELDS",
+   "originalLicenseDate": "2/5/2014",
+   "expirationDate": "2/28/2030"
+  },
+  {
+   "license": "302150",
+   "name": "CURTIS MOORER",
+   "originalLicenseDate": "3/8/2006",
+   "expirationDate": "11/30/2027"
+  },
+  {
+   "license": "262837",
+   "name": "JOHN HALLMAN",
+   "originalLicenseDate": "8/29/1972",
+   "expirationDate": "9/30/2030"
+  },
+  {
+   "license": "405375",
+   "name": "MIKE MOHELE",
+   "originalLicenseDate": "9/23/2020",
+   "expirationDate": "9/30/2028"
+  },
+  {
+   "license": "416412",
+   "name": "PARIS MILNE",
+   "originalLicenseDate": "8/31/2021",
+   "expirationDate": "3/31/2029"
+  }
+ ]
+}
