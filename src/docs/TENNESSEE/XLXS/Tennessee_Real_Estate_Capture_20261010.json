@@ -1,0 +1,67 @@
+﻿{
+    "state":  "Tennessee",
+    "sourceName":  "Tennessee Department of Commerce \u0026 Insurance Verify Public Search",
+    "sourceUrl":  "https://search.cloud.commerce.tn.gov/",
+    "captureDate":  "2026-10-10",
+    "queryScope":  {
+                       "board":  "Real Estate",
+                       "city":  "Nashville",
+                       "state":  "Tennessee",
+                       "individualLicenseGroup":  "Real Estate Broker/Affiliate Broker/Timeshare Salesperson",
+                       "individualStatus":  "Active",
+                       "firmLicenseType":  "Real Estate Firms",
+                       "firmStatus":  "Active"
+                   },
+    "resultCounts":  {
+                         "activeIndividualLicenseGroup":  4515,
+                         "activeNashvilleFirms":  538,
+                         "individualResultCardsCaptured":  100,
+                         "firmResultCardsCaptured":  50
+                     },
+    "sampleCounts":  {
+                         "affiliateBrokers":  20,
+                         "realEstateBrokers":  20,
+                         "realEstateFirms":  20,
+                         "individualLicenses":  40,
+                         "firmCampaignCandidates":  20
+                     },
+    "individualTypeCountsFrom100ResultCards":  {
+                                                   "affiliateBroker":  70,
+                                                   "realEstateBroker":  30,
+                                                   "timeshareSalesperson":  0
+                                               },
+    "individualFiles":  [
+                            "Tennessee_Nashville_Active_Individual_Licensees_20261010.csv",
+                            "Tennessee_Nashville_Active_Real_Estate_Brokers_20261010.csv"
+                        ],
+    "firmCampaignFile":  "Tennessee_Nashville_Active_Firm_Campaign_20261010.csv",
+    "verification":  "Active status, license number, expiry, city, and ZIP from official search result cards; full detail page additionally reviewed for first sampled firm Vantage Real Estate LLC (license 266763). Other firm rows are result-card verified, not individual detail-page reviewed.",
+    "branchEvidence":  "Tennessee Firm_or_Branch source states each branch office must hold a separate firm license and have a full-time Principal Broker. Branch status and parent relationships were not identified in the sampled result-card fields; none inferred.",
+    "sampleMethod":  "First 20 active search results in each individual license type among the first 100 Nashville result cards; first 20 active firm result cards among the first 50. Operational sampling target is 20 per principal license type and 20 firm campaign candidates; it is not a Commission-prescribed sample size.",
+    "noImport":  false,
+    "applicationImport":  {
+                              "status":  "PendingReview",
+                              "snapshots":  1,
+                              "licensees":  40,
+                              "firms":  20,
+                              "affiliations":  0,
+                              "note":  "Imported by the app startup seed; no affiliations were inferred because the campaign firm sample and individual licensee samples are separate captures."
+                          },
+    "files":  [
+                  {
+                      "name":  "Tennessee_Nashville_Active_Individual_Licensees_20261010.csv",
+                      "rows":  20,
+                      "sha256":  "CA9C75A055D071AC0D2A7A7E1FD64271AC0EA670856561F4564DF424B8DC1A16"
+                  },
+                  {
+                      "name":  "Tennessee_Nashville_Active_Real_Estate_Brokers_20261010.csv",
+                      "rows":  20,
+                      "sha256":  "063A38A0BEEB87EBCF8273AE9B9B8A354ECE1A9D4DDB7480F7B98E382888D603"
+                  },
+                  {
+                      "name":  "Tennessee_Nashville_Active_Firm_Campaign_20261010.csv",
+                      "rows":  20,
+                      "sha256":  "57C0B8B027FB6E167BAC8D5CF4891EEAD1FA543156CFE32E951283430994A76A"
+                  }
+              ]
+}

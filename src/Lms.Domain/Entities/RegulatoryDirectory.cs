@@ -60,6 +60,7 @@ public class RegulatoryFirm
     public string? LicenseStatus { get; set; }
 
     public DateOnly? LicenseIssuedDate { get; set; }
+    public DateOnly? LicenseRenewalDate { get; set; }
 
     [StringLength(500)]
     public string? Address { get; set; }
@@ -95,7 +96,17 @@ public class RegulatoryLicensee
     public string? LicenseStatus { get; set; }
 
     public DateOnly? LicenseIssuedDate { get; set; }
+    public DateOnly? OriginalLicenseDate { get; set; }
     public DateOnly? LicenseRenewalDate { get; set; }
+    [StringLength(40)]
+    public string? RelatedLicenseNumber { get; set; }
+    [StringLength(40)]
+    public string? RelatedLicenseType { get; set; }
+    [StringLength(160)]
+    public string? RelatedLicenseName { get; set; }
+    public bool IsRestricted { get; set; }
+    public bool EthicsAndAgencyOnly { get; set; }
+    public bool? IsAdditionalLicenseRecord { get; set; }
     public int? UpdateHours { get; set; }
     public int? ElectiveHours { get; set; }
     public int? PostlicensingHours { get; set; }
@@ -114,6 +125,9 @@ public class RegulatoryFirmLicenseeAffiliation
 
     public DateOnly? RelationshipEffectiveDate { get; set; }
     public bool IsBrokerInCharge { get; set; }
+
+    [StringLength(254)]
+    public string? ContactEmail { get; set; }
 
     [StringLength(160)]
     public string? BrokerInChargeName { get; set; }

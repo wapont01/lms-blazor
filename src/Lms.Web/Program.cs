@@ -95,12 +95,14 @@ using (var scope = app.Services.CreateScope())
     var userAccountService = scope.ServiceProvider.GetRequiredService<IUserAccountService>();
     await EnsureLegacyDatabaseMigrationBaselineAsync(dbContext);
     await EnsureEnrollmentProvenanceSchemaAsync(dbContext);
+    await EnsureRegulatoryAffiliationEmailSchemaAsync(dbContext);
     await EnsureUserLicenseTypeSchemaAsync(dbContext);
     await EnsureInstructorProfileSchemaAsync(dbContext);
     await EnsureSchoolProfileStateSchemaAsync(dbContext);
     await EnsureUserAndCourseStateSchemaAsync(dbContext);
     await dbContext.Database.MigrateAsync();
     await EnsureEnrollmentProvenanceSchemaAsync(dbContext);
+    await EnsureRegulatoryAffiliationEmailSchemaAsync(dbContext);
     await EnsureUserLicenseTypeSchemaAsync(dbContext);
     await EnsureInstructorProfileSchemaAsync(dbContext);
     await EnsureSchoolProfileStateSchemaAsync(dbContext);
@@ -112,6 +114,20 @@ using (var scope = app.Services.CreateScope())
     await NcRecCharlotteCaptureSeed.SeedAsync(dbContext);
     await NcRecNewLicenseCaptureSeed.SeedAsync(dbContext);
     await StateRosterCaptureSeed.SeedAsync(dbContext);
+    await TexasTrecCaptureSeed.SeedAsync(dbContext);
+    await CaliforniaDreCaptureSeed.SeedAsync(dbContext);
+    await AlaskaCbplCaptureSeed.SeedAsync(dbContext);
+    await NevadaNredCaptureSeed.SeedAsync(dbContext);
+    await KansasKrecCaptureSeed.SeedAsync(dbContext);
+    await UtahDreCaptureSeed.SeedAsync(dbContext);
+    await NewHampshireOplcCaptureSeed.SeedAsync(dbContext);
+    await OregonOreaCaptureSeed.SeedAsync(dbContext);
+    await SouthDakotaCitySampleCaptureSeed.SeedAsync(dbContext);
+    await NorthDakotaFargoCaptureSeed.SeedAsync(dbContext);
+    await NorthDakotaBismarckCaptureSeed.SeedAsync(dbContext);
+    await IowaPlbCaptureSeed.SeedAsync(dbContext);
+    await MinnesotaPulseCaptureSeed.SeedAsync(dbContext);
+    await TennesseeCaptureSeed.SeedAsync(dbContext);
     await CourseSeed.SeedEnrollmentsAsync(dbContext);
     var floridaProfile = await dbContext.SchoolProfiles
         .Include(profile => profile.StaffMembers)
@@ -410,9 +426,9 @@ app.MapGet("/admin/campaign-targets.csv", async (ClaimsPrincipal user, string? s
         return Results.Forbid();
     }
 
-    var targets = await regulatoryDirectoryService.GetCampaignFirmTargetsAsync(state, take: 500);
+    var targets = await regulatoryDirectoryService.GetCampaignFirmTargetsAsync(state, take: 10_000);
     var csv = new StringBuilder();
-    csv.AppendLine("State,Firm,TradeName,FirmLicense,Broker,Address,Licensees,NextRenewal,RenewalsWithin12Months");
+    csv.AppendLine("State,Firm,TradeName,FirmLicense,Broker,Address,Licensees,NextRenewal,RenewalDateSource,RenewalsWithin12Months");
     foreach (var target in targets)
     {
         csv.AppendLine(string.Join(',',
@@ -424,6 +440,7 @@ app.MapGet("/admin/campaign-targets.csv", async (ClaimsPrincipal user, string? s
             CsvField(target.Address),
             target.LicenseeCount,
             CsvField(target.NextRenewalDate?.ToString("yyyy-MM-dd")),
+            CsvField(target.RenewalDateSource),
             target.RenewalsWithinTwelveMonths));
     }
 
@@ -517,6 +534,18 @@ static async Task EnsureUserLicenseTypeSchemaAsync(ApplicationDbContext dbContex
     }
 
     await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE \"UserAccounts\" ADD COLUMN \"LicenseType\" TEXT NULL;");
+}
+
+static async Task EnsureRegulatoryAffiliationEmailSchemaAsync(ApplicationDbContext dbContext)
+{
+    const string tableName = "RegulatoryFirmLicenseeAffiliations";
+    if (!await SqliteTableExistsAsync(dbContext, tableName) ||
+        await SqliteColumnExistsAsync(dbContext, tableName, "ContactEmail"))
+    {
+        return;
+    }
+
+    await dbContext.Database.ExecuteSqlRawAsync($"ALTER TABLE \"{tableName}\" ADD COLUMN \"ContactEmail\" TEXT NULL;");
 }
 
 static async Task EnsureInstructorProfileSchemaAsync(ApplicationDbContext dbContext)

@@ -32,7 +32,8 @@ public sealed record RegulatoryFirmImport(
     string? LicenseStatus,
     string? Address,
     string? QualifyingBrokerName,
-    IReadOnlyCollection<RegulatoryLicenseeImport> Licensees);
+    IReadOnlyCollection<RegulatoryLicenseeImport> Licensees,
+    DateOnly? LicenseRenewalDate = null);
 
 public sealed record RegulatoryLicenseeImport(
     string LicenseNumber,
@@ -83,6 +84,7 @@ public sealed record CampaignFirmTarget(
     string? Address,
     int LicenseeCount,
     DateOnly? NextRenewalDate,
+    string? RenewalDateSource,
     int RenewalsWithinTwelveMonths);
 
 public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
@@ -144,7 +146,8 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
                 TradeName = Normalize(firmInput.TradeName),
                 LicenseStatus = Normalize(firmInput.LicenseStatus),
                 Address = Normalize(firmInput.Address),
-                QualifyingBrokerName = Normalize(firmInput.QualifyingBrokerName)
+                QualifyingBrokerName = Normalize(firmInput.QualifyingBrokerName),
+                LicenseRenewalDate = firmInput.LicenseRenewalDate
             };
             if (!firmsByLicense.TryAdd(firmLicenseNumber, firm))
                 {
@@ -200,9 +203,12 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
     {
         var snapshot = await _dbContext.RegulatoryDataSnapshots
             .Include(existing => existing.Firms)
+            .Include(existing => existing.Licensees)
             .FirstOrDefaultAsync(existing => existing.Id == snapshotId);
 
-        if (snapshot is null || snapshot.Status != RegulatorySnapshotStatuses.PendingReview || snapshot.Firms.Count == 0)
+        if (snapshot is null
+            || snapshot.Status != RegulatorySnapshotStatuses.PendingReview
+            || (snapshot.Firms.Count == 0 && snapshot.Licensees.Count == 0))
         {
             return false;
         }
@@ -226,6 +232,7 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             .AsNoTracking()
             .Where(snapshot => snapshot.State == state.Trim() && snapshot.Status == RegulatorySnapshotStatuses.Approved)
             .OrderByDescending(snapshot => snapshot.RetrievedAtUtc)
+            .ThenByDescending(snapshot => snapshot.ImportedAtUtc)
             .FirstOrDefaultAsync();
     }
 
@@ -234,6 +241,7 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
         return await _dbContext.RegulatoryDataSnapshots
             .AsNoTracking()
             .OrderByDescending(snapshot => snapshot.RetrievedAtUtc)
+            .ThenByDescending(snapshot => snapshot.ImportedAtUtc)
             .Take(Math.Clamp(take, 1, 100))
             .Select(snapshot => new RegulatorySnapshotSummary(
                 snapshot.Id,
@@ -317,9 +325,41 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
                     .DistinctBy(licensee => licensee.Id)
                     .ToList();
                 var upcomingRenewals = licensees
-                    .Where(licensee => licensee.LicenseRenewalDate.HasValue && licensee.LicenseRenewalDate.Value >= today)
-                    .Select(licensee => licensee.LicenseRenewalDate!.Value)
+                    .Select(licensee =>
+                    {
+                        if (licensee.LicenseRenewalDate is DateOnly authoritativeDate)
+                        {
+                            return (Date: (DateOnly?)authoritativeDate, Source: LicenseDateProvenance.Authoritative);
+                        }
+
+                        if (StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
+                            licensee.State,
+                            licensee.LicenseType,
+                            today,
+                            out var derivedDate)
+                            || StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
+                                licensee.State,
+                                licensee.LicenseLevel,
+                                today,
+                                out derivedDate))
+                        {
+                            return (Date: (DateOnly?)derivedDate, Source: LicenseDateProvenance.Derived);
+                        }
+
+                        return (Date: (DateOnly?)null, Source: (string?)null);
+                    })
+                    .Where(renewal => renewal.Date.HasValue && renewal.Date.Value >= today)
                     .ToList();
+                if (firm.LicenseRenewalDate is DateOnly firmRenewalDate && firmRenewalDate >= today)
+                {
+                    upcomingRenewals.Add((firmRenewalDate, LicenseDateProvenance.Authoritative));
+                }
+
+                upcomingRenewals = upcomingRenewals
+                    .OrderBy(renewal => renewal.Date)
+                    .ThenBy(renewal => renewal.Source == LicenseDateProvenance.Authoritative ? 0 : 1)
+                    .ToList();
+                var nextRenewal = upcomingRenewals.FirstOrDefault();
                 var brokerName = firm.QualifyingBrokerName
                     ?? firm.LicenseeAffiliations.FirstOrDefault(affiliation => affiliation.IsBrokerInCharge)?.Licensee?.Name
                     ?? firm.LicenseeAffiliations.Select(affiliation => affiliation.BrokerInChargeName).FirstOrDefault(name => name is not null);
@@ -331,13 +371,14 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
                     brokerName,
                     firm.Address,
                     licensees.Count,
-                    upcomingRenewals.Count == 0 ? null : upcomingRenewals.Min(),
-                    upcomingRenewals.Count(renewal => renewal <= horizon));
+                    nextRenewal.Date,
+                    nextRenewal.Source,
+                    upcomingRenewals.Count(renewal => renewal.Date <= horizon));
             })
             .OrderBy(target => target.NextRenewalDate ?? DateOnly.MaxValue)
             .ThenBy(target => target.State)
             .ThenBy(target => target.FirmName)
-            .Take(Math.Clamp(take, 1, 500))
+            .Take(Math.Clamp(take, 1, 10_000))
             .ToList();
     }
 
@@ -371,20 +412,55 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             return false;
         }
 
-        // license numbers are unique per state; prefer the most recently retrieved approved record.
-        // imported license numbers are stored uppercase, so an exact match keeps the (State, LicenseNumber) index usable
-        var licensee = await _dbContext.RegulatoryLicensees
-            .Include(candidate => candidate.Snapshot)
-            .Where(candidate => candidate.Snapshot!.Status == RegulatorySnapshotStatuses.Approved
-                && candidate.State == normalizedState
-                && candidate.LicenseNumber == normalizedLicense)
-            .OrderByDescending(candidate => candidate.Snapshot!.RetrievedAtUtc)
+        var snapshot = await _dbContext.RegulatoryDataSnapshots
+            .Where(candidate => candidate.Status == RegulatorySnapshotStatuses.Approved
+                && candidate.State == normalizedState)
+            .OrderByDescending(candidate => candidate.RetrievedAtUtc)
+            .ThenByDescending(candidate => candidate.ImportedAtUtc)
             .FirstOrDefaultAsync();
-        if (licensee is null)
+        if (snapshot is null)
         {
             return false;
         }
 
+        var candidates = await _dbContext.RegulatoryLicensees
+            .Where(candidate => candidate.SnapshotId == snapshot.Id
+                && candidate.State == normalizedState
+                && candidate.LicenseNumber == normalizedLicense)
+            .ToListAsync();
+
+        if (user.LicenseType is not null)
+        {
+            candidates = candidates
+                .Where(candidate => string.Equals(candidate.LicenseType, user.LicenseType, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (user.LicenseStatus is not null)
+        {
+            candidates = candidates
+                .Where(candidate => string.Equals(candidate.LicenseStatus, user.LicenseStatus, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+
+        if (user.InitialLicensureDate.HasValue)
+        {
+            var issuedDate = DateOnly.FromDateTime(user.InitialLicensureDate.Value);
+            candidates = candidates.Where(candidate => candidate.LicenseIssuedDate == issuedDate).ToList();
+        }
+
+        if (user.LicenseRenewalDueDate.HasValue)
+        {
+            var renewalDate = DateOnly.FromDateTime(user.LicenseRenewalDueDate.Value);
+            candidates = candidates.Where(candidate => candidate.LicenseRenewalDate == renewalDate).ToList();
+        }
+
+        if (candidates.Count != 1)
+        {
+            return false;
+        }
+
+        var licensee = candidates[0];
         await ApplyLinkAsync(user, licensee, null, user.Email, "regulatory-license.auto-linked");
         return true;
     }

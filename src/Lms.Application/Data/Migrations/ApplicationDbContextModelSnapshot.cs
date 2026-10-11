@@ -1430,6 +1430,9 @@ namespace Lms.Application.Data.Migrations
                     b.Property<DateOnly?>("LicenseIssuedDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateOnly?>("LicenseRenewalDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("LicenseNumber")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -1509,7 +1512,16 @@ namespace Lms.Application.Data.Migrations
                     b.Property<int?>("ElectiveHours")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("EthicsAndAgencyOnly")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsBicEligible")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsRestricted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool?>("IsAdditionalLicenseRecord")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateOnly?>("LicenseIssuedDate")
@@ -1525,6 +1537,21 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateOnly?>("LicenseRenewalDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("OriginalLicenseDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelatedLicenseName")
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelatedLicenseNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelatedLicenseType")
+                        .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LicenseStatus")
@@ -1558,8 +1585,7 @@ namespace Lms.Application.Data.Migrations
 
                     b.HasIndex("State", "LicenseNumber");
 
-                    b.HasIndex("SnapshotId", "State", "LicenseNumber")
-                        .IsUnique();
+                    b.HasIndex("SnapshotId", "State", "LicenseNumber", "LicenseType", "LicenseStatus", "LicenseRenewalDate");
 
                     b.ToTable("RegulatoryLicensees");
                 });

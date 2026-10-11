@@ -1,12 +1,15 @@
+using System.IO.Compression;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using Lms.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lms.Application.Data;
 
 /// <summary>
-/// Imports the browser-captured state roster samples (NY Beacon, TX TREC, CT Hartford, IL Chicago)
-/// from src/docs into approved regulatory snapshots so authoritative expiration dates can drive reminders.
+/// Imports browser-captured state roster samples from src/docs into approved regulatory snapshots
+/// so captured license dates can drive regulatory directory views and reminders.
 /// </summary>
 public static class StateRosterCaptureSeed
 {
@@ -20,6 +23,7 @@ public static class StateRosterCaptureSeed
     private const string GeorgiaSourceUrl = "https://ata.grec.state.ga.us/Account/Search";
     private const string SouthCarolinaSourceUrl = "https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19";
     private const string WestVirginiaSourceUrl = "https://www.arello.com/";
+    private const string WestVirginiaRosterSourceUrl = "https://rec.wv.gov/About/Pages/Active-Licensee-Rosters.aspx";
 
     private static readonly DateTime NewYorkRetrievedAtUtc = new(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime TexasRetrievedAtUtc = new(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc);
@@ -29,8 +33,9 @@ public static class StateRosterCaptureSeed
     private static readonly DateTime VirginiaRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime HawaiiRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime GeorgiaRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
-    private static readonly DateTime SouthCarolinaRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime SouthCarolinaRetrievedAtUtc = new(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime WestVirginiaRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime WestVirginiaRosterRetrievedAtUtc = new(2026, 9, 19, 0, 0, 0, DateTimeKind.Utc);
 
     public static async Task SeedAsync(ApplicationDbContext dbContext, string? workspaceRoot = null)
     {
@@ -50,6 +55,7 @@ public static class StateRosterCaptureSeed
         await SeedGeorgiaAsync(dbContext, root);
         await SeedSouthCarolinaAsync(dbContext, root);
         await SeedWestVirginiaAsync(dbContext, root);
+        await SeedWestVirginiaActiveRostersAsync(dbContext, root);
     }
 
     private static async Task SeedNewYorkAsync(ApplicationDbContext dbContext, string root)
@@ -939,6 +945,7 @@ public static class StateRosterCaptureSeed
         {
             return;
         }
+        var profilesDir = Path.Combine(root, "docs", "SOUTH CAROLINA", "LICENSING", "LICENSEES", "TXTS");
 
         // Firm "n" concatenates name and street address; split at the first street-number token before ", SC zip".
         var firmNameAddress = new System.Text.RegularExpressions.Regex(@"^(?<name>.+?)\s+(?<addr>\d[\w-]*\s.+,\s*SC\s*\d{5}(?:-\d{4})?)$");
@@ -963,7 +970,8 @@ public static class StateRosterCaptureSeed
             }
         }
 
-        var snapshot = CreateSnapshot("South Carolina", "LLR licensee lookup (Columbia office sample with affiliations)", SouthCarolinaSourceUrl, SouthCarolinaRetrievedAtUtc, "sc-llr-columbia20-links-v1");
+        var profiles = LoadSouthCarolinaLicenseeProfiles(profilesDir);
+        var snapshot = CreateSnapshot("South Carolina", "LLR licensee lookup (Columbia office sample with licensee profiles)", SouthCarolinaSourceUrl, SouthCarolinaRetrievedAtUtc, "sc-llr-columbia20-profiles-v2");
         var firms = new Dictionary<string, RegulatoryFirm>(StringComparer.OrdinalIgnoreCase);
         var licensees = new Dictionary<string, RegulatoryLicensee>(StringComparer.OrdinalIgnoreCase);
         var affiliations = new List<RegulatoryFirmLicenseeAffiliation>();
@@ -1019,9 +1027,12 @@ public static class StateRosterCaptureSeed
                     var relatedName = dateMatch.Success ? dateMatch.Groups["name"].Value : relatedRaw;
                     var renewalDate = dateMatch.Success ? ParseDate(dateMatch.Groups["date"].Value) : null;
                     var classification = classifications.GetValueOrDefault(relatedLicense);
+                    profiles.TryGetValue(relatedLicense, out var profile);
+                    var licenseType = profile?.LicenseType ?? classification ?? "Licensee";
 
                     var licensee = GetOrAddLicensee(licensees, snapshot, "South Carolina", relatedLicense, relatedName,
-                        classification ?? "Licensee", classification ?? "Licensee", renewalDate);
+                        licenseType, licenseType, profile?.LicenseRenewalDate ?? renewalDate,
+                        profile?.LicenseStatus ?? "Active", profile?.LicenseIssuedDate);
 
                     var isInCharge = classification?.Contains("in Charge", StringComparison.OrdinalIgnoreCase) ?? false;
                     if (isInCharge && classification!.StartsWith("Broker", StringComparison.OrdinalIgnoreCase))
@@ -1042,6 +1053,68 @@ public static class StateRosterCaptureSeed
         }
 
         await PersistAsync(dbContext, snapshot, firms.Values, licensees.Values, affiliations);
+    }
+
+    private static Dictionary<string, SouthCarolinaLicenseeProfile> LoadSouthCarolinaLicenseeProfiles(string directory)
+    {
+        var profiles = new Dictionary<string, SouthCarolinaLicenseeProfile>(StringComparer.OrdinalIgnoreCase);
+        if (!Directory.Exists(directory))
+        {
+            return profiles;
+        }
+
+        foreach (var path in Directory.EnumerateFiles(directory, "*.txt", SearchOption.TopDirectoryOnly)
+            .OrderBy(file => file, StringComparer.OrdinalIgnoreCase))
+        {
+            var profile = ParseSouthCarolinaLicenseeProfile(File.ReadAllText(path));
+            if (profile is null || string.Equals(profile.LicenseType, "Real Estate Office", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            if (!profiles.TryAdd(profile.LicenseNumber, profile))
+            {
+                throw new InvalidDataException($"Multiple South Carolina individual profiles have license number {profile.LicenseNumber}.");
+            }
+        }
+
+        return profiles;
+    }
+
+    private static SouthCarolinaLicenseeProfile? ParseSouthCarolinaLicenseeProfile(string text)
+    {
+        var fields = Regex.Matches(text,
+            @"(?im)(?<!\S)(?<name>License number|License type|Date of Initial Licensure|Status|Expiration|Office):[ \t]*");
+        if (fields.Count == 0)
+        {
+            return null;
+        }
+
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        for (var index = 0; index < fields.Count; index++)
+        {
+            var field = fields[index];
+            var end = index + 1 < fields.Count ? fields[index + 1].Index : text.Length;
+            var raw = text[(field.Index + field.Length)..end];
+            var value = raw.Split(["\r\n", "\n"], StringSplitOptions.None)
+                .Select(line => line.Trim())
+                .FirstOrDefault(line => line.Length > 0) ?? string.Empty;
+            values.TryAdd(field.Groups["name"].Value, value);
+        }
+
+        var licenseNumber = Regex.Match(values.GetValueOrDefault("License number") ?? string.Empty, @"^\d+$");
+        var licenseType = NullIfEmpty(values.GetValueOrDefault("License type"));
+        if (!licenseNumber.Success || licenseType is null)
+        {
+            return null;
+        }
+
+        return new SouthCarolinaLicenseeProfile(
+            licenseNumber.Value,
+            licenseType,
+            NullIfEmpty(values.GetValueOrDefault("Status")),
+            ParseDate(values.GetValueOrDefault("Date of Initial Licensure")),
+            ParseDate(values.GetValueOrDefault("Expiration")));
     }
 
     private static async Task SeedWestVirginiaAsync(ApplicationDbContext dbContext, string root)
@@ -1091,6 +1164,386 @@ public static class StateRosterCaptureSeed
         await PersistAsync(dbContext, snapshot, Array.Empty<RegulatoryFirm>(), licensees.Values, Array.Empty<RegulatoryFirmLicenseeAffiliation>());
     }
 
+    private static async Task SeedWestVirginiaActiveRostersAsync(ApplicationDbContext dbContext, string root)
+    {
+        if (await SnapshotExistsAsync(dbContext, "West Virginia", WestVirginiaRosterSourceUrl, WestVirginiaRosterRetrievedAtUtc))
+        {
+            return;
+        }
+
+        var directory = Path.Combine(root, "docs", "WEST VIRGINIA", "LICENSING", "XLXS");
+        if (!Directory.Exists(directory))
+        {
+            return;
+        }
+
+        var rosterFiles = new[]
+        {
+            new WestVirginiaRosterFile("Salespersons Active.xlsx", "Salesperson", "BranchID", false),
+            new WestVirginiaRosterFile("AB Active.xlsx", "Associate Broker", "BranchNumber", true),
+            new WestVirginiaRosterFile("Broker Active.xlsx", "Broker", "BranchID", false)
+        };
+        var paths = rosterFiles.Select(file => Path.Combine(directory, file.FileName)).ToArray();
+        var missingPath = paths.FirstOrDefault(path => !File.Exists(path));
+        if (missingPath is not null)
+        {
+            throw new FileNotFoundException("The West Virginia active-roster capture is incomplete.", missingPath);
+        }
+
+        var snapshot = CreateSnapshot(
+            "West Virginia",
+            "West Virginia Real Estate Commission active licensee rosters",
+            WestVirginiaRosterSourceUrl,
+            WestVirginiaRosterRetrievedAtUtc,
+            "wv-active-licensee-rosters-v1");
+        var firms = new Dictionary<string, RegulatoryFirm>(StringComparer.OrdinalIgnoreCase);
+        var licensees = new Dictionary<string, WestVirginiaLicenseeAggregate>(StringComparer.OrdinalIgnoreCase);
+        var affiliations = new List<RegulatoryFirmLicenseeAffiliation>();
+        var seenAffiliations = new HashSet<(string LicenseNumber, string FirmNumber)>(new WestVirginiaAffiliationComparer());
+
+        foreach (var rosterFile in rosterFiles)
+        {
+            var records = ReadXlsxRecords(Path.Combine(directory, rosterFile.FileName), rosterFile);
+            if (records.Count == 0)
+            {
+                throw new InvalidDataException($"The West Virginia roster '{rosterFile.FileName}' contains no licensee rows.");
+            }
+
+            foreach (var record in records)
+            {
+                var licenseNumber = RequiredValue(record, "LicenseNumber", rosterFile.FileName);
+                var companyNumber = RequiredValue(record, "CompanyNumber", rosterFile.FileName);
+                var branchNumber = RequiredValue(record, rosterFile.BranchColumn, rosterFile.FileName);
+                var companyName = RequiredValue(record, "CompanyName", rosterFile.FileName);
+                var name = string.Join(" ", new[]
+                {
+                    record.GetValueOrDefault("FirstName"),
+                    record.GetValueOrDefault("MiddleName"),
+                    record.GetValueOrDefault("LastName")
+                }.Where(value => !string.IsNullOrWhiteSpace(value)));
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    throw new InvalidDataException($"The West Virginia roster '{rosterFile.FileName}' contains license {licenseNumber} with no name.");
+                }
+
+                var licenseType = rosterFile.HasLicenseType
+                    ? RequiredValue(record, "LicenseType", rosterFile.FileName)
+                    : rosterFile.LicenseLevel;
+                if (!string.Equals(licenseType, rosterFile.LicenseLevel, StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidDataException(
+                        $"The West Virginia roster '{rosterFile.FileName}' contains unexpected license type '{licenseType}'.");
+                }
+
+                if (!licensees.TryGetValue(licenseNumber, out var licensee))
+                {
+                    licensee = new WestVirginiaLicenseeAggregate(snapshot, licenseNumber);
+                    licensees.Add(licenseNumber, licensee);
+                }
+
+                licensee.Add(name, rosterFile.LicenseLevel);
+
+                var firmNumber = $"{companyNumber}-{branchNumber}";
+                var address = JoinAddress(
+                    record.GetValueOrDefault("CompanyStreet"),
+                    record.GetValueOrDefault("CompanyCity"),
+                    record.GetValueOrDefault("CompanyState"),
+                    record.GetValueOrDefault("CompanyZip"));
+                if (firms.TryGetValue(firmNumber, out var firm))
+                {
+                    if (!string.Equals(firm.LegalName, companyName, StringComparison.OrdinalIgnoreCase)
+                        || !string.Equals(NormalizeCompanyAddress(firm.Address), NormalizeCompanyAddress(address), StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidDataException(
+                            $"The West Virginia rosters contain inconsistent company details for branch '{firmNumber}'.");
+                    }
+
+                    if ((address?.Length ?? 0) > (firm.Address?.Length ?? 0))
+                    {
+                        firm.Address = address;
+                    }
+                }
+                else
+                {
+                    firm = new RegulatoryFirm
+                    {
+                        Snapshot = snapshot,
+                        State = "West Virginia",
+                        LicenseNumber = firmNumber,
+                        LegalName = companyName,
+                        Address = address
+                    };
+                    firms.Add(firmNumber, firm);
+                }
+
+                if (!seenAffiliations.Add((licenseNumber, firmNumber)))
+                {
+                    throw new InvalidDataException(
+                        $"The West Virginia rosters repeat the same license-to-branch relationship for {licenseNumber} at {firmNumber}.");
+                }
+
+                affiliations.Add(new RegulatoryFirmLicenseeAffiliation
+                {
+                    Snapshot = snapshot,
+                    Firm = firm,
+                    Licensee = licensee.Licensee,
+                    ContactEmail = NullIfEmpty(record.GetValueOrDefault("Email"))
+                });
+            }
+        }
+
+        foreach (var licensee in licensees.Values)
+        {
+            licensee.ApplyMergedCategories();
+        }
+
+        await PersistAsync(
+            dbContext,
+            snapshot,
+            firms.Values,
+            licensees.Values.Select(licensee => licensee.Licensee),
+            affiliations);
+    }
+
+    private static List<Dictionary<string, string>> ReadXlsxRecords(string path, WestVirginiaRosterFile rosterFile)
+    {
+        using var archive = ZipFile.OpenRead(path);
+        XNamespace spreadsheetNs = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+        XNamespace relationshipsNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+        XNamespace packageRelationshipsNs = "http://schemas.openxmlformats.org/package/2006/relationships";
+
+        var workbook = LoadXlsxXml(archive, "xl/workbook.xml");
+        var relationshipDocument = LoadXlsxXml(archive, "xl/_rels/workbook.xml.rels");
+        var firstSheet = workbook.Root?.Element(spreadsheetNs + "sheets")?.Elements(spreadsheetNs + "sheet").FirstOrDefault()
+            ?? throw new InvalidDataException($"The West Virginia roster '{rosterFile.FileName}' has no worksheet.");
+        var relationshipId = (string?)firstSheet.Attribute(relationshipsNs + "id")
+            ?? throw new InvalidDataException($"The West Virginia roster '{rosterFile.FileName}' has no worksheet relationship.");
+        var target = relationshipDocument.Root?
+            .Elements(packageRelationshipsNs + "Relationship")
+            .FirstOrDefault(element => string.Equals((string?)element.Attribute("Id"), relationshipId, StringComparison.Ordinal))?
+            .Attribute("Target")?.Value
+            ?? throw new InvalidDataException($"The West Virginia roster '{rosterFile.FileName}' has an invalid worksheet relationship.");
+        var worksheetPath = target.Replace('\\', '/').TrimStart('/');
+        if (!worksheetPath.StartsWith("xl/", StringComparison.OrdinalIgnoreCase))
+        {
+            worksheetPath = $"xl/{worksheetPath}";
+        }
+
+        var sharedStringsEntry = archive.GetEntry("xl/sharedStrings.xml");
+        var sharedStrings = sharedStringsEntry is null
+            ? Array.Empty<string>()
+            : LoadXlsxXml(sharedStringsEntry).Root?
+                .Elements(spreadsheetNs + "si")
+                .Select(item => string.Concat(item.Descendants(spreadsheetNs + "t").Select(text => text.Value)))
+                .ToArray() ?? [];
+        var worksheet = LoadXlsxXml(archive, worksheetPath);
+        var rows = worksheet.Root?
+            .Element(spreadsheetNs + "sheetData")?
+            .Elements(spreadsheetNs + "row")
+            .Select(row => ReadXlsxRow(row, spreadsheetNs, sharedStrings))
+            .Where(row => row.Values.Any(value => !string.IsNullOrWhiteSpace(value)))
+            .ToList() ?? [];
+        if (rows.Count == 0)
+        {
+            throw new InvalidDataException($"The West Virginia roster '{rosterFile.FileName}' is empty.");
+        }
+
+        var headers = new Dictionary<int, string>();
+        foreach (var (column, value) in rows[0])
+        {
+            if (!string.IsNullOrWhiteSpace(value) && !headers.TryAdd(column, value.Trim()))
+            {
+                throw new InvalidDataException($"The West Virginia roster '{rosterFile.FileName}' has duplicate header columns.");
+            }
+        }
+
+        var requiredHeaders = new[]
+        {
+            "FirstName", "MiddleName", "LastName", "LicenseNumber", "CompanyNumber", "CompanyName",
+            rosterFile.BranchColumn, "Email", "CompanyStreet", "CompanyCity", "CompanyState", "CompanyZip"
+        };
+        if (rosterFile.HasLicenseType)
+        {
+            requiredHeaders = [.. requiredHeaders, "LicenseType"];
+        }
+
+        var columnByHeader = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (column, header) in headers)
+        {
+            if (!columnByHeader.TryAdd(header, column))
+            {
+                throw new InvalidDataException($"The West Virginia roster '{rosterFile.FileName}' has duplicate header '{header}'.");
+            }
+        }
+
+        var missingHeader = requiredHeaders.FirstOrDefault(header => !columnByHeader.ContainsKey(header));
+        if (missingHeader is not null)
+        {
+            throw new InvalidDataException($"The West Virginia roster '{rosterFile.FileName}' is missing required column '{missingHeader}'.");
+        }
+
+        return rows.Skip(1)
+            .Select(row => columnByHeader.ToDictionary(
+                header => header.Key,
+                header => row.GetValueOrDefault(header.Value, string.Empty),
+                StringComparer.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    private static Dictionary<int, string> ReadXlsxRow(XElement row, XNamespace spreadsheetNs, IReadOnlyList<string> sharedStrings)
+    {
+        var values = new Dictionary<int, string>();
+        foreach (var cell in row.Elements(spreadsheetNs + "c"))
+        {
+            var reference = (string?)cell.Attribute("r")
+                ?? throw new InvalidDataException("A West Virginia roster worksheet cell is missing its column reference.");
+            var columnName = new string(reference.TakeWhile(char.IsLetter).ToArray());
+            if (columnName.Length == 0)
+            {
+                throw new InvalidDataException($"A West Virginia roster worksheet has an invalid cell reference '{reference}'.");
+            }
+
+            var column = 0;
+            foreach (var character in columnName)
+            {
+                column = checked(column * 26 + char.ToUpperInvariant(character) - 'A' + 1);
+            }
+
+            var cellType = (string?)cell.Attribute("t");
+            var value = cellType switch
+            {
+                "s" => GetSharedString(cell, sharedStrings, reference, spreadsheetNs),
+                "inlineStr" => string.Concat(cell.Descendants(spreadsheetNs + "t").Select(text => text.Value)),
+                _ => cell.Element(spreadsheetNs + "v")?.Value ?? string.Empty
+            };
+            values.Add(column - 1, value.Trim());
+        }
+
+        return values;
+    }
+
+    private static string GetSharedString(XElement cell, IReadOnlyList<string> sharedStrings, string reference, XNamespace spreadsheetNs)
+    {
+        var value = cell.Element(spreadsheetNs + "v")?.Value;
+        if (!int.TryParse(value, out var index) || index < 0 || index >= sharedStrings.Count)
+        {
+            throw new InvalidDataException($"West Virginia roster cell '{reference}' refers to an invalid shared string.");
+        }
+
+        return sharedStrings[index];
+    }
+
+    private static XDocument LoadXlsxXml(ZipArchive archive, string path)
+    {
+        var entry = archive.GetEntry(path)
+            ?? throw new InvalidDataException($"The West Virginia roster workbook is missing '{path}'.");
+        return LoadXlsxXml(entry);
+    }
+
+    private static XDocument LoadXlsxXml(ZipArchiveEntry entry)
+    {
+        using var stream = entry.Open();
+        return XDocument.Load(stream);
+    }
+
+    private static string RequiredValue(IReadOnlyDictionary<string, string> record, string column, string fileName)
+    {
+        var value = record.GetValueOrDefault(column);
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InvalidDataException($"The West Virginia roster '{fileName}' contains a row with a blank {column}.");
+        }
+
+        return value.Trim();
+    }
+
+    private static string? JoinAddress(params string?[] parts)
+    {
+        var value = string.Join(", ", parts.Where(part => !string.IsNullOrWhiteSpace(part)).Select(part => part!.Trim()));
+        return NullIfEmpty(value);
+    }
+
+    private static string? NormalizeWhitespace(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : string.Join(" ", value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+    private static string? NormalizeCompanyAddress(string? value)
+    {
+        var normalized = NormalizeWhitespace(value);
+        return normalized is null ? null : Regex.Replace(normalized, @"\b(\d{5})-\d{4}\b", "$1");
+    }
+
+    private sealed record WestVirginiaRosterFile(string FileName, string LicenseLevel, string BranchColumn, bool HasLicenseType);
+
+    private sealed class WestVirginiaLicenseeAggregate
+    {
+        private readonly Dictionary<string, int> _names = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _categories = new(StringComparer.OrdinalIgnoreCase);
+
+        public RegulatoryLicensee Licensee { get; }
+
+        public WestVirginiaLicenseeAggregate(RegulatoryDataSnapshot snapshot, string licenseNumber)
+        {
+            Licensee = new RegulatoryLicensee
+            {
+                Snapshot = snapshot,
+                State = "West Virginia",
+                LicenseNumber = licenseNumber,
+                LicenseStatus = null,
+                LicenseIssuedDate = null,
+                LicenseRenewalDate = null
+            };
+        }
+
+        public void Add(string name, string category)
+        {
+            var nameKey = NormalizePersonName(name);
+            if (_names.Keys.Any(existing => !string.Equals(NormalizePersonName(existing), nameKey, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidDataException(
+                    $"The West Virginia rosters contain conflicting names for license {Licensee.LicenseNumber}.");
+            }
+
+            _names[name] = _names.GetValueOrDefault(name) + 1;
+            _categories.Add(category);
+        }
+
+        public void ApplyMergedCategories()
+        {
+            Licensee.Name = _names
+                .OrderByDescending(pair => pair.Value)
+                .ThenBy(pair => pair.Key, StringComparer.OrdinalIgnoreCase)
+                .First().Key;
+            var orderedCategories = _categories
+                .OrderByDescending(GetCategoryRank)
+                .ToArray();
+            Licensee.LicenseLevel = orderedCategories[0];
+            Licensee.LicenseType = string.Join(", ", orderedCategories);
+        }
+
+        private static string NormalizePersonName(string name) =>
+            string.Concat(name.Where(character => !char.IsWhiteSpace(character) && character != '.'));
+
+        private static int GetCategoryRank(string category) => category switch
+        {
+            "Broker" => 3,
+            "Associate Broker" => 2,
+            "Salesperson" => 1,
+            _ => 0
+        };
+    }
+
+    private sealed class WestVirginiaAffiliationComparer : IEqualityComparer<(string LicenseNumber, string FirmNumber)>
+    {
+        public bool Equals((string LicenseNumber, string FirmNumber) x, (string LicenseNumber, string FirmNumber) y) =>
+            string.Equals(x.LicenseNumber, y.LicenseNumber, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(x.FirmNumber, y.FirmNumber, StringComparison.OrdinalIgnoreCase);
+
+        public int GetHashCode((string LicenseNumber, string FirmNumber) value) =>
+            HashCode.Combine(
+                StringComparer.OrdinalIgnoreCase.GetHashCode(value.LicenseNumber),
+                StringComparer.OrdinalIgnoreCase.GetHashCode(value.FirmNumber));
+    }
+
     private static RegulatoryLicensee GetOrAddLicensee(
         Dictionary<string, RegulatoryLicensee> licensees,
         RegulatoryDataSnapshot snapshot,
@@ -1099,7 +1552,9 @@ public static class StateRosterCaptureSeed
         string name,
         string licenseType,
         string licenseLevel,
-        DateOnly? renewalDate)
+        DateOnly? renewalDate,
+        string? licenseStatus = "Active",
+        DateOnly? issuedDate = null)
     {
         if (licensees.TryGetValue(licenseNumber, out var existing))
         {
@@ -1114,12 +1569,20 @@ public static class StateRosterCaptureSeed
             Name = name,
             LicenseType = licenseType,
             LicenseLevel = licenseLevel,
-            LicenseStatus = "Active",
+            LicenseStatus = licenseStatus,
+            LicenseIssuedDate = issuedDate,
             LicenseRenewalDate = renewalDate
         };
         licensees[licenseNumber] = licensee;
         return licensee;
     }
+
+    private sealed record SouthCarolinaLicenseeProfile(
+        string LicenseNumber,
+        string LicenseType,
+        string? LicenseStatus,
+        DateOnly? LicenseIssuedDate,
+        DateOnly? LicenseRenewalDate);
 
     private static RegulatoryDataSnapshot CreateSnapshot(string state, string sourceName, string sourceUrl, DateTime retrievedAtUtc, string parserVersion) => new()
     {

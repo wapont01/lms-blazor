@@ -115,6 +115,26 @@ public class StateComplianceProfileCatalogTests
     }
 
     [Fact]
+    public void WestVirginiaRenewalPolicies_UseJune30ForSupportedLicenseCategories()
+    {
+        var beforeRenewal = new DateOnly(2026, 6, 29);
+        var onRenewal = new DateOnly(2026, 6, 30);
+        var afterRenewal = new DateOnly(2026, 7, 1);
+
+        Assert.True(StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
+            "WV", "Salesperson", beforeRenewal, out var beforeDate));
+        Assert.Equal(new DateOnly(2026, 6, 30), beforeDate);
+        Assert.True(StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
+            "West Virginia", "Associate Broker", onRenewal, out var onDate));
+        Assert.Equal(onRenewal, onDate);
+        Assert.True(StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
+            "West Virginia", "Broker", afterRenewal, out var afterDate));
+        Assert.Equal(new DateOnly(2027, 6, 30), afterDate);
+        Assert.False(StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
+            "West Virginia", "Unknown License", afterRenewal, out _));
+    }
+
+    [Fact]
     public void StateCourseCatalog_ContainsDocumentedCourseDefinitions()
     {
         Assert.Contains(StateCourseCatalog.ForState("Arkansas"), course => course.RequiredHours == 60 && course.CourseType == CourseComplianceTypes.Prelicensing);

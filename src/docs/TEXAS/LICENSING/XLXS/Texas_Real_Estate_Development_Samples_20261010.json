@@ -1,0 +1,103 @@
+﻿{
+    "state":  "Texas",
+    "createdFromSourceSnapshot":  "2026-10-10",
+    "sourceFile":  "Texas_TREC_Broker_and_Sales_Agent_License_Holder_Information_2026-10-10.csv",
+    "sourceSha256":  "12BDF64227681F563E5416071D71BD61B84BEB1FA2AA68F8A4F47DBCFFD94752",
+    "sourceRecordCount":  326020,
+    "strictActiveCounts":  {
+                               "Broker Company":  13833,
+                               "Sales Agent":  141172,
+                               "Broker Individual":  33533
+                           },
+    "samplePurpose":  "Development-only sample cohorts; the Broker Company sample is included in the consolidated campaign candidate file for internal research only. This review does not authorize outbound outreach, account matching, or application import.",
+    "campaignUseAuthorized":  false,
+    "internalCampaignResearchIncluded":  true,
+    "applicationImportPerformed":  false,
+    "trecProfileVerification":  {
+                                    "file":  "Texas_Active_Broker_Company_TREC_Profile_Verification_20261010.csv",
+                                    "verifiedOn":  "2026-10-10",
+                                    "profilesChecked":  20,
+                                    "profilesShowingActive":  20,
+                                    "profilesDisplayingSponsoredSalesAgentCount":  11,
+                                    "sponsoredSalesAgentsAcrossProfilesWithDisplayedCounts":  509,
+                                    "profilesWithoutDisplayedCount":  9,
+                                    "blankCountMeans":  "Not displayed by the TREC profile; not zero.",
+                                    "source":  "https://www.trec.texas.gov/license-search/"
+                                },
+    "selectionMethod":  "For each exact License Type and Status=Active, deduplicate by license number (the active rows checked had no duplicate license numbers). Sample six high-volume counties shared across all three types—Harris, Dallas, Bexar, Tarrant, Collin, Travis—with 4 records each from Harris and Dallas and 3 each from the other four counties. Within each county, sort by license number and select evenly spaced positions. The six counties are the top six by active count for each type.",
+    "sourceFieldsRetained":  [
+                                 "License Number",
+                                 "Full Name",
+                                 "Status",
+                                 "Original License Date",
+                                 "License Expiration Date",
+                                 "County",
+                                 "Designated Supervisor Flag",
+                                 "Related License Type",
+                                 "Related License Number",
+                                 "Related License Full Name",
+                                 "Related License Start Date",
+                                 "Agency Identifier",
+                                 "Updated"
+                             ],
+    "sampleFiles":  {
+                        "Broker Company":  {
+                                               "sampleFile":  "Texas_Active_Broker_Company_Development_Sample_20261010.csv",
+                                               "sampleCount":  20,
+                                               "uniqueLicenseNumbers":  20,
+                                               "allStrictActive":  true,
+                                               "countyDistribution":  {
+                                                                          "Bexar":  3,
+                                                                          "Dallas":  4,
+                                                                          "Collin":  3,
+                                                                          "Travis":  3,
+                                                                          "Harris":  4,
+                                                                          "Tarrant":  3
+                                                                      },
+                                               "duplicateActiveRosterRows":  0
+                                           },
+                        "Sales Agent":  {
+                                            "sampleFile":  "Texas_Active_Sales_Agent_Development_Sample_20261010.csv",
+                                            "sampleCount":  20,
+                                            "uniqueLicenseNumbers":  20,
+                                            "allStrictActive":  true,
+                                            "countyDistribution":  {
+                                                                       "Bexar":  3,
+                                                                       "Dallas":  4,
+                                                                       "Collin":  3,
+                                                                       "Travis":  3,
+                                                                       "Harris":  4,
+                                                                       "Tarrant":  3
+                                                                   },
+                                            "duplicateActiveRosterRows":  0
+                                        },
+                        "Broker Individual":  {
+                                                  "sampleFile":  "Texas_Active_Broker_Individual_Development_Sample_20261010.csv",
+                                                  "sampleCount":  20,
+                                                  "uniqueLicenseNumbers":  20,
+                                                  "allStrictActive":  true,
+                                                  "countyDistribution":  {
+                                                                             "Bexar":  3,
+                                                                             "Dallas":  4,
+                                                                             "Collin":  3,
+                                                                             "Travis":  3,
+                                                                             "Harris":  4,
+                                                                             "Tarrant":  3
+                                                                         },
+                                                  "duplicateActiveRosterRows":  0
+                                              }
+                    },
+    "sampleSha256":  {
+                         "Texas_Active_Broker_Company_Development_Sample_20261010.csv":  "5D9453D1D296E65DE8462088B81200B3E7AFD1103CCEB1C2CF0DB3B9FA141001",
+                         "Texas_Active_Sales_Agent_Development_Sample_20261010.csv":  "7E3EE68F522E549A2E0081477E0E7CF7AF68F9AFDA9B68F5E348A95E86CDAD17",
+                         "Texas_Active_Broker_Individual_Development_Sample_20261010.csv":  "A25DCD8E19398B1676BB5C54882E610C1D0A5070CA6175778CA2A839D21F204F"
+                     },
+    "limitations":  [
+                        "County is a roster location field, not evidence of a firm branch or office address.",
+                        "Related-license and agency fields are preserved as supplied; no branch, parent, or supervisor relationship is inferred.",
+                        "The roster contains no direct phone/email fields in these selected columns.",
+                        "Recheck current license status and expiration before any later authorized operational use.",
+                        "The official-source review supports internal campaign lead research only; it does not specifically authorize solicitation or account matching.",
+                        "TREC instructions state phone, email, and mailing/physical address fields are withheld due to SB 510; do not treat the roster as a contact source."
+                    ]
+}

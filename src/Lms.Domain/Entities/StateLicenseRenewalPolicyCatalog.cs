@@ -17,6 +17,8 @@ public sealed class StateLicenseRenewalPolicy
     public int RenewalCycleYears { get; init; }
     public int RenewalWindowStartMonth { get; init; }
     public int RenewalWindowEndMonth { get; init; }
+    public int? FixedRenewalMonth { get; init; }
+    public int? FixedRenewalDay { get; init; }
     public bool HasPostlicensingDeadline { get; init; }
     public LicenseRenewalCeRequirements ContinuingEducation { get; init; } = new();
 }
@@ -43,7 +45,10 @@ public static class StateLicenseRenewalPolicyCatalog
             ["Georgia|Community Association Manager"] = CreateGeorgia("Community Association Manager"),
             ["South Carolina|Associate"] = Create("Associate", coreHours: 4, electiveHours: 6),
             ["South Carolina|Broker"] = Create("Broker", coreHours: 4, electiveHours: 6),
-            ["South Carolina|Broker-in-Charge"] = Create("Broker-in-Charge", coreHours: 4, electiveHours: 2, bicHours: 4)
+            ["South Carolina|Broker-in-Charge"] = Create("Broker-in-Charge", coreHours: 4, electiveHours: 2, bicHours: 4),
+            ["West Virginia|Salesperson"] = CreateWestVirginia("Salesperson"),
+            ["West Virginia|Associate Broker"] = CreateWestVirginia("Associate Broker"),
+            ["West Virginia|Broker"] = CreateWestVirginia("Broker")
         };
 
     public static IReadOnlyCollection<StateLicenseRenewalPolicy> All => Policies.Values.ToArray();
@@ -87,6 +92,30 @@ public static class StateLicenseRenewalPolicyCatalog
         return false;
     }
 
+    public static bool TryCalculateNextRenewalDate(
+        string? state,
+        string? licenseCategory,
+        DateOnly asOfDate,
+        out DateOnly renewalDate)
+    {
+        renewalDate = default;
+        if (!TryResolve(state, licenseCategory, out var policy)
+            || policy!.FixedRenewalMonth is not int month
+            || policy.FixedRenewalDay is not int day
+            || policy.RenewalCycleYears < 1)
+        {
+            return false;
+        }
+
+        renewalDate = new DateOnly(asOfDate.Year, month, day);
+        if (renewalDate < asOfDate)
+        {
+            renewalDate = renewalDate.AddYears(policy.RenewalCycleYears);
+        }
+
+        return true;
+    }
+
     private static readonly IReadOnlyDictionary<string, string> StateAbbreviations =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -97,7 +126,8 @@ public static class StateLicenseRenewalPolicyCatalog
             ["TX"] = "Texas",
             ["VA"] = "Virginia",
             ["GA"] = "Georgia",
-            ["SC"] = "South Carolina"
+            ["SC"] = "South Carolina",
+            ["WV"] = "West Virginia"
         };
 
     private static string? NormalizeState(string? state)
@@ -173,6 +203,22 @@ public static class StateLicenseRenewalPolicyCatalog
                 ElectiveHours = electiveHours,
                 BicHours = bicHours
             }
+        };
+    }
+
+    private static StateLicenseRenewalPolicy CreateWestVirginia(string licenseCategory)
+    {
+        // Source: docs/WEST VIRGINIA/LICENSING/TXTs/7319 proof2.txt, WVREC Rule 174-1-8.1.
+        return new StateLicenseRenewalPolicy
+        {
+            State = "West Virginia",
+            LicenseCategory = licenseCategory,
+            RenewalCycleYears = 1,
+            RenewalWindowStartMonth = 6,
+            RenewalWindowEndMonth = 6,
+            FixedRenewalMonth = 6,
+            FixedRenewalDay = 30,
+            HasPostlicensingDeadline = false
         };
     }
 

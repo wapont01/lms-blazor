@@ -2,6 +2,66 @@
   "state":"Texas",
   "strategyName":"Texas TREC Active Broker or Sales Agent Roster Lookup Strategy",
   "source":"https://www.trec.texas.gov/license-search/",
+  "bulkRosterSource":{
+    "publisher":"Texas Real Estate Commission (TREC Public Information)",
+    "portal":"https://data.texas.gov/dataset/Broker-and-Sales-Agent-License-Holder-Information/s7ft-44qi",
+    "api":"https://data.texas.gov/resource/s7ft-44qi.json",
+    "metadata":"https://data.texas.gov/api/views/s7ft-44qi.json",
+    "verifiedDate":"2026-10-10",
+    "capturedFile":"../XLXS/Texas_TREC_Broker_and_Sales_Agent_License_Holder_Information_2026-10-10.csv",
+    "capturedFileSha256":"12BDF64227681F563E5416071D71BD61B84BEB1FA2AA68F8A4F47DBCFFD94752",
+    "recordCountAtVerification":326020,
+    "latestRecordUpdateUtc":"2026-10-10T07:30:02Z",
+    "strictActiveCountsByLicenseType":{
+      "Broker Company":13833,
+      "Broker Individual":33533,
+      "Sales Agent":141172
+    },
+    "additionalActiveLikeStatusCounts":{
+      "Probation - Active":211,
+      "Probated Suspension - Active":28,
+      "Probated Revocation - Active":4
+    },
+    "fieldsVerified":[
+      "license_type",
+      "license_number",
+      "full_name",
+      "status",
+      "original_license_date",
+      "license_expiration_date",
+      "designated_supervisor_flag",
+      "county",
+      "related_license_type",
+      "related_license_number",
+      "related_license_full_name",
+      "related_license_start_date",
+      "agency_identifier",
+      "updated"
+    ],
+    "sourceAssessment":"Authoritative statewide bulk source with exact license status and expiration dates. The 326,020 rows include active records and non-active/historical statuses; use exact status and license_type rather than treating every row as a current licensee. Strict Active counts are 188,538 (13,833 companies, 33,533 individual brokers, 141,172 sales agents); additional active-probation statuses total 243 records.",
+    "captureResult":{
+      "parsedSourceRows":326020,
+      "currentStatusesImported":["Active","Probation - Active","Probated Suspension - Active","Probated Revocation - Active"],
+      "namedNonCompanyActiveRowsImported":174826,
+      "capturedLicenseeRecordsIncludingRelatedBrokerReferences":174839,
+      "relatedBrokerReferencesWithoutActiveSourceRowsAdded":13,
+      "activeRowsWithoutResolvableNamesExcluded":116,
+      "loadedSnapshotCounts":{"firms":20321,"licensees":174839},
+      "snapshotReviewStatus":"Reviewed for internal firm-campaign research only; outreach and account matching remain unapproved",
+      "reasonForReview":"TREC identifies the files as High Value Data Sets and publishes bulk import/filter instructions. The reviewed pages do not specifically authorize solicitation or account matching. Keep direct outreach, account matching, and application import blocked pending separate compliance review."
+    },
+    "ingestionRecommendation":"Prefer this bulk dataset over crawling 18,630 paginated search result pages. Keep company, individual broker, and sales-agent records distinct, preserve exact status and expiration, and confirm dataset-use terms before campaign use."
+  },
+  "deferredFollowUp":{
+    "status":"Official-source data-use review completed; outreach/account-matching review remains open",
+    "keepSnapshotPendingReview":true,
+    "researchItems":[
+      "Before outbound solicitation or account matching, obtain separate compliance review; the public-data designation and bulk-use instructions are not treated as campaign-solicitation authorization.",
+      "Inspect the 116 current-status rows omitted from the application capture because the source and related-license records did not provide one unambiguous name; decide whether they should remain omitted or be represented as unnamed entity/license records.",
+      "Confirm whether active-probation statuses belong in the current operational roster or should be classified separately."
+    ],
+    "campaignUse":"The 20-record Broker Company sample may be used as an internal campaign-research lead list only. Do not use the roster as a contact source, conduct outbound solicitation, or account-match until separately cleared."
+  },
   "query":{"licenseTypeFilter":"Broker or Sales Agent","licenseStatus":"Active","nameOrLicense":"","firstResultPage":1},
   "entityLicenseSearchExample":{"nameOrLicense":"596861-BB","licenseTypeFilter":"Broker or Sales Agent","licenseStatus":"Active","matchedEntity":"Pecan Classic Realty, L.L.C.","matchedLicenseType":"Broker Company","matchedStatus":"Active"},
   "resultPages":"18630",
@@ -35,5 +95,5 @@
   "capturedFields":["name","license number","license type","status","expiration date","designated broker","sponsoring broker","sponsored agents","CE requirement summary when shown"],
   "entityRule":"Business Broker records are entity candidates; Individual Broker and Sales Agent records are individual licensees. Active firms and their related active personnel should be retained for campaigns; inactive records belong in historical storage.",
   "renewalReminderRule":"Texas reminders must use the exact license type and expiration date. Sales agents have person-specific CE/sponsorship reminders; business broker records identify the firm and designated broker, not a person course recipient.",
-  "note":"The first result page was sampled. No statewide bulk export or all-page crawl was claimed."
+  "note":"Earlier UI research sampled the first result page and entity profiles. Subsequent review found the official statewide bulk dataset above; no all-page UI crawl was performed."
 }

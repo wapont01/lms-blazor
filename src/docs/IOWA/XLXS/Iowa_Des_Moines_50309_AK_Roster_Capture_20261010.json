@@ -1,0 +1,62 @@
+{
+  "state": "Iowa",
+  "source": {
+    "name": "Iowa Professional Licensing Bureau public license search",
+    "url": "https://ia-plb.my.site.com/LicenseSearchPage",
+    "detailUrl": "https://ia-plb.my.site.com/LicenseSearchDetailPage"
+  },
+  "retrievedAtUtc": "2026-10-10T20:17:37Z",
+  "query": {
+    "licensingBoard": "Real Estate Commission",
+    "licensingStatus": "Active",
+    "city": "Des Moines",
+    "state": "Iowa",
+    "zip": "50309",
+    "lastNameGroup": "A-K",
+    "resultPagesCaptured": [
+      1,
+      2
+    ],
+    "pageSize": 25,
+    "totalResultsReportedByPortal": 37
+  },
+  "scope": "Complete 37-row A-K active-license query for Des Moines ZIP 50309, captured across both result pages. This is a city-and-ZIP development sample, not a statewide roster.",
+  "coverage": {
+    "individualLicenseesCaptured": 26,
+    "businessRecordsCaptured": 18,
+    "searchResultRowsCaptured": 37,
+    "searchResultBusinessRows": 11,
+    "affiliationsFromLicenseeDetailPages": 25,
+    "licenseesWithoutRelatedLicenseRecord": 1,
+    "individualLicenseTypesOnCapturedQuery": {
+      "Real Estate Salesperson": 16,
+      "Real Estate Broker Associate": 1,
+      "Real Estate Broker Officer": 9
+    },
+    "businessLicenseTypesOnCapturedQuery": {
+      "Real Estate Firm": 9,
+      "Real Estate Branch": 1,
+      "Real Estate Trade Name": 1
+    }
+  },
+  "files": {
+    "licensees": {
+      "name": "Iowa_Des_Moines_50309_AK_Real_Estate_Licensees_20261010.csv",
+      "sha256": "62F7E7F3CBF80BAAFDF8952AED3E47907D3C25366BE3ABB4270F2B01DF8BBB4D"
+    },
+    "firms": {
+      "name": "Iowa_Des_Moines_50309_AK_Real_Estate_Firms_20261010.csv",
+      "sha256": "DFEA335AC3C3B57D7B40DF162FAE089B3EE0A715E37EA1000BE6C056A8E5E099"
+    }
+  },
+  "notes": [
+    "The portal requires a last-name group for Real Estate Commission active-license searches; A-K was used.",
+    "The portal's two result pages showed rows 1-25 and 26-37, respectively, completing the 37-row A-K query. Each of the 26 individual license detail pages was checked directly for published type, status, dates, and firm affiliation; one captured licensee has no related-license values in the source capture and is imported without an affiliation.",
+    "The 18 business records include business licenses displayed in search results and business licenses explicitly linked from captured individual detail pages. The visible Download Results action did not produce an accessible downloaded file in this workspace; the staged CSVs preserve the verified displayed rows and detail-page fields.",
+    "The InSearchResults flag identifies the seven business licenses displayed in the captured result page. Additional business-license rows are included only when an individual's official detail page explicitly linked that license for affiliation.",
+    "Iowa individual license types are retained exactly as published and normalized distinctly: Real Estate Salesperson is Salesperson level, Real Estate Broker Associate is Broker level, and Real Estate Broker Officer is Managing Broker level. A Broker Associate is not marked as the supervising/in-charge broker merely because a firm page lists that license as its managing license.",
+    "License-number prefixes corroborate the published categories in this capture: S for salesperson, B for broker categories (including associate and officer), F for firms/branches, and T for trade names.",
+    "Iowa firm licensing documentation says trade names are not assigned to an individual. The trade-name result is retained as a business record and is not used to invent a person affiliation.",
+    "Records are imported as PendingReview."
+  ]
+}

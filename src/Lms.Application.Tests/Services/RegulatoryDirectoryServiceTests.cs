@@ -10,6 +10,55 @@ namespace Lms.Application.Tests.Services;
 public class RegulatoryDirectoryServiceTests
 {
     [Fact]
+    public async Task TryAutoLinkLicenseAsync_LeavesAmbiguousLicenseNumberUnlinked_ThenUsesMatchingLicenseType()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var user = await fixture.DbContext.UserAccounts.FirstAsync();
+        user.LicenseType = null;
+        user.LicenseStatus = null;
+        user.InitialLicensureDate = null;
+        user.LicenseRenewalDueDate = null;
+
+        var snapshot = new RegulatoryDataSnapshot
+        {
+            State = "California",
+            SourceName = "California DRE education information only",
+            SourceUrl = "https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html",
+            RetrievedAtUtc = new DateTime(2026, 10, 10, 0, 32, 13, DateTimeKind.Utc),
+            Status = RegulatorySnapshotStatuses.Approved
+        };
+        var salesperson = new RegulatoryLicensee
+        {
+            Snapshot = snapshot,
+            State = "California",
+            LicenseNumber = "00001234",
+            Name = "Jane Doe",
+            LicenseType = "Salesperson"
+        };
+        var officer = new RegulatoryLicensee
+        {
+            Snapshot = snapshot,
+            State = "California",
+            LicenseNumber = "00001234",
+            Name = "Jane Doe",
+            LicenseType = "Officer"
+        };
+        fixture.DbContext.RegulatoryDataSnapshots.Add(snapshot);
+        fixture.DbContext.RegulatoryLicensees.AddRange(salesperson, officer);
+        await fixture.DbContext.SaveChangesAsync();
+
+        Assert.False(await fixture.Service.TryAutoLinkLicenseAsync(user.Id, "California", "00001234"));
+        Assert.False(await fixture.DbContext.UserRegulatoryLicenseLinks.AnyAsync(link => link.UserAccountId == user.Id));
+
+        user.LicenseType = "Officer";
+        await fixture.DbContext.SaveChangesAsync();
+        Assert.True(await fixture.Service.TryAutoLinkLicenseAsync(user.Id, "California", "00001234"));
+
+        var link = await fixture.DbContext.UserRegulatoryLicenseLinks.SingleAsync(candidate => candidate.UserAccountId == user.Id);
+        Assert.Equal(officer.Id, link.RegulatoryLicenseeId);
+    }
+
+    [Fact]
     public async Task RegulatoryComplianceService_UsesApprovedLinkAndEffectiveStatePolicies()
     {
         await using var fixture = await TestFixture.CreateAsync();
@@ -88,7 +137,8 @@ public class RegulatoryDirectoryServiceTests
             State = "Texas",
             LicenseNumber = "9000001-BB",
             LegalName = "Soon Renewal Realty",
-            QualifyingBrokerName = "Casey Broker"
+            QualifyingBrokerName = "Casey Broker",
+            LicenseRenewalDate = today.AddMonths(1)
         };
         var laterFirm = new RegulatoryFirm
         {
@@ -126,10 +176,149 @@ public class RegulatoryDirectoryServiceTests
         Assert.Equal(2, targets.Count);
         Assert.Equal("Soon Renewal Realty", targets[0].FirmName);
         Assert.Equal("Casey Broker", targets[0].BrokerName);
-        Assert.Equal(today.AddMonths(2), targets[0].NextRenewalDate);
-        Assert.Equal(1, targets[0].RenewalsWithinTwelveMonths);
+        Assert.Equal(today.AddMonths(1), targets[0].NextRenewalDate);
+        Assert.Equal(2, targets[0].RenewalsWithinTwelveMonths);
         Assert.Equal("Blake Broker", targets[1].BrokerName);
         Assert.Equal(0, targets[1].RenewalsWithinTwelveMonths);
+    }
+
+    [Fact]
+    public async Task GetCampaignFirmTargetsAsync_DerivesWestVirginiaRenewalsOnlyWhenRosterDateIsMissing()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        Assert.True(StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
+            "West Virginia", "Salesperson", today, out var derivedDate));
+
+        var snapshot = new RegulatoryDataSnapshot
+        {
+            State = "West Virginia",
+            SourceName = "West Virginia licensing sample",
+            SourceUrl = "https://rec.wv.gov/campaign-test",
+            RetrievedAtUtc = DateTime.UtcNow,
+            Status = RegulatorySnapshotStatuses.Approved
+        };
+        var derivedFirm = new RegulatoryFirm
+        {
+            Snapshot = snapshot,
+            State = "West Virginia",
+            LicenseNumber = "WV-FIRM-DERIVED",
+            LegalName = "Derived Renewal Realty"
+        };
+        var authoritativeFirm = new RegulatoryFirm
+        {
+            Snapshot = snapshot,
+            State = "West Virginia",
+            LicenseNumber = "WV-FIRM-AUTHORITATIVE",
+            LegalName = "Roster Renewal Realty"
+        };
+        var unknownFirm = new RegulatoryFirm
+        {
+            Snapshot = snapshot,
+            State = "West Virginia",
+            LicenseNumber = "WV-FIRM-UNKNOWN",
+            LegalName = "Unknown Renewal Realty"
+        };
+        var dualCategoryFirm = new RegulatoryFirm
+        {
+            Snapshot = snapshot,
+            State = "West Virginia",
+            LicenseNumber = "WV-FIRM-DUAL-CATEGORY",
+            LegalName = "Dual Category Realty"
+        };
+        var derivedLicensee = new RegulatoryLicensee
+        {
+            Snapshot = snapshot,
+            State = "West Virginia",
+            LicenseNumber = "WV-SALESPERSON-1",
+            Name = "Derived Licensee",
+            LicenseType = "Salesperson"
+        };
+        var authoritativeLicensee = new RegulatoryLicensee
+        {
+            Snapshot = snapshot,
+            State = "West Virginia",
+            LicenseNumber = "WV-BROKER-1",
+            Name = "Roster Licensee",
+            LicenseType = "Broker",
+            LicenseRenewalDate = today.AddDays(5)
+        };
+        var unknownLicensee = new RegulatoryLicensee
+        {
+            Snapshot = snapshot,
+            State = "West Virginia",
+            LicenseNumber = "WV-UNKNOWN-1",
+            Name = "Unclassified Licensee",
+            LicenseType = "Unclassified"
+        };
+        var dualCategoryLicensee = new RegulatoryLicensee
+        {
+            Snapshot = snapshot,
+            State = "West Virginia",
+            LicenseNumber = "WV-DUAL-CATEGORY-1",
+            Name = "Dual Category Licensee",
+            LicenseType = "Broker, Associate Broker",
+            LicenseLevel = "Broker"
+        };
+
+        fixture.DbContext.RegulatoryDataSnapshots.Add(snapshot);
+        fixture.DbContext.RegulatoryFirms.AddRange(derivedFirm, authoritativeFirm, unknownFirm, dualCategoryFirm);
+        fixture.DbContext.RegulatoryLicensees.AddRange(derivedLicensee, authoritativeLicensee, unknownLicensee, dualCategoryLicensee);
+        fixture.DbContext.RegulatoryFirmLicenseeAffiliations.AddRange(
+            new RegulatoryFirmLicenseeAffiliation { Snapshot = snapshot, Firm = derivedFirm, Licensee = derivedLicensee },
+            new RegulatoryFirmLicenseeAffiliation { Snapshot = snapshot, Firm = authoritativeFirm, Licensee = authoritativeLicensee },
+            new RegulatoryFirmLicenseeAffiliation { Snapshot = snapshot, Firm = unknownFirm, Licensee = unknownLicensee },
+            new RegulatoryFirmLicenseeAffiliation { Snapshot = snapshot, Firm = dualCategoryFirm, Licensee = dualCategoryLicensee });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var targets = await fixture.Service.GetCampaignFirmTargetsAsync("West Virginia");
+        var derivedTarget = Assert.Single(targets, target => target.FirmName == derivedFirm.LegalName);
+        var authoritativeTarget = Assert.Single(targets, target => target.FirmName == authoritativeFirm.LegalName);
+        var unknownTarget = Assert.Single(targets, target => target.FirmName == unknownFirm.LegalName);
+        var dualCategoryTarget = Assert.Single(targets, target => target.FirmName == dualCategoryFirm.LegalName);
+
+        Assert.Equal(derivedDate, derivedTarget.NextRenewalDate);
+        Assert.Equal(LicenseDateProvenance.Derived, derivedTarget.RenewalDateSource);
+        Assert.Equal(derivedDate <= today.AddYears(1) ? 1 : 0, derivedTarget.RenewalsWithinTwelveMonths);
+        Assert.Equal(authoritativeLicensee.LicenseRenewalDate, authoritativeTarget.NextRenewalDate);
+        Assert.Equal(LicenseDateProvenance.Authoritative, authoritativeTarget.RenewalDateSource);
+        Assert.Null(unknownTarget.NextRenewalDate);
+        Assert.Null(unknownTarget.RenewalDateSource);
+        Assert.Equal(0, unknownTarget.RenewalsWithinTwelveMonths);
+        Assert.Equal(derivedDate, dualCategoryTarget.NextRenewalDate);
+        Assert.Equal(LicenseDateProvenance.Derived, dualCategoryTarget.RenewalDateSource);
+    }
+
+    [Fact]
+    public async Task GetCampaignFirmTargetsAsync_ReturnsAllWestVirginiaBranchesForCsvSizedRequests()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var snapshot = new RegulatoryDataSnapshot
+        {
+            State = "West Virginia",
+            SourceName = "West Virginia active roster",
+            SourceUrl = "https://rec.wv.gov/campaign-export-test",
+            RetrievedAtUtc = DateTime.UtcNow,
+            Status = RegulatorySnapshotStatuses.Approved
+        };
+        var firms = Enumerable.Range(1, 906)
+            .Select(index => new RegulatoryFirm
+            {
+                Snapshot = snapshot,
+                State = "West Virginia",
+                LicenseNumber = $"{index:000000}-00",
+                LegalName = $"West Virginia Branch {index}"
+            })
+            .ToList();
+
+        fixture.DbContext.RegulatoryDataSnapshots.Add(snapshot);
+        fixture.DbContext.RegulatoryFirms.AddRange(firms);
+        await fixture.DbContext.SaveChangesAsync();
+
+        var targets = await fixture.Service.GetCampaignFirmTargetsAsync("West Virginia", take: 10_000);
+
+        Assert.Equal(906, targets.Count);
+        Assert.All(targets, target => Assert.Equal("West Virginia", target.State));
     }
 
     [Fact]
@@ -202,6 +391,45 @@ public class RegulatoryDirectoryServiceTests
         Assert.Equal(1, summary.FirmCount);
         Assert.Equal(2, summary.LicenseeCount);
         Assert.Contains(await fixture.DbContext.AuditLogs.ToListAsync(), entry => entry.Action == "regulatory-snapshot.approved");
+    }
+
+    [Fact]
+    public async Task ApproveAsync_AllowsLicenseeOnlySnapshotsButRejectsEmptySnapshots()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var licenseeOnlySnapshot = new RegulatoryDataSnapshot
+        {
+            State = "Nevada",
+            SourceName = "NRED active licensees",
+            SourceUrl = "https://red.nv.gov/",
+            RetrievedAtUtc = new DateTime(2026, 9, 26, 0, 0, 0, DateTimeKind.Utc),
+            Status = RegulatorySnapshotStatuses.PendingReview
+        };
+        licenseeOnlySnapshot.Licensees.Add(new RegulatoryLicensee
+        {
+            Snapshot = licenseeOnlySnapshot,
+            State = "Nevada",
+            LicenseNumber = "S.000001",
+            Name = "TEST LICENSEE",
+            LicenseType = "Salesperson",
+            LicenseStatus = "Active"
+        });
+        var emptySnapshot = new RegulatoryDataSnapshot
+        {
+            State = "Empty",
+            SourceName = "Empty capture",
+            SourceUrl = "https://example.test/empty",
+            RetrievedAtUtc = DateTime.UtcNow,
+            Status = RegulatorySnapshotStatuses.PendingReview
+        };
+        fixture.DbContext.RegulatoryDataSnapshots.AddRange(licenseeOnlySnapshot, emptySnapshot);
+        await fixture.DbContext.SaveChangesAsync();
+
+        Assert.True(await fixture.Service.ApproveAsync(licenseeOnlySnapshot.Id, admin.Id, admin.Email));
+        Assert.False(await fixture.Service.ApproveAsync(emptySnapshot.Id, admin.Id, admin.Email));
+        Assert.Equal(RegulatorySnapshotStatuses.Approved, licenseeOnlySnapshot.Status);
+        Assert.Equal(RegulatorySnapshotStatuses.PendingReview, emptySnapshot.Status);
     }
 
     [Fact]

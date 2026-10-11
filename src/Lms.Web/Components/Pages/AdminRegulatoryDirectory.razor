@@ -163,6 +163,7 @@
                         <th>Broker</th>
                         <th>Licensees</th>
                         <th>Next renewal</th>
+                        <th>Date source</th>
                         <th>Renewals in 12 months</th>
                     </tr>
                 </thead>
@@ -176,6 +177,7 @@
                             <td>@(target.BrokerName ?? "Not reported")</td>
                             <td>@target.LicenseeCount</td>
                             <td>@(target.NextRenewalDate?.ToString("yyyy-MM-dd") ?? "Not reported")</td>
+                            <td>@(target.RenewalDateSource ?? "Unavailable")</td>
                             <td>@target.RenewalsWithinTwelveMonths</td>
                         </tr>
                     }

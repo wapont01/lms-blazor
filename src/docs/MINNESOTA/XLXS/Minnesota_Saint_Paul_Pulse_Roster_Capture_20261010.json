@@ -1,0 +1,111 @@
+{
+  "state": "Minnesota",
+  "source": "Minnesota Department of Commerce / PULSE public license lookup",
+  "sourceUrl": "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE",
+  "retrievedAtUtc": "2026-10-10T21:12:00Z",
+  "status": "PendingReview",
+  "scope": [
+    "Saint Paul city-filtered Resident Real Est Salesperson results, first page; four active profiles detail-verified, with business and mailing details rechecked on 2026-10-10",
+    "Saint Paul city-filtered Resident Real Estate Broker results, first page; four active profiles detail-verified",
+    "Saint Paul, mailing ZIP 55102 Real Estate Company results, first page; five distinct active profiles detail-verified",
+    "Gergen, Thomas J (40352890) included because the Blackbridge company detail explicitly lists him as an individual association",
+    "Minneapolis city-filtered Resident Real Est Salesperson results, first page; three active profiles detail-verified",
+    "Minneapolis city-filtered Resident Real Estate Broker results, first page; three active profiles detail-verified",
+    "Minneapolis city-filtered Closing Agent results; one active license profile detail-verified",
+    "Minneapolis Limited Broker search; all 15 pages reviewed and 13 active licenses detail-verified",
+    "Minneapolis Real Estate Indv Proprietor search; all 35 pages reviewed, with 19 active licenses detail-verified and one inactive proprietor license excluded",
+    "Minneapolis Abstracter search in the official Sircon Consumer Inquiry; all six results detail-verified active"
+  ],
+  "sampleCounts": {
+    "residentSalespersons": 7,
+    "residentBrokers": 8,
+    "realEstateCompanies": 5,
+    "closingAgents": 1,
+    "limitedBrokers": 13,
+    "abstracters": 6,
+    "totalLicenseRecords": 40,
+    "additionalProprietorProfilesOutsideGuideTypes": 19,
+    "uniqueLicenseNumbersByGuideType": {
+      "Abstracter": 6,
+      "Limited Broker": 13,
+      "Real Estate Broker": 8,
+      "Real Estate Closing Agent": 1,
+      "Real Estate Company": 5,
+      "Real Estate Salesperson": 7
+    }
+  },
+  "minneapolisExpansion": {
+    "retrievedAtUtc": "2026-10-11T00:13:30Z",
+    "queryResultCounts": {
+      "residentSalespersons": 6383,
+      "residentBrokers": 969
+    },
+    "closingAgentExpansion": {
+      "queryCity": "Minneapolis",
+      "licenseType": "Closing Agent",
+      "queryResultCount": 170,
+      "activeLicensesDetailVerified": 1,
+      "profile": "Anderson, Sara Kim (41050831)",
+      "expansionImported": false
+    },
+    "businessTypeProbes": [
+      {
+        "city": "Minneapolis",
+        "licenseType": "Limited Broker",
+        "queryResultCount": 141,
+        "firstPageRows": 10,
+        "firstPageActiveRows": 0,
+        "pagesReviewed": 15,
+        "activeResultRowsAcrossAllPages": 16,
+        "uniqueActiveLicensesDetailVerified": 13,
+        "additionalRecordsCaptured": 13
+      },
+      {
+        "city": "Minneapolis",
+        "licenseType": "Real Estate Indv Proprietor",
+        "queryResultCount": 347,
+        "firstPageRows": 10,
+        "firstPageActiveRows": 0,
+        "pagesReviewed": 35,
+        "activeSearchRowsAcrossAllPagesIncludingAliases": 29,
+        "uniqueActiveProfilesReviewed": 20,
+        "activeProprietorLicensesDetailVerified": 19,
+        "excludedAfterDetailReview": "Network Investments: Real Estate Indv Proprietor license 40291388 is inactive; its separate Real Estate Company license 40765551 is active.",
+        "additionalRecordsCaptured": 19
+      }
+    ],
+    "abstracterExpansion": {
+      "source": "Minnesota Sircon Consumer Inquiry",
+      "sourceUrl": "https://www.sircon.com/ComplianceExpress/Inquiry/consumerInquiry.do?nonSscrb=Y&osscdMN=Y",
+      "queryCity": "Minneapolis",
+      "licenseType": "Abstracter",
+      "queryResultCount": 6,
+      "activeLicensesDetailVerified": 6,
+      "expansionImported": false
+    },
+    "newProfiles": {
+      "residentSalespersons": 3,
+      "residentBrokers": 3
+    },
+    "expansionImported": false,
+    "brokerCandidatesExcludedAfterDetailReview": [
+      "Abele, David Thomas (20593293): the broker license shown on the detail page is Inactive"
+    ]
+  },
+  "limitations": [
+    "This is a bounded sample, not a complete roster.",
+    "The PULSE individual City filter can match mailing city while the business location is elsewhere.",
+    "Only the Blackbridge-Gergen association is linked by firm license number; other displayed employer names are retained as source text only.",
+    "No broker-in-charge or Minnesota Primary Broker designation was inferred; PULSE employer/association details reviewed here do not independently establish the company's Primary Broker."
+  ],
+  "files": [
+    "Minnesota_Saint_Paul_Pulse_Real_Estate_Licensees_20261010.csv",
+    "Minnesota_Saint_Paul_Pulse_Real_Estate_Firms_20261010.csv",
+    "Minnesota_Saint_Paul_Pulse_Salesperson_Detail_Samples_20261010.csv",
+    "Minnesota_Minneapolis_Pulse_Additional_Licensee_Details_20261010.csv",
+    "Minnesota_Minneapolis_Pulse_Additional_Closing_Agent_20261010.csv",
+    "Minnesota_Minneapolis_Pulse_Additional_Limited_Brokers_20261010.csv",
+    "Minnesota_Minneapolis_Sircon_Additional_Abstracters_20261010.csv",
+    "Minnesota_Minneapolis_Pulse_Additional_Active_Individual_Proprietors_20261010.csv"
+  ]
+}

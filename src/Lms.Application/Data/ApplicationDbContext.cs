@@ -154,7 +154,15 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(licensee => licensee.LicenseType).HasMaxLength(40);
             entity.Property(licensee => licensee.LicenseLevel).HasMaxLength(20);
             entity.Property(licensee => licensee.LicenseStatus).HasMaxLength(40);
-            entity.HasIndex(licensee => new { licensee.SnapshotId, licensee.State, licensee.LicenseNumber }).IsUnique();
+            entity.HasIndex(licensee => new
+            {
+                licensee.SnapshotId,
+                licensee.State,
+                licensee.LicenseNumber,
+                licensee.LicenseType,
+                licensee.LicenseStatus,
+                licensee.LicenseRenewalDate
+            });
             entity.HasIndex(licensee => new { licensee.State, licensee.LicenseNumber });
             entity.HasOne(licensee => licensee.Snapshot)
                 .WithMany(snapshot => snapshot.Licensees)
@@ -166,6 +174,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             entity.HasKey(affiliation => affiliation.Id);
             entity.Property(affiliation => affiliation.BrokerInChargeName).HasMaxLength(160);
+            entity.Property(affiliation => affiliation.ContactEmail).HasMaxLength(254);
             entity.HasIndex(affiliation => new { affiliation.SnapshotId, affiliation.FirmId, affiliation.LicenseeId }).IsUnique();
             entity.HasOne(affiliation => affiliation.Snapshot)
                 .WithMany()
