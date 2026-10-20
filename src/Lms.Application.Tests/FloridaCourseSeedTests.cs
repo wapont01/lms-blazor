@@ -1,5 +1,6 @@
 using Lms.Application.Data;
 using Lms.Application.Services;
+using Lms.Domain.Entities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -11,7 +12,7 @@ public sealed class FloridaCourseSeedTests
     private static readonly Guid FloridaCourseId = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef0");
 
     [Fact]
-    public async Task SeedAsync_CreatesFloridaCourseAndAuthoredFinalAssessment_Idempotently()
+    public async Task SeedAsync_ImportsFloridaAndNorthCarolinaCoursesWithFinalExams_Idempotently()
     {
         await using var connection = new SqliteConnection("DataSource=:memory:");
         await connection.OpenAsync();
@@ -27,45 +28,182 @@ public sealed class FloridaCourseSeedTests
         await CourseSeed.SeedAsync(dbContext);
         await CourseSeed.SeedEnrollmentsAsync(dbContext);
 
-        var course = await dbContext.Courses
-            .Include(existing => existing.Modules)
-                .ThenInclude(module => module.Lessons)
-            .SingleAsync(existing => existing.Id == FloridaCourseId);
-        var assessment = await dbContext.CourseAssessments
+        var courses = await dbContext.Courses.AsNoTracking().ToListAsync();
+        Assert.True(courses.Count == 8, string.Join("; ", courses.Select(existing => $"{existing.Title} ({existing.State})")));
+        var course = Assert.Single(courses, existing => existing.Id == FloridaCourseId);
+        var assessments = await dbContext.CourseAssessments
+            .AsNoTracking()
             .Include(existing => existing.Questions)
-            .SingleAsync(existing => existing.CourseId == FloridaCourseId && existing.IsRequired);
-
-        Assert.Equal("Florida", course.State);
-        Assert.Equal("DistanceEducation", course.DeliveryMethod);
-        Assert.Equal("william.aponte@wlr.com", await dbContext.UserAccounts
-            .Where(user => user.Id == course.OwnerInstructorId)
-            .Select(user => user.Email)
-            .SingleAsync());
-        Assert.Equal(6, course.Modules
-            .Where(module => !string.Equals(module.Title, "Getting Started", StringComparison.OrdinalIgnoreCase))
-            .SelectMany(module => module.Lessons)
-            .Count());
-        Assert.Equal(7, course.Modules.SelectMany(module => module.Lessons).Count());
-        Assert.Equal("Florida Distance Learning Fundamentals Final Assessment", assessment.Title);
-        Assert.Equal(75m, assessment.PassPercent);
-        Assert.Equal(6, assessment.Questions.Count);
-        Assert.Equal(1, await dbContext.Courses.CountAsync(existing => existing.Id == FloridaCourseId));
-        Assert.Equal(1, await dbContext.CourseAssessments.CountAsync(existing => existing.CourseId == FloridaCourseId && existing.IsRequired));
-        Assert.Equal("North Carolina", await dbContext.Courses.Where(existing => existing.Id == Guid.Parse("64cc1cbb-45fc-4a76-b3b4-de399cb3830f")).Select(existing => existing.State).SingleAsync());
-        Assert.Equal("Florida", await dbContext.Courses.Where(existing => existing.Id == Guid.Parse("c2a11379-8fb4-479a-9209-45441a56d812")).Select(existing => existing.State).SingleAsync());
-        Assert.Equal("North Carolina", await dbContext.Courses.Where(existing => existing.Id == Guid.Parse("f5e5df5f-5b7a-4d8c-aafd-0cd1745311e4")).Select(existing => existing.State).SingleAsync());
-        Assert.Equal("Florida", await dbContext.Courses.Where(existing => existing.Id == Guid.Parse("9f4f6d8c-2f7a-4b6c-9a53-5b7a2d4e1c90")).Select(existing => existing.State).SingleAsync());
-        Assert.Equal("North Carolina", await dbContext.Courses.Where(existing => existing.Id == Guid.Parse("b9c7d0ef-3b89-4c1d-9e5e-6de7ce5585a1")).Select(existing => existing.State).SingleAsync());
-        Assert.Equal("North Carolina", await dbContext.Courses.Where(existing => existing.Id == Guid.Parse("5bc4b74b-71ac-40fe-8bc9-1daf5a922782")).Select(existing => existing.State).SingleAsync());
-
-        var floridaAssignments = await dbContext.BrokerLearnerAssignments
-            .Join(dbContext.UserAccounts, assignment => assignment.BrokerUserId, user => user.Id, (assignment, user) => new { assignment, BrokerEmail = user.Email })
-            .Join(dbContext.UserAccounts, row => row.assignment.LearnerUserId, user => user.Id, (row, user) => new { row.BrokerEmail, LearnerEmail = user.Email })
-            .Where(row => row.BrokerEmail.EndsWith(".fl@wlr.com") && row.LearnerEmail.EndsWith(".fl@wlr.com"))
             .ToListAsync();
+        var floridaAssessments = assessments.Where(assessment => assessment.CourseId == FloridaCourseId).ToList();
 
-        Assert.Contains(floridaAssignments, row => row.BrokerEmail == "marcus.reed.fl@wlr.com" && row.LearnerEmail == "sofia.martinez.fl@wlr.com");
-        Assert.Contains(floridaAssignments, row => row.BrokerEmail == "marcus.reed.fl@wlr.com" && row.LearnerEmail == "noah.williams.fl@wlr.com");
-        Assert.Contains(floridaAssignments, row => row.BrokerEmail == "elena.rossi.fl@wlr.com" && row.LearnerEmail == "ava.johnson.fl@wlr.com");
+        Assert.Equal(FloridaCourseId, course.Id);
+        Assert.Equal("Florida Core Law", course.Title);
+        Assert.Equal("Florida", course.State);
+        Assert.Equal(CourseComplianceTypes.ContinuingEducation, course.ComplianceType);
+        Assert.Equal(CourseIndustries.RealEstate, course.Industry);
+        Assert.Equal(ContinuingEducationTypes.CoreLaw, course.ContinuingEducationType);
+        Assert.Equal(3, course.DurationHours);
+        Assert.Equal(3, course.CreditHours);
+        Assert.Equal(30m, course.Price);
+        Assert.Equal(180, course.RequiredInstructionalMinutes);
+        Assert.False(course.IsPublished);
+        Assert.Equal(CourseReviewStatuses.Draft, course.ReviewStatus);
+        var floridaModules = await dbContext.Modules
+            .Where(module => module.CourseId == FloridaCourseId)
+            .Select(module => module.Title)
+            .ToListAsync();
+        Assert.True(floridaModules.Count == 5, string.Join("; ", floridaModules));
+        Assert.Equal(12, assessments.Count);
+        Assert.Equal(5, floridaAssessments.Count);
+        Assert.Equal(4, floridaAssessments.Count(assessment => assessment.ModuleId.HasValue));
+        Assert.Equal(15, Assert.Single(floridaAssessments, assessment => assessment.ModuleId is null).Questions.Count);
+        var ethicsCourse = Assert.Single(courses, existing => existing.Title == "Ethics at Work");
+        Assert.Equal("Florida", ethicsCourse.State);
+        Assert.Equal(CourseIndustries.RealEstate, ethicsCourse.Industry);
+        Assert.Equal(3, ethicsCourse.DurationHours);
+        Assert.Equal(3, ethicsCourse.CreditHours);
+        Assert.Equal(30m, ethicsCourse.Price);
+        Assert.Equal(180, ethicsCourse.RequiredInstructionalMinutes);
+        var marketAnalysisCourse = Assert.Single(courses, existing =>
+            existing.Title == "Preparing a Market Analysis - Best Practices"
+            && existing.State == "North Carolina");
+        Assert.Equal(4, marketAnalysisCourse.DurationHours);
+        Assert.Equal(CourseIndustries.RealEstate, marketAnalysisCourse.Industry);
+        Assert.Equal(4, marketAnalysisCourse.CreditHours);
+        Assert.Equal(35m, marketAnalysisCourse.Price);
+        Assert.Equal(240, marketAnalysisCourse.RequiredInstructionalMinutes);
+        var ncCourse = Assert.Single(courses, existing =>
+            existing.Title == "Document Diligence: Safeguarding Your Transactions"
+            && existing.State == "North Carolina");
+        Assert.Equal(CourseComplianceTypes.ContinuingEducation, ncCourse.ComplianceType);
+        Assert.Equal(CourseIndustries.RealEstate, ncCourse.Industry);
+        Assert.Equal(ContinuingEducationTypes.Elective, ncCourse.ContinuingEducationType);
+        Assert.Equal(4, ncCourse.DurationHours);
+        Assert.Equal(4, ncCourse.CreditHours);
+        Assert.Equal(35m, ncCourse.Price);
+        Assert.Equal(240, ncCourse.RequiredInstructionalMinutes);
+        Assert.Equal(75, ncCourse.MinimumPassingPercent);
+        Assert.Equal(3, await dbContext.Modules.CountAsync(module => module.CourseId == ncCourse.Id));
+        Assert.Equal(
+            19,
+            await dbContext.Lessons.CountAsync(lesson =>
+                dbContext.Modules.Any(module => module.Id == lesson.ModuleId && module.CourseId == ncCourse.Id)));
+        var propertyManagementCourse = Assert.Single(courses, existing =>
+            existing.Title == "Residential Property Management Essentials");
+        Assert.Equal("Florida", propertyManagementCourse.State);
+        Assert.Equal(4, propertyManagementCourse.DurationHours);
+        Assert.Equal(CourseIndustries.RealEstate, propertyManagementCourse.Industry);
+        Assert.Equal(4, propertyManagementCourse.CreditHours);
+        Assert.Equal(35m, propertyManagementCourse.Price);
+        Assert.Equal(240, propertyManagementCourse.RequiredInstructionalMinutes);
+        Assert.Equal(6, await dbContext.Modules.CountAsync(module => module.CourseId == propertyManagementCourse.Id));
+        Assert.Equal(
+            36,
+            await dbContext.Lessons.CountAsync(lesson =>
+                dbContext.Modules.Any(module => module.Id == lesson.ModuleId && module.CourseId == propertyManagementCourse.Id)));
+        var assistanceAnimalsCourse = Assert.Single(courses, existing =>
+            existing.Title == "Assistance Animals And Fair Housing"
+            && existing.State == "Florida");
+        Assert.Equal(4, assistanceAnimalsCourse.DurationHours);
+        Assert.Equal(CourseIndustries.RealEstate, assistanceAnimalsCourse.Industry);
+        Assert.Equal(4, assistanceAnimalsCourse.CreditHours);
+        Assert.Equal(35m, assistanceAnimalsCourse.Price);
+        Assert.Equal(240, assistanceAnimalsCourse.RequiredInstructionalMinutes);
+        Assert.Equal(4, await dbContext.Modules.CountAsync(module => module.CourseId == assistanceAnimalsCourse.Id));
+        Assert.Equal(
+            23,
+            await dbContext.Lessons.CountAsync(lesson =>
+                dbContext.Modules.Any(module => module.Id == lesson.ModuleId && module.CourseId == assistanceAnimalsCourse.Id)));
+        var brokerageCourse = Assert.Single(courses, existing =>
+            existing.Title == "FL 30-Hour Real Estate Brokerage"
+            && existing.State == "Florida");
+        Assert.Equal(CourseComplianceTypes.Postlicensing, brokerageCourse.ComplianceType);
+        Assert.Equal(CourseIndustries.RealEstate, brokerageCourse.Industry);
+        Assert.Equal(30, brokerageCourse.DurationHours);
+        Assert.Equal(30, brokerageCourse.CreditHours);
+        Assert.Equal(1800, brokerageCourse.RequiredInstructionalMinutes);
+        Assert.Equal(75, brokerageCourse.MinimumPassingPercent);
+        Assert.True(brokerageCourse.RequiresProctoredExam);
+        Assert.Null(RegulatoryCoursePolicy.ValidateConfiguration(brokerageCourse));
+        Assert.Equal(180, brokerageCourse.CompletionWindowDays);
+        Assert.Equal(4, await dbContext.Modules.CountAsync(module => module.CourseId == brokerageCourse.Id));
+        Assert.Equal(
+            18,
+            await dbContext.Lessons.CountAsync(lesson =>
+                dbContext.Modules.Any(module => module.Id == lesson.ModuleId && module.CourseId == brokerageCourse.Id)));
+        var brokerageLessons = await dbContext.Lessons
+            .Where(lesson => dbContext.Modules.Any(module =>
+                module.Id == lesson.ModuleId && module.CourseId == brokerageCourse.Id))
+            .ToListAsync();
+        Assert.All(brokerageLessons, lesson => Assert.False(string.IsNullOrWhiteSpace(lesson.TextContent)));
+        var practiceFinalLesson = Assert.Single(brokerageLessons, lesson => lesson.Title == "Practice Final Exam");
+        Assert.Contains("Question 1", practiceFinalLesson.TextContent);
+        Assert.Equal(brokerageCourse.Id, (await dbContext.CourseAssessments.SingleAsync(assessment =>
+            assessment.CourseId == brokerageCourse.Id && assessment.ModuleId == null)).CourseId);
+        var financeCourse = Assert.Single(courses, existing =>
+            existing.Title == "Florida Post-Licensing: Real Estate Finance"
+            && existing.State == "Florida");
+        Assert.Equal(CourseComplianceTypes.Postlicensing, financeCourse.ComplianceType);
+        Assert.Equal(CourseIndustries.Mortgage, financeCourse.Industry);
+        Assert.Equal(30, financeCourse.DurationHours);
+        Assert.Equal(30, financeCourse.CreditHours);
+        Assert.Equal(1800, financeCourse.RequiredInstructionalMinutes);
+        Assert.Equal(75, financeCourse.MinimumPassingPercent);
+        Assert.True(financeCourse.RequiresProctoredExam);
+        Assert.Null(RegulatoryCoursePolicy.ValidateConfiguration(financeCourse));
+        Assert.Equal(180, financeCourse.CompletionWindowDays);
+        Assert.Equal(4, await dbContext.Modules.CountAsync(module => module.CourseId == financeCourse.Id));
+        Assert.Equal(
+            243,
+            await dbContext.Lessons.CountAsync(lesson =>
+                dbContext.Modules.Any(module => module.Id == lesson.ModuleId && module.CourseId == financeCourse.Id)));
+        var financeLessons = await dbContext.Lessons
+            .Where(lesson => dbContext.Modules.Any(module =>
+                module.Id == lesson.ModuleId && module.CourseId == financeCourse.Id))
+            .ToListAsync();
+        Assert.All(financeLessons, lesson => Assert.False(string.IsNullOrWhiteSpace(lesson.TextContent)));
+        Assert.Contains(financeLessons, lesson => lesson.Title == "Reserve Requirements");
+        Assert.Contains(financeLessons, lesson => lesson.Title == "Practice Exam Review");
+        Assert.Contains(financeLessons, lesson => lesson.Title == "Mid-point Exam Review");
+        foreach (var importedCourse in courses.Where(existing => existing.Id != FloridaCourseId))
+        {
+            Assert.False(importedCourse.IsPublished);
+            Assert.Equal(CourseReviewStatuses.Draft, importedCourse.ReviewStatus);
+            Assert.NotEmpty(await dbContext.Modules.Where(module => module.CourseId == importedCourse.Id).ToListAsync());
+            var finalExam = Assert.Single(assessments, assessment =>
+                assessment.CourseId == importedCourse.Id && assessment.ModuleId is null);
+            var expectedQuestionCount = importedCourse.Id == ncCourse.Id
+                ? 10
+                : importedCourse.Id == brokerageCourse.Id
+                    ? 50
+                    : importedCourse.Id == financeCourse.Id
+                        ? 50
+                    : importedCourse.Id == propertyManagementCourse.Id || importedCourse.Id == assistanceAnimalsCourse.Id
+                    ? 20
+                    : 15;
+            Assert.Equal(
+                expectedQuestionCount,
+                finalExam.Questions.Count);
+            Assert.Equal(
+                importedCourse.Id == ncCourse.Id || importedCourse.Id == brokerageCourse.Id || importedCourse.Id == financeCourse.Id ? 75m : 80m,
+                finalExam.PassPercent);
+            Assert.True(finalExam.Questions.Select(question => question.CorrectOption).Distinct().Count() >= 3);
+            if (importedCourse.Id == ncCourse.Id)
+            {
+                Assert.Equal(
+                    new[] { "B", "C", "D", "A", "C", "B", "A", "C", "D", "C" },
+                    finalExam.Questions.OrderBy(question => question.OrderIndex).Select(question => question.CorrectOption));
+            }
+            if (importedCourse.Id == brokerageCourse.Id)
+            {
+                var orderedQuestions = finalExam.Questions.OrderBy(question => question.OrderIndex).ToList();
+                Assert.Equal("C", orderedQuestions[0].CorrectOption);
+                Assert.Equal("Risk is an inherent part of real estate activities.", orderedQuestions[0].OptionC);
+                Assert.Equal("Tenant improvement allowances", orderedQuestions[49].OptionD);
+            }
+        }
+
+        Assert.Empty(await dbContext.Enrollments.ToListAsync());
     }
 }
