@@ -45,6 +45,18 @@ ef_migration_output.txt
 src/test-output.txt
 src/*.png
 
+# Dev-only reference documents and data (not committed)
+src/docs/**/*.pdf
+src/docs/**/*.doc
+src/docs/**/*.docx
+src/docs/**/*.txt
+src/docs/**/*.csv
+src/docs/**/*.xls
+src/docs/**/*.xlsx
+src/docs/**/*.zip
+src/docs/**/*.ppsx
+src/docs/NORTH CAROLINA/COURSES/CE/
+
 # Playwright artifacts
 playwright-report/
 .trace/
