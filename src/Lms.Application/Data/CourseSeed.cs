@@ -10,9 +10,9 @@ public static class CourseSeed
     private const string WelcomeLessonText = """
         Welcome!
 
-        This course is organized into modules that contain lessons.
+        This course is organized into units that contain lessons.
 
-        Use the course menu to your right to jump directly into modules and lessons,
+        Use the course menu to your right to jump directly into units and lessons,
 
         or use the arrow buttons for step-by-step progression.
         """;
@@ -23,8 +23,29 @@ public static class CourseSeed
     private static readonly Guid TransactionCoordinationCourseId = Guid.Parse("f5e5df5f-5b7a-4d8c-aafd-0cd1745311e4");
     private static readonly Guid ClientCommunicationCourseId = Guid.Parse("9f4f6d8c-2f7a-4b6c-9a53-5b7a2d4e1c90");
     private static readonly Guid FloridaDistanceLearningCourseId = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef0");
+    private static readonly Guid DraftCourseId = Guid.Parse("b9c7d0ef-3b89-4c1d-9e5e-6de7ce5585a1");
+    private static readonly Guid[] LegacyMockCourseIds =
+    [
+        RealEstateLicensingBasicsCourseId,
+        AdvancedBrokerageComplianceCourseId,
+        DraftCourseId,
+        PropertyMarketingCourseId,
+        TransactionCoordinationCourseId,
+        ClientCommunicationCourseId
+    ];
 
     public static async Task SeedAsync(ApplicationDbContext dbContext)
+    {
+        await FloridaCoreLawCourseSeed.EnsureAsync(dbContext, FloridaDistanceLearningCourseId);
+        await RemoveLegacyMockCoursesAsync(dbContext);
+        await AdditionalCourseSeed.EnsureAsync(dbContext);
+        await FloridaBrokeragePostlicensingCourseSeed.EnsureAsync(dbContext);
+        await FloridaFinancePostlicensingCourseSeed.EnsureAsync(dbContext);
+        await EnsureCourseReviewStatusBackfilledAsync(dbContext);
+        await EnsureCourseOwnershipBackfilledAsync(dbContext);
+    }
+
+    private static async Task LegacyMockSeedAsync(ApplicationDbContext dbContext)
     {
         if (!await dbContext.Courses.AnyAsync())
         {
@@ -232,8 +253,7 @@ public static class CourseSeed
 
         await EnsureAdditionalMockCoursesAsync(dbContext);
         await EnsureCourseStatesAsync(dbContext);
-        await EnsureFloridaDistanceLearningCourseAsync(dbContext);
-        await EnsureFloridaFinalAssessmentAsync(dbContext);
+        await FloridaCoreLawCourseSeed.EnsureAsync(dbContext, FloridaDistanceLearningCourseId);
         await EnsureWelcomeLessonTitleAsync(dbContext);
         await RemoveLicensingChecklistLessonAsync(dbContext);
         await RemoveCoreLicensingConceptsModuleAsync(dbContext);
@@ -294,7 +314,23 @@ public static class CourseSeed
         await dbContext.SaveChangesAsync();
     }
 
-    public static async Task SeedEnrollmentsAsync(ApplicationDbContext dbContext)
+    private static async Task RemoveLegacyMockCoursesAsync(ApplicationDbContext dbContext)
+    {
+        var mockCourses = await dbContext.Courses
+            .Where(course => LegacyMockCourseIds.Contains(course.Id))
+            .ToListAsync();
+        if (mockCourses.Count == 0)
+        {
+            return;
+        }
+
+        dbContext.Courses.RemoveRange(mockCourses);
+        await dbContext.SaveChangesAsync();
+    }
+
+    public static Task SeedEnrollmentsAsync(ApplicationDbContext dbContext) => Task.CompletedTask;
+
+    private static async Task LegacyMockEnrollmentsAsync(ApplicationDbContext dbContext)
     {
         var learnersByEmail = await dbContext.UserAccounts
             .Where(user =>
@@ -729,6 +765,11 @@ public static class CourseSeed
 
         foreach (var course in courses)
         {
+            if (course.Id == FloridaDistanceLearningCourseId)
+            {
+                continue;
+            }
+
             var orderedModules = course.Modules
                 .OrderBy(module => module.OrderIndex)
                 .ToList();
