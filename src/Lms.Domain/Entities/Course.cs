@@ -36,6 +36,13 @@ public class Course
     [StringLength(40)]
     public string? ContinuingEducationType { get; set; }
 
+    [Required]
+    [StringLength(80)]
+    public string Industry { get; set; } = CourseIndustries.RealEstate;
+
+    [StringLength(40)]
+    public string? Tier { get; set; }
+
     [StringLength(80)]
     public string? CommissionCourseNumber { get; set; }
 
@@ -60,7 +67,7 @@ public class Course
     // NC 21 NCAC 58H .0207(a)-(b): only in-person/synchronous/blended delivery requires time-based attendance; pure distance courses satisfy attendance via full unit/assessment completion instead.
     public bool RequiresTimedAttendance => DeliveryMethod is CourseDeliveryMethods.InPerson or CourseDeliveryMethods.SynchronousDistanceLearning or CourseDeliveryMethods.Blended;
 
-    public string SectionLabel => UsesUnitBasedStructure ? "Unit" : "Module";
+    public string SectionLabel => "Unit";
 
     public string? State { get; set; }
 
@@ -121,6 +128,38 @@ public static class CourseComplianceTypes
     };
 }
 
+public static class CourseIndustries
+{
+    public const string RealEstate = "Real Estate";
+    public const string Mortgage = "Mortgage";
+    public const string Appraisal = "Appraisal";
+    public const string HomeInspection = "Home Inspection";
+
+    public static readonly IReadOnlyList<string> All =
+    [
+        RealEstate,
+        Mortgage,
+        Appraisal,
+        HomeInspection
+    ];
+}
+
+public static class CourseTiers
+{
+    public const string Sales = "Sales";
+    public const string Broker = "Broker";
+    public const string SalesReciprocal = "Sales Reciprocal";
+    public const string BrokerReciprocal = "Broker Reciprocal";
+
+    public static readonly IReadOnlyList<string> All =
+    [
+        Sales,
+        Broker,
+        SalesReciprocal,
+        BrokerReciprocal
+    ];
+}
+
 public static class CourseDeliveryMethods
 {
     public const string DistanceEducation = "DistanceEducation";
@@ -142,8 +181,9 @@ public static class ContinuingEducationTypes
     public const string Elective = "Elective";
     public const string GeneralUpdate = "GeneralUpdate";
     public const string BrokerInChargeUpdate = "BrokerInChargeUpdate";
+    public const string CoreLaw = "CoreLaw";
 
-    public static readonly IReadOnlyList<string> All = [GeneralUpdate, BrokerInChargeUpdate, Elective];
+    public static readonly IReadOnlyList<string> All = [GeneralUpdate, BrokerInChargeUpdate, CoreLaw, Elective];
 
     public static bool IsValid(string? courseType) => All.Contains(courseType, StringComparer.OrdinalIgnoreCase);
 
@@ -151,6 +191,7 @@ public static class ContinuingEducationTypes
     {
         GeneralUpdate => "General Update (GENUP)",
         BrokerInChargeUpdate => "Broker-in-Charge Update (BICUP)",
+        CoreLaw => "Core Law",
         Elective => "Elective",
         _ => "Not selected"
     };
@@ -612,6 +653,7 @@ public class CourseAssessment
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CourseId { get; set; }
+    public Guid? ModuleId { get; set; }
 
     [Required]
     [StringLength(160)]
@@ -626,6 +668,7 @@ public class CourseAssessment
     public bool IsRequired { get; set; } = true;
 
     public Course? Course { get; set; }
+    public Module? Module { get; set; }
     public ICollection<AssessmentQuestion> Questions { get; set; } = new List<AssessmentQuestion>();
     public ICollection<AssessmentAttempt> Attempts { get; set; } = new List<AssessmentAttempt>();
 }

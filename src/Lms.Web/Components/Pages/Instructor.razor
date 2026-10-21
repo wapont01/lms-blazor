@@ -83,7 +83,7 @@
 							<strong>@GetCourseStatusLabel(_editingCourse)</strong>
 						</div>
 						<div class="summary-chip">
-							<span class="summary-label">Modules</span>
+							<span class="summary-label">Units</span>
 							<strong>@_editingCourse.Modules.Count</strong>
 						</div>
 						<div class="summary-chip">
@@ -176,7 +176,7 @@
 
 						<hr />
 						<h3>Import course structure</h3>
-						<p class="muted-text">Use a .txt file or paste content with [module], [lesson], [checkpoint], [option], and [assessment] markers. Lesson duration and required flags are optional and default when omitted. Checkpoint metadata supports title, prompt, description, module, and isfinal. Assessment blocks support title and passpercent; each [question] block can include optionA/B/C/D, correct, and feedback.</p>
+						<p class="muted-text">Use a .txt file or paste content with [unit], [lesson], [checkpoint], [option], and [assessment] markers. Lesson duration and required flags are optional and default when omitted. Checkpoint metadata supports title, prompt, description, unit, and isfinal. Assessment blocks support title, unit, and passpercent; each [question] block can include optionA/B/C/D, correct, and feedback.</p>
 						<div class="form-field">
 							<label>Upload a text file</label>
 							<InputFile OnChange="HandleImportFileSelection" accept=".txt,text/plain" />
@@ -209,14 +209,14 @@
 				else if (_activeEditorStep == CourseEditorStep.Modules)
 				{
 					<div class="form-field">
-						<label>New module title</label>
+						<label>New unit title</label>
 						<InputText @bind-Value="_newModuleTitle" />
 					</div>
-					<button type="button" @onclick="AddModuleAsync">Add module</button>
+					<button type="button" @onclick="AddModuleAsync">Add unit</button>
 
 					@if (_editingCourse.Modules.Count == 0)
 					{
-						<p class="muted-text">No modules yet.</p>
+						<p class="muted-text">No units yet.</p>
 					}
 					else
 					{
@@ -230,7 +230,7 @@
 										<p class="muted-text">@GetModuleCheckpointSummary(module.Id)</p>
 									</div>
 									<div class="course-actions">
-										<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules, module.Id))">Edit module</button>
+										<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules, module.Id))">Edit unit</button>
 										<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints, module.Id))">@(HasModuleCheckpoint(module.Id) ? "Edit checkpoint" : "Add checkpoint")</button>
 									</div>
 								</article>
@@ -241,7 +241,7 @@
 					@if (_editingModule is not null)
 					{
 						<hr />
-						<h3>Edit module</h3>
+						<h3>Edit unit</h3>
 						<EditForm Model="_editingModule" OnValidSubmit="SaveModuleAsync">
 							<DataAnnotationsValidator />
 							<ValidationSummary />
@@ -250,7 +250,7 @@
 								<InputText @bind-Value="_editingModule.Title" />
 							</div>
 							<div class="course-actions">
-								<button type="submit">Save module</button>
+								<button type="submit">Save unit</button>
 								<button type="button" @onclick="@(() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules)))">Cancel</button>
 							</div>
 						</EditForm>
@@ -260,7 +260,7 @@
 					<h3>Lessons</h3>
 					@if (_editingModule is null)
 					{
-						<p>Select a module to manage its lessons.</p>
+						<p>Select a unit to manage its lessons.</p>
 					}
 					else
 					{
@@ -477,7 +477,7 @@ else
 	{
 		<section class="card instructor-create-panel">
 			<h2>Create course</h2>
-			<p class="muted-text">Start with the essentials, then continue editing to add modules, lessons, and checkpoints.</p>
+			<p class="muted-text">Start with the essentials, then continue editing to add units, lessons, and checkpoints.</p>
 
 			<EditForm Model="_newCourseDraft" OnValidSubmit="CreateCourseAsync">
 				<DataAnnotationsValidator />
@@ -744,7 +744,7 @@ else
 	{
 		return step switch
 		{
-			CourseEditorStep.Modules => "Modules",
+			CourseEditorStep.Modules => "Units",
 			CourseEditorStep.Checkpoints => "Checkpoints",
 			CourseEditorStep.Assessment => "Assessment",
 			_ => "Overview"
@@ -755,6 +755,7 @@ else
 	{
 		return step?.ToLowerInvariant() switch
 		{
+			"units" => CourseEditorStep.Modules,
 			"modules" => CourseEditorStep.Modules,
 			"checkpoints" => CourseEditorStep.Checkpoints,
 			"assessment" => CourseEditorStep.Assessment,
@@ -766,7 +767,7 @@ else
 	{
 		return step switch
 		{
-			CourseEditorStep.Modules => "modules",
+			CourseEditorStep.Modules => "units",
 			CourseEditorStep.Checkpoints => "checkpoints",
 			CourseEditorStep.Assessment => "assessment",
 			_ => "overview"
@@ -1169,7 +1170,7 @@ else
 
 	private string GetModuleTitle(Guid? moduleId)
 	{
-		return _editingCourse?.Modules.FirstOrDefault(module => module.Id == moduleId)?.Title ?? "module";
+		return _editingCourse?.Modules.FirstOrDefault(module => module.Id == moduleId)?.Title ?? "unit";
 	}
 
 	private void BeginEditingCheckpoint(Guid? moduleId, bool isFinal)
@@ -1215,7 +1216,7 @@ else
 				CourseId = _editingCourse.Id,
 				ModuleId = isFinal ? null : moduleId,
 				IsFinal = isFinal,
-				Title = isFinal ? "Final Checkpoint" : "Module Checkpoint",
+				Title = isFinal ? "Final Checkpoint" : "Unit Checkpoint",
 				Prompt = string.Empty,
 				Description = string.Empty,
 				Options = new List<CheckpointOptionEditorItem>

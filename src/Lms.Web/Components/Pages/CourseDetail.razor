@@ -122,7 +122,7 @@ else
                         <strong>@_course.State</strong>
                     </div>
                     <div class="summary-chip">
-                        <span class="summary-label">Modules</span>
+                        <span class="summary-label">Units</span>
                         <strong>@_course.Modules.Count</strong>
                     </div>
                     <div class="summary-chip">
@@ -159,6 +159,10 @@ else
                         </div>
                     }
                 </section>
+
+                <p class="course-actions">
+                    <a class="secondary-btn" href="@($"/courses/{_course.Id}/compliance-resources")">Course compliance resources</a>
+                </p>
 
                 @if (firstLesson is not null)
                 {

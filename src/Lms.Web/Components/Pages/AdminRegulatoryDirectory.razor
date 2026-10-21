@@ -60,7 +60,17 @@
                     {
                         <tr>
                             <td>@snapshot.State</td>
-                            <td>@snapshot.SourceName</td>
+                            <td>
+                                <strong>@snapshot.SourceName</strong>
+                                @if (GetSafeExternalUrl(snapshot.SourceUrl) is string sourceUrl)
+                                {
+                                    <div><a href="@sourceUrl" target="_blank" rel="noopener noreferrer">Open source</a></div>
+                                }
+                                else
+                                {
+                                    <div class="muted-text">Source link unavailable</div>
+                                }
+                            </td>
                             <td>@snapshot.RetrievedAtUtc.ToString("yyyy-MM-dd HH:mm 'UTC'")</td>
                             <td>@(snapshot.AcquisitionCost.HasValue ? $"${snapshot.AcquisitionCost.Value:F2}" : "Not recorded")</td>
                             <td>@snapshot.FirmCount firms, @snapshot.LicenseeCount licensees</td>
@@ -82,7 +92,16 @@
 <section class="card">
     <h2>Approved licensees</h2>
     <p class="muted-text">Review captured state records before linking them to local user accounts.</p>
-    @if (_licensees.Count == 0)
+    <div class="course-actions">
+        <button type="button" class="secondary-btn" @onclick="RefreshLicenseesAsync" disabled="@(_isWorking || _isLoadingLicensees)">
+            @(_isLoadingLicensees ? "Loading approved licensees..." : _licenseesLoaded ? "Refresh approved licensees" : "Load approved licensees")
+        </button>
+    </div>
+    @if (!_licenseesLoaded)
+    {
+        <p class="muted-text">Approved licensees are not loaded.</p>
+    }
+    else if (_licensees.Count == 0)
     {
         <p class="muted-text">No approved licensee records are available.</p>
     }
@@ -133,9 +152,9 @@
 
 <section class="card">
     <h2>Campaign targets</h2>
-    <p class="muted-text">Approved firms with qualifying brokers and upcoming licensee renewals for sales outreach.</p>
+    <p class="muted-text">Approved firms with qualifying brokers and upcoming licensee renewals for sales outreach. Choose a state to preview its targets and export that state's full list for Excel.</p>
     <div class="form-field">
-        <label for="campaign-state-filter">State</label>
+        <label for="campaign-state-filter">Preview and export state</label>
         <select id="campaign-state-filter" value="@_campaignState" @onchange="OnCampaignStateChangedAsync" disabled="@_isWorking">
             <option value="">All states</option>
             @foreach (var state in _campaignStates)
@@ -145,9 +164,16 @@
         </select>
     </div>
     <div class="course-actions">
-        <a class="secondary-btn" href="@CampaignCsvUrl" target="_blank">Download CSV</a>
+        <button type="button" class="secondary-btn" @onclick="RefreshCampaignTargetsAsync" disabled="@(_isWorking || _isLoadingCampaignTargets)">
+            @(_isLoadingCampaignTargets ? "Loading campaign targets..." : "Load campaign targets")
+        </button>
+        <a class="secondary-btn" href="@CampaignCsvUrl" target="_blank">@CampaignCsvLabel</a>
     </div>
-    @if (_campaignTargets.Count == 0)
+    @if (!_campaignTargetsLoaded)
+    {
+        <p class="muted-text">Campaign targets are not loaded.</p>
+    }
+    else if (_campaignTargets.Count == 0)
     {
         <p class="muted-text">No campaign targets are available.</p>
     }
@@ -200,18 +226,24 @@
     private string? _message;
     private bool _hasError;
     private bool _isWorking;
+    private bool _licenseesLoaded;
+    private bool _isLoadingLicensees;
+    private bool _campaignTargetsLoaded;
+    private bool _isLoadingCampaignTargets;
 
     protected override async Task OnInitializedAsync()
     {
         _users = (await UserAccountService.GetAllAsync()).Where(user => user.IsActive).OrderBy(user => user.DisplayName).ToList();
         await RefreshSnapshotsAsync();
-        await RefreshLicenseesAsync();
-        await RefreshCampaignTargetsAsync();
+        _campaignStates = await RegulatoryDirectoryService.GetCampaignStateOptionsAsync();
     }
 
     private string CampaignCsvUrl => string.IsNullOrWhiteSpace(_campaignState)
         ? "/admin/campaign-targets.csv"
         : $"/admin/campaign-targets.csv?state={Uri.EscapeDataString(_campaignState)}";
+    private string CampaignCsvLabel => string.IsNullOrWhiteSpace(_campaignState)
+        ? "Download all states CSV"
+        : $"Download {_campaignState} CSV";
 
     private async Task OnCampaignStateChangedAsync(ChangeEventArgs args)
     {
@@ -221,11 +253,21 @@
 
     private async Task RefreshCampaignTargetsAsync()
     {
-        _campaignTargets = await RegulatoryDirectoryService.GetCampaignFirmTargetsAsync(
-            string.IsNullOrWhiteSpace(_campaignState) ? null : _campaignState);
-        if (string.IsNullOrWhiteSpace(_campaignState))
+        _isLoadingCampaignTargets = true;
+        try
         {
-            _campaignStates = _campaignTargets.Select(target => target.State).Distinct().OrderBy(state => state).ToList();
+            _campaignTargets = await RegulatoryDirectoryService.GetCampaignFirmTargetsAsync(
+                string.IsNullOrWhiteSpace(_campaignState) ? null : _campaignState);
+            _campaignTargetsLoaded = true;
+        }
+        catch (Exception)
+        {
+            _hasError = true;
+            _message = "Campaign targets could not be loaded. Please try again.";
+        }
+        finally
+        {
+            _isLoadingCampaignTargets = false;
         }
     }
 
@@ -258,6 +300,14 @@
         }
     }
 
+    private static string? GetSafeExternalUrl(string? sourceUrl)
+    {
+        return Uri.TryCreate(sourceUrl, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)
+                ? uri.AbsoluteUri
+                : null;
+    }
+
     private async Task ApproveAsync(Guid snapshotId)
     {
         var authenticationState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
@@ -270,13 +320,26 @@
         }
 
         _isWorking = true;
-        var actorEmail = authenticationState.User.FindFirst(ClaimTypes.Email)?.Value ?? authenticationState.User.Identity?.Name ?? "admin";
-        var approved = await RegulatoryDirectoryService.ApproveAsync(snapshotId, actorId, actorEmail);
-        _hasError = !approved;
-        _message = approved ? "Snapshot approved." : "The snapshot could not be approved.";
-        await RefreshSnapshotsAsync();
-        await RefreshLicenseesAsync();
-        _isWorking = false;
+        try
+        {
+            var actorEmail = authenticationState.User.FindFirst(ClaimTypes.Email)?.Value ?? authenticationState.User.Identity?.Name ?? "admin";
+            var approved = await RegulatoryDirectoryService.ApproveAsync(snapshotId, actorId, actorEmail);
+            _hasError = !approved;
+            _message = approved ? "Snapshot approved." : "The snapshot could not be approved.";
+            await RefreshSnapshotsAsync();
+            if (_licenseesLoaded)
+            {
+                await RefreshLicenseesAsync();
+            }
+            if (_campaignTargetsLoaded)
+            {
+                await RefreshCampaignTargetsAsync();
+            }
+        }
+        finally
+        {
+            _isWorking = false;
+        }
     }
 
     private async Task RefreshSnapshotsAsync()
@@ -288,8 +351,14 @@
     {
         _isWorking = true;
         await RefreshSnapshotsAsync();
-        await RefreshLicenseesAsync();
-        await RefreshCampaignTargetsAsync();
+        if (_licenseesLoaded)
+        {
+            await RefreshLicenseesAsync();
+        }
+        if (_campaignTargetsLoaded)
+        {
+            await RefreshCampaignTargetsAsync();
+        }
         _message = "Regulatory records refreshed.";
         _hasError = false;
         _isWorking = false;
@@ -297,7 +366,21 @@
 
     private async Task RefreshLicenseesAsync()
     {
-        _licensees = await RegulatoryDirectoryService.GetApprovedLicenseesAsync();
+        _isLoadingLicensees = true;
+        try
+        {
+            _licensees = await RegulatoryDirectoryService.GetApprovedLicenseesAsync();
+            _licenseesLoaded = true;
+        }
+        catch (Exception)
+        {
+            _hasError = true;
+            _message = "Approved licensees could not be loaded. Please try again.";
+        }
+        finally
+        {
+            _isLoadingLicensees = false;
+        }
     }
 
     private void SelectUser(Guid licenseeId, string? rawUserId)

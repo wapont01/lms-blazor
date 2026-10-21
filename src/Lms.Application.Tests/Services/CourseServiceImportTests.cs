@@ -77,7 +77,7 @@ public class CourseServiceImportTests
         var instructor = new UserAccount
         {
             Id = Guid.NewGuid(),
-            Email = "instructor@lms.com",
+            Email = "instructor@wlr.com",
             DisplayName = "Instructor",
             Role = "Instructor",
             IsActive = true
@@ -228,6 +228,60 @@ public class CourseServiceImportTests
         Assert.Equal(90m, assessment.PassPercent);
         Assert.Equal(2, assessment.Questions.Count);
         Assert.Equal("A", assessment.Questions.OrderBy(question => question.OrderIndex).First().CorrectOption);
+    }
+
+    [Fact]
+    public async Task ImportCourseStructureAsync_ImportsMultipleUnitAssessments()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var course = new Course
+        {
+            Title = "Unit Assessment Course",
+            Level = "Beginner",
+            Description = "Imports unit and final exams",
+            Price = 0
+        };
+        fixture.DbContext.Courses.Add(course);
+        await fixture.DbContext.SaveChangesAsync();
+
+        const string importText = """
+            [unit] Unit 2
+            [lesson] Licensing
+            Licensing lesson content.
+            [assessment] Unit 2 Exam | unit=Unit 2
+            passpercent=80
+            [question] Which rule applies? | optionA=Rule A | optionB=Rule B | optionC=Rule C | optionD=Rule D | correct=B
+
+            [unit] Unit 3
+            [lesson] Escrow
+            Escrow lesson content.
+            [assessment] Unit 3 Exam | unit=Unit 3
+            [question] Which record is required? | optionA=Record A | optionB=Record B | optionC=Record C | optionD=Record D | correct=C
+
+            [assessment]
+            title=Final Exam
+            [question] What is the final answer? | optionA=A | optionB=B | optionC=C | optionD=D | correct=D
+            """;
+
+        await fixture.CourseService.ImportCourseStructureAsync(course.Id, importText);
+
+        var assessments = await fixture.DbContext.CourseAssessments
+            .AsNoTracking()
+            .Include(assessment => assessment.Questions)
+            .Where(assessment => assessment.CourseId == course.Id)
+            .ToListAsync();
+
+        Assert.Equal(3, assessments.Count);
+        var unit2 = Assert.Single(assessments.Where(assessment => assessment.Title == "Unit 2 Exam"));
+        var unit3 = Assert.Single(assessments.Where(assessment => assessment.Title == "Unit 3 Exam"));
+        var final = Assert.Single(assessments.Where(assessment => assessment.Title == "Final Exam"));
+        Assert.Equal("Unit 2", await fixture.DbContext.Modules.Where(module => module.Id == unit2.ModuleId).Select(module => module.Title).SingleAsync());
+        Assert.Equal("Unit 3", await fixture.DbContext.Modules.Where(module => module.Id == unit3.ModuleId).Select(module => module.Title).SingleAsync());
+        Assert.Null(final.ModuleId);
+        Assert.Equal("B", Assert.Single(unit2.Questions).CorrectOption);
+        Assert.Equal("C", Assert.Single(unit3.Questions).CorrectOption);
+        Assert.Equal("D", Assert.Single(final.Questions).CorrectOption);
     }
 
     private sealed class TestFixture : IAsyncDisposable

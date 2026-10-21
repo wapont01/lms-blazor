@@ -78,7 +78,7 @@ public class ComplianceReportingServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
 
         var course = new Course
         {
@@ -244,7 +244,7 @@ public class ComplianceReportingServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
 
         var course = new Course
         {
@@ -297,7 +297,7 @@ public class ComplianceReportingServiceTests
         var status = await fixture.ComplianceReportingService.GetEducationDirectorOrientationStatusAsync();
         Assert.True(status.IsOverdue);
 
-        await fixture.ComplianceReportingService.MarkEducationDirectorOrientationViewedAsync(Guid.NewGuid(), "admin@lms.com");
+        await fixture.ComplianceReportingService.MarkEducationDirectorOrientationViewedAsync(Guid.NewGuid(), "admin@wlr.com");
 
         var updatedStatus = await fixture.ComplianceReportingService.GetEducationDirectorOrientationStatusAsync();
         Assert.NotNull(updatedStatus.ViewedAtUtc);
@@ -309,7 +309,7 @@ public class ComplianceReportingServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         await fixture.ComplianceReportingService.GetEducationDirectorOrientationStatusAsync();
         var profile = await fixture.DbContext.SchoolProfiles.SingleAsync();
         var staffMember = new SchoolStaffMember
@@ -405,7 +405,7 @@ public class ComplianceReportingServiceTests
         fixture.DbContext.Courses.Add(course);
         await fixture.DbContext.SaveChangesAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var blackoutStart = new DateTime(2027, 6, 15, 9, 0, 0, DateTimeKind.Utc);
 
         var result = await fixture.ComplianceReportingService.ScheduleCourseSessionAsync(course.Id, blackoutStart, blackoutStart.AddHours(9), admin.Id, admin.Email);
@@ -433,7 +433,7 @@ public class ComplianceReportingServiceTests
         fixture.DbContext.Courses.Add(course);
         await fixture.DbContext.SaveChangesAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var start = DateTime.UtcNow.AddDays(5);
         var scheduleResult = await fixture.ComplianceReportingService.ScheduleCourseSessionAsync(course.Id, start, start.AddHours(4), admin.Id, admin.Email);
 
@@ -468,7 +468,7 @@ public class ComplianceReportingServiceTests
         fixture.DbContext.Courses.Add(course);
         await fixture.DbContext.SaveChangesAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var originalStart = DateTime.UtcNow.AddDays(2);
         var scheduleResult = await fixture.ComplianceReportingService.ScheduleCourseSessionAsync(course.Id, originalStart, originalStart.AddHours(4), admin.Id, admin.Email);
 
@@ -491,7 +491,7 @@ public class ComplianceReportingServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var course = new Course
         {
             Title = "Overdue Schedule Course",
@@ -523,7 +523,7 @@ public class ComplianceReportingServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var course = new Course
         {
             Title = "Manage Sessions Course",
@@ -554,7 +554,7 @@ public class ComplianceReportingServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         await fixture.ComplianceReportingService.GetEducationDirectorOrientationStatusAsync();
         var profile = await fixture.DbContext.SchoolProfiles.SingleAsync();
         profile.EducationDirectorDesignatedAtUtc = DateTime.UtcNow.AddDays(-31);

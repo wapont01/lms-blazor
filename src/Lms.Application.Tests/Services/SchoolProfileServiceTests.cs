@@ -118,6 +118,33 @@ public class SchoolProfileServiceTests
     }
 
     [Fact]
+    public async Task GetAsync_AddsMissingFloridaStaffMemberAsNewEntity()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlite(connection).Options;
+        await using var dbContext = new ApplicationDbContext(options);
+        await dbContext.Database.EnsureCreatedAsync();
+        var profile = new SchoolProfile { State = SchoolProfile.FloridaSchoolState, InstructorLicenseNumber = "BK3059873" };
+        profile.StaffMembers.Add(new SchoolStaffMember
+        {
+            SchoolProfileId = profile.Id,
+            Name = "William A. Aponte",
+            Role = SchoolStaffRoles.Instructor,
+            Title = "Education Director / Instructor",
+            LicenseNumber = "BK3059873"
+        });
+        dbContext.SchoolProfiles.Add(profile);
+        await dbContext.SaveChangesAsync();
+        var service = new SchoolProfileService(dbContext, new AuditLogService(dbContext));
+
+        var result = await service.GetAsync();
+
+        Assert.Contains(result.StaffMembers, member => member.Name == "Milena");
+        Assert.Equal(1, await dbContext.SchoolStaffMembers.CountAsync(member => member.Name == "Milena"));
+    }
+
+    [Fact]
     public async Task GetForStateAsync_ReturnsSeparateFloridaAndNorthCarolinaProfiles()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");

@@ -56,6 +56,58 @@ else
             </ol>
         </section>
 
+        <AuthorizeView Roles="Admin,Instructor">
+            <Authorized>
+                @if (_examProctoringPolicy is not null)
+                {
+                    <section class="card" aria-labelledby="exam-policy-heading">
+                        <h2 id="exam-policy-heading">Course exam policy reference</h2>
+                        <p><strong>@_examProctoringPolicy.StatusLabel</strong></p>
+                        <p>@_examProctoringPolicy.Requirement</p>
+                        <dl class="compliance-summary-list">
+                            @if (_examProctoringPolicy.MinimumPassingPercent is int passingPercent)
+                            {
+                                <div><dt>Source minimum passing score</dt><dd>@passingPercent%</dd></div>
+                            }
+                            @if (_examProctoringPolicy.ClosedBookRequired is bool closedBookRequired)
+                            {
+                                <div><dt>Closed-book requirement</dt><dd>@(closedBookRequired ? "Required" : "Not required by source")</dd></div>
+                            }
+                            @if (_examProctoringPolicy.IdentityVerificationRequired is bool identityVerificationRequired)
+                            {
+                                <div><dt>Identity verification</dt><dd>@(identityVerificationRequired ? "Required" : "Not required by source")</dd></div>
+                            }
+                            @if (_examProctoringPolicy.RemoteProctoringAllowed is bool remoteProctoringAllowed)
+                            {
+                                <div><dt>Remote proctoring</dt><dd>@(remoteProctoringAllowed ? "Allowed by source" : "Not allowed by source")</dd></div>
+                            }
+                            @if (_examProctoringPolicy.RemoteProctoringRequiresCommissionApproval is true)
+                            {
+                                <div><dt>Remote approval</dt><dd>Commission approval required</dd></div>
+                            }
+                            @if (_examProctoringPolicy.EffectiveThrough is DateOnly effectiveThrough)
+                            {
+                                <div><dt>Policy caveat through</dt><dd>@effectiveThrough.ToString("yyyy-MM-dd")</dd></div>
+                            }
+                        </dl>
+                        @if (_examProctoringPolicy.Citation is not null)
+                        {
+                            <p class="muted-text">@_examProctoringPolicy.EvidenceKind: @_examProctoringPolicy.Citation</p>
+                        }
+                        @if (_examProctoringPolicy.SourceDocument is not null)
+                        {
+                            <p class="muted-text">Source file: @_examProctoringPolicy.SourceDocument</p>
+                        }
+                        @if (_examProctoringPolicy.ReviewNote is not null)
+                        {
+                            <p class="compliance-configuration-warning" role="status">@_examProctoringPolicy.ReviewNote</p>
+                        }
+                        <p class="muted-text">This reference does not replace verification of current Commission rules or course-specific approval conditions.</p>
+                    </section>
+                }
+            </Authorized>
+        </AuthorizeView>
+
         <section class="card" aria-labelledby="materials-heading">
             <h2 id="materials-heading">Required Materials and Resources</h2>
             <ul>
@@ -138,6 +190,7 @@ else
     private SchoolProfile? _profile;
     private DistanceLearningProfile? _stateProfile;
     private PolicyDisclosurePreview? _disclosure;
+    private CourseExamProctoringPolicyResolution? _examProctoringPolicy;
     private int ConfiguredUnitMinutes => GetRegulatoryUnits().Sum(unit => unit.Lessons.Sum(lesson => lesson.DurationMinutes));
 
     protected override async Task OnParametersSetAsync()
@@ -145,6 +198,7 @@ else
         _course = await CourseService.GetByIdAsync(CourseId);
         _profile = await SchoolProfileService.GetAsync();
         _disclosure = await PolicyDisclosureService.GetCourseDisclosureAsync(CourseId);
+        _examProctoringPolicy = _course is null ? null : CourseExamProctoringPolicyCatalog.Resolve(_course);
         _stateProfile = !string.IsNullOrWhiteSpace(_course?.State)
             && DistanceLearningProfileCatalog.TryGet(_course.State, out var profile)
             ? profile

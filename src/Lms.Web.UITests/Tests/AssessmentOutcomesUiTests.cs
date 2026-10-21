@@ -18,12 +18,32 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
     }
 
     [UiFact]
+    public async Task Admin_SidebarLinks_NavigateToHomeAndRegulatoryDirectory()
+    {
+        await using var context = await _fixture.CreateBrowserContextAsync();
+        var page = await context.NewPageAsync();
+
+        await LoginAsync(page, "admin@wlr.com", "Admin123!");
+        await page.GotoAsync($"{_fixture.BaseUrl}/admin/courses");
+
+        await page.GetByRole(AriaRole.Link, new() { Name = "Home", Exact = true }).ClickAsync();
+        await Assertions.Expect(page).ToHaveURLAsync($"{_fixture.BaseUrl}/");
+        await ExpectTextAsync(page, "Real Estate Certification LMS");
+
+        await page.GotoAsync($"{_fixture.BaseUrl}/admin/courses");
+        await page.Locator(".sidebar-details summary").Filter(new LocatorFilterOptions { HasTextString = "Admin" }).ClickAsync();
+        await page.GetByRole(AriaRole.Link, new() { Name = "Regulatory Directory", Exact = true }).ClickAsync();
+        await Assertions.Expect(page).ToHaveURLAsync($"{_fixture.BaseUrl}/admin/regulatory-directory");
+        await ExpectVisibleWithReloadAsync(page, page.GetByRole(AriaRole.Heading, new() { Name = "Regulatory Directory", Exact = true }));
+    }
+
+    [UiFact]
     public async Task Admin_RetakeGrant_CreateUpdateRevoke_Works()
     {
         await using var context = await _fixture.CreateBrowserContextAsync();
         var page = await context.NewPageAsync();
 
-        await LoginAsync(page, "admin@lms.com", "Admin123!");
+        await LoginAsync(page, "admin@wlr.com", "Admin123!");
         await page.GotoAsync($"{_fixture.BaseUrl}/admin/assessments");
 
         var editor = page.Locator("section.card").Filter(new LocatorFilterOptions { HasTextString = "Assessment Editor" });
@@ -272,7 +292,7 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         await using var context = await _fixture.CreateBrowserContextAsync();
         var page = await context.NewPageAsync();
 
-        await LoginAsync(page, "admin@lms.com", "Admin123!");
+        await LoginAsync(page, "admin@wlr.com", "Admin123!");
         await page.GotoAsync($"{_fixture.BaseUrl}/admin/courses");
 
         var floridaCourse = page.Locator("article.course-item").Filter(new LocatorFilterOptions
@@ -403,7 +423,7 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         await using var context = await _fixture.CreateBrowserContextAsync();
         var page = await context.NewPageAsync();
 
-        await LoginAsync(page, "admin@lms.com", "Admin123!");
+        await LoginAsync(page, "admin@wlr.com", "Admin123!");
         var emptyLearnerId = await InsertLearnerWithoutEnrollmentAsync(_fixture.DatabasePath, "ui-empty-william.learner@wlr.com", "UI Empty Learner");
 
         await page.GotoAsync($"{_fixture.BaseUrl}/learner?learnerId={emptyLearnerId}");
@@ -421,7 +441,7 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         await using var context = await _fixture.CreateBrowserContextAsync();
         var page = await context.NewPageAsync();
 
-        await LoginAsync(page, "admin@lms.com", "Admin123!");
+        await LoginAsync(page, "admin@wlr.com", "Admin123!");
 
         var activeLearnerId = await ResolveUserIdFromDatabaseAsync(_fixture.DatabasePath, "william.learner@wlr.com");
         Assert.False(string.IsNullOrWhiteSpace(activeLearnerId));
@@ -646,7 +666,7 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
         await ExpectTextAsync(learnerPage, "Attempts used: 2 of 2");
         await ExpectTextAsync(learnerPage, "You have no attempts remaining");
 
-        await GrantRetakeAttemptsAsync(_fixture.DatabasePath, "william.learner@wlr.com", "admin@lms.com", courseId, grantedAttempts: 1);
+        await GrantRetakeAttemptsAsync(_fixture.DatabasePath, "william.learner@wlr.com", "admin@wlr.com", courseId, grantedAttempts: 1);
 
         await learnerPage.GotoAsync($"{_fixture.BaseUrl}/courses/{courseId}");
         var failureOverview = learnerPage.Locator("section.assessment-failure-banner p");

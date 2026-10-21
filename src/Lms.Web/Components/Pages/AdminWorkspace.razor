@@ -27,6 +27,7 @@
 			OnTogglePublish="TogglePublishAsync"
 			OnToggleArchive="ToggleArchiveAsync"
 			OnSavePrice="SaveCoursePriceAsync"
+			OnSaveTier="SaveCourseTierAsync"
 			OnApproveCourse="ApproveCourseAsync"
 			OnRequestChanges="RequestCourseChangesAsync"
 			OnRejectCourse="RejectCourseAsync" />
@@ -465,6 +466,59 @@
 		_courseMessage = previousPrice == updatedPrice
 			? "No price change was detected."
 			: "Course price updated.";
+	}
+
+	private async Task SaveCourseTierAsync(Course course)
+	{
+		_courseError = null;
+		_courseMessage = null;
+
+		if (!_actorUserId.HasValue)
+		{
+			_courseError = "Unable to identify the signed in admin account.";
+			return;
+		}
+
+		var existing = await CourseService.GetByIdAsync(course.Id);
+		if (existing is null)
+		{
+			_courseError = "Course no longer exists.";
+			await RefreshCoursesAsync();
+			return;
+		}
+
+		if (!string.IsNullOrWhiteSpace(course.Tier)
+			&& !CourseTiers.All.Contains(course.Tier, StringComparer.OrdinalIgnoreCase))
+		{
+			_courseError = "Select a valid course tier.";
+			await RefreshCoursesAsync();
+			return;
+		}
+
+		var previousTier = existing.Tier;
+		var updatedTier = CourseTiers.All.FirstOrDefault(tier =>
+			string.Equals(tier, course.Tier, StringComparison.OrdinalIgnoreCase));
+		existing.Tier = updatedTier;
+		await CourseService.UpdateAsync(existing);
+
+		if (!string.Equals(previousTier, updatedTier, StringComparison.Ordinal))
+		{
+			await AuditLogService.WriteAsync(
+				_actorUserId.Value,
+				_actorEmail,
+				"course.tier.updated",
+				"Course",
+				existing.Id,
+				$"OldTier={previousTier ?? "None"};NewTier={updatedTier ?? "None"}");
+			await RefreshAuditAsync();
+			_courseMessage = "Course tier updated.";
+		}
+		else
+		{
+			_courseMessage = "No tier change was detected.";
+		}
+
+		await RefreshCoursesAsync();
 	}
 
 	private async Task RefreshCoursesAsync()

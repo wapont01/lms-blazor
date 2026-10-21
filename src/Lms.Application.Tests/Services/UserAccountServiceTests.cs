@@ -39,7 +39,7 @@ public class UserAccountServiceTests
         await using var fixture = await TestFixture.CreateAsync();
         var service = fixture.UserAccountService;
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
 
         await service.AdminResetPasswordAsync(admin.Id, admin.Email, learner.Id, "TempLearner1!");
@@ -58,6 +58,26 @@ public class UserAccountServiceTests
         Assert.Equal(LoginStatus.Succeeded, loginWithNewPassword.Status);
         Assert.NotNull(loginWithNewPassword.User);
         Assert.False(loginWithNewPassword.User!.ForcePasswordChange);
+    }
+
+    [Fact]
+    public async Task EnsureSeedUsersAsync_MigratesLegacyAdminEmailToWlrDomain()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
+        admin.Email = string.Join("@", "admin", "lms.com");
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.UserAccountService.EnsureSeedUsersAsync();
+
+        var migratedAdmin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
+        var legacyEmailSuffix = string.Concat("@", "lms.com");
+        var usersWithLegacyEmailDomain = await fixture.DbContext.UserAccounts
+            .Where(user => user.Email.EndsWith(legacyEmailSuffix))
+            .ToListAsync();
+
+        Assert.Equal(admin.Id, migratedAdmin.Id);
+        Assert.Empty(usersWithLegacyEmailDomain);
     }
 
     [Fact]
@@ -155,92 +175,28 @@ public class UserAccountServiceTests
     }
 
     [Fact]
-    public async Task SeedEnrollmentsAsync_BackfillsMissingLearnerEnrollments_WithoutDuplicatingExistingRows()
+    public async Task SeedEnrollmentsAsync_DoesNotCreateMockEnrollments()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
         await CourseSeed.SeedAsync(fixture.DbContext);
         await CourseSeed.SeedEnrollmentsAsync(fixture.DbContext);
-
-        var learnerTwo = await fixture.DbContext.UserAccounts
-            .SingleAsync(user => user.Email == "maya.thompson@wlr.com");
-        var learnerThree = await fixture.DbContext.UserAccounts
-            .SingleAsync(user => user.Email == "ethan.brooks@wlr.com");
-
-        var learnerTwoEnrollments = await fixture.DbContext.Enrollments
-            .Where(enrollment => enrollment.UserAccountId == learnerTwo.Id)
-            .ToListAsync();
-        var learnerThreeEnrollments = await fixture.DbContext.Enrollments
-            .Where(enrollment => enrollment.UserAccountId == learnerThree.Id)
-            .ToListAsync();
-        fixture.DbContext.Enrollments.RemoveRange(learnerTwoEnrollments);
-        fixture.DbContext.Enrollments.RemoveRange(learnerThreeEnrollments);
-        await fixture.DbContext.SaveChangesAsync();
-
         await CourseSeed.SeedEnrollmentsAsync(fixture.DbContext);
 
-        var enrollmentCountsByEmail = await fixture.DbContext.Enrollments
-            .Join(
-                fixture.DbContext.UserAccounts,
-                enrollment => enrollment.UserAccountId,
-                user => user.Id,
-                (enrollment, user) => new { user.Email, enrollment.CourseId })
-            .Where(row => row.Email == "william.learner@wlr.com" || row.Email == "maya.thompson@wlr.com" || row.Email == "ethan.brooks@wlr.com")
-            .GroupBy(row => row.Email)
-            .Select(group => new { Email = group.Key, Count = group.Count() })
-            .ToDictionaryAsync(group => group.Email, group => group.Count);
-
-        Assert.Equal(4, enrollmentCountsByEmail["william.learner@wlr.com"]);
-        Assert.Equal(3, enrollmentCountsByEmail["maya.thompson@wlr.com"]);
-        Assert.Equal(3, enrollmentCountsByEmail["ethan.brooks@wlr.com"]);
-
-        await CourseSeed.SeedEnrollmentsAsync(fixture.DbContext);
-
-        var countsAfterSecondRun = await fixture.DbContext.Enrollments
-            .Join(
-                fixture.DbContext.UserAccounts,
-                enrollment => enrollment.UserAccountId,
-                user => user.Id,
-                (enrollment, user) => new { user.Email, enrollment.CourseId })
-            .Where(row => row.Email == "william.learner@wlr.com" || row.Email == "maya.thompson@wlr.com" || row.Email == "ethan.brooks@wlr.com")
-            .GroupBy(row => row.Email)
-            .Select(group => new { Email = group.Key, Count = group.Count() })
-            .ToDictionaryAsync(group => group.Email, group => group.Count);
-
-        Assert.Equal(4, countsAfterSecondRun["william.learner@wlr.com"]);
-        Assert.Equal(3, countsAfterSecondRun["maya.thompson@wlr.com"]);
-        Assert.Equal(3, countsAfterSecondRun["ethan.brooks@wlr.com"]);
+        Assert.Empty(await fixture.DbContext.Enrollments.ToListAsync());
+        Assert.Equal("Florida Core Law", await fixture.DbContext.Courses.Select(course => course.Title).SingleAsync());
     }
 
     [Fact]
-    public async Task SeedEnrollmentsAsync_AlsoSeedsBrokerPurchases_Idempotently()
+    public async Task SeedEnrollmentsAsync_DoesNotSeedMockBrokerPurchases()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
         await CourseSeed.SeedAsync(fixture.DbContext);
         await CourseSeed.SeedEnrollmentsAsync(fixture.DbContext);
 
-        var firstCount = await fixture.DbContext.Enrollments
-            .Where(enrollment => enrollment.EnrollmentSource == "LearnerPurchase")
-            .Join(
-                fixture.DbContext.UserAccounts,
-                enrollment => enrollment.UserAccountId,
-                user => user.Id,
-                (enrollment, user) => new { user.Role })
-            .CountAsync(row => row.Role == "Broker");
-        Assert.True(firstCount > 0);
-
         await CourseSeed.SeedEnrollmentsAsync(fixture.DbContext);
-        var secondCount = await fixture.DbContext.Enrollments
-            .Where(enrollment => enrollment.EnrollmentSource == "LearnerPurchase")
-            .Join(
-                fixture.DbContext.UserAccounts,
-                enrollment => enrollment.UserAccountId,
-                user => user.Id,
-                (enrollment, user) => new { user.Role })
-            .CountAsync(row => row.Role == "Broker");
-
-        Assert.Equal(firstCount, secondCount);
+        Assert.Empty(await fixture.DbContext.Enrollments.ToListAsync());
     }
 
     [Fact]
@@ -261,7 +217,7 @@ public class UserAccountServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var existing = await fixture.UserAccountService.CreateAsync("existing.sso@lms.com", "Existing SSO", "Admin123!a", "Broker");
+        var existing = await fixture.UserAccountService.CreateAsync("existing.sso@wlr.com", "Existing SSO", "Admin123!a", "Broker");
         var updated = await fixture.UserAccountService.UpsertExternalUserAsync(existing.Email, "Existing SSO Updated");
 
         Assert.Equal(existing.Id, updated.Id);

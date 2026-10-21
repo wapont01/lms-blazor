@@ -304,7 +304,7 @@ public class CourseService : ICourseService
         }
 
         var parsedImport = ParseImportText(importText);
-        if (parsedImport.Modules.Count == 0 && parsedImport.Assessment is null && parsedImport.Checkpoints.Count == 0)
+        if (parsedImport.Modules.Count == 0 && parsedImport.Assessments.Count == 0 && parsedImport.Checkpoints.Count == 0)
         {
             return;
         }
@@ -397,19 +397,29 @@ public class CourseService : ICourseService
             }
         }
 
-        if (parsedImport.Assessment is not null)
+        foreach (var parsedAssessment in parsedImport.Assessments)
         {
+            var module = parsedAssessment.ModuleTitle is null
+                ? null
+                : createdModules.FirstOrDefault(candidate => string.Equals(candidate.Title, parsedAssessment.ModuleTitle, StringComparison.OrdinalIgnoreCase));
+
+            if (parsedAssessment.ModuleTitle is not null && module is null)
+            {
+                throw new InvalidOperationException($"Assessment '{parsedAssessment.Title}' references unknown unit '{parsedAssessment.ModuleTitle}'.");
+            }
+
             var assessmentEntity = new CourseAssessment
             {
                 CourseId = courseId,
-                Title = parsedImport.Assessment.Title,
-                PassPercent = parsedImport.Assessment.PassPercent,
+                ModuleId = module?.Id,
+                Title = parsedAssessment.Title,
+                PassPercent = parsedAssessment.PassPercent,
                 IsRequired = true
             };
 
             _dbContext.CourseAssessments.Add(assessmentEntity);
 
-            foreach (var parsedQuestion in parsedImport.Assessment.Questions)
+            foreach (var parsedQuestion in parsedAssessment.Questions)
             {
                 assessmentEntity.Questions.Add(new AssessmentQuestion
                 {
@@ -533,8 +543,10 @@ public class CourseService : ICourseService
                 continue;
             }
 
-            if (line.StartsWith("[module]", StringComparison.OrdinalIgnoreCase))
+            if (line.StartsWith("[unit]", StringComparison.OrdinalIgnoreCase)
+                || line.StartsWith("[module]", StringComparison.OrdinalIgnoreCase))
             {
+                var markerLength = line.StartsWith("[unit]", StringComparison.OrdinalIgnoreCase) ? "[unit]".Length : "[module]".Length;
                 if (currentLesson is not null && currentModule is not null)
                 {
                     currentLesson.TextContent = string.Join("\n", currentLessonText).Trim();
@@ -549,7 +561,7 @@ public class CourseService : ICourseService
 
                 currentModule = new ParsedModule
                 {
-                    Title = line["[module]".Length..].Trim(),
+                    Title = line[markerLength..].Trim(),
                     OrderIndex = document.Modules.Count + 1,
                     Lessons = new List<ParsedLesson>()
                 };
@@ -650,8 +662,27 @@ public class CourseService : ICourseService
                 currentLesson = null;
                 currentLessonText.Clear();
                 currentCheckpoint = null;
-                currentAssessment = new ParsedAssessmentDefinition();
-                document.Assessment = currentAssessment;
+                var assessmentParts = line["[assessment]".Length..].Trim()
+                    .Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                currentAssessment = new ParsedAssessmentDefinition
+                {
+                    Title = assessmentParts.FirstOrDefault() ?? "Final Assessment"
+                };
+                foreach (var part in assessmentParts.Skip(1))
+                {
+                    var keyValue = part.Split('=', 2, StringSplitOptions.TrimEntries);
+                    if (keyValue.Length == 2 && (string.Equals(keyValue[0], "unit", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(keyValue[0], "module", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        currentAssessment.ModuleTitle = keyValue[1];
+                    }
+                    else if (keyValue.Length == 2 && string.Equals(keyValue[0], "passpercent", StringComparison.OrdinalIgnoreCase)
+                        && decimal.TryParse(keyValue[1], out var passPercent))
+                    {
+                        currentAssessment.PassPercent = passPercent;
+                    }
+                }
+                document.Assessments.Add(currentAssessment);
                 continue;
             }
 
@@ -660,7 +691,7 @@ public class CourseService : ICourseService
                 if (currentAssessment is null)
                 {
                     currentAssessment = new ParsedAssessmentDefinition();
-                    document.Assessment = currentAssessment;
+                    document.Assessments.Add(currentAssessment);
                 }
 
                 var parsedQuestion = ParseAssessmentQuestionDefinition(line);
@@ -752,6 +783,7 @@ public class CourseService : ICourseService
             case "description":
                 checkpoint.Description = keyValue[1];
                 break;
+            case "unit":
             case "module":
                 checkpoint.ModuleTitle = keyValue[1];
                 break;
@@ -780,6 +812,10 @@ public class CourseService : ICourseService
                 {
                     assessment.PassPercent = passPercent;
                 }
+                break;
+            case "unit":
+            case "module":
+                assessment.ModuleTitle = keyValue[1];
                 break;
         }
     }
@@ -960,7 +996,7 @@ public class CourseService : ICourseService
     {
         public List<ParsedModule> Modules { get; } = new();
         public List<ParsedCheckpointDefinition> Checkpoints { get; } = new();
-        public ParsedAssessmentDefinition? Assessment { get; set; }
+        public List<ParsedAssessmentDefinition> Assessments { get; } = new();
     }
 
     private sealed class ParsedModule
@@ -1000,6 +1036,7 @@ public class CourseService : ICourseService
     {
         public string Title { get; set; } = "Final Assessment";
         public decimal PassPercent { get; set; } = 80m;
+        public string? ModuleTitle { get; set; }
         public List<ParsedAssessmentQuestion> Questions { get; } = new();
     }
 

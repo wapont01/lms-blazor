@@ -148,7 +148,7 @@ public class EnrollmentServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
 
         await fixture.EnrollmentService.AssignLearnerToBrokerAsync(broker.Id, learner.Id, broker.Id, broker.Email);
@@ -424,7 +424,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
 
         var course = new Course
@@ -461,7 +461,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
 
         var sourceCourse = new Course
@@ -694,7 +694,7 @@ public class EnrollmentServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Renewal Course");
 
         await fixture.PassAssessmentAsync(seed.CourseId, learner.Id);

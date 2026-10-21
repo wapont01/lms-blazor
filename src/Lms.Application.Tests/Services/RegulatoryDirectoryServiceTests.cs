@@ -10,6 +10,24 @@ namespace Lms.Application.Tests.Services;
 public class RegulatoryDirectoryServiceTests
 {
     [Fact]
+    public async Task GetCampaignStateOptionsAsync_ReturnsAllUsStatesAndApprovedAdditionalJurisdictions()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        fixture.DbContext.RegulatoryDataSnapshots.AddRange(
+            new RegulatoryDataSnapshot { State = "Puerto Rico", SourceName = "Puerto Rico source", SourceUrl = "https://example.test/pr", Status = RegulatorySnapshotStatuses.Approved },
+            new RegulatoryDataSnapshot { State = "American Samoa", SourceName = "American Samoa pending", SourceUrl = "https://example.test/as", Status = RegulatorySnapshotStatuses.PendingReview });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var states = await fixture.Service.GetCampaignStateOptionsAsync();
+
+        Assert.Equal(1, states.Count(state => state == "Texas"));
+        Assert.Contains("Alabama", states);
+        Assert.Contains("Wyoming", states);
+        Assert.Contains("Puerto Rico", states);
+        Assert.DoesNotContain("American Samoa", states);
+    }
+
+    [Fact]
     public async Task TryAutoLinkLicenseAsync_LeavesAmbiguousLicenseNumberUnlinked_ThenUsesMatchingLicenseType()
     {
         await using var fixture = await TestFixture.CreateAsync();
@@ -62,7 +80,7 @@ public class RegulatoryDirectoryServiceTests
     public async Task RegulatoryComplianceService_UsesApprovedLinkAndEffectiveStatePolicies()
     {
         await using var fixture = await TestFixture.CreateAsync();
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
         var snapshot = new RegulatoryDataSnapshot
         {
@@ -301,7 +319,7 @@ public class RegulatoryDirectoryServiceTests
             RetrievedAtUtc = DateTime.UtcNow,
             Status = RegulatorySnapshotStatuses.Approved
         };
-        var firms = Enumerable.Range(1, 906)
+        var firms = Enumerable.Range(1, 2_006)
             .Select(index => new RegulatoryFirm
             {
                 Snapshot = snapshot,
@@ -317,7 +335,7 @@ public class RegulatoryDirectoryServiceTests
 
         var targets = await fixture.Service.GetCampaignFirmTargetsAsync("West Virginia", take: 10_000);
 
-        Assert.Equal(906, targets.Count);
+        Assert.Equal(2_006, targets.Count);
         Assert.All(targets, target => Assert.Equal("West Virginia", target.State));
     }
 
@@ -325,7 +343,7 @@ public class RegulatoryDirectoryServiceTests
     public async Task ImportAsync_PersistsPendingSnapshotAndApprovalMakesItCurrent()
     {
         await using var fixture = await TestFixture.CreateAsync();
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
 
         var snapshot = await fixture.Service.ImportAsync(new RegulatorySnapshotImport(
             "North Carolina",
@@ -397,7 +415,7 @@ public class RegulatoryDirectoryServiceTests
     public async Task ApproveAsync_AllowsLicenseeOnlySnapshotsButRejectsEmptySnapshots()
     {
         await using var fixture = await TestFixture.CreateAsync();
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var licenseeOnlySnapshot = new RegulatoryDataSnapshot
         {
             State = "Nevada",
@@ -436,7 +454,7 @@ public class RegulatoryDirectoryServiceTests
     public async Task LinkLicenseeToUserAsync_CopiesVerifiedLicenseFactsAndAuditsLink()
     {
         await using var fixture = await TestFixture.CreateAsync();
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "sofia.martinez.fl@wlr.com");
         var snapshot = new RegulatoryDataSnapshot
         {

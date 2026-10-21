@@ -14,7 +14,7 @@ public class LearnerDashboardServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Dashboard Completion Course");
 
@@ -40,7 +40,7 @@ public class LearnerDashboardServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var emptyLearner = await fixture.UserAccountService.CreateAsync("empty-william.learner@wlr.com", "Empty Learner", "Learner123!", "Learner");
 
         var dashboard = await fixture.LearnerDashboardService.GetDashboardAsync(admin.Id, isAdminViewer: true, emptyLearner.Id);
@@ -57,8 +57,8 @@ public class LearnerDashboardServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
-        await fixture.UserAccountService.CreateAsync("aaa-empty@lms.com", "A Empty Learner", "Learner123!", "Learner");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
+        await fixture.UserAccountService.CreateAsync("aaa-empty@wlr.com", "A Empty Learner", "Learner123!", "Learner");
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
         await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Default Selection Course");
 
@@ -87,7 +87,7 @@ public class LearnerDashboardServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@lms.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var primaryLearner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
         var secondaryLearner = await fixture.UserAccountService.CreateAsync("second-william.learner@wlr.com", "Second Learner", "Learner123!", "Learner");
 

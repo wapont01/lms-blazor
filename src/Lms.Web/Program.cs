@@ -426,7 +426,8 @@ app.MapGet("/admin/campaign-targets.csv", async (ClaimsPrincipal user, string? s
         return Results.Forbid();
     }
 
-    var targets = await regulatoryDirectoryService.GetCampaignFirmTargetsAsync(state, take: 10_000);
+    var normalizedState = string.IsNullOrWhiteSpace(state) ? null : state.Trim();
+    var targets = await regulatoryDirectoryService.GetCampaignFirmTargetsAsync(normalizedState, take: 100_000);
     var csv = new StringBuilder();
     csv.AppendLine("State,Firm,TradeName,FirmLicense,Broker,Address,Licensees,NextRenewal,RenewalDateSource,RenewalsWithin12Months");
     foreach (var target in targets)
@@ -444,7 +445,15 @@ app.MapGet("/admin/campaign-targets.csv", async (ClaimsPrincipal user, string? s
             target.RenewalsWithinTwelveMonths));
     }
 
-    return Results.File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", "campaign-targets.csv");
+    var stateFileName = normalizedState is null
+        ? "all-states"
+        : string.Concat(normalizedState.Where(char.IsLetterOrDigit)).ToLowerInvariant();
+    if (string.IsNullOrWhiteSpace(stateFileName))
+    {
+        stateFileName = "selected-state";
+    }
+
+    return Results.File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", $"campaign-targets-{stateFileName}.csv");
 
     static string CsvField(string? value)
     {

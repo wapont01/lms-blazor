@@ -10,6 +10,7 @@ public interface IRegulatoryDirectoryService
     Task<bool> ApproveAsync(Guid snapshotId, Guid actorUserId, string actorEmail);
     Task<RegulatoryDataSnapshot?> GetLatestApprovedSnapshotAsync(string state);
     Task<List<RegulatorySnapshotSummary>> GetRecentSnapshotsAsync(int take = 25);
+    Task<List<string>> GetCampaignStateOptionsAsync();
     Task<List<RegulatoryLicenseeSummary>> GetApprovedLicenseesAsync(string? state = null, int take = 250);
     Task<List<CampaignFirmTarget>> GetCampaignFirmTargetsAsync(string? state = null, int take = 100);
     Task<bool> LinkLicenseeToUserAsync(Guid userId, Guid licenseeId, Guid actorUserId, string actorEmail);
@@ -53,6 +54,7 @@ public sealed record RegulatorySnapshotSummary(
     Guid SnapshotId,
     string State,
     string SourceName,
+    string SourceUrl,
     DateTime RetrievedAtUtc,
     decimal? AcquisitionCost,
     string Status,
@@ -89,6 +91,15 @@ public sealed record CampaignFirmTarget(
 
 public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
 {
+    private static readonly string[] UnitedStatesStates =
+    [
+        "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia",
+        "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland",
+        "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey",
+        "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina",
+        "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"
+    ];
+
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuditLogService _auditLogService;
 
@@ -247,6 +258,7 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
                 snapshot.Id,
                 snapshot.State,
                 snapshot.SourceName,
+                snapshot.SourceUrl,
                 snapshot.RetrievedAtUtc,
                 snapshot.AcquisitionCost,
                 snapshot.Status,
@@ -254,6 +266,23 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
                 snapshot.Licensees.Count,
                 snapshot.ReviewedAtUtc))
             .ToListAsync();
+    }
+
+    public async Task<List<string>> GetCampaignStateOptionsAsync()
+    {
+        var approvedStates = await _dbContext.RegulatoryDataSnapshots
+            .AsNoTracking()
+            .Where(snapshot => snapshot.Status == RegulatorySnapshotStatuses.Approved)
+            .Select(snapshot => snapshot.State)
+            .Distinct()
+            .ToListAsync();
+        var states = new HashSet<string>(UnitedStatesStates, StringComparer.OrdinalIgnoreCase);
+        foreach (var state in approvedStates.Where(state => !string.IsNullOrWhiteSpace(state)))
+        {
+            states.Add(state.Trim());
+        }
+
+        return states.OrderBy(state => state, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     public async Task<List<RegulatoryLicenseeSummary>> GetApprovedLicenseesAsync(string? state = null, int take = 250)
@@ -304,6 +333,7 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var horizon = today.AddYears(1);
+        var maxTargets = Math.Clamp(take, 1, 100_000);
         var query = _dbContext.RegulatoryFirms
             .AsNoTracking()
             .Include(firm => firm.Snapshot)
@@ -315,71 +345,91 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             query = query.Where(firm => firm.State == state.Trim());
         }
 
-        var firms = await query.ToListAsync();
-        return firms
-            .Select(firm =>
+        const int batchSize = 1_000;
+        var targets = new List<CampaignFirmTarget>(maxTargets);
+        var offset = 0;
+        while (true)
+        {
+            var firms = await query
+                .OrderBy(firm => firm.Id)
+                .Skip(offset)
+                .Take(batchSize)
+                .ToListAsync();
+            if (firms.Count == 0)
             {
-                var licensees = firm.LicenseeAffiliations
-                    .Where(affiliation => affiliation.Licensee is not null)
-                    .Select(affiliation => affiliation.Licensee!)
-                    .DistinctBy(licensee => licensee.Id)
-                    .ToList();
-                var upcomingRenewals = licensees
-                    .Select(licensee =>
-                    {
-                        if (licensee.LicenseRenewalDate is DateOnly authoritativeDate)
-                        {
-                            return (Date: (DateOnly?)authoritativeDate, Source: LicenseDateProvenance.Authoritative);
-                        }
+                break;
+            }
 
-                        if (StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
-                            licensee.State,
-                            licensee.LicenseType,
-                            today,
-                            out var derivedDate)
-                            || StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
-                                licensee.State,
-                                licensee.LicenseLevel,
-                                today,
-                                out derivedDate))
-                        {
-                            return (Date: (DateOnly?)derivedDate, Source: LicenseDateProvenance.Derived);
-                        }
-
-                        return (Date: (DateOnly?)null, Source: (string?)null);
-                    })
-                    .Where(renewal => renewal.Date.HasValue && renewal.Date.Value >= today)
-                    .ToList();
-                if (firm.LicenseRenewalDate is DateOnly firmRenewalDate && firmRenewalDate >= today)
-                {
-                    upcomingRenewals.Add((firmRenewalDate, LicenseDateProvenance.Authoritative));
-                }
-
-                upcomingRenewals = upcomingRenewals
-                    .OrderBy(renewal => renewal.Date)
-                    .ThenBy(renewal => renewal.Source == LicenseDateProvenance.Authoritative ? 0 : 1)
-                    .ToList();
-                var nextRenewal = upcomingRenewals.FirstOrDefault();
-                var brokerName = firm.QualifyingBrokerName
-                    ?? firm.LicenseeAffiliations.FirstOrDefault(affiliation => affiliation.IsBrokerInCharge)?.Licensee?.Name
-                    ?? firm.LicenseeAffiliations.Select(affiliation => affiliation.BrokerInChargeName).FirstOrDefault(name => name is not null);
-                return new CampaignFirmTarget(
-                    firm.State,
-                    firm.LegalName,
-                    firm.LicenseNumber,
-                    firm.TradeName,
-                    brokerName,
-                    firm.Address,
-                    licensees.Count,
-                    nextRenewal.Date,
-                    nextRenewal.Source,
-                    upcomingRenewals.Count(renewal => renewal.Date <= horizon));
-            })
+            offset += firms.Count;
+            targets.AddRange(firms.Select(firm => BuildCampaignFirmTarget(firm, today, horizon)));
+            targets = targets
             .OrderBy(target => target.NextRenewalDate ?? DateOnly.MaxValue)
             .ThenBy(target => target.State)
             .ThenBy(target => target.FirmName)
-            .Take(Math.Clamp(take, 1, 10_000))
+                .Take(maxTargets)
+                .ToList();
+        }
+
+        return targets;
+    }
+
+    private static CampaignFirmTarget BuildCampaignFirmTarget(RegulatoryFirm firm, DateOnly today, DateOnly horizon)
+    {
+        var licensees = firm.LicenseeAffiliations
+            .Where(affiliation => affiliation.Licensee is not null)
+            .Select(affiliation => affiliation.Licensee!)
+            .DistinctBy(licensee => licensee.Id)
             .ToList();
+        var upcomingRenewals = licensees
+            .Select(licensee =>
+            {
+                if (licensee.LicenseRenewalDate is DateOnly authoritativeDate)
+                {
+                    return (Date: (DateOnly?)authoritativeDate, Source: LicenseDateProvenance.Authoritative);
+                }
+
+                if (StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
+                    licensee.State,
+                    licensee.LicenseType,
+                    today,
+                    out var derivedDate)
+                    || StateLicenseRenewalPolicyCatalog.TryCalculateNextRenewalDate(
+                        licensee.State,
+                        licensee.LicenseLevel,
+                        today,
+                        out derivedDate))
+                {
+                    return (Date: (DateOnly?)derivedDate, Source: LicenseDateProvenance.Derived);
+                }
+
+                return (Date: (DateOnly?)null, Source: (string?)null);
+            })
+            .Where(renewal => renewal.Date.HasValue && renewal.Date.Value >= today)
+            .ToList();
+        if (firm.LicenseRenewalDate is DateOnly firmRenewalDate && firmRenewalDate >= today)
+        {
+            upcomingRenewals.Add((firmRenewalDate, LicenseDateProvenance.Authoritative));
+        }
+
+        upcomingRenewals = upcomingRenewals
+            .OrderBy(renewal => renewal.Date)
+            .ThenBy(renewal => renewal.Source == LicenseDateProvenance.Authoritative ? 0 : 1)
+            .ToList();
+        var nextRenewal = upcomingRenewals.FirstOrDefault();
+        var brokerName = firm.QualifyingBrokerName
+            ?? firm.LicenseeAffiliations.FirstOrDefault(affiliation => affiliation.IsBrokerInCharge)?.Licensee?.Name
+            ?? firm.LicenseeAffiliations.Select(affiliation => affiliation.BrokerInChargeName).FirstOrDefault(name => name is not null);
+        return new CampaignFirmTarget(
+            firm.State,
+            firm.LegalName,
+            firm.LicenseNumber,
+            firm.TradeName,
+            brokerName,
+            firm.Address,
+            licensees.Count,
+            nextRenewal.Date,
+            nextRenewal.Source,
+            upcomingRenewals.Count(renewal => renewal.Date <= horizon));
     }
 
     public async Task<bool> LinkLicenseeToUserAsync(Guid userId, Guid licenseeId, Guid actorUserId, string actorEmail)

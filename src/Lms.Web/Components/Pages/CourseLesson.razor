@@ -130,7 +130,7 @@ else
 
 			<section class="course-summary-strip" aria-label="Lesson summary">
 				<div class="summary-chip">
-					<span class="summary-label">Module</span>
+					<span class="summary-label">Unit</span>
 					<strong>@_currentModuleTitle</strong>
 				</div>
 				<div class="summary-chip">
@@ -167,11 +167,11 @@ else
 
 				@if (ShowFinalAssessmentAnnouncement)
 				{
-					<section class="final-assessment-gate" aria-label="Final assessment announcement">
-						<h2>Final Assessment</h2>
-						<p>You have reached the final assessment. It contains @_finalAssessment!.Questions.Count questions and is scored automatically.</p>
+					<section class="final-assessment-gate" aria-label="Assessment announcement">
+						<h2>@(_activeAssessmentIsUnit ? "Unit Exam" : "Final Assessment")</h2>
+						<p>You have reached this assessment. It contains @_finalAssessment!.Questions.Count questions and requires @_finalAssessment.PassPercent% to pass.</p>
 						<div class="timed-start-actions">
-							<button type="button" class="timer-start-button" @onclick="BeginFinalAssessmentAsync">Begin Final Assessment</button>
+							<button type="button" class="timer-start-button" @onclick="BeginFinalAssessmentAsync">Begin @(_activeAssessmentIsUnit ? "Unit Exam" : "Final Assessment")</button>
 							<button type="button" class="secondary-button" @onclick="GoPreviousInCourseAsync">Back</button>
 						</div>
 					</section>
@@ -179,7 +179,7 @@ else
 
 				@if (ShowFinalAssessmentQuiz)
 				{
-					<section class="final-assessment-quiz" aria-label="Final assessment quiz">
+					<section class="final-assessment-quiz" aria-label="Assessment quiz">
 						<h2>@_finalAssessment!.Title</h2>
 						<p>Answer all @_finalAssessment.Questions.Count questions. Questions are numbered and scored automatically when you submit.</p>
 
@@ -211,9 +211,12 @@ else
 						}
 
 						<div class="checkpoint-actions">
-							<button type="button" class="secondary-button" @onclick="FillWrongFinalAssessmentAnswersAsync">Fill Wrong Answers (Fail Scenario)</button>
-							<button type="button" class="secondary-button" @onclick="FillCorrectFinalAssessmentAnswersAsync">Fill Correct Answers</button>
-							<button type="button" class="checkpoint-submit-button" @onclick="SubmitFinalAssessmentAsync">Submit Final Assessment</button>
+							@if (!_activeAssessmentIsUnit)
+							{
+								<button type="button" class="secondary-button" @onclick="FillWrongFinalAssessmentAnswersAsync">Fill Wrong Answers (Fail Scenario)</button>
+								<button type="button" class="secondary-button" @onclick="FillCorrectFinalAssessmentAnswersAsync">Fill Correct Answers</button>
+							}
+							<button type="button" class="checkpoint-submit-button" @onclick="SubmitFinalAssessmentAsync">Submit @(_activeAssessmentIsUnit ? "Unit Exam" : "Final Assessment")</button>
 						</div>
 
 					</section>
@@ -222,7 +225,7 @@ else
 				@if (_showFinalAssessmentResults && _finalAssessment is not null)
 				{
 					<section class="final-assessment-result" aria-label="Final assessment result">
-						<h2>Final Assessment Result</h2>
+						<h2>@(_activeAssessmentIsUnit ? "Unit Exam Result" : "Final Assessment Result")</h2>
 						<p class="@(_finalAssessmentPassed ? null : "assessment-failure-text")">@(_finalAssessmentPassed ? "Success" : "Result: Failure")</p>
 						@if (!string.IsNullOrWhiteSpace(_finalAssessmentResultMessage))
 						{
@@ -255,10 +258,25 @@ else
 							</section>
 						}
 						<div class="checkpoint-actions">
-							<button type="button" class="checkpoint-submit-button" @onclick="GoToCourseOverview">Back to Course Overview</button>
-							@if (_finalAssessmentPassed)
+							@if (_activeAssessmentIsUnit)
 							{
-								<button type="button" class="secondary-button" @onclick="GoToLearnerCertificates">View Certificate</button>
+								@if (_finalAssessmentPassed)
+								{
+									<button type="button" class="checkpoint-submit-button" @onclick="ContinueAfterUnitAssessmentAsync">@(_pendingAssessmentNextLessonId.HasValue ? "Continue to Next Unit" : "Continue to Final Assessment")</button>
+								}
+								else if (_finalAssessmentEligibility is null || _finalAssessmentEligibility.HasUnlimitedAttempts || _finalAssessmentEligibility.AttemptsUsed < _finalAssessmentEligibility.AttemptsAllowed)
+								{
+									<button type="button" class="checkpoint-submit-button" @onclick="RetakeUnitAssessmentAsync">Retake Unit Exam</button>
+								}
+								<button type="button" class="secondary-button" @onclick="GoToCourseOverview">Back to Course Overview</button>
+							}
+							else
+							{
+								<button type="button" class="checkpoint-submit-button" @onclick="GoToCourseOverview">Back to Course Overview</button>
+								@if (_finalAssessmentPassed)
+								{
+									<button type="button" class="secondary-button" @onclick="GoToLearnerCertificates">View Certificate</button>
+								}
 							}
 						</div>
 					</section>
@@ -276,7 +294,7 @@ else
 
 				@if (_activeCheckpoint is not null)
 				{
-					<section class="module-checkpoint" aria-label="Module checkpoint quiz">
+					<section class="module-checkpoint" aria-label="Unit checkpoint quiz">
 						<h2>@_activeCheckpoint.Title</h2>
 						@if (!_showCheckpointResult)
 						{
@@ -414,6 +432,9 @@ else
 	private bool _checkpointCompletesCourse;
 	private string? _checkpointMessage;
 	private CourseAssessmentView? _finalAssessment;
+	private Guid? _activeAssessmentModuleId;
+	private Guid? _pendingAssessmentNextLessonId;
+	private bool _activeAssessmentIsUnit;
 	private readonly Dictionary<Guid, string> _finalAssessmentSelectedOptions = new();
 	private AssessmentEligibility? _finalAssessmentEligibility;
 	private bool _passedFinalAssessmentOnFirstAttempt;
@@ -525,6 +546,10 @@ else
 						return;
 					}
 					await EnforceProgressiveLessonAccessAsync();
+					if (await EnforcePreviousUnitAssessmentAccessAsync())
+					{
+						return;
+					}
 					await EvaluateFlowGatesOnLessonLoadAsync();
 				}
 			}
@@ -587,6 +612,10 @@ else
 				return;
 			}
 			await EnforceProgressiveLessonAccessAsync();
+			if (await EnforcePreviousUnitAssessmentAccessAsync())
+			{
+				return;
+			}
 			await EvaluateFlowGatesOnLessonLoadAsync();
 		}
 	}
@@ -1015,6 +1044,10 @@ else
 			{
 				return;
 			}
+			if (await TryBeginUnitAssessmentAsync(null))
+			{
+				return;
+			}
 
 			if (await TryBeginFinalAssessmentAsync())
 			{
@@ -1028,6 +1061,10 @@ else
 
 		var nextLesson = _orderedLessons[_currentLessonIndexInCourse + 1];
 		if (TryBeginEndOfModuleCheckpoint(nextLesson.Id))
+		{
+			return;
+		}
+		if (await TryBeginUnitAssessmentAsync(nextLesson.Id))
 		{
 			return;
 		}
@@ -1088,6 +1125,83 @@ else
 		return true;
 	}
 
+	private async Task<bool> TryBeginUnitAssessmentAsync(Guid? nextLessonId)
+	{
+		if (_course is null || _currentLesson is null)
+		{
+			return false;
+		}
+
+		var currentUnit = _orderedModules.FirstOrDefault(unit => unit.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
+		var unitLessons = currentUnit?.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
+		if (currentUnit is null || unitLessons is null || unitLessons.Count == 0
+			|| unitLessons[^1].Id != _currentLesson.Id
+			|| (_currentLessonPages.Count > 0 && _currentLessonPageIndex < _currentLessonPages.Count - 1))
+		{
+			return false;
+		}
+
+		var assessment = await AssessmentService.GetCourseAssessmentAsync(_course.Id, currentUnit.Id);
+		if (assessment is null)
+		{
+			return false;
+		}
+
+		var eligibility = _userId.HasValue
+			? await AssessmentService.GetEligibilityAsync(_course.Id, _userId.Value, currentUnit.Id)
+			: null;
+		if (eligibility?.HasPassed == true)
+		{
+			return false;
+		}
+
+		_finalAssessment = assessment;
+		_finalAssessmentEligibility = eligibility;
+		_activeAssessmentModuleId = currentUnit.Id;
+		_pendingAssessmentNextLessonId = nextLessonId;
+		_activeAssessmentIsUnit = true;
+		_showFinalAssessmentAnnouncement = true;
+		_isFinalAssessmentOpen = false;
+		_showFinalAssessmentResults = false;
+		_finalAssessmentSelectedOptions.Clear();
+		return true;
+	}
+
+	private async Task<bool> EnforcePreviousUnitAssessmentAccessAsync()
+	{
+		if (!_userId.HasValue || _course is null || _currentLesson is null || _currentModuleIndex <= 0)
+		{
+			return false;
+		}
+
+		for (var index = 0; index < _currentModuleIndex; index++)
+		{
+			var priorUnit = _orderedModules[index];
+			var assessment = await AssessmentService.GetCourseAssessmentAsync(_course.Id, priorUnit.Id);
+			if (assessment is null)
+			{
+				continue;
+			}
+
+			var eligibility = await AssessmentService.GetEligibilityAsync(_course.Id, _userId.Value, priorUnit.Id);
+			if (eligibility.HasPassed)
+			{
+				continue;
+			}
+
+			var lastLesson = priorUnit.Lessons.OrderBy(lesson => lesson.OrderIndex).LastOrDefault();
+			if (lastLesson is not null && _currentLesson.Id != lastLesson.Id)
+			{
+				_checkpointMessage = "Pass the required unit exam to continue.";
+				NavigationManager.NavigateTo(BuildLessonUri(lastLesson.Id));
+			}
+
+			return true;
+		}
+
+		return false;
+	}
+
 	private async Task<bool> TryBeginFinalAssessmentAsync(bool skipModuleCheckpointGate = false)
 	{
 		if (!skipModuleCheckpointGate && TryBeginEndOfModuleCheckpoint(null))
@@ -1095,6 +1209,9 @@ else
 			return true;
 		}
 
+		_activeAssessmentIsUnit = false;
+		_activeAssessmentModuleId = null;
+		_pendingAssessmentNextLessonId = null;
 		await RefreshFinalAssessmentStateAsync();
 
 		if (_finalAssessmentEligibility?.HasPassed == true)
@@ -1306,6 +1423,10 @@ else
 
 		if (pendingNextLessonId.HasValue)
 		{
+			if (await TryBeginUnitAssessmentAsync(pendingNextLessonId.Value))
+			{
+				return;
+			}
 			await PromoteUnlockByNextAsync(_orderedLessons.First(lesson => lesson.Id == pendingNextLessonId.Value));
 			NavigationManager.NavigateTo(BuildLessonUri(pendingNextLessonId.Value));
 			return;
@@ -1314,6 +1435,10 @@ else
 		if (completesCourseBoundary && completedCheckpointKey.StartsWith("module:", StringComparison.OrdinalIgnoreCase))
 		{
 			_checkpointMessage = null;
+			if (await TryBeginUnitAssessmentAsync(null))
+			{
+				return;
+			}
 			await TryBeginFinalAssessmentAsync(true);
 		}
 	}
@@ -1365,6 +1490,11 @@ else
 			// Keep session in-memory if local storage is temporarily unavailable.
 		}
 
+		if (await TryBeginUnitAssessmentAsync(null))
+		{
+			return;
+		}
+
 		if (IsAtFinalLessonBoundary() && await TryBeginFinalAssessmentAsync())
 		{
 			return;
@@ -1373,7 +1503,18 @@ else
 
 	private async Task BeginFinalAssessmentAsync()
 	{
-		await RefreshFinalAssessmentStateAsync();
+		if (_activeAssessmentIsUnit)
+		{
+			if (_userId.HasValue && _activeAssessmentModuleId.HasValue)
+			{
+				_finalAssessmentEligibility = await AssessmentService.GetEligibilityAsync(CourseId, _userId.Value, _activeAssessmentModuleId.Value);
+			}
+		}
+		else
+		{
+			await RefreshFinalAssessmentStateAsync();
+		}
+
 		if (_finalAssessment is null)
 		{
 			return;
@@ -1389,6 +1530,36 @@ else
 		_finalAssessmentPassed = false;
 		_finalAssessmentResultMessage = null;
 		_finalAssessmentSelectedOptions.Clear();
+	}
+
+	private Task RetakeUnitAssessmentAsync()
+	{
+		return _activeAssessmentIsUnit ? BeginFinalAssessmentAsync() : Task.CompletedTask;
+	}
+
+	private async Task ContinueAfterUnitAssessmentAsync()
+	{
+		if (!_activeAssessmentIsUnit || !_finalAssessmentPassed)
+		{
+			return;
+		}
+
+		var nextLessonId = _pendingAssessmentNextLessonId;
+		_showFinalAssessmentResults = false;
+		_finalAssessmentAnswerReview.Clear();
+		_finalAssessmentSelectedOptions.Clear();
+
+		if (nextLessonId.HasValue)
+		{
+			_activeAssessmentIsUnit = false;
+			_activeAssessmentModuleId = null;
+			_pendingAssessmentNextLessonId = null;
+			await PromoteUnlockByNextAsync(_orderedLessons.First(lesson => lesson.Id == nextLessonId.Value));
+			NavigationManager.NavigateTo(BuildLessonUri(nextLessonId.Value));
+			return;
+		}
+
+		await TryBeginFinalAssessmentAsync(skipModuleCheckpointGate: true);
 	}
 
 	private bool IsFinalAssessmentOptionSelected(Guid questionId, string option)
@@ -1418,7 +1589,7 @@ else
 		var totalQuestions = _finalAssessment.Questions.Count;
 		var currentAttemptNumber = Math.Max((_finalAssessmentEligibility?.AttemptsUsed ?? 0) + 1, 1);
 		var currentHintLevel = Math.Clamp(currentAttemptNumber, 1, 3);
-		var correctAnswers = await AssessmentService.GetCorrectAnswerMapAsync(CourseId);
+		var correctAnswers = await AssessmentService.GetCorrectAnswerMapAsync(CourseId, _activeAssessmentModuleId);
 		_checkpointMessage = null;
 		_finalAssessmentAnswerReview.Clear();
 		var correctCount = 0;
@@ -1449,8 +1620,8 @@ else
 		AssessmentAttemptSummary? attempt = null;
 		if (_userId.HasValue)
 		{
-			attempt = await AssessmentService.SubmitAttemptAsync(CourseId, _userId.Value, answers);
-			_finalAssessmentEligibility = await AssessmentService.GetEligibilityAsync(CourseId, _userId.Value);
+			attempt = await AssessmentService.SubmitAttemptAsync(CourseId, _userId.Value, answers, _activeAssessmentModuleId);
+			_finalAssessmentEligibility = await AssessmentService.GetEligibilityAsync(CourseId, _userId.Value, _activeAssessmentModuleId);
 			// Recalculate from persisted lesson progress so certificate issuance uses the current completion state.
 			await EnrollmentService.ReconcileCompletionAsync(_userId.Value, CourseId);
 			correctCount = attempt.CorrectAnswers;
@@ -1615,7 +1786,7 @@ else
 
 	private void GoToCourseOverview()
 	{
-		if (_finalAssessmentPassed)
+		if (_finalAssessmentPassed && !_activeAssessmentIsUnit)
 		{
 			NavigationManager.NavigateTo(BuildCourseOverviewUri("Successfully Completed"));
 			return;
@@ -1850,7 +2021,7 @@ else
 	{
 		if (_activeCheckpoint is null)
 		{
-			return "Review the checkpoint prompt and re-check each option against the same module or course context before retrying.";
+			return "Review the checkpoint prompt and re-check each option against the same unit or course context before retrying.";
 		}
 
 		var selectedKeys = _selectedCheckpointOptionKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -1867,7 +2038,7 @@ else
 
 		if (hintLevel == 1)
 		{
-			return "Re-check the checkpoint prompt and keep only options that directly match the module or course context.";
+			return "Re-check the checkpoint prompt and keep only options that directly match the unit or course context.";
 		}
 
 		if (hintLevel == 2 && selectedCount < requiredCount)

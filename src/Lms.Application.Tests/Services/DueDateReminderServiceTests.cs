@@ -15,7 +15,13 @@ public class DueDateReminderServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
-        var courses = await fixture.DbContext.Courses.OrderBy(course => course.Title).Take(2).ToListAsync();
+        var courses = new[]
+        {
+            new Course { Title = "Due Soon Reminder Test", Slug = "due-soon-reminder-test", Level = "Beginner", Description = "Test course", Price = 0m },
+            new Course { Title = "Overdue Reminder Test", Slug = "overdue-reminder-test", Level = "Beginner", Description = "Test course", Price = 0m }
+        };
+        fixture.DbContext.Courses.AddRange(courses);
+        await fixture.DbContext.SaveChangesAsync();
 
         var now = DateTime.UtcNow;
 

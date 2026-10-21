@@ -105,14 +105,16 @@ public sealed class SchoolProfileService : ISchoolProfileService
                     string.Equals(member.Name, "Milena", StringComparison.OrdinalIgnoreCase));
                 if (milena is null)
                 {
-                    profile.StaffMembers.Add(new SchoolStaffMember
+                    var newMilena = new SchoolStaffMember
                     {
                         SchoolProfileId = profile.Id,
                         Name = "Milena",
                         Role = SchoolStaffRoles.Instructor,
                         Title = "Instructor",
                         LicenseNumber = "FL-INSTRUCTOR-PLACEHOLDER"
-                    });
+                    };
+                    profile.StaffMembers.Add(newMilena);
+                    _dbContext.SchoolStaffMembers.Add(newMilena);
                     hasChanges = true;
                 }
                 else

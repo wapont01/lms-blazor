@@ -390,6 +390,15 @@ namespace Lms.Application.Data.Migrations
                     b.Property<DateTime?>("EnrollmentClosesAtUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Industry")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Tier")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsArchived")
                         .HasColumnType("INTEGER");
 
@@ -513,6 +522,9 @@ namespace Lms.Application.Data.Migrations
 
                     b.Property<int?>("MaxRetakesPerLearner")
                         .HasColumnType("INTEGER");
+
+                    b.Property<Guid?>("ModuleId")
+                        .HasColumnType("TEXT");
 
                     b.Property<decimal>("PassPercent")
                         .HasPrecision(5, 2)
@@ -1430,12 +1442,12 @@ namespace Lms.Application.Data.Migrations
                     b.Property<DateOnly?>("LicenseIssuedDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateOnly?>("LicenseRenewalDate")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("LicenseNumber")
                         .IsRequired()
                         .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly?>("LicenseRenewalDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LicenseStatus")
@@ -1474,6 +1486,10 @@ namespace Lms.Application.Data.Migrations
 
                     b.Property<string>("BrokerInChargeName")
                         .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ContactEmail")
+                        .HasMaxLength(254)
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("FirmId")
@@ -1515,13 +1531,13 @@ namespace Lms.Application.Data.Migrations
                     b.Property<bool>("EthicsAndAgencyOnly")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool?>("IsAdditionalLicenseRecord")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsBicEligible")
                         .HasColumnType("INTEGER");
 
                     b.Property<bool>("IsRestricted")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<bool?>("IsAdditionalLicenseRecord")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateOnly?>("LicenseIssuedDate")
@@ -1539,21 +1555,6 @@ namespace Lms.Application.Data.Migrations
                     b.Property<DateOnly?>("LicenseRenewalDate")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateOnly?>("OriginalLicenseDate")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RelatedLicenseName")
-                        .HasMaxLength(160)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RelatedLicenseNumber")
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RelatedLicenseType")
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("LicenseStatus")
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");
@@ -1567,8 +1568,23 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateOnly?>("OriginalLicenseDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("PostlicensingHours")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("RelatedLicenseName")
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelatedLicenseNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RelatedLicenseType")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
 
                     b.Property<Guid>("SnapshotId")
                         .HasColumnType("TEXT");
@@ -2006,8 +2022,10 @@ namespace Lms.Application.Data.Migrations
 
                     b.Property<string>("LicenseRenewalDueDateSource")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Unknown");
 
                     b.Property<string>("LicenseStatus")
                         .HasMaxLength(40)

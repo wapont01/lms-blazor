@@ -58,6 +58,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(course => course.Title).HasMaxLength(120).IsRequired();
             entity.Property(course => course.Level).HasMaxLength(40).IsRequired();
             entity.Property(course => course.State).HasMaxLength(100);
+            entity.Property(course => course.Tier).HasMaxLength(40);
             entity.Property(course => course.Price).HasPrecision(18, 2);
             entity.Property(course => course.ReviewStatus).HasMaxLength(30).IsRequired().HasDefaultValue(CourseReviewStatuses.Draft);
             entity.Property(course => course.ReviewNote).HasMaxLength(1000);
@@ -311,6 +312,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .WithMany(course => course.Assessments)
                 .HasForeignKey(assessment => assessment.CourseId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.Ignore(assessment => assessment.Module);
         });
 
         modelBuilder.Entity<AssessmentQuestion>(entity =>

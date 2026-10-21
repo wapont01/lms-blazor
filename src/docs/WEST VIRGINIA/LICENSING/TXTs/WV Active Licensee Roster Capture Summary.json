@@ -8,5 +8,15 @@
     {"licenseCategory":"Broker","sourceFile":"Broker Active.xlsx","sourceUrl":"https://rec.wv.gov/About/Documents/Active%20Rosters/Broker%20Active.xlsx","rows":846,"uniqueLicenseNumbers":815,"duplicateRelationshipRows":31}
   ],
   "totalRows":5170,
-  "note":"Rows include company affiliation relationships. Repeated license numbers are preserved because one licensee may be associated with multiple companies. Workbooks include names, license numbers, company numbers/names, branch identifiers, email, and company address fields. No LMS roster import has been performed."
+  "lmsImport":{
+    "parserVersion":"wv-active-licensee-rosters-v1",
+    "snapshotSourceUrl":"https://rec.wv.gov/About/Pages/Active-Licensee-Rosters.aspx",
+    "snapshotRetrievedAt":"2026-09-19T00:00:00Z",
+    "snapshotStatus":"Approved",
+    "licensees":5123,
+    "firmsIncludingBranches":906,
+    "licenseeFirmAffiliations":5170,
+    "renewalDatesImported":0
+  },
+  "note":"Rows include company affiliation relationships. Repeated license numbers are preserved because one licensee may be associated with multiple companies. Workbooks include names, license numbers, company numbers/names, branch identifiers, email, and company address fields. Same-number licenses appearing in both broker rosters are represented by one licensee with both categories recorded in LicenseType; the higher category is used as LicenseLevel. No roster renewal or issue dates are present, so those fields remain empty and campaign renewal dates continue to be policy-derived."
 }

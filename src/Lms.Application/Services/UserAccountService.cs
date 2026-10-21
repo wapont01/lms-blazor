@@ -40,6 +40,7 @@ public class UserAccountService : IUserAccountService
     private const int SaltSize = 16;
     private const int HashSize = 32;
     private const int PasswordExpiryDays = 90;
+    private const string LegacySeedEmailDomain = "lms.com";
     private const int MaxFailedLogins = 5;
     private static readonly TimeSpan LockoutDuration = TimeSpan.FromMinutes(15);
 
@@ -455,13 +456,13 @@ public class UserAccountService : IUserAccountService
         var seededNow = DateTime.UtcNow;
         var seededUsers = new[]
         {
-            new SeedUserDefinition("admin@lms.com", "Admin User", "Admin123!", "Admin"),
-            new SeedUserDefinition("jordan.lee@wlr.com", "Jordan M. Lee", "Instructor123!", "Instructor", "Jordan Morgan Lee", "NC-41001", State: "North Carolina", PhoneNumber: "704-555-0101", PermanentAddress: "4101 Park Road, Charlotte, NC 28209", LegacyEmail: "instructor@lms.com"),
-            new SeedUserDefinition("clara.aponte@wlr.com", "Clara M. Aponte", "Instructor234!", "Instructor", "Clara Maria Aponte", "NC-41002", State: "North Carolina", PhoneNumber: "704-555-0102", PermanentAddress: "2202 Providence Road, Charlotte, NC 28211", LegacyEmail: "instructor2@lms.com"),
-            new SeedUserDefinition("susan.malloy@wlr.com", "Susan (Jill) Malloy", "Instructor345!", "Instructor", "Susan Jill Malloy", "2277", State: "North Carolina", PhoneNumber: "704-555-0103", PermanentAddress: "3303 Selwyn Avenue, Charlotte, NC 28209", LegacyEmail: "instructor3@lms.com"),
-            new SeedUserDefinition("william.aponte@wlr.com", "William A. Aponte", "Instructor456!", "Instructor", "William Alfonso Aponte", "NC-41004", State: "North Carolina", PhoneNumber: "786-555-0104", PermanentAddress: "17214 Belmont Stakes Lane, Charlotte, NC 28278", LegacyEmail: "instructor4@lms.com"),
-            new SeedUserDefinition("william.broker@wlr.com", "William A. Aponte", "Broker123!", "Broker", "William Alfonso Aponte", State: "North Carolina", LicenseType: "B", LegacyEmail: "broker@lms.com"),
-            new SeedUserDefinition("clara.broker@wlr.com", "Clara M. Aponte", "Broker234!", "Broker", "Clara Maria Aponte", State: "North Carolina", LicenseType: "PB", LegacyEmail: "broker2@lms.com"),
+            new SeedUserDefinition("admin@wlr.com", "Admin User", "Admin123!", "Admin", LegacyEmailLocalPart: "admin"),
+            new SeedUserDefinition("jordan.lee@wlr.com", "Jordan M. Lee", "Instructor123!", "Instructor", "Jordan Morgan Lee", "NC-41001", State: "North Carolina", PhoneNumber: "704-555-0101", PermanentAddress: "4101 Park Road, Charlotte, NC 28209", LegacyEmailLocalPart: "instructor"),
+            new SeedUserDefinition("clara.aponte@wlr.com", "Clara M. Aponte", "Instructor234!", "Instructor", "Clara Maria Aponte", "NC-41002", State: "North Carolina", PhoneNumber: "704-555-0102", PermanentAddress: "2202 Providence Road, Charlotte, NC 28211", LegacyEmailLocalPart: "instructor2"),
+            new SeedUserDefinition("susan.malloy@wlr.com", "Susan (Jill) Malloy", "Instructor345!", "Instructor", "Susan Jill Malloy", "2277", State: "North Carolina", PhoneNumber: "704-555-0103", PermanentAddress: "3303 Selwyn Avenue, Charlotte, NC 28209", LegacyEmailLocalPart: "instructor3"),
+            new SeedUserDefinition("william.aponte@wlr.com", "William A. Aponte", "Instructor456!", "Instructor", "William Alfonso Aponte", "NC-41004", State: "North Carolina", PhoneNumber: "786-555-0104", PermanentAddress: "17214 Belmont Stakes Lane, Charlotte, NC 28278", LegacyEmailLocalPart: "instructor4"),
+            new SeedUserDefinition("william.broker@wlr.com", "William A. Aponte", "Broker123!", "Broker", "William Alfonso Aponte", State: "North Carolina", LicenseType: "B", LegacyEmailLocalPart: "broker"),
+            new SeedUserDefinition("clara.broker@wlr.com", "Clara M. Aponte", "Broker234!", "Broker", "Clara Maria Aponte", State: "North Carolina", LicenseType: "PB", LegacyEmailLocalPart: "broker2"),
             new SeedUserDefinition(
                 "william.learner@wlr.com",
                 "WILLIAM ALFONSO APONTE",
@@ -473,10 +474,10 @@ public class UserAccountService : IUserAccountService
                 State: "North Carolina",
                 PhoneNumber: "704-555-0121",
                 "17214 Belmont Stakes Lane, Charlotte, NC 28278",
-                "learner@lms.com",
-                true),
-            new SeedUserDefinition("maya.thompson@wlr.com", "Maya Thompson", "Learner234!", "Learner", "Maya Elise Thompson", "481205", "PB", State: "North Carolina", PhoneNumber: "704-555-0122", PermanentAddress: "811 East Boulevard, Charlotte, NC 28203", LegacyEmail: "learner2@lms.com"),
-            new SeedUserDefinition("ethan.brooks@wlr.com", "Ethan Brooks", "Learner345!", "Learner", "Ethan James Brooks", "517842", "PB", State: "North Carolina", PhoneNumber: "704-555-0123", PermanentAddress: "1420 Central Avenue, Charlotte, NC 28205", LegacyEmail: "learner3@lms.com"),
+                LegacyEmailLocalPart: "learner",
+                IsBicEligible: true),
+            new SeedUserDefinition("maya.thompson@wlr.com", "Maya Thompson", "Learner234!", "Learner", "Maya Elise Thompson", "481205", "PB", State: "North Carolina", PhoneNumber: "704-555-0122", PermanentAddress: "811 East Boulevard, Charlotte, NC 28203", LegacyEmailLocalPart: "learner2"),
+            new SeedUserDefinition("ethan.brooks@wlr.com", "Ethan Brooks", "Learner345!", "Learner", "Ethan James Brooks", "517842", "PB", State: "North Carolina", PhoneNumber: "704-555-0123", PermanentAddress: "1420 Central Avenue, Charlotte, NC 28205", LegacyEmailLocalPart: "learner3"),
             new SeedUserDefinition("sofia.martinez.fl@wlr.com", "Sofia Martinez", "FloridaLearner123!", "Learner", "Sofia Elena Martinez", "FL-DEMO-SL-001", "SL", State: "Florida", PhoneNumber: "305-555-0141", PermanentAddress: "1450 Brickell Avenue, Miami, FL 33131"),
             new SeedUserDefinition("noah.williams.fl@wlr.com", "Noah Williams", "FloridaLearner234!", "Learner", "Noah James Williams", "FL-DEMO-BL-002", "BL", State: "Florida", PhoneNumber: "407-555-0142", PermanentAddress: "820 Lake Eola Drive, Orlando, FL 32801"),
             new SeedUserDefinition("ava.johnson.fl@wlr.com", "Ava Johnson", "FloridaLearner345!", "Learner", "Ava Renee Johnson", "FL-DEMO-BK-003", "BK", State: "Florida", PhoneNumber: "813-555-0143", PermanentAddress: "100 North Tampa Street, Tampa, FL 33602"),
@@ -489,20 +490,23 @@ public class UserAccountService : IUserAccountService
 
         foreach (var seededUser in seededUsers)
         {
+            var legacyEmail = seededUser.LegacyEmailLocalPart is null
+                ? null
+                : $"{seededUser.LegacyEmailLocalPart}@{LegacySeedEmailDomain}";
             var existingUser = existingUsers.SingleOrDefault(user =>
                 string.Equals(user.Email, seededUser.Email, StringComparison.OrdinalIgnoreCase)
-                || (!string.IsNullOrWhiteSpace(seededUser.LegacyEmail)
-                    && string.Equals(user.Email, seededUser.LegacyEmail, StringComparison.OrdinalIgnoreCase)));
+                || (!string.IsNullOrWhiteSpace(legacyEmail)
+                    && string.Equals(user.Email, legacyEmail, StringComparison.OrdinalIgnoreCase)));
             if (existingUser is not null)
             {
+                if (legacyEmail is not null && string.Equals(existingUser.Email, legacyEmail, StringComparison.OrdinalIgnoreCase))
+                {
+                    existingUser.Email = seededUser.Email;
+                    hasChanges = true;
+                }
+
                 if (seededUser.Role == "Instructor")
                 {
-                    if (string.Equals(existingUser.Email, seededUser.LegacyEmail, StringComparison.OrdinalIgnoreCase))
-                    {
-                        existingUser.Email = seededUser.Email;
-                        hasChanges = true;
-                    }
-
                     if (existingUser.DisplayName.StartsWith("Instructor ", StringComparison.Ordinal))
                     {
                         existingUser.DisplayName = seededUser.DisplayName;
@@ -548,12 +552,6 @@ public class UserAccountService : IUserAccountService
 
                 if (seededUser.Role == "Broker")
                 {
-                    if (string.Equals(existingUser.Email, seededUser.LegacyEmail, StringComparison.OrdinalIgnoreCase))
-                    {
-                        existingUser.Email = seededUser.Email;
-                        hasChanges = true;
-                    }
-
                     if (existingUser.DisplayName.StartsWith("Broker ", StringComparison.Ordinal))
                     {
                         existingUser.DisplayName = seededUser.DisplayName;
@@ -575,12 +573,6 @@ public class UserAccountService : IUserAccountService
 
                 if (seededUser.Role == "Learner")
                 {
-                    if (string.Equals(existingUser.Email, seededUser.LegacyEmail, StringComparison.OrdinalIgnoreCase))
-                    {
-                        existingUser.Email = seededUser.Email;
-                        hasChanges = true;
-                    }
-
                     if (existingUser.DisplayName.StartsWith("Learner ", StringComparison.Ordinal))
                     {
                         existingUser.DisplayName = seededUser.DisplayName;
@@ -680,7 +672,7 @@ public class UserAccountService : IUserAccountService
         string? State = null,
         string? PhoneNumber = null,
         string? PermanentAddress = null,
-        string? LegacyEmail = null,
+        string? LegacyEmailLocalPart = null,
         bool IsBicEligible = false);
 
     private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

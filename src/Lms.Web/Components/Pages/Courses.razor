@@ -11,7 +11,17 @@
 <PageTitle>Courses</PageTitle>
 
 <div class="courses-container">
-    <h1>Available Courses</h1>
+    <h1>Enroll in Courses</h1>
+    <div class="industry-category-filter" role="group" aria-label="Filter by industry">
+        @foreach (var industry in CourseIndustries.All)
+        {
+            <button
+                type="button"
+                class="industry-category-button @(_industryFilter == industry ? "active" : string.Empty)"
+                aria-pressed="@(_industryFilter == industry)"
+                @onclick="() => FilterByIndustry(industry)">@industry</button>
+        }
+    </div>
 
     @if (_courses is null)
     {
@@ -25,32 +35,33 @@
         }
 
         <div class="courses-header">
-            <div class="search-bar">
-                <label for="course-search">Search courses</label>
-                <div class="search-input-wrap">
-                    <span aria-hidden="true">⌕</span>
-                    <input id="course-search" type="search" placeholder="Title, topic, state, or category" value="@_searchTerm" @oninput="FilterCourses" />
-                    @if (!string.IsNullOrWhiteSpace(_searchTerm))
-                    {
-                        <button type="button" class="clear-search-button" aria-label="Clear course search" @onclick="ClearSearch">×</button>
-                    }
-                </div>
-            </div>
             <div class="course-filter">
                 <label for="state-filter">State</label>
                 <select id="state-filter" value="@_stateFilter" @onchange="FilterByState">
                     <option value="All">All states</option>
-                    <option value="Florida">Florida</option>
-                    <option value="North Carolina">North Carolina</option>
+                    @foreach (var state in StateOptions)
+                    {
+                        <option value="@state.Value">@state.Label</option>
+                    }
                 </select>
             </div>
             <div class="course-filter">
-                <label for="category-filter">Category</label>
-                <select id="category-filter" value="@_categoryFilter" @onchange="FilterByCategory">
-                    <option value="All">All categories</option>
+                <label for="course-type-filter">Education Track</label>
+                <select id="course-type-filter" value="@_courseTypeFilter" @onchange="FilterByCourseType">
+                    <option value="All">All education tracks</option>
                     <option value="Prelicensing">Prelicensing</option>
                     <option value="Postlicensing">Postlicensing</option>
                     <option value="ContinuingEducation">Continuing education</option>
+                </select>
+            </div>
+            <div class="course-filter">
+                <label for="course-tier-filter">License Tier</label>
+                <select id="course-tier-filter" value="@_tierFilter" @onchange="FilterByTier">
+                    <option value="All">All license tiers</option>
+                    @foreach (var tier in CourseTiers.All)
+                    {
+                        <option value="@tier">@tier</option>
+                    }
                 </select>
             </div>
             <span class="course-result-count" role="status">@GetResultCountLabel()</span>
@@ -68,8 +79,13 @@
                         <h3>@course.Title</h3>
                     </div>
                     <div class="course-tags">
-                        <span class="course-state">@(string.IsNullOrWhiteSpace(course.State) ? "Real estate" : course.State)</span>
+                        <span class="course-industry">@GetIndustryLabel(course.Industry)</span>
+                        <span class="course-state">@(string.IsNullOrWhiteSpace(course.State) ? "State not set" : course.State)</span>
                         <span class="course-category">@GetCategoryLabel(course.ComplianceType)</span>
+                        @if (!string.IsNullOrWhiteSpace(course.Tier))
+                        {
+                            <span class="course-tier">@course.Tier</span>
+                        }
                     </div>
                     <p class="description">@course.Description</p>
                     <div class="course-details">
@@ -128,6 +144,24 @@
 </div>
 
 @code {
+    private static readonly (string Value, string Label)[] StateOptions =
+    [
+        ("Alabama", "Alabama"), ("Alaska", "Alaska"), ("Arizona", "Arizona"), ("Arkansas", "Arkansas"),
+        ("California", "California"), ("Colorado", "Colorado"), ("Connecticut", "Connecticut"), ("Delaware", "Delaware"),
+        ("Florida", "Florida"), ("Georgia", "Georgia"), ("Hawaii", "Hawaii"), ("Idaho", "Idaho"),
+        ("Illinois", "Illinois"), ("Indiana", "Indiana"), ("Iowa", "Iowa"), ("Kansas", "Kansas"),
+        ("Kentucky", "Kentucky"), ("Louisiana", "Louisiana"), ("Maine", "Maine"), ("Maryland", "Maryland"),
+        ("Massachusetts", "Massachusetts"), ("Michigan", "Michigan"), ("Minnesota", "Minnesota"), ("Mississippi", "Mississippi"),
+        ("Missouri", "Missouri"), ("Montana", "Montana"), ("Nebraska", "Nebraska"), ("Nevada", "Nevada"),
+        ("New Hampshire", "New Hampshire"), ("New Jersey", "New Jersey"), ("New Mexico", "New Mexico"), ("New York", "New York"),
+        ("North Carolina", "North Carolina"), ("North Dakota", "North Dakota"), ("Ohio", "Ohio"), ("Oklahoma", "Oklahoma"),
+        ("Oregon", "Oregon"), ("Pennsylvania", "Pennsylvania"), ("Rhode Island", "Rhode Island"), ("South Carolina", "South Carolina"),
+        ("South Dakota", "South Dakota"), ("Tennessee", "Tennessee"), ("Texas", "Texas"), ("Utah", "Utah"),
+        ("Vermont", "Vermont"), ("Virginia", "Virginia"), ("District of Columbia", "Washington, D.C."),
+        ("Washington", "Washington"), ("West Virginia", "West Virginia"), ("Wisconsin", "Wisconsin"),
+        ("Wyoming", "Wyoming"), ("Puerto Rico", "Puerto Rico")
+    ];
+
     private List<Lms.Domain.Entities.Course> _courses = new();
     private List<Lms.Domain.Entities.Course> _filteredCourses = new();
     private readonly HashSet<Guid> _enrolledCourseIds = new();
@@ -136,9 +170,10 @@
     private bool _canPurchase;
     private int _cartItemCount = 0;
     private string? _message;
-    private string _searchTerm = "";
     private string _stateFilter = "All";
-    private string _categoryFilter = "All";
+    private string _courseTypeFilter = "All";
+    private string _tierFilter = "All";
+    private string? _industryFilter;
 
     [SupplyParameterFromQuery(Name = "addToCart")]
     public Guid? AddToCartCourseId { get; set; }
@@ -217,61 +252,62 @@
         }
     }
 
-    private void FilterCourses(ChangeEventArgs e)
-    {
-        _searchTerm = e.Value?.ToString() ?? "";
-        ApplyFilters();
-    }
-
     private void FilterByState(ChangeEventArgs e)
     {
         _stateFilter = e.Value?.ToString() ?? "All";
         ApplyFilters();
     }
 
-    private void FilterByCategory(ChangeEventArgs e)
+    private void FilterByCourseType(ChangeEventArgs e)
     {
-        _categoryFilter = e.Value?.ToString() ?? "All";
+        _courseTypeFilter = e.Value?.ToString() ?? "All";
+        ApplyFilters();
+    }
+
+    private void FilterByTier(ChangeEventArgs e)
+    {
+        _tierFilter = e.Value?.ToString() ?? "All";
+        ApplyFilters();
+    }
+
+    private void FilterByIndustry(string industry)
+    {
+        _industryFilter = _industryFilter == industry ? null : industry;
         ApplyFilters();
     }
 
     private void ApplyFilters()
     {
-        var searchTerm = _searchTerm.Trim();
         _filteredCourses = _courses
             .Where(course => _stateFilter == "All"
                 || string.Equals(course.State, _stateFilter, StringComparison.OrdinalIgnoreCase))
-            .Where(course => _categoryFilter == "All"
-                || string.Equals(course.ComplianceType, _categoryFilter, StringComparison.OrdinalIgnoreCase))
-            .Where(course => string.IsNullOrWhiteSpace(searchTerm)
-                || course.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
-                || (course.Description?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-                || (course.State?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false)
-                || course.ComplianceType.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
-                || course.DeliveryMethod.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            .Where(course => _courseTypeFilter == "All"
+                || string.Equals(course.ComplianceType, _courseTypeFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(course => _tierFilter == "All"
+                || string.Equals(course.Tier, _tierFilter, StringComparison.OrdinalIgnoreCase))
+            .Where(course => _industryFilter is null
+                || string.Equals(course.Industry, _industryFilter, StringComparison.OrdinalIgnoreCase))
             .ToList();
-    }
-
-    private void ClearSearch()
-    {
-        _searchTerm = string.Empty;
-        ApplyFilters();
     }
 
     private void ClearFilters()
     {
-        _searchTerm = string.Empty;
         _stateFilter = "All";
-        _categoryFilter = "All";
+        _courseTypeFilter = "All";
+        _tierFilter = "All";
+        _industryFilter = null;
         ApplyFilters();
     }
 
     private static string GetCategoryLabel(string complianceType)
     {
         return string.IsNullOrWhiteSpace(complianceType)
-            ? "Real estate"
+            ? "Not selected"
             : CourseComplianceTypes.ToDisplayText(complianceType);
     }
+
+    private static string GetIndustryLabel(string industry) =>
+        string.IsNullOrWhiteSpace(industry) ? "Industry not set" : industry;
 
     private string GetResultCountLabel()
     {
@@ -327,7 +363,11 @@
     .courses-container {
         max-width: 1200px;
         margin: 0 auto;
-        padding: 2rem 1rem;
+        padding: 0 1rem 2rem;
+    }
+
+    .courses-container > h1 {
+        margin: 0 0 0.75rem;
     }
 
     .courses-header {
@@ -483,7 +523,8 @@
     }
 
     .course-state,
-    .course-category {
+    .course-category,
+    .course-tier {
         display: inline-flex;
         align-items: center;
         padding: 0.25rem 0.55rem;
@@ -500,6 +541,11 @@
     .course-category {
         background: #fff3bf;
         color: #7a5b00;
+    }
+
+    .course-tier {
+        background: #e0e7ff;
+        color: #3730a3;
     }
 
     .description {

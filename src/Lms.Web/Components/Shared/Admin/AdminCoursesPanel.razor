@@ -33,6 +33,25 @@
             <label>State</label>
             <InputText @bind-Value="Draft.State" />
         </div>
+        <div class="form-field">
+            <label>Industry</label>
+            <InputSelect @bind-Value="Draft.Industry">
+                @foreach (var industry in CourseIndustries.All)
+                {
+                    <option value="@industry">@industry</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="form-field">
+            <label>Tier</label>
+            <InputSelect @bind-Value="Draft.Tier">
+                <option value="">Not assigned</option>
+                @foreach (var tier in CourseTiers.All)
+                {
+                    <option value="@tier">@tier</option>
+                }
+            </InputSelect>
+        </div>
         <div class="form-row">
             <div class="form-field">
                 <label>Price</label>
@@ -63,6 +82,17 @@
         <p class="success-text">@CourseMessage</p>
     }
 
+    <div class="industry-category-filter admin-industry-filter" role="group" aria-label="Filter courses by industry">
+        @foreach (var industry in CourseIndustries.All)
+        {
+            <button
+                type="button"
+                class="industry-category-button @(_industryFilter == industry ? "active" : string.Empty)"
+                aria-pressed="@(_industryFilter == industry)"
+                @onclick="() => SetIndustryFilter(industry)">@industry</button>
+        }
+    </div>
+
     @if (Courses.Count == 0)
     {
         <p>No courses have been created yet.</p>
@@ -70,18 +100,38 @@
     else
     {
         <div class="course-list">
-            @foreach (var course in Courses)
+            @foreach (var course in FilteredCourses)
             {
                 <article class="course-item">
                     <div>
                         <h3>@course.Title</h3>
                         <p>@course.DurationHours hours | @course.Price.ToString("C")</p>
+                        <div class="course-tags">
+                            <span class="course-industry">@GetIndustryLabel(course.Industry)</span>
+                            <span class="course-state">@(string.IsNullOrWhiteSpace(course.State) ? "State not set" : course.State)</span>
+                            <span class="course-category">@GetCourseTypeLabel(course.ComplianceType)</span>
+                            @if (!string.IsNullOrWhiteSpace(course.Tier))
+                            {
+                                <span class="course-tier">@course.Tier</span>
+                            }
+                        </div>
                         <p>@course.Description</p>
                         <p>Status: @(course.IsArchived ? "Archived" : course.IsPublished ? "Published" : "Draft") | Review: @course.ReviewStatus</p>
                         @if (!string.IsNullOrWhiteSpace(course.ReviewNote))
                         {
                             <p class="muted-text">Note: @course.ReviewNote</p>
                         }
+                        <div class="course-price-editor">
+                            <label for="course-tier-@course.Id">Tier</label>
+                            <select id="course-tier-@course.Id" value="@GetCourseTierDraft(course)" @onchange="args => SetCourseTierDraft(course.Id, args.Value?.ToString())">
+                                <option value="">Not assigned</option>
+                                @foreach (var tier in CourseTiers.All)
+                                {
+                                    <option value="@tier">@tier</option>
+                                }
+                            </select>
+                            <button type="button" @onclick="() => SaveCourseTierAsync(course)">Save Tier</button>
+                        </div>
                         <div class="course-price-editor">
                             <label>Price (USD)</label>
                             <input
@@ -150,6 +200,9 @@
     public EventCallback<Course> OnSavePrice { get; set; }
 
     [Parameter]
+    public EventCallback<Course> OnSaveTier { get; set; }
+
+    [Parameter]
     public EventCallback<Course> OnApproveCourse { get; set; }
 
     [Parameter]
@@ -159,8 +212,26 @@
     public EventCallback<(Course Course, string Note)> OnRejectCourse { get; set; }
 
     private readonly Dictionary<Guid, string> _coursePriceDrafts = new();
+    private readonly Dictionary<Guid, string> _courseTierDrafts = new();
     private readonly Dictionary<Guid, string> _reviewNoteDrafts = new();
     private Guid? _courseIdAwaitingReviewNote;
+    private string? _industryFilter;
+    private IEnumerable<Course> FilteredCourses => _industryFilter is null
+        ? Courses
+        : Courses.Where(course => string.Equals(course.Industry, _industryFilter, StringComparison.OrdinalIgnoreCase));
+
+    private void SetIndustryFilter(string industry)
+    {
+        _industryFilter = _industryFilter == industry ? null : industry;
+    }
+
+    private static string GetIndustryLabel(string industry) =>
+        string.IsNullOrWhiteSpace(industry) ? "Industry not set" : industry;
+
+    private static string GetCourseTypeLabel(string complianceType) =>
+        string.IsNullOrWhiteSpace(complianceType)
+            ? "Not selected"
+            : CourseComplianceTypes.ToDisplayText(complianceType);
 
     private void BeginReviewNote(Guid courseId)
     {
@@ -193,6 +264,22 @@
         }
 
         _coursePriceDrafts[courseId] = rawValue;
+    }
+
+    private string GetCourseTierDraft(Course course) =>
+        _courseTierDrafts.TryGetValue(course.Id, out var value) ? value : course.Tier ?? string.Empty;
+
+    private void SetCourseTierDraft(Guid courseId, string? value)
+    {
+        _courseTierDrafts[courseId] = value ?? string.Empty;
+    }
+
+    private async Task SaveCourseTierAsync(Course course)
+    {
+        course.Tier = string.IsNullOrWhiteSpace(GetCourseTierDraft(course))
+            ? null
+            : GetCourseTierDraft(course);
+        await OnSaveTier.InvokeAsync(course);
     }
 
     private async Task SaveCoursePriceAsync(Course course)
