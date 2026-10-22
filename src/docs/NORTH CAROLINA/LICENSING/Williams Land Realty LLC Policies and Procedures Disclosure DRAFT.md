@@ -38,7 +38,7 @@ WILLIAMS LAND REALTY LLC does not currently offer a Broker Postlicensing course 
 
 ### Course Description
 
-The Broker Prelicensing Course consists of 75 instructional hours, including the end-of-course examination. Major topics include real estate concepts and law, property taxation, land-use controls, environmental hazards, brokerage relationships and practices, contracts, financing, closing, valuation, insurance, fair housing, landlord and tenant, property management, federal income taxation, construction, investment, North Carolina Real Estate License Law and Commission Rules, Trust Account Guidelines, and real estate mathematics.
+The Broker Prelicensing Course consists of 75 instructional hours, including the end-of-course exam. Major topics include real estate concepts and law, property taxation, land-use controls, environmental hazards, brokerage relationships and practices, contracts, financing, closing, valuation, insurance, fair housing, landlord and tenant, property management, federal income taxation, construction, investment, North Carolina Real Estate License Law and Commission Rules, Trust Account Guidelines, and real estate mathematics.
 
 **Course title:** NC Real Estate 75-Hour Pre-Licensing Broker
 **Commission course number:** [REQUIRED BEFORE PUBLICATION]
@@ -49,24 +49,24 @@ The Broker Prelicensing Course consists of 75 instructional hours, including the
 
 ### Course Materials
 
-Students receive required lessons, assignments, assessments, and provider-supplied references through the learning management system. Students must also have access to the current North Carolina Real Estate License Law and Commission Rules booklet. Any other mandatory material and its cost will be identified in the course listing before enrollment.
+Students receive required lessons, assignments, unit exams, and provider-supplied references through the learning management system. Students must also have access to the current North Carolina Real Estate License Law and Commission Rules booklet. Any other mandatory material and its cost will be identified in the course listing before enrollment.
 
 ### End-of-Course Exam
 
-The distance-education end-of-course examination is administered electronically after the student completes all required units and assessments. The examination is closed book and uses identity verification and proctoring or other security measures. Scheduling instructions and the expected time needed to arrange the examination will be provided before the student becomes eligible to test.
+The distance-education end-of-course exam is administered electronically after the student completes all required units and unit exams. The exam is closed book and uses identity verification and proctoring or other security measures. Scheduling instructions and the expected time needed to arrange the exam will be provided before the student becomes eligible to test.
 
-Students may not use textbooks, notes, websites, messaging tools, or unauthorized electronic devices during an examination. The computer used to access the secured examination and a basic calculator, when authorized, are permitted.
+Students may not use textbooks, notes, websites, messaging tools, or unauthorized electronic devices during an exam. The computer used to access the secured exam and a basic calculator, when authorized, are permitted.
 
 **Proctoring method or service:** [REQUIRED BEFORE PUBLICATION]
 **Student proctoring fee:** $0.00; included in the all-inclusive tuition unless a different amount is disclosed before enrollment.
 
 ### Missed Exam
 
-A student who does not take the initially scheduled examination may reschedule it. The student must attempt and pass the examination within 180 days of enrollment. Rescheduling does not extend the original completion period.
+A student who does not take the initially scheduled exam may reschedule it. The student must attempt and pass the exam within 180 days of enrollment. Rescheduling does not extend the original completion period.
 
 ### Failed Exam
 
-A student who takes but does not pass the initial Broker Prelicensing end-of-course examination may retake the examination **one time**. The retake must be attempted and passed within 180 days of enrollment.
+A student who takes but does not pass the initial Broker Prelicensing end-of-course exam may retake the exam **one time**. The retake must be attempted and passed within 180 days of enrollment.
 
 The one-retake limit is a policy adopted by WILLIAMS LAND REALTY LLC. It is not represented as a Commission-mandated retake count and is separate from Commission rules governing the North Carolina license examination.
 
@@ -74,9 +74,9 @@ The one-retake limit is a policy adopted by WILLIAMS LAND REALTY LLC. It is not 
 
 To successfully complete the Broker Prelicensing Course and receive a course completion certificate, a student must:
 
-1. complete all required units and assessments;
+1. complete all required units and unit exams;
 2. timely submit all required assignments;
-3. pass the proctored, closed-book end-of-course examination with a minimum score of 75 percent; and
+3. pass the proctored, closed-book end-of-course exam with a minimum score of 75 percent; and
 4. complete all requirements within 180 days of enrollment.
 
 ### Annual Summary Report
@@ -89,9 +89,9 @@ No License Examination Performance Record has yet been published by the North Ca
 
 ## Broker Postlicensing Courses
 
-WILLIAMS LAND REALTY LLC does not currently offer Broker Postlicensing courses. If the Provider obtains approval and begins offering Postlicensing courses, this disclosure will be revised with the applicable course descriptions, materials, delivery methods, examination details, and tuition before enrollment is accepted.
+WILLIAMS LAND REALTY LLC does not currently offer Broker Postlicensing courses. If the Provider obtains approval and begins offering Postlicensing courses, this disclosure will be revised with the applicable course descriptions, materials, delivery methods, exam details, and tuition before enrollment is accepted.
 
-The Provider's retained final-examination policy is that a Postlicensing student may retake an unsuccessful end-of-course examination **without a provider-imposed numerical limit**, provided every attempt occurs within the applicable 180-day course completion period. This is a provider policy, not a Commission-mandated retake count.
+The Provider's retained final-exam policy is that a Postlicensing student may retake an unsuccessful end-of-course exam **without a provider-imposed numerical limit**, provided every attempt occurs within the applicable 180-day course completion period. This is a provider policy, not a Commission-mandated retake count.
 
 ## Broker Continuing Education Program
 
@@ -121,7 +121,7 @@ Per Commission Rule 58A .1705, to receive credit for an approved Continuing Educ
 
 A distance-education Continuing Education course must be completed within 30 days of registration or the date the student is provided the course materials and permitted to begin work, whichever is later.
 
-Continuing Education Elective completion does not use the Provider's Prelicensing or Postlicensing final-examination retake policies.
+Continuing Education Elective completion does not use the Provider's Prelicensing or Postlicensing final-exam retake policies.
 
 ## General Information
 
@@ -135,25 +135,25 @@ Prospective students enroll through the Provider's online catalog and checkout. 
 - A student in an in-person or synchronous Broker Postlicensing Course must attend at least 90 percent of all scheduled instructional hours.
 - Early departures from Continuing Education courses delivered in person or by synchronous distance learning are prohibited by Rule 58A .1705.
 - Attendance, late arrivals, early departures, scheduled breaks, and online participation are monitored and recorded.
-- For distance education, attendance and progress are demonstrated by personal completion of required lessons, assignments, checkpoints, and assessments. Merely signing in or leaving a browser open does not establish attendance.
+- For distance education, attendance and progress are demonstrated by personal completion of required lessons, assignments, and exams. Merely signing in or leaving a browser open does not establish attendance.
 
 ### Technology Requirements for Online Courses
 
-Students need a supported desktop or laptop computer, a current browser with JavaScript and cookies enabled, reliable broadband internet, a valid email account, and the ability to open PDF documents. A working webcam, microphone, speakers, and a private well-lit location are required when identity verification, synchronous instruction, or proctoring applies. Phones and tablets may not support all course or examination functions.
+Students need a supported desktop or laptop computer, a current browser with JavaScript and cookies enabled, reliable broadband internet, a valid email account, and the ability to open PDF documents. A working webcam, microphone, speakers, and a private well-lit location are required when identity verification, synchronous instruction, or proctoring applies. Phones and tablets may not support all course or exam functions.
 
 **Technical and administrative support email:** wapont01@hotmail.com
 **Support telephone:** 704-914-5824
 **Support hours by day:**
 
-- Monday-Friday: 7:00 AM-9:00 PM ET, with extended technical and examination support often available until 10:00 PM ET.
-- Saturday: 9:00 AM-4:30 PM ET, with extended technical and examination support often available until 7:00 PM ET.
-- Sunday: Limited or scheduled examination-proctoring support is available until 7:00 PM ET. General telephone support queues are otherwise closed.
+- Monday-Friday: 7:00 AM-9:00 PM ET, with extended technical and exam support often available until 10:00 PM ET.
+- Saturday: 9:00 AM-4:30 PM ET, with extended technical and exam support often available until 7:00 PM ET.
+- Sunday: Limited or scheduled exam-proctoring support is available until 7:00 PM ET. General telephone support queues are otherwise closed.
 
 **Response target:** [REQUIRED BEFORE PUBLICATION]
 
 ### Student Conduct
 
-Students must communicate respectfully, protect account credentials, personally perform all required work, follow instructor and proctor directions, and avoid conduct that disrupts instruction or compromises safety or security. Impersonation, account sharing, falsifying records, harassment, unauthorized recording, bypassing course controls, and distributing secured assessment content are prohibited and may result in dismissal.
+Students must communicate respectfully, protect account credentials, personally perform all required work, follow instructor and proctor directions, and avoid conduct that disrupts instruction or compromises safety or security. Impersonation, account sharing, falsifying records, harassment, unauthorized recording, bypassing course controls, and distributing secured exam content are prohibited and may result in dismissal.
 
 ### Cheating
 

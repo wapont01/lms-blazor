@@ -11,14 +11,14 @@ public interface ICourseService
     Task<Course?> GetByIdAsync(Guid id);
     Task<Course> CreateAsync(Course course);
     Task UpdateAsync(Course course);
-    Task<Module> AddModuleAsync(Guid courseId, Module module);
-    Task UpdateModuleAsync(Module module);
-    Task<Lesson> AddLessonAsync(Guid moduleId, Lesson lesson);
+    Task<Unit> AddUnitAsync(Guid courseId, Unit unit);
+    Task UpdateUnitAsync(Unit unit);
+    Task<Lesson> AddLessonAsync(Guid unitId, Lesson lesson);
     Task UpdateLessonAsync(Lesson lesson);
     Task ImportCourseStructureAsync(Guid courseId, string importText);
-    Task<List<CourseCheckpointDefinition>> GetCheckpointDefinitionsForEditingAsync(Guid courseId);
-    Task<CourseCheckpointDefinition> SaveCheckpointDefinitionAsync(CheckpointDefinitionEditorModel editor);
-    Task DeleteCheckpointDefinitionAsync(Guid checkpointDefinitionId);
+    Task<List<CourseUnitExamDefinition>> GetUnitExamDefinitionsForEditingAsync(Guid courseId);
+    Task<CourseUnitExamDefinition> SaveUnitExamDefinitionAsync(UnitExamDefinitionEditorModel editor);
+    Task DeleteUnitExamDefinitionAsync(Guid unitExamDefinitionId);
     Task<List<Course>> GetCoursesForInstructorAsync(Guid instructorId);
     Task<bool> SubmitForReviewAsync(Guid courseId, Guid instructorId);
     Task<bool> ApproveCourseAsync(Guid courseId, Guid adminUserId);
@@ -26,19 +26,19 @@ public interface ICourseService
     Task<bool> RejectCourseAsync(Guid courseId, Guid adminUserId, string note);
 }
 
-public sealed class CheckpointDefinitionEditorModel
+public sealed class UnitExamDefinitionEditorModel
 {
     public Guid? Id { get; set; }
     public Guid CourseId { get; set; }
-    public Guid? ModuleId { get; set; }
+    public Guid? UnitId { get; set; }
     public bool IsFinal { get; set; }
-    public string Title { get; set; } = "Checkpoint";
+    public string Title { get; set; } = "Unit Exam";
     public string Prompt { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public List<CheckpointOptionEditorItem> Options { get; set; } = new();
+    public List<UnitExamOptionEditorItem> Options { get; set; } = new();
 }
 
-public sealed class CheckpointOptionEditorItem
+public sealed class UnitExamOptionEditorItem
 {
     public Guid? Id { get; set; }
     public string Label { get; set; } = string.Empty;
@@ -47,14 +47,14 @@ public sealed class CheckpointOptionEditorItem
 
 public class CourseService : ICourseService
 {
-    private const string GettingStartedModuleTitle = "Getting Started";
+    private const string GettingStartedUnitTitle = "Getting Started";
     private const string WelcomeLessonTitle = "Welcome";
     private const string WelcomeLessonText = """
         Welcome!
 
-        This course is organized into modules that contain lessons.
+        This course is organized into units that contain lessons.
 
-        Use the course menu to your right to jump directly into modules and lessons,
+        Use the course menu to your right to jump directly into units and lessons,
 
         or use the arrow buttons for step-by-step progression.
         """;
@@ -80,8 +80,8 @@ public class CourseService : ICourseService
     {
         return await _dbContext.Courses
             .AsNoTracking()
-            .Include(course => course.Modules)
-                .ThenInclude(module => module.Lessons)
+            .Include(course => course.Units)
+                .ThenInclude(unit => unit.Lessons)
             .OrderBy(c => c.Title)
             .ToListAsync();
     }
@@ -90,8 +90,8 @@ public class CourseService : ICourseService
     {
         return await _dbContext.Courses
             .AsNoTracking()
-            .Include(course => course.Modules)
-                .ThenInclude(module => module.Lessons)
+            .Include(course => course.Units)
+                .ThenInclude(unit => unit.Lessons)
             .FirstOrDefaultAsync(course => course.Id == id);
     }
 
@@ -125,8 +125,8 @@ public class CourseService : ICourseService
     {
         return await _dbContext.Courses
             .AsNoTracking()
-            .Include(course => course.Modules)
-                .ThenInclude(module => module.Lessons)
+            .Include(course => course.Units)
+                .ThenInclude(unit => unit.Lessons)
             .Where(course => course.OwnerInstructorId == instructorId)
             .OrderBy(course => course.Title)
             .ToListAsync();
@@ -187,8 +187,8 @@ public class CourseService : ICourseService
     private Task<Course?> GetCourseForPublishingAsync(Guid courseId)
     {
         return _dbContext.Courses
-            .Include(course => course.Modules)
-                .ThenInclude(module => module.Lessons)
+            .Include(course => course.Units)
+                .ThenInclude(unit => unit.Lessons)
             .FirstOrDefaultAsync(course => course.Id == courseId);
     }
 
@@ -230,43 +230,43 @@ public class CourseService : ICourseService
         return true;
     }
 
-    public async Task<Module> AddModuleAsync(Guid courseId, Module module)
+    public async Task<Unit> AddUnitAsync(Guid courseId, Unit unit)
     {
-        var nextOrderIndex = await _dbContext.Modules
+        var nextOrderIndex = await _dbContext.Units
             .Where(existing => existing.CourseId == courseId)
             .Select(existing => (int?)existing.OrderIndex)
             .MaxAsync() ?? 0;
 
-        module.CourseId = courseId;
-        module.OrderIndex = nextOrderIndex + 1;
+        unit.CourseId = courseId;
+        unit.OrderIndex = nextOrderIndex + 1;
 
-        _dbContext.Modules.Add(module);
+        _dbContext.Units.Add(unit);
         await _dbContext.SaveChangesAsync();
 
         await EnsureCourseIntroStructureAsync(courseId);
-        return module;
+        return unit;
     }
 
-    public async Task UpdateModuleAsync(Module module)
+    public async Task UpdateUnitAsync(Unit unit)
     {
-        var existingModule = await _dbContext.Modules.FirstOrDefaultAsync(existing => existing.Id == module.Id);
-        if (existingModule is null)
+        var existingUnit = await _dbContext.Units.FirstOrDefaultAsync(existing => existing.Id == unit.Id);
+        if (existingUnit is null)
         {
             return;
         }
 
-        _dbContext.Entry(existingModule).CurrentValues.SetValues(module);
+        _dbContext.Entry(existingUnit).CurrentValues.SetValues(unit);
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task<Lesson> AddLessonAsync(Guid moduleId, Lesson lesson)
+    public async Task<Lesson> AddLessonAsync(Guid unitId, Lesson lesson)
     {
         var nextOrderIndex = await _dbContext.Lessons
-            .Where(existing => existing.ModuleId == moduleId)
+            .Where(existing => existing.UnitId == unitId)
             .Select(existing => (int?)existing.OrderIndex)
             .MaxAsync() ?? 0;
 
-        lesson.ModuleId = moduleId;
+        lesson.UnitId = unitId;
         lesson.OrderIndex = nextOrderIndex + 1;
 
         _dbContext.Lessons.Add(lesson);
@@ -294,8 +294,8 @@ public class CourseService : ICourseService
         }
 
         var course = await _dbContext.Courses
-            .Include(course => course.Modules)
-                .ThenInclude(module => module.Lessons)
+            .Include(course => course.Units)
+                .ThenInclude(unit => unit.Lessons)
             .FirstOrDefaultAsync(course => course.Id == courseId);
 
         if (course is null)
@@ -304,54 +304,54 @@ public class CourseService : ICourseService
         }
 
         var parsedImport = ParseImportText(importText);
-        if (parsedImport.Modules.Count == 0 && parsedImport.Assessments.Count == 0 && parsedImport.Checkpoints.Count == 0)
+        if (parsedImport.Units.Count == 0 && parsedImport.Exams.Count == 0 && parsedImport.UnitExams.Count == 0)
         {
             return;
         }
 
-        foreach (var module in course.Modules.ToList())
+        foreach (var unit in course.Units.ToList())
         {
-            _dbContext.Modules.Remove(module);
+            _dbContext.Units.Remove(unit);
         }
 
-        var existingAssessments = await _dbContext.CourseAssessments
-            .Where(assessment => assessment.CourseId == courseId)
+        var existingExams = await _dbContext.CourseExams
+            .Where(exam => exam.CourseId == courseId)
             .ToListAsync();
-        if (existingAssessments.Count > 0)
+        if (existingExams.Count > 0)
         {
-            _dbContext.CourseAssessments.RemoveRange(existingAssessments);
+            _dbContext.CourseExams.RemoveRange(existingExams);
         }
 
-        var existingCheckpointDefinitions = await _dbContext.CourseCheckpointDefinitions
+        var existingUnitExamDefinitions = await _dbContext.CourseUnitExamDefinitions
             .Where(definition => definition.CourseId == courseId)
             .ToListAsync();
-        if (existingCheckpointDefinitions.Count > 0)
+        if (existingUnitExamDefinitions.Count > 0)
         {
-            _dbContext.CourseCheckpointDefinitions.RemoveRange(existingCheckpointDefinitions);
+            _dbContext.CourseUnitExamDefinitions.RemoveRange(existingUnitExamDefinitions);
         }
 
         await _dbContext.SaveChangesAsync();
 
-        var createdModules = new List<Module>();
-        foreach (var parsedModule in parsedImport.Modules)
+        var createdUnits = new List<Unit>();
+        foreach (var parsedUnit in parsedImport.Units)
         {
-            var moduleEntity = new Module
+            var unitEntity = new Unit
             {
                 CourseId = courseId,
-                Title = parsedModule.Title,
-                OrderIndex = parsedModule.OrderIndex
+                Title = parsedUnit.Title,
+                OrderIndex = parsedUnit.OrderIndex
             };
 
-            _dbContext.Modules.Add(moduleEntity);
+            _dbContext.Units.Add(unitEntity);
             await _dbContext.SaveChangesAsync();
 
-            createdModules.Add(moduleEntity);
+            createdUnits.Add(unitEntity);
 
-            foreach (var parsedLesson in parsedModule.Lessons)
+            foreach (var parsedLesson in parsedUnit.Lessons)
             {
                 _dbContext.Lessons.Add(new Lesson
                 {
-                    ModuleId = moduleEntity.Id,
+                    UnitId = unitEntity.Id,
                     Title = parsedLesson.Title,
                     TextContent = parsedLesson.TextContent,
                     DurationMinutes = parsedLesson.DurationMinutes,
@@ -362,33 +362,33 @@ public class CourseService : ICourseService
             }
         }
 
-        if (parsedImport.Checkpoints.Count > 0)
+        if (parsedImport.UnitExams.Count > 0)
         {
-            foreach (var parsedCheckpoint in parsedImport.Checkpoints)
+            foreach (var parsedUnitExam in parsedImport.UnitExams)
             {
-                var moduleId = parsedCheckpoint.ModuleTitle is null
+                var unitId = parsedUnitExam.UnitTitle is null
                     ? null
-                    : createdModules.FirstOrDefault(module => string.Equals(module.Title, parsedCheckpoint.ModuleTitle, StringComparison.OrdinalIgnoreCase))?.Id;
+                    : createdUnits.FirstOrDefault(unit => string.Equals(unit.Title, parsedUnitExam.UnitTitle, StringComparison.OrdinalIgnoreCase))?.Id;
 
-                var definitionEntity = new CourseCheckpointDefinition
+                var definitionEntity = new CourseUnitExamDefinition
                 {
                     CourseId = courseId,
-                    Key = parsedCheckpoint.IsFinal ? ModuleCheckpointService.FinalCheckpointKey : (moduleId is null ? ToCheckpointKey(parsedCheckpoint.Title) : ModuleCheckpointService.BuildModuleCheckpointKey(moduleId.Value)),
-                    Title = parsedCheckpoint.Title,
-                    Prompt = parsedCheckpoint.Prompt,
-                    Description = parsedCheckpoint.Description,
-                    ModuleId = moduleId,
-                    IsFinal = parsedCheckpoint.IsFinal
+                    Key = parsedUnitExam.IsFinal ? UnitExamService.FinalUnitExamKey : (unitId is null ? ToUnitExamKey(parsedUnitExam.Title) : UnitExamService.BuildUnitExamKey(unitId.Value)),
+                    Title = parsedUnitExam.Title,
+                    Prompt = parsedUnitExam.Prompt,
+                    Description = parsedUnitExam.Description,
+                    UnitId = unitId,
+                    IsFinal = parsedUnitExam.IsFinal
                 };
 
-                _dbContext.CourseCheckpointDefinitions.Add(definitionEntity);
+                _dbContext.CourseUnitExamDefinitions.Add(definitionEntity);
 
-                for (var index = 0; index < parsedCheckpoint.Options.Count; index++)
+                for (var index = 0; index < parsedUnitExam.Options.Count; index++)
                 {
-                    var option = parsedCheckpoint.Options[index];
-                    definitionEntity.Options.Add(new CourseCheckpointOption
+                    var option = parsedUnitExam.Options[index];
+                    definitionEntity.Options.Add(new CourseUnitExamOption
                     {
-                        Key = string.IsNullOrWhiteSpace(option.Key) ? ToCheckpointOptionKey(option.Label, index) : option.Key,
+                        Key = string.IsNullOrWhiteSpace(option.Key) ? ToUnitExamOptionKey(option.Label, index) : option.Key,
                         Label = option.Label,
                         IsCorrect = option.IsCorrect,
                         OrderIndex = index + 1
@@ -397,31 +397,31 @@ public class CourseService : ICourseService
             }
         }
 
-        foreach (var parsedAssessment in parsedImport.Assessments)
+        foreach (var parsedExam in parsedImport.Exams)
         {
-            var module = parsedAssessment.ModuleTitle is null
+            var unit = parsedExam.UnitTitle is null
                 ? null
-                : createdModules.FirstOrDefault(candidate => string.Equals(candidate.Title, parsedAssessment.ModuleTitle, StringComparison.OrdinalIgnoreCase));
+                : createdUnits.FirstOrDefault(candidate => string.Equals(candidate.Title, parsedExam.UnitTitle, StringComparison.OrdinalIgnoreCase));
 
-            if (parsedAssessment.ModuleTitle is not null && module is null)
+            if (parsedExam.UnitTitle is not null && unit is null)
             {
-                throw new InvalidOperationException($"Assessment '{parsedAssessment.Title}' references unknown unit '{parsedAssessment.ModuleTitle}'.");
+                throw new InvalidOperationException($"Exam '{parsedExam.Title}' references unknown unit '{parsedExam.UnitTitle}'.");
             }
 
-            var assessmentEntity = new CourseAssessment
+            var examEntity = new CourseExam
             {
                 CourseId = courseId,
-                ModuleId = module?.Id,
-                Title = parsedAssessment.Title,
-                PassPercent = parsedAssessment.PassPercent,
+                UnitId = unit?.Id,
+                Title = parsedExam.Title,
+                PassPercent = parsedExam.PassPercent,
                 IsRequired = true
             };
 
-            _dbContext.CourseAssessments.Add(assessmentEntity);
+            _dbContext.CourseExams.Add(examEntity);
 
-            foreach (var parsedQuestion in parsedAssessment.Questions)
+            foreach (var parsedQuestion in parsedExam.Questions)
             {
-                assessmentEntity.Questions.Add(new AssessmentQuestion
+                examEntity.Questions.Add(new ExamQuestion
                 {
                     Prompt = parsedQuestion.Prompt,
                     OptionA = parsedQuestion.OptionA,
@@ -438,42 +438,42 @@ public class CourseService : ICourseService
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task<List<CourseCheckpointDefinition>> GetCheckpointDefinitionsForEditingAsync(Guid courseId)
+    public async Task<List<CourseUnitExamDefinition>> GetUnitExamDefinitionsForEditingAsync(Guid courseId)
     {
-        return await _dbContext.CourseCheckpointDefinitions
+        return await _dbContext.CourseUnitExamDefinitions
             .AsNoTracking()
             .Include(definition => definition.Options)
             .Where(definition => definition.CourseId == courseId)
-            .OrderBy(definition => definition.ModuleId == null ? 1 : 0)
+            .OrderBy(definition => definition.UnitId == null ? 1 : 0)
             .ThenBy(definition => definition.Title)
             .ToListAsync();
     }
 
-    public async Task<CourseCheckpointDefinition> SaveCheckpointDefinitionAsync(CheckpointDefinitionEditorModel editor)
+    public async Task<CourseUnitExamDefinition> SaveUnitExamDefinitionAsync(UnitExamDefinitionEditorModel editor)
     {
         var entity = editor.Id.HasValue
-            ? await _dbContext.CourseCheckpointDefinitions
+            ? await _dbContext.CourseUnitExamDefinitions
                 .Include(definition => definition.Options)
                 .FirstOrDefaultAsync(definition => definition.Id == editor.Id.Value)
             : null;
 
         if (entity is null)
         {
-            entity = new CourseCheckpointDefinition
+            entity = new CourseUnitExamDefinition
             {
                 CourseId = editor.CourseId
             };
-            _dbContext.CourseCheckpointDefinitions.Add(entity);
+            _dbContext.CourseUnitExamDefinitions.Add(entity);
         }
 
         entity.Title = editor.Title.Trim();
         entity.Prompt = editor.Prompt.Trim();
         entity.Description = editor.Description?.Trim() ?? string.Empty;
         entity.IsFinal = editor.IsFinal;
-        entity.ModuleId = editor.IsFinal ? null : editor.ModuleId;
+        entity.UnitId = editor.IsFinal ? null : editor.UnitId;
         entity.Key = editor.IsFinal
-            ? ModuleCheckpointService.FinalCheckpointKey
-            : (entity.ModuleId is null ? ToCheckpointKey(entity.Title) : ModuleCheckpointService.BuildModuleCheckpointKey(entity.ModuleId.Value));
+            ? UnitExamService.FinalUnitExamKey
+            : (entity.UnitId is null ? ToUnitExamKey(entity.Title) : UnitExamService.BuildUnitExamKey(entity.UnitId.Value));
 
         var keepOptionIds = new HashSet<Guid>();
         for (var index = 0; index < editor.Options.Count; index++)
@@ -485,7 +485,7 @@ public class CourseService : ICourseService
 
             if (optionEntity is null)
             {
-                optionEntity = new CourseCheckpointOption();
+                optionEntity = new CourseUnitExamOption();
                 entity.Options.Add(optionEntity);
             }
 
@@ -494,7 +494,7 @@ public class CourseService : ICourseService
             optionEntity.OrderIndex = index + 1;
             if (string.IsNullOrWhiteSpace(optionEntity.Key))
             {
-                optionEntity.Key = ToCheckpointOptionKey(optionEntity.Label, index);
+                optionEntity.Key = ToUnitExamOptionKey(optionEntity.Label, index);
             }
 
             keepOptionIds.Add(optionEntity.Id);
@@ -503,33 +503,33 @@ public class CourseService : ICourseService
         foreach (var staleOption in entity.Options.Where(option => !keepOptionIds.Contains(option.Id)).ToList())
         {
             entity.Options.Remove(staleOption);
-            _dbContext.CourseCheckpointOptions.Remove(staleOption);
+            _dbContext.CourseUnitExamOptions.Remove(staleOption);
         }
 
         await _dbContext.SaveChangesAsync();
         return entity;
     }
 
-    public async Task DeleteCheckpointDefinitionAsync(Guid checkpointDefinitionId)
+    public async Task DeleteUnitExamDefinitionAsync(Guid unitExamDefinitionId)
     {
-        var entity = await _dbContext.CourseCheckpointDefinitions.FindAsync(checkpointDefinitionId);
+        var entity = await _dbContext.CourseUnitExamDefinitions.FindAsync(unitExamDefinitionId);
         if (entity is null)
         {
             return;
         }
 
-        _dbContext.CourseCheckpointDefinitions.Remove(entity);
+        _dbContext.CourseUnitExamDefinitions.Remove(entity);
         await _dbContext.SaveChangesAsync();
     }
 
     private static ParsedImportDocument ParseImportText(string importText)
     {
         var document = new ParsedImportDocument();
-        ParsedModule? currentModule = null;
+        ParsedUnit? currentUnit = null;
         var currentLessonText = new List<string>();
         ParsedLesson? currentLesson = null;
-        ParsedCheckpointDefinition? currentCheckpoint = null;
-        ParsedAssessmentDefinition? currentAssessment = null;
+        ParsedUnitExamDefinition? currentUnitExam = null;
+        ParsedExamDefinition? currentExam = null;
 
         foreach (var rawLine in importText.Replace("\r\n", "\n").Split('\n'))
         {
@@ -543,89 +543,88 @@ public class CourseService : ICourseService
                 continue;
             }
 
-            if (line.StartsWith("[unit]", StringComparison.OrdinalIgnoreCase)
-                || line.StartsWith("[module]", StringComparison.OrdinalIgnoreCase))
+            if (line.StartsWith("[unit]", StringComparison.OrdinalIgnoreCase))
             {
-                var markerLength = line.StartsWith("[unit]", StringComparison.OrdinalIgnoreCase) ? "[unit]".Length : "[module]".Length;
-                if (currentLesson is not null && currentModule is not null)
+                var markerLength = "[unit]".Length;
+                if (currentLesson is not null && currentUnit is not null)
                 {
                     currentLesson.TextContent = string.Join("\n", currentLessonText).Trim();
                     currentLessonText.Clear();
-                    currentModule.Lessons.Add(currentLesson);
+                    currentUnit.Lessons.Add(currentLesson);
                 }
 
                 currentLesson = null;
                 currentLessonText.Clear();
-                currentCheckpoint = null;
-                currentAssessment = null;
+                currentUnitExam = null;
+                currentExam = null;
 
-                currentModule = new ParsedModule
+                currentUnit = new ParsedUnit
                 {
                     Title = line[markerLength..].Trim(),
-                    OrderIndex = document.Modules.Count + 1,
+                    OrderIndex = document.Units.Count + 1,
                     Lessons = new List<ParsedLesson>()
                 };
-                document.Modules.Add(currentModule);
+                document.Units.Add(currentUnit);
                 continue;
             }
 
             if (line.StartsWith("[lesson]", StringComparison.OrdinalIgnoreCase))
             {
-                if (currentLesson is not null && currentModule is not null)
+                if (currentLesson is not null && currentUnit is not null)
                 {
                     currentLesson.TextContent = string.Join("\n", currentLessonText).Trim();
                     currentLessonText.Clear();
-                    currentModule.Lessons.Add(currentLesson);
+                    currentUnit.Lessons.Add(currentLesson);
                 }
 
                 currentLesson = ParseLessonDefinition(line);
-                currentCheckpoint = null;
-                currentAssessment = null;
-                if (currentModule is null)
+                currentUnitExam = null;
+                currentExam = null;
+                if (currentUnit is null)
                 {
-                    currentModule = new ParsedModule
+                    currentUnit = new ParsedUnit
                     {
-                        Title = "Module 1",
-                        OrderIndex = document.Modules.Count + 1,
+                        Title = "Unit 1",
+                        OrderIndex = document.Units.Count + 1,
                         Lessons = new List<ParsedLesson>()
                     };
-                    document.Modules.Add(currentModule);
+                    document.Units.Add(currentUnit);
                 }
 
                 currentLessonText.Clear();
                 continue;
             }
 
-            if (line.StartsWith("[checkpoint]", StringComparison.OrdinalIgnoreCase))
+            if (line.StartsWith("[unit exam]", StringComparison.OrdinalIgnoreCase))
             {
-                if (currentLesson is not null && currentModule is not null)
+                if (currentLesson is not null && currentUnit is not null)
                 {
                     currentLesson.TextContent = string.Join("\n", currentLessonText).Trim();
                     currentLessonText.Clear();
-                    currentModule.Lessons.Add(currentLesson);
+                    currentUnit.Lessons.Add(currentLesson);
                 }
 
                 currentLesson = null;
                 currentLessonText.Clear();
-                currentAssessment = null;
-                currentCheckpoint = new ParsedCheckpointDefinition
+                currentExam = null;
+                currentUnitExam = new ParsedUnitExamDefinition
                 {
-                    Title = "Checkpoint",
+                    Title = "Unit Exam",
                     Prompt = "Select every correct answer.",
                     Description = string.Empty,
-                    ModuleTitle = line["[checkpoint]".Length..].Trim(),
-                    IsFinal = string.Equals(line["[checkpoint]".Length..].Trim(), "final", StringComparison.OrdinalIgnoreCase)
+                    UnitTitle = line["[unit exam]".Length..].Trim(),
+                    IsFinal = string.Equals(line["[unit exam]".Length..].Trim(), "final", StringComparison.OrdinalIgnoreCase)
                 };
-                document.Checkpoints.Add(currentCheckpoint);
+                document.UnitExams.Add(currentUnitExam);
                 continue;
             }
 
             if (line.StartsWith("[option]", StringComparison.OrdinalIgnoreCase))
             {
-                if (currentCheckpoint is null)
+                if (currentUnitExam is null)
                 {
-                    currentCheckpoint = new ParsedCheckpointDefinition { Title = "Checkpoint", Prompt = "Select every correct answer.", Description = string.Empty };
-                    document.Checkpoints.Add(currentCheckpoint);
+                    currentUnitExam = new ParsedUnitExamDefinition { Title = "Unit Exam", Prompt = "Select every correct answer.", Description = string.Empty };
+                    document.UnitExams.Add(currentUnitExam);
                 }
 
                 var optionPayload = line["[option]".Length..].Trim();
@@ -641,7 +640,7 @@ public class CourseService : ICourseService
                     }
                 }
 
-                currentCheckpoint.Options.Add(new ParsedCheckpointOption
+                currentUnitExam.Options.Add(new ParsedUnitExamOption
                 {
                     Label = label,
                     IsCorrect = isCorrect,
@@ -650,65 +649,65 @@ public class CourseService : ICourseService
                 continue;
             }
 
-            if (line.StartsWith("[assessment]", StringComparison.OrdinalIgnoreCase))
+            if (line.StartsWith("[exam]", StringComparison.OrdinalIgnoreCase))
             {
-                if (currentLesson is not null && currentModule is not null)
+                if (currentLesson is not null && currentUnit is not null)
                 {
                     currentLesson.TextContent = string.Join("\n", currentLessonText).Trim();
                     currentLessonText.Clear();
-                    currentModule.Lessons.Add(currentLesson);
+                    currentUnit.Lessons.Add(currentLesson);
                 }
 
                 currentLesson = null;
                 currentLessonText.Clear();
-                currentCheckpoint = null;
-                var assessmentParts = line["[assessment]".Length..].Trim()
+                currentUnitExam = null;
+                var examParts = line["[exam]".Length..].Trim()
                     .Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-                currentAssessment = new ParsedAssessmentDefinition
+                currentExam = new ParsedExamDefinition
                 {
-                    Title = assessmentParts.FirstOrDefault() ?? "Final Assessment"
+                    Title = examParts.FirstOrDefault() ?? "Final Exam"
                 };
-                foreach (var part in assessmentParts.Skip(1))
+                foreach (var part in examParts.Skip(1))
                 {
                     var keyValue = part.Split('=', 2, StringSplitOptions.TrimEntries);
                     if (keyValue.Length == 2 && (string.Equals(keyValue[0], "unit", StringComparison.OrdinalIgnoreCase)
-                        || string.Equals(keyValue[0], "module", StringComparison.OrdinalIgnoreCase)))
+                        || string.Equals(keyValue[0], "unit", StringComparison.OrdinalIgnoreCase)))
                     {
-                        currentAssessment.ModuleTitle = keyValue[1];
+                        currentExam.UnitTitle = keyValue[1];
                     }
                     else if (keyValue.Length == 2 && string.Equals(keyValue[0], "passpercent", StringComparison.OrdinalIgnoreCase)
                         && decimal.TryParse(keyValue[1], out var passPercent))
                     {
-                        currentAssessment.PassPercent = passPercent;
+                        currentExam.PassPercent = passPercent;
                     }
                 }
-                document.Assessments.Add(currentAssessment);
+                document.Exams.Add(currentExam);
                 continue;
             }
 
             if (line.StartsWith("[question]", StringComparison.OrdinalIgnoreCase))
             {
-                if (currentAssessment is null)
+                if (currentExam is null)
                 {
-                    currentAssessment = new ParsedAssessmentDefinition();
-                    document.Assessments.Add(currentAssessment);
+                    currentExam = new ParsedExamDefinition();
+                    document.Exams.Add(currentExam);
                 }
 
-                var parsedQuestion = ParseAssessmentQuestionDefinition(line);
-                parsedQuestion.OrderIndex = currentAssessment.Questions.Count + 1;
-                currentAssessment.Questions.Add(parsedQuestion);
+                var parsedQuestion = ParseExamQuestionDefinition(line);
+                parsedQuestion.OrderIndex = currentExam.Questions.Count + 1;
+                currentExam.Questions.Add(parsedQuestion);
                 continue;
             }
 
-            if (currentCheckpoint is not null)
+            if (currentUnitExam is not null)
             {
-                ParseCheckpointMetadata(line, currentCheckpoint);
+                ParseUnitExamMetadata(line, currentUnitExam);
                 continue;
             }
 
-            if (currentAssessment is not null)
+            if (currentExam is not null)
             {
-                ParseAssessmentMetadata(line, currentAssessment);
+                ParseExamMetadata(line, currentExam);
                 continue;
             }
 
@@ -721,7 +720,7 @@ public class CourseService : ICourseService
         if (currentLesson is not null)
         {
             currentLesson.TextContent = string.Join("\n", currentLessonText).Trim();
-            currentModule?.Lessons.Add(currentLesson);
+            currentUnit?.Lessons.Add(currentLesson);
         }
 
         return document;
@@ -764,7 +763,7 @@ public class CourseService : ICourseService
         };
     }
 
-    private static void ParseCheckpointMetadata(string line, ParsedCheckpointDefinition checkpoint)
+    private static void ParseUnitExamMetadata(string line, ParsedUnitExamDefinition unitExam)
     {
         var keyValue = line.Split('=', 2, StringSplitOptions.TrimEntries);
         if (keyValue.Length != 2)
@@ -775,26 +774,25 @@ public class CourseService : ICourseService
         switch (keyValue[0].ToLowerInvariant())
         {
             case "title":
-                checkpoint.Title = keyValue[1];
+                unitExam.Title = keyValue[1];
                 break;
             case "prompt":
-                checkpoint.Prompt = keyValue[1];
+                unitExam.Prompt = keyValue[1];
                 break;
             case "description":
-                checkpoint.Description = keyValue[1];
+                unitExam.Description = keyValue[1];
                 break;
             case "unit":
-            case "module":
-                checkpoint.ModuleTitle = keyValue[1];
+                unitExam.UnitTitle = keyValue[1];
                 break;
             case "isfinal":
                 bool.TryParse(keyValue[1], out var isFinal);
-                checkpoint.IsFinal = isFinal;
+                unitExam.IsFinal = isFinal;
                 break;
         }
     }
 
-    private static void ParseAssessmentMetadata(string line, ParsedAssessmentDefinition assessment)
+    private static void ParseExamMetadata(string line, ParsedExamDefinition exam)
     {
         var keyValue = line.Split('=', 2, StringSplitOptions.TrimEntries);
         if (keyValue.Length != 2)
@@ -805,22 +803,21 @@ public class CourseService : ICourseService
         switch (keyValue[0].ToLowerInvariant())
         {
             case "title":
-                assessment.Title = keyValue[1];
+                exam.Title = keyValue[1];
                 break;
             case "passpercent":
                 if (decimal.TryParse(keyValue[1], out var passPercent))
                 {
-                    assessment.PassPercent = passPercent;
+                    exam.PassPercent = passPercent;
                 }
                 break;
             case "unit":
-            case "module":
-                assessment.ModuleTitle = keyValue[1];
+                exam.UnitTitle = keyValue[1];
                 break;
         }
     }
 
-    private static ParsedAssessmentQuestion ParseAssessmentQuestionDefinition(string line)
+    private static ParsedExamQuestion ParseExamQuestionDefinition(string line)
     {
         var payload = line["[question]".Length..].Trim();
         var parts = payload.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
@@ -872,7 +869,7 @@ public class CourseService : ICourseService
             }
         }
 
-        return new ParsedAssessmentQuestion
+        return new ParsedExamQuestion
         {
             Prompt = prompt,
             OptionA = optionA,
@@ -896,13 +893,13 @@ public class CourseService : ICourseService
         return normalized is "A" or "B" or "C" or "D" ? normalized : "A";
     }
 
-    private static string ToCheckpointKey(string label)
+    private static string ToUnitExamKey(string label)
     {
         var cleaned = new string(label.Where(char.IsLetterOrDigit).ToArray());
-        return string.IsNullOrWhiteSpace(cleaned) ? "checkpoint" : cleaned.ToLowerInvariant();
+        return string.IsNullOrWhiteSpace(cleaned) ? "unit exam" : cleaned.ToLowerInvariant();
     }
 
-    private static string ToCheckpointOptionKey(string label, int index)
+    private static string ToUnitExamOptionKey(string label, int index)
     {
         var cleaned = new string(label.Where(char.IsLetterOrDigit).ToArray());
         if (string.IsNullOrWhiteSpace(cleaned))
@@ -915,40 +912,40 @@ public class CourseService : ICourseService
 
     private async Task EnsureCourseIntroStructureAsync(Guid courseId)
     {
-        var modules = await _dbContext.Modules
+        var units = await _dbContext.Units
             .Where(existing => existing.CourseId == courseId)
             .OrderBy(existing => existing.OrderIndex)
             .ToListAsync();
 
-        var introModule = modules.FirstOrDefault(existing => existing.Title == GettingStartedModuleTitle);
-        if (introModule is null)
+        var introUnit = units.FirstOrDefault(existing => existing.Title == GettingStartedUnitTitle);
+        if (introUnit is null)
         {
-            foreach (var existingModule in modules)
+            foreach (var existingUnit in units)
             {
-                existingModule.OrderIndex += 1;
+                existingUnit.OrderIndex += 1;
             }
 
-            introModule = new Module
+            introUnit = new Unit
             {
                 Id = Guid.NewGuid(),
                 CourseId = courseId,
-                Title = GettingStartedModuleTitle,
+                Title = GettingStartedUnitTitle,
                 OrderIndex = 1
             };
 
-            _dbContext.Modules.Add(introModule);
+            _dbContext.Units.Add(introUnit);
             await _dbContext.SaveChangesAsync();
         }
 
         var introLessons = await _dbContext.Lessons
-            .Where(existing => existing.ModuleId == introModule.Id)
+            .Where(existing => existing.UnitId == introUnit.Id)
             .OrderBy(existing => existing.OrderIndex)
             .ToListAsync();
 
         var hasWelcome = introLessons.Any(existing => existing.Title == WelcomeLessonTitle);
         if (!hasWelcome)
         {
-            _dbContext.Lessons.Add(BuildWelcomeLesson(introModule.Id));
+            _dbContext.Lessons.Add(BuildWelcomeLesson(introUnit.Id));
         }
         else
         {
@@ -959,7 +956,7 @@ public class CourseService : ICourseService
         var deprecatedNavigationLessons = await _dbContext.Lessons
             .Where(existing =>
                 DeprecatedNavigationTitles.Contains(existing.Title)
-                && _dbContext.Modules.Any(module => module.Id == existing.ModuleId && module.CourseId == courseId))
+                && _dbContext.Units.Any(unit => unit.Id == existing.UnitId && unit.CourseId == courseId))
             .ToListAsync();
 
         if (deprecatedNavigationLessons.Count > 0)
@@ -970,17 +967,17 @@ public class CourseService : ICourseService
         await _dbContext.SaveChangesAsync();
     }
 
-    private static Lesson BuildWelcomeLesson(Guid moduleId)
+    private static Lesson BuildWelcomeLesson(Guid unitId)
     {
         return new Lesson
         {
-            ModuleId = moduleId,
+            UnitId = unitId,
             Title = WelcomeLessonTitle,
             ContentType = "Text",
             TextContent = """
                 Welcome!
 
-                This course is organized into modules that contains lessons.
+                This course is organized into units that contains lessons.
 
                 Use the course menu to your right to jump directly to topics,
 
@@ -994,12 +991,12 @@ public class CourseService : ICourseService
 
     private sealed class ParsedImportDocument
     {
-        public List<ParsedModule> Modules { get; } = new();
-        public List<ParsedCheckpointDefinition> Checkpoints { get; } = new();
-        public List<ParsedAssessmentDefinition> Assessments { get; } = new();
+        public List<ParsedUnit> Units { get; } = new();
+        public List<ParsedUnitExamDefinition> UnitExams { get; } = new();
+        public List<ParsedExamDefinition> Exams { get; } = new();
     }
 
-    private sealed class ParsedModule
+    private sealed class ParsedUnit
     {
         public string Title { get; set; } = string.Empty;
         public int OrderIndex { get; set; }
@@ -1015,32 +1012,32 @@ public class CourseService : ICourseService
         public int OrderIndex { get; set; }
     }
 
-    private sealed class ParsedCheckpointDefinition
+    private sealed class ParsedUnitExamDefinition
     {
-        public string Title { get; set; } = "Checkpoint";
+        public string Title { get; set; } = "Unit Exam";
         public string Prompt { get; set; } = "Select every correct answer.";
         public string Description { get; set; } = string.Empty;
-        public string? ModuleTitle { get; set; }
+        public string? UnitTitle { get; set; }
         public bool IsFinal { get; set; }
-        public List<ParsedCheckpointOption> Options { get; } = new();
+        public List<ParsedUnitExamOption> Options { get; } = new();
     }
 
-    private sealed class ParsedCheckpointOption
+    private sealed class ParsedUnitExamOption
     {
         public string Key { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
         public bool IsCorrect { get; set; }
     }
 
-    private sealed class ParsedAssessmentDefinition
+    private sealed class ParsedExamDefinition
     {
-        public string Title { get; set; } = "Final Assessment";
+        public string Title { get; set; } = "Final Exam";
         public decimal PassPercent { get; set; } = 80m;
-        public string? ModuleTitle { get; set; }
-        public List<ParsedAssessmentQuestion> Questions { get; } = new();
+        public string? UnitTitle { get; set; }
+        public List<ParsedExamQuestion> Questions { get; } = new();
     }
 
-    private sealed class ParsedAssessmentQuestion
+    private sealed class ParsedExamQuestion
     {
         public string Prompt { get; set; } = string.Empty;
         public string OptionA { get; set; } = string.Empty;

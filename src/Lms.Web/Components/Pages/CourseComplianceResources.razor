@@ -43,14 +43,14 @@ else
             }
             @if (ConfiguredUnitMinutes < _course.RequiredInstructionalMinutes)
             {
-                <p class="compliance-configuration-warning" role="status">The regulatory Unit and assessment structure is active, but the configured instructional content does not yet satisfy the 75-hour requirement. Additional Commission-syllabus Units must be authored before course approval or delivery.</p>
+                <p class="compliance-configuration-warning" role="status">The regulatory Unit and exam structure is active, but the configured instructional content does not yet satisfy the 75-hour requirement. Additional Commission-syllabus Units must be authored before course approval or delivery.</p>
             }
             <ol class="compliance-unit-schedule">
                 @foreach (var unit in GetRegulatoryUnits())
                 {
                     <li>
                         <strong>@unit.Title</strong>
-                        <span>@unit.Lessons.Sum(lesson => lesson.DurationMinutes) minutes plus mandatory Unit assessment</span>
+                        <span>@unit.Lessons.Sum(lesson => lesson.DurationMinutes) minutes plus mandatory Unit exam</span>
                     </li>
                 }
             </ol>
@@ -205,16 +205,16 @@ else
             : null;
     }
 
-    private IEnumerable<Module> GetRegulatoryUnits()
+    private IEnumerable<Unit> GetRegulatoryUnits()
     {
         if (_course is null)
         {
             return [];
         }
 
-        return _course.Modules
-            .Where(module => !string.Equals(module.Title, "Getting Started", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(module => module.OrderIndex);
+        return _course.Units
+            .Where(unit => !string.Equals(unit.Title, "Getting Started", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(unit => unit.OrderIndex);
     }
 
     private IEnumerable<SchoolStaffMember> GetInstructors()

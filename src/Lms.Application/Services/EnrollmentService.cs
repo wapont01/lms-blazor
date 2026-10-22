@@ -32,7 +32,7 @@ public interface IEnrollmentService
     Task<BrokerDashboardSummary> GetBrokerSummaryAsync(Guid brokerUserId);
     Task<List<BrokerAssignedLearnerRow>> GetAssignedLearnersAsync(Guid brokerUserId);
     Task<List<BrokerLearnerRow>> GetBrokerLearnerRowsAsync(Guid brokerUserId);
-    Task<List<AssessmentBlockedLearnerRow>> GetAssessmentBlockedLearnersAsync(Guid brokerUserId);
+    Task<List<ExamBlockedLearnerRow>> GetExamBlockedLearnersAsync(Guid brokerUserId);
     Task<bool> AssignLearnerToBrokerAsync(Guid brokerUserId, Guid learnerUserId, Guid actorUserId, string actorEmail, string? reason = null);
     Task<bool> UnassignLearnerFromBrokerAsync(Guid brokerUserId, Guid learnerUserId, Guid actorUserId, string actorEmail, string? reason = null);
     Task<EnrollmentLifecycleResult> EnrollLearnerByBrokerAsync(Guid brokerUserId, Guid learnerUserId, Guid courseId, Guid actorUserId, string actorEmail);
@@ -51,7 +51,7 @@ public interface IEnrollmentService
 public sealed record BrokerDashboardSummary(int Learners, int ActiveEnrollments, int CompletedEnrollments, int AtRiskEnrollments);
 public sealed record BrokerAssignedLearnerRow(Guid LearnerId, string LearnerName, string LearnerEmail, int ActiveEnrollments);
 public sealed record BrokerLearnerRow(string LearnerName, string LearnerEmail, string CourseTitle, decimal ProgressPercent, bool Completed, DateTime EnrolledAt);
-public sealed record AssessmentBlockedLearnerRow(string LearnerDisplay, string CourseTitle, decimal? LatestScorePercent, string Reason);
+public sealed record ExamBlockedLearnerRow(string LearnerDisplay, string CourseTitle, decimal? LatestScorePercent, string Reason);
 public sealed record LearnerCertificateRow(Guid CertificateId, Guid CourseId, string CourseTitle, string CertificateNumber, string VerificationCode, DateTime IssuedAt, DateTime ExpiresAt, string Status);
 public sealed record CertificateComplianceSummary(int TotalCertificates, int ActiveCertificates, int ExpiringSoonCertificates, int ExpiredCertificates, int RevokedCertificates);
 public sealed record CertificateComplianceRow(Guid CertificateId, string LearnerName, string LearnerEmail, string CourseTitle, string CertificateNumber, string VerificationCode, DateTime IssuedAt, DateTime ExpiresAt, string Status, bool CanRenew);
@@ -87,15 +87,15 @@ public class EnrollmentService : IEnrollmentService
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuditLogService _auditLogService;
-    private readonly IAssessmentService _assessmentService;
+    private readonly IExamService _examService;
     private readonly ISchoolProfileService? _schoolProfileService;
     private readonly ICourseActivityService? _courseActivityService;
 
-    public EnrollmentService(ApplicationDbContext dbContext, IAuditLogService auditLogService, IAssessmentService assessmentService, ISchoolProfileService? schoolProfileService = null, ICourseActivityService? courseActivityService = null)
+    public EnrollmentService(ApplicationDbContext dbContext, IAuditLogService auditLogService, IExamService examService, ISchoolProfileService? schoolProfileService = null, ICourseActivityService? courseActivityService = null)
     {
         _dbContext = dbContext;
         _auditLogService = auditLogService;
-        _assessmentService = assessmentService;
+        _examService = examService;
         _schoolProfileService = schoolProfileService;
         _courseActivityService = courseActivityService;
         QuestPDF.Settings.License = LicenseType.Community;
@@ -158,7 +158,7 @@ public class EnrollmentService : IEnrollmentService
             throw new InvalidOperationException("Enrollment could not be completed. Please refresh and sign in again.");
         }
 
-        await _assessmentService.EnsureDefaultAssessmentForCourseAsync(courseId);
+        await _examService.EnsureDefaultExamForCourseAsync(courseId);
 
         var actorEmail = await _dbContext.UserAccounts
             .Where(user => user.Id == userId)
@@ -300,12 +300,12 @@ public class EnrollmentService : IEnrollmentService
         return await _dbContext.LessonProgresses
             .AsNoTracking()
             .Include(progress => progress.Lesson)
-                .ThenInclude(lesson => lesson!.Module)
+                .ThenInclude(lesson => lesson!.Unit)
             .Where(progress =>
                 progress.UserAccountId == userId &&
                 progress.Lesson != null &&
-                progress.Lesson.Module != null &&
-                progress.Lesson.Module.CourseId == courseId)
+                progress.Lesson.Unit != null &&
+                progress.Lesson.Unit.CourseId == courseId)
             .ToDictionaryAsync(progress => progress.LessonId, progress => progress.Completed);
     }
 
@@ -314,7 +314,7 @@ public class EnrollmentService : IEnrollmentService
         var lessonCourse = await _dbContext.Lessons
             .AsNoTracking()
             .Where(lesson => lesson.Id == lessonId)
-            .Select(lesson => new { lesson.Id, lesson.ModuleId, lesson.IsRequired, CourseId = lesson.Module!.CourseId })
+            .Select(lesson => new { lesson.Id, lesson.UnitId, lesson.IsRequired, CourseId = lesson.Unit!.CourseId })
             .FirstOrDefaultAsync();
 
         if (lessonCourse is null)
@@ -598,7 +598,7 @@ public class EnrollmentService : IEnrollmentService
 
         foreach (var enrollment in enrollments)
         {
-            var effectiveCompletion = enrollment.Completed || await _assessmentService.HasPassedRequiredAssessmentAsync(enrollment.CourseId, enrollment.UserAccountId);
+            var effectiveCompletion = enrollment.Completed || await _examService.HasPassedRequiredExamAsync(enrollment.CourseId, enrollment.UserAccountId);
             if (effectiveCompletion)
             {
                 completedEnrollments++;
@@ -655,7 +655,7 @@ public class EnrollmentService : IEnrollmentService
         var rows = new List<BrokerLearnerRow>(enrollments.Count);
         foreach (var enrollment in enrollments)
         {
-            var effectiveCompletion = enrollment.Completed || await _assessmentService.HasPassedRequiredAssessmentAsync(enrollment.CourseId, enrollment.UserAccountId);
+            var effectiveCompletion = enrollment.Completed || await _examService.HasPassedRequiredExamAsync(enrollment.CourseId, enrollment.UserAccountId);
             var effectiveProgress = effectiveCompletion ? 100m : enrollment.ProgressPercent;
 
             rows.Add(new BrokerLearnerRow(
@@ -670,9 +670,9 @@ public class EnrollmentService : IEnrollmentService
         return rows;
     }
 
-    public async Task<List<AssessmentBlockedLearnerRow>> GetAssessmentBlockedLearnersAsync(Guid brokerUserId)
+    public async Task<List<ExamBlockedLearnerRow>> GetExamBlockedLearnersAsync(Guid brokerUserId)
     {
-        var rows = new List<AssessmentBlockedLearnerRow>();
+        var rows = new List<ExamBlockedLearnerRow>();
 
         var assignedLearnerIds = await GetAssignedLearnerIdsAsync(brokerUserId);
 
@@ -685,17 +685,17 @@ public class EnrollmentService : IEnrollmentService
 
         foreach (var enrollment in enrollments)
         {
-            var eligibility = await _assessmentService.GetEligibilityAsync(enrollment.CourseId, enrollment.UserAccountId);
-            if (!eligibility.RequiresAssessment || eligibility.HasPassed)
+            var eligibility = await _examService.GetEligibilityAsync(enrollment.CourseId, enrollment.UserAccountId);
+            if (!eligibility.RequiresExam || eligibility.HasPassed)
             {
                 continue;
             }
 
-            rows.Add(new AssessmentBlockedLearnerRow(
+            rows.Add(new ExamBlockedLearnerRow(
                 $"{enrollment.UserAccount?.DisplayName ?? "Learner"} ({enrollment.UserAccount?.Email ?? "unknown@lms.local"})",
                 enrollment.Course?.Title ?? "Unknown Course",
                 eligibility.LatestAttempt?.ScorePercent,
-                eligibility.BlockingReason ?? "Assessment policy gate not satisfied."));
+                eligibility.BlockingReason ?? "Exam policy gate not satisfied."));
         }
 
         return rows
@@ -792,7 +792,7 @@ public class EnrollmentService : IEnrollmentService
 
         _dbContext.Enrollments.Add(enrollment);
         await _dbContext.SaveChangesAsync();
-        await _assessmentService.EnsureDefaultAssessmentForCourseAsync(courseId);
+        await _examService.EnsureDefaultExamForCourseAsync(courseId);
 
         var auditDetails = $"LearnerUserId={learnerUserId};CourseId={courseId};Reason={reason}";
         await _auditLogService.WriteAsync(actorUserId, actorEmail, "enrollment.created.by-admin", "Enrollment", enrollment.Id, auditDetails);
@@ -813,7 +813,7 @@ public class EnrollmentService : IEnrollmentService
 
         var lessonIds = await _dbContext.Lessons
             .AsNoTracking()
-            .Where(lesson => lesson.Module!.CourseId == courseId)
+            .Where(lesson => lesson.Unit!.CourseId == courseId)
             .Select(lesson => lesson.Id)
             .ToListAsync();
 
@@ -923,7 +923,7 @@ public class EnrollmentService : IEnrollmentService
 
         _dbContext.Enrollments.Add(enrollment);
         await _dbContext.SaveChangesAsync();
-        await _assessmentService.EnsureDefaultAssessmentForCourseAsync(courseId);
+        await _examService.EnsureDefaultExamForCourseAsync(courseId);
 
         await _auditLogService.WriteAsync(actorUserId, actorEmail, "enrollment.created.by-broker", "Enrollment", enrollment.Id, $"LearnerUserId={learnerUserId};CourseId={courseId}");
         await CreateNotificationAsync(learnerUserId, "enrollment", "New course enrollment", "A broker enrolled you in a course.");
@@ -960,7 +960,7 @@ public class EnrollmentService : IEnrollmentService
 
         var lessonIds = await _dbContext.Lessons
             .AsNoTracking()
-            .Where(lesson => lesson.Module!.CourseId == courseId)
+            .Where(lesson => lesson.Unit!.CourseId == courseId)
             .Select(lesson => lesson.Id)
             .ToListAsync();
 
@@ -1090,30 +1090,30 @@ public class EnrollmentService : IEnrollmentService
             $"Lesson completed: {progress.Lesson?.Title ?? "Unknown Lesson"}",
             "Required progression milestone reached.")));
 
-        var attempts = await _dbContext.AssessmentAttempts
+        var attempts = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .Include(attempt => attempt.CourseAssessment)
-                .ThenInclude(assessment => assessment!.Course)
+            .Include(attempt => attempt.CourseExam)
+                .ThenInclude(exam => exam!.Course)
             .Where(attempt => attempt.UserAccountId == learnerUserId)
             .ToListAsync();
 
         events.AddRange(attempts.Select(attempt => new LearnerLogItem(
             attempt.SubmittedAt,
-            "assessment",
-            $"Assessment attempt: {attempt.CourseAssessment?.Course?.Title ?? attempt.CourseAssessment?.Title ?? "Assessment"}",
+            "exam",
+            $"Exam attempt: {attempt.CourseExam?.Course?.Title ?? attempt.CourseExam?.Title ?? "Exam"}",
             $"Score={attempt.ScorePercent:0.##}; Passed={attempt.Passed}; Attempt={attempt.AttemptNumber}")));
 
         var retakeGrants = await _dbContext.RetakeGrants
             .AsNoTracking()
-            .Include(grant => grant.CourseAssessment)
-                .ThenInclude(assessment => assessment!.Course)
+            .Include(grant => grant.CourseExam)
+                .ThenInclude(exam => exam!.Course)
             .Where(grant => grant.UserAccountId == learnerUserId)
             .ToListAsync();
 
         events.AddRange(retakeGrants.Select(grant => new LearnerLogItem(
             grant.GrantedAt,
             "retake",
-            $"Retake granted: {grant.CourseAssessment?.Course?.Title ?? grant.CourseAssessment?.Title ?? "Assessment"}",
+            $"Retake granted: {grant.CourseExam?.Course?.Title ?? grant.CourseExam?.Title ?? "Exam"}",
             $"GrantedAttempts={grant.GrantedAttempts}")));
 
         var certificates = await _dbContext.CompletionCertificates
@@ -1180,7 +1180,7 @@ public class EnrollmentService : IEnrollmentService
     {
         var courseLessons = await _dbContext.Lessons
             .AsNoTracking()
-            .Where(lesson => lesson.Module!.CourseId == courseId)
+            .Where(lesson => lesson.Unit!.CourseId == courseId)
             .Select(lesson => new { lesson.Id, lesson.IsRequired })
             .ToListAsync();
 
@@ -1252,9 +1252,9 @@ public class EnrollmentService : IEnrollmentService
         var certificate = await _dbContext.CompletionCertificates
             .FirstOrDefaultAsync(existing => existing.EnrollmentId == enrollment.Id);
 
-        var hasPassedRequiredAssessment = await _assessmentService.HasPassedRequiredAssessmentAsync(enrollment.CourseId, enrollment.UserAccountId);
+        var hasPassedRequiredExam = await _examService.HasPassedRequiredExamAsync(enrollment.CourseId, enrollment.UserAccountId);
         var hasSatisfiedAttendance = await HasSatisfiedAttendanceRequirementAsync(enrollment.CourseId, enrollment.UserAccountId);
-        var certificateEligible = enrollment.Completed && hasPassedRequiredAssessment && hasSatisfiedAttendance
+        var certificateEligible = enrollment.Completed && hasPassedRequiredExam && hasSatisfiedAttendance
             && !string.IsNullOrWhiteSpace(enrollment.CertificationFirstName)
             && !string.IsNullOrWhiteSpace(enrollment.CertificationLastName)
             && !string.IsNullOrWhiteSpace(enrollment.CertificationLicenseNumber)

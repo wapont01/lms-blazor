@@ -4,7 +4,7 @@ This starter project provides a simple foundation for a real estate certificatio
 
 ## What is included
 - A Blazor web app project structure
-- A domain model for courses, modules, and lessons
+- A domain model for courses, units, and lessons
 - A simple in-memory course service
 - Starter pages for home, courses, course detail, admin, instructor, and broker areas
 

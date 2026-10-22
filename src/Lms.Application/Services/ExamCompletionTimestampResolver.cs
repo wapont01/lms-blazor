@@ -1,6 +1,6 @@
 namespace Lms.Application.Services;
 
-public static class AssessmentCompletionTimestampResolver
+public static class ExamCompletionTimestampResolver
 {
     public static DateTime GetCompletionTimestampUtc(
         DateTime? persistedSubmissionUtc = null,

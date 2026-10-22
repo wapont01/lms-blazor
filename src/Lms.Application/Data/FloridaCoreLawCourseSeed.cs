@@ -26,7 +26,7 @@ public static class FloridaCoreLawCourseSeed
         }
 
         var existingCourse = await dbContext.Courses
-            .Include(course => course.Modules)
+            .Include(course => course.Units)
                 .ThenInclude(unit => unit.Lessons)
             .FirstOrDefaultAsync(course => course.Id == courseId);
         var cleanupWasRecorded = await dbContext.AuditLogs
@@ -47,7 +47,7 @@ public static class FloridaCoreLawCourseSeed
             await dbContext.SaveChangesAsync();
         }
 
-        if (existingCourse?.Title == CourseTitle && existingCourse.Modules.Count == 5)
+        if (existingCourse?.Title == CourseTitle && existingCourse.Units.Count == 5)
         {
             if (existingCourse.Price != 30m || existingCourse.Industry != CourseIndustries.RealEstate)
             {
@@ -98,35 +98,35 @@ public static class FloridaCoreLawCourseSeed
             certificate.RevocationReason = "The mock Florida course was replaced by the Florida Core Law source course. Completion must be reassessed.";
         }
 
-        var oldAssessments = await dbContext.CourseAssessments
-            .Where(assessment => assessment.CourseId == courseId)
+        var oldExams = await dbContext.CourseExams
+            .Where(exam => exam.CourseId == courseId)
             .ToListAsync();
-        dbContext.CourseAssessments.RemoveRange(oldAssessments);
-        var oldCheckpoints = await dbContext.CourseCheckpointDefinitions
-            .Where(checkpoint => checkpoint.CourseId == courseId)
+        dbContext.CourseExams.RemoveRange(oldExams);
+        var oldUnitExams = await dbContext.CourseUnitExamDefinitions
+            .Where(unitExam => unitExam.CourseId == courseId)
             .ToListAsync();
-        dbContext.CourseCheckpointDefinitions.RemoveRange(oldCheckpoints);
-        dbContext.Modules.RemoveRange(course.Modules);
+        dbContext.CourseUnitExamDefinitions.RemoveRange(oldUnitExams);
+        dbContext.Units.RemoveRange(course.Units);
         await dbContext.SaveChangesAsync();
 
-        var createdUnits = new Dictionary<string, Module>(StringComparer.OrdinalIgnoreCase);
+        var createdUnits = new Dictionary<string, Unit>(StringComparer.OrdinalIgnoreCase);
         var createdLessons = new List<Lesson>();
         foreach (var unitDefinition in units)
         {
-            var unit = new Module
+            var unit = new Unit
             {
                 CourseId = courseId,
                 Title = unitDefinition.Title,
                 OrderIndex = unitDefinition.OrderIndex
             };
             createdUnits.Add(unit.Title, unit);
-            dbContext.Modules.Add(unit);
+            dbContext.Units.Add(unit);
 
             foreach (var lessonDefinition in unitDefinition.Lessons)
             {
                 var lesson = new Lesson
                 {
-                    ModuleId = unit.Id,
+                    UnitId = unit.Id,
                     Title = lessonDefinition.Title,
                     ContentType = "Text",
                     TextContent = lessonDefinition.TextContent,
@@ -140,7 +140,7 @@ public static class FloridaCoreLawCourseSeed
         }
 
         await dbContext.SaveChangesAsync();
-        await SaveAssessmentsAsync(dbContext, courseId, createdUnits);
+        await SaveExamsAsync(dbContext, courseId, createdUnits);
     }
 
     private static async Task RemoveLegacyCourseProgressAsync(ApplicationDbContext dbContext, Course? course, Guid courseId)
@@ -150,10 +150,10 @@ public static class FloridaCoreLawCourseSeed
             .ToListAsync();
         dbContext.Enrollments.RemoveRange(enrollments);
 
-        var checkpointProgress = await dbContext.ModuleCheckpointProgresses
+        var unitExamProgress = await dbContext.UnitExamProgresses
             .Where(progress => progress.CourseId == courseId)
             .ToListAsync();
-        dbContext.ModuleCheckpointProgresses.RemoveRange(checkpointProgress);
+        dbContext.UnitExamProgresses.RemoveRange(unitExamProgress);
 
         var activitySessions = await dbContext.CourseActivitySessions
             .Where(session => session.CourseId == courseId)
@@ -210,7 +210,7 @@ public static class FloridaCoreLawCourseSeed
                 var title = Regex.Replace(unitMatch.Groups["title"].Value.Trim(), @"\s+Unit Introduction$", string.Empty, RegexOptions.IgnoreCase);
                 currentUnit = new UnitDefinition($"Unit {unitMatch.Groups["number"].Value}: {title}", int.Parse(unitMatch.Groups["number"].Value));
                 units.Add(currentUnit);
-                currentLessonTitle = "Unit Introduction";
+                currentLessonTitle = "Introduction";
                 continue;
             }
 
@@ -307,23 +307,23 @@ public static class FloridaCoreLawCourseSeed
         return titles;
     }
 
-    private static async Task SaveAssessmentsAsync(ApplicationDbContext dbContext, Guid courseId, IReadOnlyDictionary<string, Module> units)
+    private static async Task SaveExamsAsync(ApplicationDbContext dbContext, Guid courseId, IReadOnlyDictionary<string, Unit> units)
     {
-        var definitions = GetAssessmentDefinitions();
+        var definitions = GetExamDefinitions();
         foreach (var definition in definitions)
         {
-            var assessment = new CourseAssessment
+            var exam = new CourseExam
             {
                 CourseId = courseId,
-                ModuleId = definition.UnitTitle is null ? null : units[definition.UnitTitle].Id,
+                UnitId = definition.UnitTitle is null ? null : units[definition.UnitTitle].Id,
                 Title = definition.Title,
                 PassPercent = 80m,
                 IsRequired = true
             };
-            dbContext.CourseAssessments.Add(assessment);
-            foreach (var question in definition.Questions.Select((item, index) => new AssessmentQuestion
+            dbContext.CourseExams.Add(exam);
+            foreach (var question in definition.Questions.Select((item, index) => new ExamQuestion
             {
-                CourseAssessmentId = assessment.Id,
+                CourseExamId = exam.Id,
                 Prompt = item.Prompt,
                 OptionA = item.OptionA,
                 OptionB = item.OptionB,
@@ -333,14 +333,14 @@ public static class FloridaCoreLawCourseSeed
                 OrderIndex = index + 1
             }))
             {
-                dbContext.AssessmentQuestions.Add(question);
+                dbContext.ExamQuestions.Add(question);
             }
         }
 
         await dbContext.SaveChangesAsync();
     }
 
-    private static IReadOnlyList<AssessmentDefinition> GetAssessmentDefinitions() =>
+    private static IReadOnlyList<ExamDefinition> GetExamDefinitions() =>
     [
         new("Unit 2 Exam", "Unit 2: Real Estate Law Review and Update",
         [
@@ -421,7 +421,7 @@ public static class FloridaCoreLawCourseSeed
 
     public sealed record LessonDefinition(string Title, string TextContent, int OrderIndex);
 
-    private sealed record AssessmentDefinition(string Title, string? UnitTitle, IReadOnlyList<QuestionDefinition> Questions);
+    private sealed record ExamDefinition(string Title, string? UnitTitle, IReadOnlyList<QuestionDefinition> Questions);
 
     private sealed record QuestionDefinition(string Prompt, string OptionA, string OptionB, string OptionC, string OptionD, string CorrectOption);
 }

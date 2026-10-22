@@ -85,7 +85,7 @@ public class BackgroundJobMonitor : IBackgroundJobMonitor
             { "LastRunOverdueSent", _lastRunResult?.OverdueSent ?? 0 },
             { "LastRunCourseStartSent", _lastRunResult?.CourseStartSent ?? 0 },
             { "LastRunEnrollmentClosingSent", _lastRunResult?.EnrollmentClosingSent ?? 0 },
-            { "LastRunAssessmentDeadlineSent", _lastRunResult?.AssessmentDeadlineSent ?? 0 }
+            { "LastRunExamDeadlineSent", _lastRunResult?.ExamDeadlineSent ?? 0 }
         };
 
         if (!string.IsNullOrEmpty(_lastErrorMessage))

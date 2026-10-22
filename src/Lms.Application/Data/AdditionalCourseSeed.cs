@@ -144,7 +144,7 @@ public static class AdditionalCourseSeed
                 var title = Regex.Replace(unitMatch.Groups["title"].Value.Trim(), @"\s+Unit Introduction$", string.Empty, RegexOptions.IgnoreCase);
                 currentUnit = new UnitDefinition($"Unit {unitNumber}: {title}", unitNumber);
                 units.Add(currentUnit);
-                currentLessonTitle = "Unit Introduction";
+                currentLessonTitle = "Introduction";
                 continue;
             }
 
@@ -289,20 +289,20 @@ public static class AdditionalCourseSeed
         IReadOnlyList<UnitDefinition> units)
     {
         var course = await dbContext.Courses
-            .Include(existing => existing.Modules)
-                .ThenInclude(module => module.Lessons)
+            .Include(existing => existing.Units)
+                .ThenInclude(unit => unit.Lessons)
             .FirstOrDefaultAsync(existing => existing.Id == definition.Id);
-        var expectedAssessmentTitle = definition.FinalExamTitle;
+        var expectedExamTitle = definition.FinalExamTitle;
         var existingFinal = course is null
             ? null
-            : await dbContext.CourseAssessments
-                .Include(assessment => assessment.Questions)
-                .FirstOrDefaultAsync(assessment =>
-                    assessment.CourseId == definition.Id
-                    && assessment.ModuleId == null
-                    && assessment.Title == expectedAssessmentTitle);
+            : await dbContext.CourseExams
+                .Include(exam => exam.Questions)
+                .FirstOrDefaultAsync(exam =>
+                    exam.CourseId == definition.Id
+                    && exam.UnitId == null
+                    && exam.Title == expectedExamTitle);
 
-        var assessmentIsCurrent = existingFinal is not null
+        var examIsCurrent = existingFinal is not null
             && existingFinal.PassPercent == definition.PassPercent
             && existingFinal.Questions
                 .OrderBy(question => question.OrderIndex)
@@ -321,11 +321,11 @@ public static class AdditionalCourseSeed
             _ => 0m
         };
         if (course?.Title == definition.Title
-            && course.Modules.Count == units.Count
+            && course.Units.Count == units.Count
             && course.Price == coursePrice
             && course.Industry == CourseIndustries.RealEstate
             && course.MinimumPassingPercent == (int)definition.PassPercent
-            && assessmentIsCurrent)
+            && examIsCurrent)
         {
             return;
         }
@@ -358,34 +358,34 @@ public static class AdditionalCourseSeed
         course.ReviewNote = string.Format(CourseReviewNote, definition.State);
         course.UpdatedAt = DateTime.UtcNow;
 
-        if (course.Modules.Count != units.Count)
+        if (course.Units.Count != units.Count)
         {
-            var oldAssessments = await dbContext.CourseAssessments
-                .Where(assessment => assessment.CourseId == definition.Id)
+            var oldExams = await dbContext.CourseExams
+                .Where(exam => exam.CourseId == definition.Id)
                 .ToListAsync();
-            dbContext.CourseAssessments.RemoveRange(oldAssessments);
-            var oldCheckpoints = await dbContext.CourseCheckpointDefinitions
-                .Where(checkpoint => checkpoint.CourseId == definition.Id)
+            dbContext.CourseExams.RemoveRange(oldExams);
+            var oldUnitExams = await dbContext.CourseUnitExamDefinitions
+                .Where(unitExam => unitExam.CourseId == definition.Id)
                 .ToListAsync();
-            dbContext.CourseCheckpointDefinitions.RemoveRange(oldCheckpoints);
-            dbContext.Modules.RemoveRange(course.Modules);
+            dbContext.CourseUnitExamDefinitions.RemoveRange(oldUnitExams);
+            dbContext.Units.RemoveRange(course.Units);
             await dbContext.SaveChangesAsync();
 
             foreach (var unitDefinition in units)
             {
-                var unit = new Module
+                var unit = new Unit
                 {
                     CourseId = definition.Id,
                     Title = unitDefinition.Title,
                     OrderIndex = unitDefinition.OrderIndex
                 };
-                dbContext.Modules.Add(unit);
+                dbContext.Units.Add(unit);
 
                 foreach (var lessonDefinition in unitDefinition.Lessons)
                 {
                     unit.Lessons.Add(new Lesson
                     {
-                        ModuleId = unit.Id,
+                        UnitId = unit.Id,
                         Title = lessonDefinition.Title,
                         ContentType = "Text",
                         TextContent = lessonDefinition.TextContent,
@@ -401,20 +401,20 @@ public static class AdditionalCourseSeed
 
         if (existingFinal is not null)
         {
-            dbContext.CourseAssessments.Remove(existingFinal);
+            dbContext.CourseExams.Remove(existingFinal);
         }
 
-        var finalAssessment = new CourseAssessment
+        var finalExam = new CourseExam
         {
             CourseId = definition.Id,
             Title = definition.FinalExamTitle,
             PassPercent = definition.PassPercent,
             IsRequired = true
         };
-        dbContext.CourseAssessments.Add(finalAssessment);
-        foreach (var question in definition.FinalQuestions.Select((item, index) => new AssessmentQuestion
+        dbContext.CourseExams.Add(finalExam);
+        foreach (var question in definition.FinalQuestions.Select((item, index) => new ExamQuestion
         {
-            CourseAssessmentId = finalAssessment.Id,
+            CourseExamId = finalExam.Id,
             Prompt = item.Prompt,
             OptionA = item.OptionA,
             OptionB = item.OptionB,
@@ -424,7 +424,7 @@ public static class AdditionalCourseSeed
             OrderIndex = index + 1
         }))
         {
-            dbContext.AssessmentQuestions.Add(question);
+            dbContext.ExamQuestions.Add(question);
         }
 
         await dbContext.SaveChangesAsync();

@@ -288,7 +288,7 @@ public sealed class PolicyDisclosureService : IPolicyDisclosureService
         text.AppendLine("Student proctoring fee: $0.00 (included, when proctoring applies)");
         text.AppendLine();
         text.AppendLine("COURSE MATERIALS");
-        text.AppendLine("Required lessons, assignments, assessments, and provider-supplied references are delivered through the learning management system. Any additional mandatory material must be identified in the course catalog before enrollment.");
+        text.AppendLine("Required lessons, assignments, exams, and provider-supplied references are delivered through the learning management system. Any additional mandatory material must be identified in the course catalog before enrollment.");
         text.AppendLine();
         text.AppendLine("ATTENDANCE AND COURSE COMPLETION");
         if (isContinuingEducation)
@@ -298,7 +298,7 @@ public sealed class PolicyDisclosureService : IPolicyDisclosureService
         }
         else
         {
-            text.AppendLine($"The student must complete all required course work and assessments, satisfy the applicable attendance requirement, and pass the closed-book end-of-course examination with a minimum score of {course.MinimumPassingPercent:0.##}% within {completionWindow}.");
+            text.AppendLine($"The student must complete all required course work and exams, satisfy the applicable attendance requirement, and pass the closed-book end-of-course examination with a minimum score of {course.MinimumPassingPercent:0.##}% within {completionWindow}.");
             text.AppendLine("An end-of-course examination will not be administered until the student satisfies the applicable attendance and course-work requirements. Identity verification and the configured proctoring controls are required. Unauthorized materials and electronic assistance are prohibited.");
             text.AppendLine($"Failed examination policy: {retakePolicy}");
             text.AppendLine($"This is {schoolProfile.AdvertisedName}'s provider policy and is not represented as a Commission-mandated retake count.");

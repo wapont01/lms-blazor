@@ -8,9 +8,9 @@ The project should use one shared online-learning platform for both Florida and 
 
 ## Shared LMS structure
 - Course
-- Module
+- Unit
 - Lesson
-- Assessment
+- Exam
 - Enrollment
 - Completion record
 - Attendance/progress record
@@ -20,8 +20,8 @@ The project should use one shared online-learning platform for both Florida and 
 
 ## Florida-specific distance-learning rules
 - Distance education is the primary delivery model.
-- Students must complete all required lessons, assignments, and assessments personally.
-- Identity verification and secure assessment practices are required.
+- Students must complete all required lessons, assignments, and exams personally.
+- Identity verification and secure exam practices are required.
 - Course completion must meet the applicable Florida rule requirements for the student track.
 - School and instructor permissions must be valid for the course being taught.
 - Course records for attendance, completion, fees, and enrollment must be retained.
@@ -38,7 +38,7 @@ The project should use one shared online-learning platform for both Florida and 
 - School permit holder
 - Instructor permit holder
 
-## Florida compliance checkpoints
+## Florida compliance unit exams
 - Confirm valid license category before enrollment.
 - Confirm course type matches the learner's status.
 - Confirm provider and instructor are properly permitted.

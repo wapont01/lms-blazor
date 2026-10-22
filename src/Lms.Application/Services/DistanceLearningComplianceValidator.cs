@@ -41,7 +41,7 @@ public static class DistanceLearningComplianceValidator
             errors.Add("A positive minimum passing score is required.");
         }
 
-        var lessons = course.Modules.SelectMany(module => module.Lessons).ToList();
+        var lessons = course.Units.SelectMany(unit => unit.Lessons).ToList();
         if (lessons.Count == 0)
         {
             errors.Add("At least one required lesson is needed before the course can be published.");

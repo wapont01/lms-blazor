@@ -68,7 +68,7 @@ builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IUserAccountService, UserAccountService>();
-builder.Services.AddScoped<IAssessmentService, AssessmentService>();
+builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<IDueDateReminderService, DueDateReminderService>();
 builder.Services.AddScoped<IRegulatoryDirectoryService, RegulatoryDirectoryService>();
@@ -76,7 +76,7 @@ builder.Services.AddScoped<IRegulatoryComplianceService, RegulatoryComplianceSer
 builder.Services.AddSingleton<IBackgroundJobMonitor, BackgroundJobMonitor>();
 builder.Services.AddHostedService<DueDateReminderBackgroundService>();
 builder.Services.AddScoped<ILearnerDashboardService, LearnerDashboardService>();
-builder.Services.AddScoped<IModuleCheckpointService, ModuleCheckpointService>();
+builder.Services.AddScoped<IUnitExamService, UnitExamService>();
 builder.Services.AddScoped<ICourseActivityService, CourseActivityService>();
 builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
 builder.Services.AddScoped<IPolicyDisclosureService, PolicyDisclosureService>();

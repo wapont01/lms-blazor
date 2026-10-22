@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
@@ -8,11 +8,11 @@ using Xunit;
 
 namespace Lms.Web.UITests.Tests;
 
-public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
+public sealed class ExamOutcomesUiTests : IClassFixture<WebHostFixture>
 {
     private readonly WebHostFixture _fixture;
 
-    public AssessmentOutcomesUiTests(WebHostFixture fixture)
+    public ExamOutcomesUiTests(WebHostFixture fixture)
     {
         _fixture = fixture;
     }
@@ -44,11 +44,11 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         var page = await context.NewPageAsync();
 
         await LoginAsync(page, "admin@wlr.com", "Admin123!");
-        await page.GotoAsync($"{_fixture.BaseUrl}/admin/assessments");
+        await page.GotoAsync($"{_fixture.BaseUrl}/admin/exams");
 
-        var editor = page.Locator("section.card").Filter(new LocatorFilterOptions { HasTextString = "Assessment Editor" });
-        await ExpectVisibleWithReloadAsync(page, editor.GetByRole(AriaRole.Button, new() { Name = "Load Assessment" }));
-        await editor.GetByRole(AriaRole.Button, new() { Name = "Load Assessment" }).ClickAsync();
+        var editor = page.Locator("section.card").Filter(new LocatorFilterOptions { HasTextString = "Exam Editor" });
+        await ExpectVisibleWithReloadAsync(page, editor.GetByRole(AriaRole.Button, new() { Name = "Load Exam" }));
+        await editor.GetByRole(AriaRole.Button, new() { Name = "Load Exam" }).ClickAsync();
 
         var grantLearnerSelect = editor.Locator("h3:has-text('Grant Retake Attempts') + .form-row select").First;
 
@@ -78,7 +78,7 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
     }
 
     [UiFact]
-    public async Task Broker_Page_Renders_AssessmentBlockedSection()
+    public async Task Broker_Page_Renders_ExamBlockedSection()
     {
         await using var context = await _fixture.CreateBrowserContextAsync();
         var page = await context.NewPageAsync();
@@ -86,7 +86,7 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         await LoginAsync(page, "william.broker@wlr.com", "Broker123!");
         await page.GotoAsync($"{_fixture.BaseUrl}/broker/blocked");
 
-        await ExpectTextAsync(page, "Assessment-Blocked Learners");
+        await ExpectTextAsync(page, "Exam-Blocked Learners");
     }
 
     [UiFact]
@@ -237,7 +237,7 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
     }
 
     [UiFact]
-    public async Task Learner_CourseDetail_Shows_AssessmentGate_And_Submit()
+    public async Task Learner_CourseDetail_Shows_ExamGate_And_Submit()
     {
         await using var context = await _fixture.CreateBrowserContextAsync();
         var page = await context.NewPageAsync();
@@ -248,12 +248,12 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
         var firstCourseLink = page.GetByRole(AriaRole.Link, new() { Name = "Open" }).First;
         await firstCourseLink.ClickAsync();
 
-        await ExpectTextAsync(page, "Assessment Gate");
+        await ExpectTextAsync(page, "Exam Gate");
 
-        var submitAssessmentVisible = await page.GetByText("Submit Assessment", new() { Exact = false }).IsVisibleAsync();
+        var submitExamVisible = await page.GetByText("Submit Exam", new() { Exact = false }).IsVisibleAsync();
         var gatePassedVisible = await page.GetByText("Passed", new() { Exact = false }).IsVisibleAsync();
         var gatePendingVisible = await page.GetByText("Pending", new() { Exact = false }).IsVisibleAsync();
-        Assert.True(submitAssessmentVisible || gatePassedVisible || gatePendingVisible, "Expected assessment gate to be visible with a valid state.");
+        Assert.True(submitExamVisible || gatePassedVisible || gatePendingVisible, "Expected exam gate to be visible with a valid state.");
     }
 
     [UiFact]
@@ -366,7 +366,7 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
             return;
         }
 
-        var checkpointSubmitButton = page.Locator("section.module-checkpoint button.checkpoint-submit-button");
+        var unitExamSubmitButton = page.Locator("section.unit-exam button.unit-exam-submit-button");
 
         for (var attempt = 0; attempt < 80; attempt++)
         {
@@ -375,9 +375,9 @@ public sealed class AssessmentOutcomesUiTests : IClassFixture<WebHostFixture>
                 break;
             }
 
-            if (await checkpointSubmitButton.IsVisibleAsync() && await checkpointSubmitButton.IsEnabledAsync())
+            if (await unitExamSubmitButton.IsVisibleAsync() && await unitExamSubmitButton.IsEnabledAsync())
             {
-                await checkpointSubmitButton.EvaluateAsync("button => button.click()");
+                await unitExamSubmitButton.EvaluateAsync("button => button.click()");
                 await page.WaitForTimeoutAsync(300);
                 continue;
             }
@@ -575,10 +575,10 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
     }
 
     [UiFact]
-    public async Task Learner_ModuleEndCheckpoints_AppearInOrder_BeforeFinalAssessment()
+    public async Task Learner_UnitExams_AppearInOrder_BeforeFinalExam()
     {
-        var expectation = await ResolveCheckpointFlowExpectationAsync(_fixture.DatabasePath, "william.learner@wlr.com");
-        await ResetLearnerCheckpointAndAssessmentStateAsync(_fixture.DatabasePath, "william.learner@wlr.com", expectation.CourseId);
+        var expectation = await ResolveUnitExamFlowExpectationAsync(_fixture.DatabasePath, "william.learner@wlr.com");
+        await ResetLearnerUnitExamAndExamStateAsync(_fixture.DatabasePath, "william.learner@wlr.com", expectation.CourseId);
 
         await using var context = await _fixture.CreateBrowserContextAsync();
         var page = await context.NewPageAsync();
@@ -586,8 +586,8 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
         await LoginAsync(page, "william.learner@wlr.com", "Learner123!");
         await page.GotoAsync($"{_fixture.BaseUrl}{expectation.StartLessonPath}");
 
-        var observedCheckpointModules = new List<string>();
-        var sawFinalAssessmentAnnouncement = false;
+        var observedUnitExamUnits = new List<string>();
+        var sawFinalExamAnnouncement = false;
 
         for (var step = 0; step < 220; step++)
         {
@@ -599,24 +599,24 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
                 continue;
             }
 
-            var checkpointSubmitButton = page.Locator("section.module-checkpoint button.checkpoint-submit-button");
-            if (await checkpointSubmitButton.IsVisibleAsync() && await checkpointSubmitButton.IsEnabledAsync())
+            var unitExamSubmitButton = page.Locator("section.unit-exam button.unit-exam-submit-button");
+            if (await unitExamSubmitButton.IsVisibleAsync() && await unitExamSubmitButton.IsEnabledAsync())
             {
-                var moduleTitle = await page.Locator(".course-summary-strip .summary-chip strong").First.InnerTextAsync();
-                var normalizedModuleTitle = moduleTitle.Trim();
-                if (observedCheckpointModules.Count == 0 || !string.Equals(observedCheckpointModules[^1], normalizedModuleTitle, StringComparison.OrdinalIgnoreCase))
+                var unitTitle = await page.Locator(".course-summary-strip .summary-chip strong").First.InnerTextAsync();
+                var normalizedUnitTitle = unitTitle.Trim();
+                if (observedUnitExamUnits.Count == 0 || !string.Equals(observedUnitExamUnits[^1], normalizedUnitTitle, StringComparison.OrdinalIgnoreCase))
                 {
-                    observedCheckpointModules.Add(normalizedModuleTitle);
+                    observedUnitExamUnits.Add(normalizedUnitTitle);
                 }
-                await checkpointSubmitButton.EvaluateAsync("button => button.click()");
+                await unitExamSubmitButton.EvaluateAsync("button => button.click()");
                 await page.WaitForTimeoutAsync(250);
                 continue;
             }
 
-            var finalAssessmentGate = page.Locator("section.final-assessment-gate");
-            if (await finalAssessmentGate.IsVisibleAsync())
+            var finalExamGate = page.Locator("section.final-exam-gate");
+            if (await finalExamGate.IsVisibleAsync())
             {
-                sawFinalAssessmentAnnouncement = true;
+                sawFinalExamAnnouncement = true;
                 break;
             }
 
@@ -630,8 +630,8 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
             await page.WaitForTimeoutAsync(200);
         }
 
-        Assert.Equal(expectation.ExpectedCheckpointModules, observedCheckpointModules);
-        Assert.True(sawFinalAssessmentAnnouncement, "Final assessment announcement should appear after the last module checkpoint is passed.");
+        Assert.Equal(expectation.ExpectedUnitExamUnits, observedUnitExamUnits);
+        Assert.True(sawFinalExamAnnouncement, "Final exam announcement should appear after the last unit exam is passed.");
     }
 
     [UiFact]
@@ -640,7 +640,7 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
         var (courseId, lessonPath) = await ResolveLearnerCourseAndLessonPathAsync(_fixture.DatabasePath, "william.learner@wlr.com");
         // Clear grants left by other tests so the seeded failures actually block access.
         await ClearRetakeGrantsAsync(_fixture.DatabasePath, "william.learner@wlr.com", courseId);
-        await SeedFailedAssessmentAttemptsAsync(_fixture.DatabasePath, "william.learner@wlr.com", courseId, attempts: 2);
+        await SeedFailedExamAttemptsAsync(_fixture.DatabasePath, "william.learner@wlr.com", courseId, attempts: 2);
 
         await using var learnerContext = await _fixture.CreateBrowserContextAsync();
         var learnerPage = await learnerContext.NewPageAsync();
@@ -669,7 +669,7 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
         await GrantRetakeAttemptsAsync(_fixture.DatabasePath, "william.learner@wlr.com", "admin@wlr.com", courseId, grantedAttempts: 1);
 
         await learnerPage.GotoAsync($"{_fixture.BaseUrl}/courses/{courseId}");
-        var failureOverview = learnerPage.Locator("section.assessment-failure-banner p");
+        var failureOverview = learnerPage.Locator("section.exam-failure-banner p");
         var failureOverviewVisible = await failureOverview.IsVisibleAsync();
         var failureOverviewText = failureOverviewVisible
             ? (await failureOverview.InnerTextAsync()).Trim()
@@ -754,12 +754,12 @@ WHERE UserAccountId = $userId
             lessonsCommand.CommandText = @"
 SELECT L.Id, L.Title, L.OrderIndex, M.Id, M.Title, M.OrderIndex
 FROM Lessons L
-INNER JOIN Modules M ON M.Id = L.ModuleId
+INNER JOIN Units M ON M.Id = L.UnitId
 WHERE M.CourseId = $courseId
 ORDER BY M.OrderIndex, L.OrderIndex";
             lessonsCommand.Parameters.AddWithValue("$courseId", enrolledCourseId);
 
-            var courseLessons = new List<(string LessonId, string LessonTitle, int LessonOrder, string ModuleId, string ModuleTitle, int ModuleOrder)>();
+            var courseLessons = new List<(string LessonId, string LessonTitle, int LessonOrder, string UnitId, string UnitTitle, int UnitOrder)>();
             await using (var lessonReader = await lessonsCommand.ExecuteReaderAsync())
             {
                 while (await lessonReader.ReadAsync())
@@ -774,25 +774,25 @@ ORDER BY M.OrderIndex, L.OrderIndex";
                 }
             }
 
-            var moduleGroups = courseLessons
-                .GroupBy(lesson => new { lesson.ModuleId, lesson.ModuleTitle, lesson.ModuleOrder })
-                .OrderBy(group => group.Key.ModuleOrder)
+            var unitGroups = courseLessons
+                .GroupBy(lesson => new { lesson.UnitId, lesson.UnitTitle, lesson.UnitOrder })
+                .OrderBy(group => group.Key.UnitOrder)
                 .ToList();
 
-            var firstModule = moduleGroups.FirstOrDefault();
-            var firstModuleFirstLessonTitle = firstModule?
+            var firstUnit = unitGroups.FirstOrDefault();
+            var firstUnitFirstLessonTitle = firstUnit?
                 .OrderBy(lesson => lesson.LessonOrder)
                 .Select(lesson => lesson.LessonTitle)
                 .FirstOrDefault();
 
-            var firstModuleLooksLikeIntro = string.IsNullOrWhiteSpace(firstModuleFirstLessonTitle)
-                || firstModuleFirstLessonTitle.Contains("welcome", StringComparison.OrdinalIgnoreCase)
-                || firstModuleFirstLessonTitle.Contains("instructor", StringComparison.OrdinalIgnoreCase);
+            var firstUnitLooksLikeIntro = string.IsNullOrWhiteSpace(firstUnitFirstLessonTitle)
+                || firstUnitFirstLessonTitle.Contains("welcome", StringComparison.OrdinalIgnoreCase)
+                || firstUnitFirstLessonTitle.Contains("instructor", StringComparison.OrdinalIgnoreCase);
 
             var trackedLessonIds = courseLessons
                 .Where(lesson =>
-                    !string.Equals(lesson.ModuleTitle, "Getting Started", StringComparison.OrdinalIgnoreCase)
-                    && !(firstModuleLooksLikeIntro && firstModule is not null && lesson.ModuleId == firstModule.Key.ModuleId))
+                    !string.Equals(lesson.UnitTitle, "Getting Started", StringComparison.OrdinalIgnoreCase)
+                    && !(firstUnitLooksLikeIntro && firstUnit is not null && lesson.UnitId == firstUnit.Key.UnitId))
                 .Select(lesson => lesson.LessonId)
                 .ToList();
 
@@ -825,7 +825,7 @@ ORDER BY M.OrderIndex, L.OrderIndex";
         throw new InvalidOperationException("No enrolled course has a locked future tracked lesson for progressive unlock verification.");
     }
 
-    private static async Task<CheckpointFlowExpectation> ResolveCheckpointFlowExpectationAsync(string databasePath, string learnerEmail)
+    private static async Task<UnitExamFlowExpectation> ResolveUnitExamFlowExpectationAsync(string databasePath, string learnerEmail)
     {
         await using var connection = new SqliteConnection($"Data Source={databasePath}");
         await connection.OpenAsync();
@@ -836,59 +836,59 @@ ORDER BY M.OrderIndex, L.OrderIndex";
         foreach (var courseId in enrolledCourseIds)
         {
             var lessons = await ResolveCourseLessonsAsync(connection, courseId);
-            var moduleGroups = lessons
-                .GroupBy(lesson => new { lesson.ModuleId, lesson.ModuleTitle, lesson.ModuleOrder })
-                .OrderBy(group => group.Key.ModuleOrder)
+            var unitGroups = lessons
+                .GroupBy(lesson => new { lesson.UnitId, lesson.UnitTitle, lesson.UnitOrder })
+                .OrderBy(group => group.Key.UnitOrder)
                 .ToList();
 
-            if (moduleGroups.Count == 0)
+            if (unitGroups.Count == 0)
             {
                 continue;
             }
 
-            var firstModule = moduleGroups.First();
-            var firstModuleFirstLessonTitle = firstModule
+            var firstUnit = unitGroups.First();
+            var firstUnitFirstLessonTitle = firstUnit
                 .OrderBy(lesson => lesson.LessonOrder)
                 .Select(lesson => lesson.LessonTitle)
                 .FirstOrDefault();
 
-            var firstModuleLooksLikeIntro = string.IsNullOrWhiteSpace(firstModuleFirstLessonTitle)
-                || firstModuleFirstLessonTitle.Contains("welcome", StringComparison.OrdinalIgnoreCase)
-                || firstModuleFirstLessonTitle.Contains("instructor", StringComparison.OrdinalIgnoreCase);
+            var firstUnitLooksLikeIntro = string.IsNullOrWhiteSpace(firstUnitFirstLessonTitle)
+                || firstUnitFirstLessonTitle.Contains("welcome", StringComparison.OrdinalIgnoreCase)
+                || firstUnitFirstLessonTitle.Contains("instructor", StringComparison.OrdinalIgnoreCase);
 
-            var trackedModules = moduleGroups
+            var trackedUnits = unitGroups
                 .Where(group =>
-                    !string.Equals(group.Key.ModuleTitle, "Getting Started", StringComparison.OrdinalIgnoreCase)
-                    && !(firstModuleLooksLikeIntro && group.Key.ModuleId == firstModule.Key.ModuleId))
+                    !string.Equals(group.Key.UnitTitle, "Getting Started", StringComparison.OrdinalIgnoreCase)
+                    && !(firstUnitLooksLikeIntro && group.Key.UnitId == firstUnit.Key.UnitId))
                 .Select(group => new
                 {
-                    group.Key.ModuleId,
-                    group.Key.ModuleTitle,
+                    group.Key.UnitId,
+                    group.Key.UnitTitle,
                     Lessons = group.OrderBy(lesson => lesson.LessonOrder).ToList()
                 })
                 .Where(group => group.Lessons.Count > 0)
                 .ToList();
 
-            if (trackedModules.Count == 0)
+            if (trackedUnits.Count == 0)
             {
                 continue;
             }
 
-            var startLessonId = trackedModules[0].Lessons[0].LessonId;
-            var expectedModuleTitles = trackedModules
-                .Select(module => module.ModuleTitle)
+            var startLessonId = trackedUnits[0].Lessons[0].LessonId;
+            var expectedUnitTitles = trackedUnits
+                .Select(unit => unit.UnitTitle)
                 .ToList();
 
-            return new CheckpointFlowExpectation(
+            return new UnitExamFlowExpectation(
                 courseId,
                 $"/courses/{courseId}/lessons/{startLessonId}",
-                expectedModuleTitles);
+                expectedUnitTitles);
         }
 
-        throw new InvalidOperationException("No enrolled course was found with tracked modules for checkpoint flow verification.");
+        throw new InvalidOperationException("No enrolled course was found with tracked units for unit exam flow verification.");
     }
 
-    private static async Task ResetLearnerCheckpointAndAssessmentStateAsync(string databasePath, string learnerEmail, string courseId)
+    private static async Task ResetLearnerUnitExamAndExamStateAsync(string databasePath, string learnerEmail, string courseId)
     {
         await using var connection = new SqliteConnection($"Data Source={databasePath}");
         await connection.OpenAsync();
@@ -901,11 +901,11 @@ ORDER BY M.OrderIndex, L.OrderIndex";
         {
             deleteAnswersCommand.Transaction = transaction;
             deleteAnswersCommand.CommandText = @"
-DELETE FROM AssessmentAnswers
-WHERE AssessmentAttemptId IN (
+DELETE FROM ExamAnswers
+WHERE ExamAttemptId IN (
         SELECT AA.Id
-        FROM AssessmentAttempts AA
-        INNER JOIN CourseAssessments CA ON CA.Id = AA.CourseAssessmentId
+        FROM ExamAttempts AA
+        INNER JOIN CourseExams CA ON CA.Id = AA.CourseExamId
         WHERE AA.UserAccountId = $userId
             AND CA.CourseId = $courseId
 )";
@@ -918,11 +918,11 @@ WHERE AssessmentAttemptId IN (
         {
             deleteAttemptsCommand.Transaction = transaction;
             deleteAttemptsCommand.CommandText = @"
-DELETE FROM AssessmentAttempts
+DELETE FROM ExamAttempts
 WHERE Id IN (
     SELECT AA.Id
-    FROM AssessmentAttempts AA
-    INNER JOIN CourseAssessments CA ON CA.Id = AA.CourseAssessmentId
+    FROM ExamAttempts AA
+    INNER JOIN CourseExams CA ON CA.Id = AA.CourseExamId
     WHERE AA.UserAccountId = $userId
       AND CA.CourseId = $courseId
 )";
@@ -931,16 +931,16 @@ WHERE Id IN (
             await deleteAttemptsCommand.ExecuteNonQueryAsync();
         }
 
-        await using (var deleteCheckpointProgressCommand = connection.CreateCommand())
+        await using (var deleteUnitExamProgressCommand = connection.CreateCommand())
         {
-            deleteCheckpointProgressCommand.Transaction = transaction;
-            deleteCheckpointProgressCommand.CommandText = @"
-DELETE FROM ModuleCheckpointProgresses
+            deleteUnitExamProgressCommand.Transaction = transaction;
+            deleteUnitExamProgressCommand.CommandText = @"
+DELETE FROM UnitExamProgresses
 WHERE UserAccountId = $userId
   AND CourseId = $courseId";
-            deleteCheckpointProgressCommand.Parameters.AddWithValue("$userId", userId);
-            deleteCheckpointProgressCommand.Parameters.AddWithValue("$courseId", courseId);
-            await deleteCheckpointProgressCommand.ExecuteNonQueryAsync();
+            deleteUnitExamProgressCommand.Parameters.AddWithValue("$userId", userId);
+            deleteUnitExamProgressCommand.Parameters.AddWithValue("$courseId", courseId);
+            await deleteUnitExamProgressCommand.ExecuteNonQueryAsync();
         }
 
         await transaction.CommitAsync();
@@ -958,7 +958,7 @@ WHERE UserAccountId = $userId
         {
             var lessons = await ResolveCourseLessonsAsync(connection, courseId);
             var firstEligibleLesson = lessons
-                .OrderBy(lesson => lesson.ModuleOrder)
+                .OrderBy(lesson => lesson.UnitOrder)
                 .ThenBy(lesson => lesson.LessonOrder)
                 .FirstOrDefault();
 
@@ -973,7 +973,7 @@ WHERE UserAccountId = $userId
         throw new InvalidOperationException("No enrolled course contains an eligible lesson path for learner access validation.");
     }
 
-    private static async Task SeedFailedAssessmentAttemptsAsync(string databasePath, string learnerEmail, string courseId, int attempts)
+    private static async Task SeedFailedExamAttemptsAsync(string databasePath, string learnerEmail, string courseId, int attempts)
     {
         if (attempts <= 0)
         {
@@ -985,22 +985,22 @@ WHERE UserAccountId = $userId
 
         var userId = await ResolveUserIdAsync(connection, learnerEmail);
 
-        await using var assessmentCommand = connection.CreateCommand();
-        assessmentCommand.CommandText = @"
+        await using var examCommand = connection.CreateCommand();
+        examCommand.CommandText = @"
 SELECT Id
-FROM CourseAssessments
+FROM CourseExams
 WHERE CourseId = $courseId
   AND IsRequired = 1
 LIMIT 1";
-        assessmentCommand.Parameters.AddWithValue("$courseId", courseId);
+        examCommand.Parameters.AddWithValue("$courseId", courseId);
 
-        var assessmentIdValue = await assessmentCommand.ExecuteScalarAsync();
-        if (assessmentIdValue is null)
+        var examIdValue = await examCommand.ExecuteScalarAsync();
+        if (examIdValue is null)
         {
-            throw new InvalidOperationException($"Unable to resolve required assessment for course '{courseId}'.");
+            throw new InvalidOperationException($"Unable to resolve required exam for course '{courseId}'.");
         }
 
-        var assessmentId = assessmentIdValue.ToString() ?? string.Empty;
+        var examId = examIdValue.ToString() ?? string.Empty;
 
         await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync();
 
@@ -1008,15 +1008,15 @@ LIMIT 1";
         {
             deleteAnswersCommand.Transaction = transaction;
             deleteAnswersCommand.CommandText = @"
-DELETE FROM AssessmentAnswers
-WHERE AssessmentAttemptId IN (
+DELETE FROM ExamAnswers
+WHERE ExamAttemptId IN (
         SELECT AA.Id
-        FROM AssessmentAttempts AA
+        FROM ExamAttempts AA
         WHERE AA.UserAccountId = $userId
-          AND AA.CourseAssessmentId = $assessmentId
+          AND AA.CourseExamId = $examId
 )";
             deleteAnswersCommand.Parameters.AddWithValue("$userId", userId);
-            deleteAnswersCommand.Parameters.AddWithValue("$assessmentId", assessmentId);
+            deleteAnswersCommand.Parameters.AddWithValue("$examId", examId);
             await deleteAnswersCommand.ExecuteNonQueryAsync();
         }
 
@@ -1024,11 +1024,11 @@ WHERE AssessmentAttemptId IN (
         {
             deleteAttemptsCommand.Transaction = transaction;
             deleteAttemptsCommand.CommandText = @"
-DELETE FROM AssessmentAttempts
+DELETE FROM ExamAttempts
 WHERE UserAccountId = $userId
-  AND CourseAssessmentId = $assessmentId";
+  AND CourseExamId = $examId";
             deleteAttemptsCommand.Parameters.AddWithValue("$userId", userId);
-            deleteAttemptsCommand.Parameters.AddWithValue("$assessmentId", assessmentId);
+            deleteAttemptsCommand.Parameters.AddWithValue("$examId", examId);
             await deleteAttemptsCommand.ExecuteNonQueryAsync();
         }
 
@@ -1038,9 +1038,9 @@ WHERE UserAccountId = $userId
             deleteGrantsCommand.CommandText = @"
 DELETE FROM RetakeGrants
 WHERE UserAccountId = $userId
-  AND CourseAssessmentId = $assessmentId";
+  AND CourseExamId = $examId";
             deleteGrantsCommand.Parameters.AddWithValue("$userId", userId);
-            deleteGrantsCommand.Parameters.AddWithValue("$assessmentId", assessmentId);
+            deleteGrantsCommand.Parameters.AddWithValue("$examId", examId);
             await deleteGrantsCommand.ExecuteNonQueryAsync();
         }
 
@@ -1052,9 +1052,9 @@ WHERE UserAccountId = $userId
             await using var insertAttemptCommand = connection.CreateCommand();
             insertAttemptCommand.Transaction = transaction;
             insertAttemptCommand.CommandText = @"
-INSERT INTO AssessmentAttempts (
+INSERT INTO ExamAttempts (
     Id,
-    CourseAssessmentId,
+    CourseExamId,
     UserAccountId,
     StartedAt,
     SubmittedAt,
@@ -1065,7 +1065,7 @@ INSERT INTO AssessmentAttempts (
 )
 VALUES (
     $id,
-    $assessmentId,
+    $examId,
     $userId,
     $startedAt,
     $submittedAt,
@@ -1076,7 +1076,7 @@ VALUES (
 )";
 
             insertAttemptCommand.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
-            insertAttemptCommand.Parameters.AddWithValue("$assessmentId", assessmentId);
+            insertAttemptCommand.Parameters.AddWithValue("$examId", examId);
             insertAttemptCommand.Parameters.AddWithValue("$userId", userId);
             insertAttemptCommand.Parameters.AddWithValue("$startedAt", submittedAt.AddSeconds(-30));
             insertAttemptCommand.Parameters.AddWithValue("$submittedAt", submittedAt);
@@ -1102,7 +1102,7 @@ VALUES (
         deleteCommand.CommandText = @"
 DELETE FROM RetakeGrants
 WHERE UserAccountId = $userId
-  AND CourseAssessmentId IN (SELECT Id FROM CourseAssessments WHERE CourseId = $courseId)";
+  AND CourseExamId IN (SELECT Id FROM CourseExams WHERE CourseId = $courseId)";
         deleteCommand.Parameters.AddWithValue("$userId", userId);
         deleteCommand.Parameters.AddWithValue("$courseId", courseId);
         await deleteCommand.ExecuteNonQueryAsync();
@@ -1121,22 +1121,22 @@ WHERE UserAccountId = $userId
         var learnerUserId = await ResolveUserIdAsync(connection, learnerEmail);
         var adminUserId = await ResolveUserIdAsync(connection, adminEmail);
 
-        await using var assessmentCommand = connection.CreateCommand();
-        assessmentCommand.CommandText = @"
+        await using var examCommand = connection.CreateCommand();
+        examCommand.CommandText = @"
 SELECT Id
-FROM CourseAssessments
+FROM CourseExams
 WHERE CourseId = $courseId
   AND IsRequired = 1
 LIMIT 1";
-        assessmentCommand.Parameters.AddWithValue("$courseId", courseId);
+        examCommand.Parameters.AddWithValue("$courseId", courseId);
 
-        var assessmentIdValue = await assessmentCommand.ExecuteScalarAsync();
-        if (assessmentIdValue is null)
+        var examIdValue = await examCommand.ExecuteScalarAsync();
+        if (examIdValue is null)
         {
-            throw new InvalidOperationException($"Unable to resolve required assessment for course '{courseId}'.");
+            throw new InvalidOperationException($"Unable to resolve required exam for course '{courseId}'.");
         }
 
-        var assessmentId = assessmentIdValue.ToString() ?? string.Empty;
+        var examId = examIdValue.ToString() ?? string.Empty;
 
         await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync();
 
@@ -1146,9 +1146,9 @@ LIMIT 1";
             deleteExistingGrants.CommandText = @"
 DELETE FROM RetakeGrants
 WHERE UserAccountId = $userId
-  AND CourseAssessmentId = $assessmentId";
+  AND CourseExamId = $examId";
             deleteExistingGrants.Parameters.AddWithValue("$userId", learnerUserId);
-            deleteExistingGrants.Parameters.AddWithValue("$assessmentId", assessmentId);
+            deleteExistingGrants.Parameters.AddWithValue("$examId", examId);
             await deleteExistingGrants.ExecuteNonQueryAsync();
         }
 
@@ -1158,7 +1158,7 @@ WHERE UserAccountId = $userId
             insertGrant.CommandText = @"
 INSERT INTO RetakeGrants (
     Id,
-    CourseAssessmentId,
+    CourseExamId,
     UserAccountId,
     GrantedAttempts,
     GrantedAt,
@@ -1166,14 +1166,14 @@ INSERT INTO RetakeGrants (
 )
 VALUES (
     $id,
-    $assessmentId,
+    $examId,
     $userId,
     $grantedAttempts,
     $grantedAt,
     $grantedByAdminId
 )";
             insertGrant.Parameters.AddWithValue("$id", Guid.NewGuid().ToString());
-            insertGrant.Parameters.AddWithValue("$assessmentId", assessmentId);
+            insertGrant.Parameters.AddWithValue("$examId", examId);
             insertGrant.Parameters.AddWithValue("$userId", learnerUserId);
             insertGrant.Parameters.AddWithValue("$grantedAttempts", grantedAttempts);
             insertGrant.Parameters.AddWithValue("$grantedAt", DateTime.UtcNow);
@@ -1361,18 +1361,18 @@ ORDER BY EnrolledAt DESC";
         return enrolledCourseIds;
     }
 
-    private static async Task<List<(string LessonId, string LessonTitle, int LessonOrder, string ModuleId, string ModuleTitle, int ModuleOrder)>> ResolveCourseLessonsAsync(SqliteConnection connection, string courseId)
+    private static async Task<List<(string LessonId, string LessonTitle, int LessonOrder, string UnitId, string UnitTitle, int UnitOrder)>> ResolveCourseLessonsAsync(SqliteConnection connection, string courseId)
     {
         await using var lessonsCommand = connection.CreateCommand();
         lessonsCommand.CommandText = @"
 SELECT L.Id, L.Title, L.OrderIndex, M.Id, M.Title, M.OrderIndex
 FROM Lessons L
-INNER JOIN Modules M ON M.Id = L.ModuleId
+INNER JOIN Units M ON M.Id = L.UnitId
 WHERE M.CourseId = $courseId
 ORDER BY M.OrderIndex, L.OrderIndex";
         lessonsCommand.Parameters.AddWithValue("$courseId", courseId);
 
-        var lessons = new List<(string LessonId, string LessonTitle, int LessonOrder, string ModuleId, string ModuleTitle, int ModuleOrder)>();
+        var lessons = new List<(string LessonId, string LessonTitle, int LessonOrder, string UnitId, string UnitTitle, int UnitOrder)>();
         await using var lessonReader = await lessonsCommand.ExecuteReaderAsync();
         while (await lessonReader.ReadAsync())
         {
@@ -1388,7 +1388,7 @@ ORDER BY M.OrderIndex, L.OrderIndex";
         return lessons;
     }
 
-    private sealed record CheckpointFlowExpectation(string CourseId, string StartLessonPath, List<string> ExpectedCheckpointModules);
+    private sealed record UnitExamFlowExpectation(string CourseId, string StartLessonPath, List<string> ExpectedUnitExamUnits);
 
     private async Task LoginAsync(IPage page, string email, string password)
     {

@@ -7,7 +7,7 @@
 @inject IUserAccountService UserAccountService
 @inject IAuditLogService AuditLogService
 @inject IEnrollmentService EnrollmentService
-@inject IAssessmentService AssessmentService
+@inject IExamService ExamService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Admin</PageTitle>
@@ -25,20 +25,20 @@
 			OnToggleArchive="ToggleArchiveAsync" />
 	}
 
-	@if (IsSectionVisible("assessments"))
+	@if (IsSectionVisible("exams"))
 	{
-		<AdminAssessmentsPanel
-			AssessmentError="@_assessmentError"
-			AssessmentMessage="@_assessmentMessage"
+		<AdminExamsPanel
+			ExamError="@_examError"
+			ExamMessage="@_examMessage"
 			Courses="_courses"
 			Users="_users"
-			AssessmentCourseIdText="@_assessmentCourseIdText"
-			OnAssessmentCourseChanged="OnAssessmentCourseChanged"
-			OnLoadAssessmentEditor="LoadAssessmentEditorAsync"
-			AssessmentEditor="_assessmentEditor"
-			OnAddAssessmentQuestion="AddAssessmentQuestion"
-			OnRemoveAssessmentQuestion="RemoveAssessmentQuestion"
-			OnSaveAssessmentEditor="SaveAssessmentEditorAsync"
+			ExamCourseIdText="@_examCourseIdText"
+			OnExamCourseChanged="OnExamCourseChanged"
+			OnLoadExamEditor="LoadExamEditorAsync"
+			ExamEditor="_examEditor"
+			OnAddExamQuestion="AddExamQuestion"
+			OnRemoveExamQuestion="RemoveExamQuestion"
+			OnSaveExamEditor="SaveExamEditorAsync"
 			OnRetakeLearnerChanged="OnRetakeLearnerChanged"
 			RetakeGrantAttempts="_retakeGrantAttempts"
 			RetakeGrantAttemptsChanged="OnRetakeGrantAttemptsChanged"
@@ -107,11 +107,11 @@
 	private CertificateComplianceSummary _certificateSummary = new(0, 0, 0, 0, 0);
 	private List<CertificateComplianceRow> _certificateRows = new();
 	private readonly Dictionary<Guid, string> _resetPasswords = new();
-	private AssessmentEditorModel? _assessmentEditor;
-	private Guid? _assessmentCourseId;
-	private string _assessmentCourseIdText = string.Empty;
-	private string? _assessmentError;
-	private string? _assessmentMessage;
+	private ExamEditorModel? _examEditor;
+	private Guid? _examCourseId;
+	private string _examCourseIdText = string.Empty;
+	private string? _examError;
+	private string? _examMessage;
 	private Guid? _retakeLearnerId;
 	private int _retakeGrantAttempts = 1;
 	private bool _resetCooldownTimerOnRetakeGrant = true;
@@ -172,7 +172,7 @@
 			"" => "dashboard",
 			"dashboard" => "dashboard",
 			"courses" => "courses",
-			"assessments" => "assessments",
+			"exams" => "exams",
 			"users" => "users",
 			"audit" => "audit",
 			"certificates" => "certificates",
@@ -185,7 +185,7 @@
 		return section switch
 		{
 			"courses" => "Courses",
-			"assessments" => "Assessments",
+			"exams" => "Exams",
 			"users" => "Users",
 			"audit" => "Audit",
 			"certificates" => "Certificates",
@@ -235,51 +235,51 @@
 	{
 		_courses = await CourseService.GetAllAsync();
 
-		if (_courses.Count > 0 && _assessmentCourseId is null)
+		if (_courses.Count > 0 && _examCourseId is null)
 		{
-			_assessmentCourseId = _courses[0].Id;
-			_assessmentCourseIdText = _assessmentCourseId.Value.ToString();
+			_examCourseId = _courses[0].Id;
+			_examCourseIdText = _examCourseId.Value.ToString();
 		}
 	}
 
-	private Task OnAssessmentCourseChanged(ChangeEventArgs args)
+	private Task OnExamCourseChanged(ChangeEventArgs args)
 	{
-		_assessmentCourseIdText = args.Value?.ToString() ?? string.Empty;
-		_assessmentCourseId = Guid.TryParse(_assessmentCourseIdText, out var parsed) ? parsed : null;
-		_assessmentEditor = null;
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examCourseIdText = args.Value?.ToString() ?? string.Empty;
+		_examCourseId = Guid.TryParse(_examCourseIdText, out var parsed) ? parsed : null;
+		_examEditor = null;
+		_examError = null;
+		_examMessage = null;
 		_retakeGrants.Clear();
 		_retakeGrantDraftAttempts.Clear();
 		return Task.CompletedTask;
 	}
 
-	private async Task LoadAssessmentEditorAsync()
+	private async Task LoadExamEditorAsync()
 	{
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examError = null;
+		_examMessage = null;
 
-		if (!_assessmentCourseId.HasValue)
+		if (!_examCourseId.HasValue)
 		{
-			_assessmentError = "Select a course first.";
+			_examError = "Select a course first.";
 			return;
 		}
 
-		_assessmentEditor = await AssessmentService.GetAssessmentEditorAsync(_assessmentCourseId.Value);
-		_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+		_examEditor = await ExamService.GetExamEditorAsync(_examCourseId.Value);
+		_retakeGrants = await ExamService.GetRetakeGrantsAsync(_examCourseId.Value);
 		_retakeGrantDraftAttempts.Clear();
-		_assessmentMessage = _assessmentEditor is null
-			? "No assessment is available for this course."
-			: "Assessment loaded.";
+		_examMessage = _examEditor is null
+			? "No exam is available for this course."
+			: "Exam loaded.";
 	}
 
-	private void AddAssessmentQuestion()
+	private void AddExamQuestion()
 	{
-		_assessmentEditor ??= new AssessmentEditorModel();
+		_examEditor ??= new ExamEditorModel();
 
-		_assessmentEditor.Questions.Add(new AssessmentQuestionEditorItem
+		_examEditor.Questions.Add(new ExamQuestionEditorItem
 		{
-			OrderIndex = _assessmentEditor.Questions.Count + 1,
+			OrderIndex = _examEditor.Questions.Count + 1,
 			CorrectOption = "A",
 			Prompt = "",
 			OptionA = "",
@@ -289,48 +289,48 @@
 		});
 	}
 
-	private void RemoveAssessmentQuestion(int index)
+	private void RemoveExamQuestion(int index)
 	{
-		if (_assessmentEditor is null || index < 0 || index >= _assessmentEditor.Questions.Count)
+		if (_examEditor is null || index < 0 || index >= _examEditor.Questions.Count)
 		{
 			return;
 		}
 
-		_assessmentEditor.Questions.RemoveAt(index);
-		for (var i = 0; i < _assessmentEditor.Questions.Count; i++)
+		_examEditor.Questions.RemoveAt(index);
+		for (var i = 0; i < _examEditor.Questions.Count; i++)
 		{
-			_assessmentEditor.Questions[i].OrderIndex = i + 1;
+			_examEditor.Questions[i].OrderIndex = i + 1;
 		}
 	}
 
-	private async Task SaveAssessmentEditorAsync()
+	private async Task SaveExamEditorAsync()
 	{
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examError = null;
+		_examMessage = null;
 
-		if (!_assessmentCourseId.HasValue || _assessmentEditor is null)
+		if (!_examCourseId.HasValue || _examEditor is null)
 		{
-			_assessmentError = "Load an assessment before saving.";
+			_examError = "Load an exam before saving.";
 			return;
 		}
 
 		if (!_actorUserId.HasValue)
 		{
-			_assessmentError = "Unable to identify the signed in admin account.";
+			_examError = "Unable to identify the signed in admin account.";
 			return;
 		}
 
 		try
 		{
-			await AssessmentService.SaveAssessmentEditorAsync(_assessmentCourseId.Value, _assessmentEditor, _actorUserId.Value, _actorEmail);
-			_assessmentMessage = "Assessment saved. Existing attempts were reset for this course.";
+			await ExamService.SaveExamEditorAsync(_examCourseId.Value, _examEditor, _actorUserId.Value, _actorEmail);
+			_examMessage = "Exam saved. Existing attempts were reset for this course.";
 			await RefreshCertificatesAsync();
 			await RefreshAuditAsync();
-			await LoadAssessmentEditorAsync();
+			await LoadExamEditorAsync();
 		}
 		catch (InvalidOperationException exception)
 		{
-			_assessmentError = exception.Message;
+			_examError = exception.Message;
 		}
 	}
 
@@ -354,34 +354,34 @@
 
 	private async Task GrantRetakeAsync()
 	{
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examError = null;
+		_examMessage = null;
 
-		if (!_assessmentCourseId.HasValue || !_retakeLearnerId.HasValue)
+		if (!_examCourseId.HasValue || !_retakeLearnerId.HasValue)
 		{
-			_assessmentError = "Select both course and learner before granting retake.";
+			_examError = "Select both course and learner before granting retake.";
 			return;
 		}
 
 		if (!_actorUserId.HasValue)
 		{
-			_assessmentError = "Unable to identify the signed in admin account.";
+			_examError = "Unable to identify the signed in admin account.";
 			return;
 		}
 
 		try
 		{
-			await AssessmentService.GrantRetakeAsync(_assessmentCourseId.Value, _retakeLearnerId.Value, Math.Max(_retakeGrantAttempts, 1), _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
-			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			await ExamService.GrantRetakeAsync(_examCourseId.Value, _retakeLearnerId.Value, Math.Max(_retakeGrantAttempts, 1), _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await ExamService.GetRetakeGrantsAsync(_examCourseId.Value);
 			_retakeGrantDraftAttempts.Clear();
-			_assessmentMessage = _resetCooldownTimerOnRetakeGrant
+			_examMessage = _resetCooldownTimerOnRetakeGrant
 				? "Retake attempts granted and cooldown timer reset successfully."
 				: "Retake attempts granted successfully.";
 			await RefreshAuditAsync();
 		}
 		catch (InvalidOperationException exception)
 		{
-			_assessmentError = exception.Message;
+			_examError = exception.Message;
 		}
 	}
 
@@ -403,12 +403,12 @@
 
 	private async Task UpdateRetakeGrantAsync(RetakeGrantView grant)
 	{
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examError = null;
+		_examMessage = null;
 
-		if (!_assessmentCourseId.HasValue || !_actorUserId.HasValue)
+		if (!_examCourseId.HasValue || !_actorUserId.HasValue)
 		{
-			_assessmentError = "Select a course and ensure an admin account is active.";
+			_examError = "Select a course and ensure an admin account is active.";
 			return;
 		}
 
@@ -416,42 +416,42 @@
 
 		try
 		{
-			await AssessmentService.SetRetakeGrantAttemptsAsync(_assessmentCourseId.Value, grant.LearnerUserId, attempts, _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
-			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			await ExamService.SetRetakeGrantAttemptsAsync(_examCourseId.Value, grant.LearnerUserId, attempts, _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await ExamService.GetRetakeGrantsAsync(_examCourseId.Value);
 			_retakeGrantDraftAttempts.Clear();
-			_assessmentMessage = _resetCooldownTimerOnRetakeGrant
+			_examMessage = _resetCooldownTimerOnRetakeGrant
 				? "Retake grant updated and cooldown timer reset."
 				: "Retake grant updated.";
 			await RefreshAuditAsync();
 		}
 		catch (InvalidOperationException exception)
 		{
-			_assessmentError = exception.Message;
+			_examError = exception.Message;
 		}
 	}
 
 	private async Task RevokeRetakeGrantAsync(RetakeGrantView grant)
 	{
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examError = null;
+		_examMessage = null;
 
-		if (!_assessmentCourseId.HasValue || !_actorUserId.HasValue)
+		if (!_examCourseId.HasValue || !_actorUserId.HasValue)
 		{
-			_assessmentError = "Select a course and ensure an admin account is active.";
+			_examError = "Select a course and ensure an admin account is active.";
 			return;
 		}
 
 		try
 		{
-			await AssessmentService.RevokeRetakeGrantAsync(_assessmentCourseId.Value, grant.LearnerUserId, _actorUserId.Value, _actorEmail);
-			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			await ExamService.RevokeRetakeGrantAsync(_examCourseId.Value, grant.LearnerUserId, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await ExamService.GetRetakeGrantsAsync(_examCourseId.Value);
 			_retakeGrantDraftAttempts.Clear();
-			_assessmentMessage = "Retake grant revoked.";
+			_examMessage = "Retake grant revoked.";
 			await RefreshAuditAsync();
 		}
 		catch (InvalidOperationException exception)
 		{
-			_assessmentError = exception.Message;
+			_examError = exception.Message;
 		}
 	}
 

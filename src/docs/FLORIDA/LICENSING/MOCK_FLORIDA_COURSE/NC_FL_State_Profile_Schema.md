@@ -5,11 +5,11 @@ This schema supports a shared LMS engine with different legal rule profiles for 
 
 ## Shared objects
 - Course
-- Module
+- Unit
 - Lesson
 - Enrollment
 - CompletionRecord
-- Assessment
+- Exam
 - Provider
 - Instructor
 - SchedulingGroup
@@ -22,7 +22,7 @@ This schema supports a shared LMS engine with different legal rule profiles for 
 - durationHours
 - requiredForLicensure
 - completionDeadline
-- assessmentType
+- examType
 - providerId
 - instructorId
 - stateCode
@@ -70,7 +70,7 @@ This schema supports a shared LMS engine with different legal rule profiles for 
 - permitRequired: true
 - instructorPermitRequired: true
 - identityVerificationRequired: true
-- proctoringRequired: true for end-of-course assessments
+- proctoringRequired: true for end-of-course exams
 
 ## North Carolina profile example
 - stateCode: NC

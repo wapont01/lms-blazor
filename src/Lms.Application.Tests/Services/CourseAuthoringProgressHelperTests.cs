@@ -15,14 +15,14 @@ public class CourseAuthoringProgressHelperTests
             Description = "",
             Level = "",
             Price = 0m,
-            Modules = new List<Module>()
+            Units = new List<Unit>()
         };
 
         var snapshot = CourseAuthoringProgressHelper.Evaluate(course);
 
         Assert.Equal(0, snapshot.PercentComplete);
         Assert.Contains(snapshot.Items, item => item.Label == "Course title and description are defined" && !item.IsComplete);
-        Assert.Contains(snapshot.Items, item => item.Label == "At least one module exists" && !item.IsComplete);
+        Assert.Contains(snapshot.Items, item => item.Label == "At least one unit exists" && !item.IsComplete);
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public class CourseAuthoringProgressHelperTests
             Description = "A practical course",
             Level = "Intermediate",
             Price = 49m,
-            Modules = new List<Module>
+            Units = new List<Unit>
             {
                 new()
                 {
@@ -51,7 +51,7 @@ public class CourseAuthoringProgressHelperTests
 
         Assert.True(snapshot.PercentComplete >= 60);
         Assert.Contains(snapshot.Items, item => item.Label == "Course title and description are defined" && item.IsComplete);
-        Assert.Contains(snapshot.Items, item => item.Label == "At least one module exists" && item.IsComplete);
+        Assert.Contains(snapshot.Items, item => item.Label == "At least one unit exists" && item.IsComplete);
         Assert.Contains(snapshot.Items, item => item.Label == "At least one lesson exists" && item.IsComplete);
     }
 }

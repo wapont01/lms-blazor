@@ -56,13 +56,13 @@ The FAQ is designed as a self-service support center, not only as a licensing ex
 - Do I need to complete every part of the course?
 - What does seat time mean?
 
-### Assessments and proctoring
+### Exams and proctoring
 
 - Does the final exam need to be proctored?
 - How do I arrange a proctor appointment?
 - What equipment, identification, or environment is required?
-- What happens after a failed exam or assessment?
-- How are assessment results and completion records handled?
+- What happens after a failed exam or exam?
+- How are exam results and completion records handled?
 
 ### Completion and state reporting
 
@@ -148,7 +148,7 @@ Our existing public FAQ already explains the North Carolina path from PB to Brok
 - Supported devices and browsers
 - Course delivery formats
 - Seat time and completion rules
-- Assessment and proctoring instructions
+- Exam and proctoring instructions
 - Course expiration and extension policy
 - State reporting workflow
 - Certificate delivery and verification

@@ -42,7 +42,7 @@ public class NotificationServiceTests
         var otherLearner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "maya.thompson@wlr.com");
 
         await fixture.NotificationService.CreateAsync(learner.Id, "enrollment", "Enrollment updated", "Your enrollment was corrected.");
-        await fixture.NotificationService.CreateAsync(learner.Id, "assessment", "Assessment retake granted", "You have additional attempts.");
+        await fixture.NotificationService.CreateAsync(learner.Id, "exam", "Exam retake granted", "You have additional attempts.");
         await fixture.NotificationService.CreateAsync(otherLearner.Id, "assignment", "Broker assigned", "A broker was assigned to your portfolio.");
 
         var markedCount = await fixture.NotificationService.MarkAllAsReadAsync(learner.Id);

@@ -154,19 +154,19 @@ public class ComplianceReportingServiceTests
         };
         fixture.DbContext.Enrollments.Add(enrollment);
 
-        var assessment = new CourseAssessment
+        var exam = new CourseExam
         {
             CourseId = course.Id,
             Title = "Final",
             PassPercent = 80,
             IsRequired = true
         };
-        fixture.DbContext.CourseAssessments.Add(assessment);
+        fixture.DbContext.CourseExams.Add(exam);
         await fixture.DbContext.SaveChangesAsync();
 
-        fixture.DbContext.AssessmentAttempts.Add(new AssessmentAttempt
+        fixture.DbContext.ExamAttempts.Add(new ExamAttempt
         {
-            CourseAssessmentId = assessment.Id,
+            CourseExamId = exam.Id,
             UserAccountId = learner.Id,
             StartedAt = targetMonthUtc,
             SubmittedAt = targetMonthUtc,

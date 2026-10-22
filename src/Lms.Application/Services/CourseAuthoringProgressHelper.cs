@@ -16,8 +16,8 @@ public static class CourseAuthoringProgressHelper
         {
             new("Course title and description are defined", !string.IsNullOrWhiteSpace(course.Title) && !string.IsNullOrWhiteSpace(course.Description)),
             new("Course level and pricing are set", !string.IsNullOrWhiteSpace(course.Level) && course.Price >= 0m),
-            new("At least one module exists", course.Modules?.Count > 0),
-            new("At least one lesson exists", course.Modules?.Any(module => module.Lessons?.Count > 0) == true)
+            new("At least one unit exists", course.Units?.Count > 0),
+            new("At least one lesson exists", course.Units?.Any(unit => unit.Lessons?.Count > 0) == true)
         };
 
         var completed = items.Count(item => item.IsComplete);

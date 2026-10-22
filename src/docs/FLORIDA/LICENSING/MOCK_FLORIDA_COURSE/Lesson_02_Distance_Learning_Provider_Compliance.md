@@ -24,17 +24,17 @@ Florida real estate schools and instructors are subject to permit and qualificat
 A real estate school must not use false, misleading, or exaggerated advertising. Public statements about courses, affiliations, and instructional services must be based on accurate facts.
 
 ### 4. Recordkeeping and student accountability
-The provider must maintain records for registration, enrollment, attendance, progress, completion, and assessment. A distance-learning platform should be able to verify that a learner completed the assigned work personally and did not simply log in without participating.
+The provider must maintain records for registration, enrollment, attendance, progress, completion, and exam. A distance-learning platform should be able to verify that a learner completed the assigned work personally and did not simply log in without participating.
 
 ### 5. Student completion standards
-In a distance-learning course, proof of attendance and participation is often demonstrated by personal completion of required lessons, assignments, checkpoints, and assessments. Mere log-in activity is not enough when a law or rule requires completion of the work.
+In a distance-learning course, proof of attendance and participation is often demonstrated by personal completion of required lessons, assignments, unit exams, and exams. Mere log-in activity is not enough when a law or rule requires completion of the work.
 
 ## Distance-learning compliance checklist
 A compliant online course should include:
 - secure student login and identity verification;
 - required lesson completion before moving forward;
 - progress tracking and completion records;
-- assessment records and scoring;
+- exam records and scoring;
 - provider and instructor authorization checks;
 - truthful course information and required disclosures;
 - support and communication procedures.

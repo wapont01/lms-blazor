@@ -107,54 +107,54 @@
 	</section>
 
 	<section class="card">
-		<h2>Modules</h2>
+		<h2>Units</h2>
 
 		@if (_editingCourse is null)
 		{
-			<p>Select a course to manage its modules.</p>
+			<p>Select a course to manage its units.</p>
 		}
 		else
 		{
 			<div class="form-field">
-				<label>New module title</label>
-				<InputText @bind-Value="_newModuleTitle" />
+				<label>New unit title</label>
+				<InputText @bind-Value="_newUnitTitle" />
 			</div>
-			<button type="button" @onclick="AddModuleAsync">Add module</button>
+			<button type="button" @onclick="AddUnitAsync">Add unit</button>
 
-			@if (_editingCourse.Modules.Count == 0)
+			@if (_editingCourse.Units.Count == 0)
 			{
-				<p class="muted-text">No modules yet.</p>
+				<p class="muted-text">No units yet.</p>
 			}
 			else
 			{
 				<div class="course-list">
-					@foreach (var module in _editingCourse.Modules.OrderBy(module => module.OrderIndex))
+					@foreach (var unit in _editingCourse.Units.OrderBy(unit => unit.OrderIndex))
 					{
 						<article class="course-item">
 							<div>
-								<h3>@module.OrderIndex. @module.Title</h3>
-								<p>@module.Lessons.Count lessons</p>
+								<h3>@unit.OrderIndex. @unit.Title</h3>
+								<p>@unit.Lessons.Count lessons</p>
 							</div>
-							<button type="button" @onclick="() => BeginEditingModule(module)">Edit module</button>
+							<button type="button" @onclick="() => BeginEditingUnit(unit)">Edit unit</button>
 						</article>
 					}
 				</div>
 			}
 
-			@if (_editingModule is not null)
+			@if (_editingUnit is not null)
 			{
 				<hr />
-				<h3>Edit module</h3>
-				<EditForm Model="_editingModule" OnValidSubmit="SaveModuleAsync">
+				<h3>Edit unit</h3>
+				<EditForm Model="_editingUnit" OnValidSubmit="SaveUnitAsync">
 					<DataAnnotationsValidator />
 					<ValidationSummary />
 					<div class="form-field">
 						<label>Title</label>
-						<InputText @bind-Value="_editingModule.Title" />
+						<InputText @bind-Value="_editingUnit.Title" />
 					</div>
 					<div class="course-actions">
-						<button type="submit">Save module</button>
-						<button type="button" @onclick="ClearModuleSelection">Cancel</button>
+						<button type="submit">Save unit</button>
+						<button type="button" @onclick="ClearUnitSelection">Cancel</button>
 					</div>
 				</EditForm>
 			}
@@ -164,9 +164,9 @@
 	<section class="card">
 		<h2>Lessons</h2>
 
-		@if (_editingModule is null)
+		@if (_editingUnit is null)
 		{
-			<p>Select a module to manage its lessons.</p>
+			<p>Select a unit to manage its lessons.</p>
 		}
 		else
 		{
@@ -192,14 +192,14 @@
 			</div>
 			<button type="button" @onclick="AddLessonAsync">Add lesson</button>
 
-			@if (_editingModule.Lessons.Count == 0)
+			@if (_editingUnit.Lessons.Count == 0)
 			{
 				<p class="muted-text">No lessons yet.</p>
 			}
 			else
 			{
 				<div class="course-list">
-					@foreach (var lesson in _editingModule.Lessons.OrderBy(lesson => lesson.OrderIndex))
+					@foreach (var lesson in _editingUnit.Lessons.OrderBy(lesson => lesson.OrderIndex))
 					{
 						<article class="course-item">
 							<div>
@@ -253,9 +253,9 @@
 @code {
 	private List<Course> _courses = new();
 	private Course? _editingCourse;
-	private Module? _editingModule;
+	private Unit? _editingUnit;
 	private Lesson? _editingLesson;
-	private string _newModuleTitle = string.Empty;
+	private string _newUnitTitle = string.Empty;
 	private string _newLessonTitle = string.Empty;
 	private string? _newLessonText;
 	private int _newLessonDurationMinutes;
@@ -269,7 +269,7 @@
 	private void BeginEditing(Course course)
 	{
 		_editingCourse = CloneCourse(course);
-		ClearModuleSelection();
+		ClearUnitSelection();
 		ClearLessonSelection();
 	}
 
@@ -297,7 +297,7 @@
 	private void ClearSelection()
 	{
 		_editingCourse = null;
-		ClearModuleSelection();
+		ClearUnitSelection();
 		ClearLessonSelection();
 	}
 
@@ -312,54 +312,54 @@
 		}
 	}
 
-	private async Task AddModuleAsync()
+	private async Task AddUnitAsync()
 	{
-		if (_editingCourse is null || string.IsNullOrWhiteSpace(_newModuleTitle))
+		if (_editingCourse is null || string.IsNullOrWhiteSpace(_newUnitTitle))
 		{
 			return;
 		}
 
-		await CourseService.AddModuleAsync(_editingCourse.Id, new Module
+		await CourseService.AddUnitAsync(_editingCourse.Id, new Unit
 		{
-			Title = _newModuleTitle.Trim()
+			Title = _newUnitTitle.Trim()
 		});
 
-		_newModuleTitle = string.Empty;
+		_newUnitTitle = string.Empty;
 		await ReloadSelectedCourseAsync();
 	}
 
-	private void BeginEditingModule(Module module)
+	private void BeginEditingUnit(Unit unit)
 	{
-		_editingModule = CloneModule(module);
+		_editingUnit = CloneUnit(unit);
 		ClearLessonSelection();
 	}
 
-	private async Task SaveModuleAsync()
+	private async Task SaveUnitAsync()
 	{
-		if (_editingModule is null)
+		if (_editingUnit is null)
 		{
 			return;
 		}
 
-		await CourseService.UpdateModuleAsync(_editingModule);
+		await CourseService.UpdateUnitAsync(_editingUnit);
 		await ReloadSelectedCourseAsync();
-		BeginEditingModule(_editingCourse!.Modules.First(module => module.Id == _editingModule.Id));
+		BeginEditingUnit(_editingCourse!.Units.First(unit => unit.Id == _editingUnit.Id));
 	}
 
-	private void ClearModuleSelection()
+	private void ClearUnitSelection()
 	{
-		_editingModule = null;
-		_newModuleTitle = string.Empty;
+		_editingUnit = null;
+		_newUnitTitle = string.Empty;
 	}
 
 	private async Task AddLessonAsync()
 	{
-		if (_editingModule is null || string.IsNullOrWhiteSpace(_newLessonTitle))
+		if (_editingUnit is null || string.IsNullOrWhiteSpace(_newLessonTitle))
 		{
 			return;
 		}
 
-		await CourseService.AddLessonAsync(_editingModule.Id, new Lesson
+		await CourseService.AddLessonAsync(_editingUnit.Id, new Lesson
 		{
 			Title = _newLessonTitle.Trim(),
 			TextContent = _newLessonText,
@@ -374,8 +374,8 @@
 		await ReloadSelectedCourseAsync();
 		if (_editingCourse is not null)
 		{
-			var refreshedModule = _editingCourse.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
-			_editingModule = refreshedModule is null ? null : CloneModule(refreshedModule);
+			var refreshedUnit = _editingCourse.Units.FirstOrDefault(unit => unit.Id == _editingUnit.Id);
+			_editingUnit = refreshedUnit is null ? null : CloneUnit(refreshedUnit);
 		}
 	}
 
@@ -393,14 +393,14 @@
 
 		await CourseService.UpdateLessonAsync(_editingLesson);
 		await ReloadSelectedCourseAsync();
-		if (_editingModule is not null)
+		if (_editingUnit is not null)
 		{
-			var refreshedModule = _editingCourse?.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
-			_editingModule = refreshedModule is null ? null : CloneModule(refreshedModule);
+			var refreshedUnit = _editingCourse?.Units.FirstOrDefault(unit => unit.Id == _editingUnit.Id);
+			_editingUnit = refreshedUnit is null ? null : CloneUnit(refreshedUnit);
 		}
-		if (_editingModule is not null)
+		if (_editingUnit is not null)
 		{
-			var refreshedLesson = _editingModule.Lessons.FirstOrDefault(lesson => lesson.Id == _editingLesson.Id);
+			var refreshedLesson = _editingUnit.Lessons.FirstOrDefault(lesson => lesson.Id == _editingLesson.Id);
 			_editingLesson = refreshedLesson is null ? null : CloneLesson(refreshedLesson);
 		}
 	}
@@ -442,22 +442,22 @@
 			IsArchived = course.IsArchived,
 			CreatedAt = course.CreatedAt,
 			UpdatedAt = course.UpdatedAt,
-			Modules = course.Modules
-				.OrderBy(module => module.OrderIndex)
-				.Select(CloneModule)
+			Units = course.Units
+				.OrderBy(unit => unit.OrderIndex)
+				.Select(CloneUnit)
 				.ToList()
 		};
 	}
 
-	private static Module CloneModule(Module module)
+	private static Unit CloneUnit(Unit unit)
 	{
-		return new Module
+		return new Unit
 		{
-			Id = module.Id,
-			CourseId = module.CourseId,
-			Title = module.Title,
-			OrderIndex = module.OrderIndex,
-			Lessons = module.Lessons
+			Id = unit.Id,
+			CourseId = unit.CourseId,
+			Title = unit.Title,
+			OrderIndex = unit.OrderIndex,
+			Lessons = unit.Lessons
 				.OrderBy(lesson => lesson.OrderIndex)
 				.Select(CloneLesson)
 				.ToList()
@@ -469,7 +469,7 @@
 		return new Lesson
 		{
 			Id = lesson.Id,
-			ModuleId = lesson.ModuleId,
+			UnitId = lesson.UnitId,
 			Title = lesson.Title,
 			ContentType = lesson.ContentType,
 			ContentUrl = lesson.ContentUrl,

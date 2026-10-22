@@ -1,8 +1,8 @@
-# Assessment Outcomes Milestone Release Checklist
+# Exam Outcomes Milestone Release Checklist
 
 ## Scope Included
 
-- Retake policy controls per required assessment:
+- Retake policy controls per required exam:
   - Max retakes per learner
   - Cooldown minutes between attempts
 - Learner outcomes loop:
@@ -13,7 +13,7 @@
   - Edit grant attempts
   - Revoke grants
 - Broker visibility:
-  - Assessment-blocked learners dashboard section
+  - Exam-blocked learners dashboard section
 
 ## Pre-Release Validation
 
@@ -23,21 +23,21 @@
    - Stop running app process first on Windows to avoid locked DLLs
    - `dotnet build src/Lms.Web/Lms.Web.csproj`
 3. Manual smoke checks:
-   - Login as Admin and verify in Assessment Editor:
+   - Login as Admin and verify in Exam Editor:
      - Grant retake
      - Update existing grant
      - Revoke grant
-   - Login as Broker and verify "Assessment-Blocked Learners" renders
-   - Login as Learner and verify assessment gate + submit UI renders on enrolled course detail page
+   - Login as Broker and verify "Exam-Blocked Learners" renders
+   - Login as Learner and verify exam gate + submit UI renders on enrolled course detail page
 
 ## Data/Schema Expectations
 
 - Required tables/columns exist:
-  - `CourseAssessments.MaxRetakesPerLearner`
-  - `CourseAssessments.RetakeCooldownMinutes`
-  - `AssessmentQuestions.FeedbackText`
-  - `AssessmentAttempts.AttemptNumber`
-  - `AssessmentAttempts.FeedbackSummary`
+  - `CourseExams.MaxRetakesPerLearner`
+  - `CourseExams.RetakeCooldownMinutes`
+  - `ExamQuestions.FeedbackText`
+  - `ExamAttempts.AttemptNumber`
+  - `ExamAttempts.FeedbackSummary`
   - `RetakeGrants`
 - Startup schema bootstrap should be idempotent in `src/Lms.Web/Program.cs`
 
@@ -45,10 +45,10 @@
 
 Verify these events appear when actions are performed:
 
-- `assessment.retake.granted`
-- `assessment.retake.updated`
-- `assessment.retake.revoked`
-- `assessment.updated` (when admin saves assessment content)
+- `exam.retake.granted`
+- `exam.retake.updated`
+- `exam.retake.revoked`
+- `exam.updated` (when admin saves exam content)
 
 ## Known Operational Notes
 

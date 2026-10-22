@@ -18,7 +18,7 @@ public class LearnerDashboardServiceTests
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Dashboard Completion Course");
 
-        await fixture.PassAssessmentAsync(seed.CourseId, learner.Id);
+        await fixture.PassExamAsync(seed.CourseId, learner.Id);
         await fixture.CompleteAllRequiredLessonsAsync(learner.Id, seed.RequiredLessonIds);
 
         var dashboard = await fixture.LearnerDashboardService.GetDashboardAsync(admin.Id, isAdminViewer: true, learner.Id);
@@ -108,7 +108,7 @@ public class LearnerDashboardServiceTests
         public ApplicationDbContext DbContext { get; }
         public IUserAccountService UserAccountService { get; }
         public IEnrollmentService EnrollmentService { get; }
-        public IAssessmentService AssessmentService { get; }
+        public IExamService ExamService { get; }
         public ILearnerDashboardService LearnerDashboardService { get; }
 
         private TestFixture(
@@ -116,14 +116,14 @@ public class LearnerDashboardServiceTests
             ApplicationDbContext dbContext,
             IUserAccountService userAccountService,
             IEnrollmentService enrollmentService,
-            IAssessmentService assessmentService,
+            IExamService examService,
             ILearnerDashboardService learnerDashboardService)
         {
             _connection = connection;
             DbContext = dbContext;
             UserAccountService = userAccountService;
             EnrollmentService = enrollmentService;
-            AssessmentService = assessmentService;
+            ExamService = examService;
             LearnerDashboardService = learnerDashboardService;
         }
 
@@ -143,11 +143,11 @@ public class LearnerDashboardServiceTests
             var userAccountService = new UserAccountService(dbContext, auditLogService);
             await userAccountService.EnsureSeedUsersAsync();
 
-            var assessmentService = new AssessmentService(dbContext, auditLogService);
-            var enrollmentService = new EnrollmentService(dbContext, auditLogService, assessmentService, new SchoolProfileService(dbContext, auditLogService));
-            var learnerDashboardService = new LearnerDashboardService(enrollmentService, assessmentService, userAccountService);
+            var examService = new ExamService(dbContext, auditLogService);
+            var enrollmentService = new EnrollmentService(dbContext, auditLogService, examService, new SchoolProfileService(dbContext, auditLogService));
+            var learnerDashboardService = new LearnerDashboardService(enrollmentService, examService, userAccountService);
 
-            return new TestFixture(connection, dbContext, userAccountService, enrollmentService, assessmentService, learnerDashboardService);
+            return new TestFixture(connection, dbContext, userAccountService, enrollmentService, examService, learnerDashboardService);
         }
 
         public async Task<(Guid CourseId, List<Guid> RequiredLessonIds)> CreateCourseGraphWithEnrollmentAsync(Guid learnerId, string title)
@@ -166,18 +166,18 @@ public class LearnerDashboardServiceTests
 
             DbContext.Courses.Add(course);
 
-            var module = new Module
+            var unit = new Unit
             {
                 Course = course,
-                Title = "Module 1",
+                Title = "Unit 1",
                 OrderIndex = 1
             };
 
-            DbContext.Modules.Add(module);
+            DbContext.Units.Add(unit);
 
             var lessonA = new Lesson
             {
-                Module = module,
+                Unit = unit,
                 Title = "Lesson A",
                 ContentType = "Text",
                 TextContent = "A",
@@ -188,7 +188,7 @@ public class LearnerDashboardServiceTests
 
             var lessonB = new Lesson
             {
-                Module = module,
+                Unit = unit,
                 Title = "Lesson B",
                 ContentType = "Text",
                 TextContent = "B",
@@ -210,7 +210,7 @@ public class LearnerDashboardServiceTests
             });
 
             await DbContext.SaveChangesAsync();
-            await AssessmentService.EnsureDefaultAssessmentForCourseAsync(course.Id);
+            await ExamService.EnsureDefaultExamForCourseAsync(course.Id);
 
             return (course.Id, [lessonA.Id, lessonB.Id]);
         }
@@ -223,16 +223,16 @@ public class LearnerDashboardServiceTests
             }
         }
 
-        public async Task PassAssessmentAsync(Guid courseId, Guid learnerId)
+        public async Task PassExamAsync(Guid courseId, Guid learnerId)
         {
-            await AssessmentService.EnsureDefaultAssessmentForCourseAsync(courseId);
+            await ExamService.EnsureDefaultExamForCourseAsync(courseId);
 
-            var assessment = await DbContext.CourseAssessments
+            var exam = await DbContext.CourseExams
                 .Include(existing => existing.Questions)
                 .FirstAsync(existing => existing.CourseId == courseId && existing.IsRequired);
 
-            var answers = assessment.Questions.ToDictionary(question => question.Id, question => question.CorrectOption);
-            await AssessmentService.SubmitAttemptAsync(courseId, learnerId, answers);
+            var answers = exam.Questions.ToDictionary(question => question.Id, question => question.CorrectOption);
+            await ExamService.SubmitAttemptAsync(courseId, learnerId, answers);
         }
 
         public async ValueTask DisposeAsync()

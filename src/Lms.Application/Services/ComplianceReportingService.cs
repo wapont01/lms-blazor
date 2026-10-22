@@ -233,13 +233,13 @@ public sealed class ComplianceReportingService : IComplianceReportingService
             .Select(group => new { CourseId = group.Key, Count = group.Count() })
             .ToDictionaryAsync(item => item.CourseId, item => item.Count);
 
-        var examFailsInPeriod = await _dbContext.AssessmentAttempts
+        var examFailsInPeriod = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .Include(attempt => attempt.CourseAssessment)
+            .Include(attempt => attempt.CourseExam)
             .Where(attempt => !attempt.Passed
                 && attempt.SubmittedAt >= periodStartUtc
                 && attempt.SubmittedAt < periodEndUtc)
-            .GroupBy(attempt => attempt.CourseAssessment!.CourseId)
+            .GroupBy(attempt => attempt.CourseExam!.CourseId)
             .Select(group => new { CourseId = group.Key, Count = group.Count() })
             .ToDictionaryAsync(item => item.CourseId, item => item.Count);
 
@@ -401,8 +401,8 @@ public sealed class ComplianceReportingService : IComplianceReportingService
         var enrollmentCount = await _dbContext.Enrollments.CountAsync();
         var oldestEnrollmentAtUtc = await _dbContext.Enrollments.OrderBy(e => e.EnrolledAt).Select(e => (DateTime?)e.EnrolledAt).FirstOrDefaultAsync();
 
-        var attemptCount = await _dbContext.AssessmentAttempts.CountAsync();
-        var oldestAttemptAtUtc = await _dbContext.AssessmentAttempts.OrderBy(a => a.StartedAt).Select(a => (DateTime?)a.StartedAt).FirstOrDefaultAsync();
+        var attemptCount = await _dbContext.ExamAttempts.CountAsync();
+        var oldestAttemptAtUtc = await _dbContext.ExamAttempts.OrderBy(a => a.StartedAt).Select(a => (DateTime?)a.StartedAt).FirstOrDefaultAsync();
 
         var proctoringCount = await _dbContext.ExamProctoringSessions.CountAsync();
         var oldestProctoringAtUtc = await _dbContext.ExamProctoringSessions.OrderBy(s => s.IdentityVerifiedAtUtc).Select(s => (DateTime?)s.IdentityVerifiedAtUtc).FirstOrDefaultAsync();

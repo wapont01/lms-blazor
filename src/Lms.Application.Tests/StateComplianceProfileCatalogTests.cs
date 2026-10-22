@@ -150,7 +150,7 @@ public class StateComplianceProfileCatalogTests
     public void Validate_AllowsCompleteFloridaDistanceCourse()
     {
         var course = CreateCourse("Florida");
-        course.Modules.Add(new Module
+        course.Units.Add(new Unit
         {
             Lessons =
             {

@@ -64,7 +64,7 @@ public class Course
     public bool IsPrelicensingOrPostlicensing => string.Equals(ComplianceType, CourseComplianceTypes.Prelicensing, StringComparison.OrdinalIgnoreCase)
         || string.Equals(ComplianceType, CourseComplianceTypes.Postlicensing, StringComparison.OrdinalIgnoreCase);
 
-    // NC 21 NCAC 58H .0207(a)-(b): only in-person/synchronous/blended delivery requires time-based attendance; pure distance courses satisfy attendance via full unit/assessment completion instead.
+    // NC 21 NCAC 58H .0207(a)-(b): only in-person/synchronous/blended delivery requires time-based attendance; pure distance courses satisfy attendance via full unit/exam completion instead.
     public bool RequiresTimedAttendance => DeliveryMethod is CourseDeliveryMethods.InPerson or CourseDeliveryMethods.SynchronousDistanceLearning or CourseDeliveryMethods.Blended;
 
     public string SectionLabel => "Unit";
@@ -99,11 +99,11 @@ public class Course
 
     public DateTime? EnrollmentClosesAtUtc { get; set; }
 
-    public ICollection<Module> Modules { get; set; } = new List<Module>();
+    public ICollection<Unit> Units { get; set; } = new List<Unit>();
     public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     public ICollection<CompletionCertificate> CompletionCertificates { get; set; } = new List<CompletionCertificate>();
-    public ICollection<CourseAssessment> Assessments { get; set; } = new List<CourseAssessment>();
-    public ICollection<ModuleCheckpointProgress> ModuleCheckpointProgresses { get; set; } = new List<ModuleCheckpointProgress>();
+    public ICollection<CourseExam> Exams { get; set; } = new List<CourseExam>();
+    public ICollection<UnitExamProgress> UnitExamProgresses { get; set; } = new List<UnitExamProgress>();
     public ICollection<ExamProctoringSession> ExamProctoringSessions { get; set; } = new List<ExamProctoringSession>();
     public ICollection<CourseActivitySession> ActivitySessions { get; set; } = new List<CourseActivitySession>();
 }
@@ -226,7 +226,7 @@ public static class CourseReviewStatuses
 }
 
 
-public class Module
+public class Unit
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CourseId { get; set; }
@@ -240,7 +240,7 @@ public class Module
 public class Lesson
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid ModuleId { get; set; }
+    public Guid UnitId { get; set; }
 
     [Required(ErrorMessage = "Title is required.")]
     public string Title { get; set; } = string.Empty;
@@ -255,7 +255,7 @@ public class Lesson
     public int OrderIndex { get; set; }
     public bool IsRequired { get; set; } = true;
 
-    public Module? Module { get; set; }
+    public Unit? Unit { get; set; }
     public ICollection<LessonProgress> LessonProgresses { get; set; } = new List<LessonProgress>();
 }
 
@@ -328,8 +328,8 @@ public class UserAccount
     public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     public ICollection<LessonProgress> LessonProgresses { get; set; } = new List<LessonProgress>();
     public ICollection<CompletionCertificate> CompletionCertificates { get; set; } = new List<CompletionCertificate>();
-    public ICollection<AssessmentAttempt> AssessmentAttempts { get; set; } = new List<AssessmentAttempt>();
-    public ICollection<ModuleCheckpointProgress> ModuleCheckpointProgresses { get; set; } = new List<ModuleCheckpointProgress>();
+    public ICollection<ExamAttempt> ExamAttempts { get; set; } = new List<ExamAttempt>();
+    public ICollection<UnitExamProgress> UnitExamProgresses { get; set; } = new List<UnitExamProgress>();
     public ICollection<BrokerLearnerAssignment> BrokerAssignments { get; set; } = new List<BrokerLearnerAssignment>();
     public ICollection<BrokerLearnerAssignment> LearnerAssignments { get; set; } = new List<BrokerLearnerAssignment>();
     public ICollection<SystemNotification> Notifications { get; set; } = new List<SystemNotification>();
@@ -388,7 +388,7 @@ public class LicenseComplianceReminder
     public UserAccount? UserAccount { get; set; }
 }
 
-public class ModuleCheckpointProgress
+public class UnitExamProgress
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid UserAccountId { get; set; }
@@ -396,7 +396,7 @@ public class ModuleCheckpointProgress
 
     [Required]
     [StringLength(80)]
-    public string CheckpointKey { get; set; } = string.Empty;
+    public string UnitExamKey { get; set; } = string.Empty;
 
     public bool Passed { get; set; }
     public DateTime PassedAt { get; set; } = DateTime.UtcNow;
@@ -405,7 +405,7 @@ public class ModuleCheckpointProgress
     public Course? Course { get; set; }
 }
 
-public class CourseCheckpointDefinition
+public class CourseUnitExamDefinition
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CourseId { get; set; }
@@ -416,7 +416,7 @@ public class CourseCheckpointDefinition
 
     [Required]
     [StringLength(160)]
-    public string Title { get; set; } = "Checkpoint";
+    public string Title { get; set; } = "Unit Exam";
 
     [Required]
     [StringLength(500)]
@@ -425,34 +425,34 @@ public class CourseCheckpointDefinition
     [StringLength(500)]
     public string Description { get; set; } = string.Empty;
 
-    public Guid? ModuleId { get; set; }
+    public Guid? UnitId { get; set; }
     public Guid? LessonId { get; set; }
     public bool GatesProgression { get; set; }
-    public static readonly Guid StartOfModuleAnchor = Guid.Empty;
+    public static readonly Guid StartOfUnitAnchor = Guid.Empty;
     public int OrderIndex { get; set; }
 
     [NotMapped]
     public bool IsFinal
     {
-        get => ModuleId is null;
+        get => UnitId is null;
         set
         {
             if (value)
             {
-                ModuleId = null;
+                UnitId = null;
             }
         }
     }
 
     public Course? Course { get; set; }
-    public Module? Module { get; set; }
-    public ICollection<CourseCheckpointOption> Options { get; set; } = new List<CourseCheckpointOption>();
+    public Unit? Unit { get; set; }
+    public ICollection<CourseUnitExamOption> Options { get; set; } = new List<CourseUnitExamOption>();
 }
 
-public class CourseCheckpointOption
+public class CourseUnitExamOption
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid CourseCheckpointDefinitionId { get; set; }
+    public Guid CourseUnitExamDefinitionId { get; set; }
 
     [Required]
     [StringLength(80)]
@@ -465,7 +465,7 @@ public class CourseCheckpointOption
     public bool IsCorrect { get; set; }
     public int OrderIndex { get; set; }
 
-    public CourseCheckpointDefinition? CourseCheckpointDefinition { get; set; }
+    public CourseUnitExamDefinition? CourseUnitExamDefinition { get; set; }
 }
 
 public class CourseSession
@@ -519,7 +519,7 @@ public class Enrollment
     public DateTime? OverdueReminderSentAt { get; set; }
     public DateTime? CourseStartReminderSentAt { get; set; }
     public DateTime? EnrollmentClosingReminderSentAt { get; set; }
-    public DateTime? AssessmentReminderSentAt { get; set; }
+    public DateTime? ExamReminderSentAt { get; set; }
     public decimal ProgressPercent { get; set; }
     public bool Completed { get; set; }
     public Guid? PaymentTransactionId { get; set; }
@@ -649,15 +649,15 @@ public class CompletionCertificate
     public Enrollment? Enrollment { get; set; }
 }
 
-public class CourseAssessment
+public class CourseExam
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CourseId { get; set; }
-    public Guid? ModuleId { get; set; }
+    public Guid? UnitId { get; set; }
 
     [Required]
     [StringLength(160)]
-    public string Title { get; set; } = "Final Assessment";
+    public string Title { get; set; } = "Final Exam";
 
     [Range(0, 100)]
     public decimal PassPercent { get; set; } = 80m;
@@ -668,15 +668,15 @@ public class CourseAssessment
     public bool IsRequired { get; set; } = true;
 
     public Course? Course { get; set; }
-    public Module? Module { get; set; }
-    public ICollection<AssessmentQuestion> Questions { get; set; } = new List<AssessmentQuestion>();
-    public ICollection<AssessmentAttempt> Attempts { get; set; } = new List<AssessmentAttempt>();
+    public Unit? Unit { get; set; }
+    public ICollection<ExamQuestion> Questions { get; set; } = new List<ExamQuestion>();
+    public ICollection<ExamAttempt> Attempts { get; set; } = new List<ExamAttempt>();
 }
 
-public class AssessmentQuestion
+public class ExamQuestion
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid CourseAssessmentId { get; set; }
+    public Guid CourseExamId { get; set; }
 
     [Required]
     [StringLength(500)]
@@ -707,14 +707,14 @@ public class AssessmentQuestion
 
     public int OrderIndex { get; set; }
 
-    public CourseAssessment? CourseAssessment { get; set; }
-    public ICollection<AssessmentAnswer> Answers { get; set; } = new List<AssessmentAnswer>();
+    public CourseExam? CourseExam { get; set; }
+    public ICollection<ExamAnswer> Answers { get; set; } = new List<ExamAnswer>();
 }
 
-public class AssessmentAttempt
+public class ExamAttempt
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid CourseAssessmentId { get; set; }
+    public Guid CourseExamId { get; set; }
     public Guid UserAccountId { get; set; }
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
@@ -726,9 +726,9 @@ public class AssessmentAttempt
     [StringLength(500)]
     public string? FeedbackSummary { get; set; }
 
-    public CourseAssessment? CourseAssessment { get; set; }
+    public CourseExam? CourseExam { get; set; }
     public UserAccount? UserAccount { get; set; }
-    public ICollection<AssessmentAnswer> Answers { get; set; } = new List<AssessmentAnswer>();
+    public ICollection<ExamAnswer> Answers { get; set; } = new List<ExamAnswer>();
     public ExamProctoringSession? ExamProctoringSession { get; set; }
 }
 
@@ -759,7 +759,7 @@ public class ExamProctoringSession
 
     public Course? Course { get; set; }
     public UserAccount? UserAccount { get; set; }
-    public AssessmentAttempt? AssessmentAttempt { get; set; }
+    public ExamAttempt? ExamAttempt { get; set; }
 }
 
 public class CourseActivitySession
@@ -776,11 +776,11 @@ public class CourseActivitySession
     public UserAccount? UserAccount { get; set; }
 }
 
-public class AssessmentAnswer
+public class ExamAnswer
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid AssessmentAttemptId { get; set; }
-    public Guid AssessmentQuestionId { get; set; }
+    public Guid ExamAttemptId { get; set; }
+    public Guid ExamQuestionId { get; set; }
 
     [Required]
     [StringLength(1)]
@@ -788,20 +788,20 @@ public class AssessmentAnswer
 
     public bool IsCorrect { get; set; }
 
-    public AssessmentAttempt? AssessmentAttempt { get; set; }
-    public AssessmentQuestion? AssessmentQuestion { get; set; }
+    public ExamAttempt? ExamAttempt { get; set; }
+    public ExamQuestion? ExamQuestion { get; set; }
 }
 
 public class RetakeGrant
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid CourseAssessmentId { get; set; }
+    public Guid CourseExamId { get; set; }
     public Guid UserAccountId { get; set; }
     public int GrantedAttempts { get; set; } = 1;
     public DateTime GrantedAt { get; set; } = DateTime.UtcNow;
     public Guid GrantedByAdminId { get; set; }
 
-    public CourseAssessment? CourseAssessment { get; set; }
+    public CourseExam? CourseExam { get; set; }
     public UserAccount? UserAccount { get; set; }
     public UserAccount? GrantedByAdmin { get; set; }
 }

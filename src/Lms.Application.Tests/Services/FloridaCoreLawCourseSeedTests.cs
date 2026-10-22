@@ -99,13 +99,13 @@ public class FloridaCoreLawCourseSeedTests
 
         var course = await dbContext.Courses
             .AsNoTracking()
-            .Include(existing => existing.Modules)
+            .Include(existing => existing.Units)
                 .ThenInclude(unit => unit.Lessons)
             .SingleAsync(existing => existing.Id == courseId);
-        var assessments = await dbContext.CourseAssessments
+        var exams = await dbContext.CourseExams
             .AsNoTracking()
-            .Include(assessment => assessment.Questions)
-            .Where(assessment => assessment.CourseId == courseId)
+            .Include(exam => exam.Questions)
+            .Where(exam => exam.CourseId == courseId)
             .ToListAsync();
 
         Assert.Equal("Florida Core Law", course.Title);
@@ -117,18 +117,18 @@ public class FloridaCoreLawCourseSeedTests
         Assert.Equal(180, course.RequiredInstructionalMinutes);
         Assert.False(course.IsPublished);
         Assert.Equal(CourseReviewStatuses.Draft, course.ReviewStatus);
-        Assert.Equal(5, course.Modules.Count);
-        Assert.Contains(course.Modules, unit => unit.Title == "Unit 5: Laws Affecting Real Estate");
-        Assert.All(course.Modules.SelectMany(unit => unit.Lessons), lesson => Assert.Equal(0, lesson.DurationMinutes));
-        Assert.Equal(5, assessments.Count);
-        Assert.Equal(4, assessments.Count(assessment => assessment.ModuleId.HasValue));
-        Assert.Single(assessments.Where(assessment => assessment.ModuleId is null));
-        Assert.All(assessments, assessment => Assert.Equal(80m, assessment.PassPercent));
+        Assert.Equal(5, course.Units.Count);
+        Assert.Contains(course.Units, unit => unit.Title == "Unit 5: Laws Affecting Real Estate");
+        Assert.All(course.Units.SelectMany(unit => unit.Lessons), lesson => Assert.Equal(0, lesson.DurationMinutes));
+        Assert.Equal(5, exams.Count);
+        Assert.Equal(4, exams.Count(exam => exam.UnitId.HasValue));
+        Assert.Single(exams.Where(exam => exam.UnitId is null));
+        Assert.All(exams, exam => Assert.Equal(80m, exam.PassPercent));
 
         await FloridaCoreLawCourseSeed.EnsureAsync(dbContext, courseId, workspaceRoot);
 
-        Assert.Equal(5, await dbContext.Modules.CountAsync(unit => unit.CourseId == courseId));
-        Assert.Equal(5, await dbContext.CourseAssessments.CountAsync(assessment => assessment.CourseId == courseId));
+        Assert.Equal(5, await dbContext.Units.CountAsync(unit => unit.CourseId == courseId));
+        Assert.Equal(5, await dbContext.CourseExams.CountAsync(exam => exam.CourseId == courseId));
     }
 
     [Fact]

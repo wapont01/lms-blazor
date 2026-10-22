@@ -53,10 +53,10 @@ builder.Services.AddScoped<ICourseService, CourseService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IUserAccountService, UserAccountService>();
-builder.Services.AddScoped<IAssessmentService, AssessmentService>();
+builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<ILearnerDashboardService, LearnerDashboardService>();
-builder.Services.AddScoped<IModuleCheckpointService, ModuleCheckpointService>();
+builder.Services.AddScoped<IUnitExamService, UnitExamService>();
 
 var app = builder.Build();
 

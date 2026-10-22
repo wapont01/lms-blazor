@@ -41,16 +41,16 @@ public sealed record LearnerDashboardCourseCard(
 public sealed class LearnerDashboardService : ILearnerDashboardService
 {
     private readonly IEnrollmentService _enrollmentService;
-    private readonly IAssessmentService _assessmentService;
+    private readonly IExamService _examService;
     private readonly IUserAccountService _userAccountService;
 
     public LearnerDashboardService(
         IEnrollmentService enrollmentService,
-        IAssessmentService assessmentService,
+        IExamService examService,
         IUserAccountService userAccountService)
     {
         _enrollmentService = enrollmentService;
-        _assessmentService = assessmentService;
+        _examService = examService;
         _userAccountService = userAccountService;
     }
 
@@ -152,7 +152,7 @@ public sealed class LearnerDashboardService : ILearnerDashboardService
 
         foreach (var enrollment in enrollments)
         {
-            var eligibility = await _assessmentService.GetEligibilityAsync(enrollment.CourseId, learner.Id);
+            var eligibility = await _examService.GetEligibilityAsync(enrollment.CourseId, learner.Id);
             var progress = enrollment.ProgressPercent;
             var status = GetBaseStatus(enrollment);
             Guid? certificateId = null;
@@ -176,9 +176,9 @@ public sealed class LearnerDashboardService : ILearnerDashboardService
                 progress = 100m;
                 status = "Completed";
             }
-            else if (eligibility.RequiresAssessment && progress >= 100m)
+            else if (eligibility.RequiresExam && progress >= 100m)
             {
-                status = "Assessment Pending";
+                status = "Exam Pending";
             }
 
             if (certificateIdsByCourseId.TryGetValue(enrollment.CourseId, out var resolvedCertificateId))

@@ -6,7 +6,7 @@ This plan converts the selected Option 2 into an execution-ready roadmap tailore
 
 - Authentication, role-based routing, and account controls
 - Enrollment lifecycle with broker/admin support flows
-- Assessment and retake policy controls
+- Exam and retake policy controls
 - Certificate issuance and verification
 - Audit and compliance event logging
 
@@ -144,4 +144,4 @@ Tradeoff:
 
 - Pick one variant as active track for execution.
 - Break the chosen Phase 1 into 2-week sprints with owner mapping and test gates.
-- Add a release checklist doc for the chosen Phase 1 similar to assessment-outcomes-release-checklist.
+- Add a release checklist doc for the chosen Phase 1 similar to exam-outcomes-release-checklist.

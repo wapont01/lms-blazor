@@ -61,10 +61,10 @@ public class EnrollmentServiceTests
         var courseA = await fixture.CreateCourseGraphWithEnrollmentAsync(learnerOne.Id, "Broker One Course");
         var courseB = await fixture.CreateCourseGraphWithEnrollmentAsync(learnerTwo.Id, "Broker Two Course");
 
-        await fixture.PassAssessmentAsync(courseA.CourseId, learnerOne.Id);
+        await fixture.PassExamAsync(courseA.CourseId, learnerOne.Id);
         await fixture.CompleteAllRequiredLessonsAsync(learnerOne.Id, courseA.RequiredLessonIds);
 
-        await fixture.PassAssessmentAsync(courseB.CourseId, learnerTwo.Id);
+        await fixture.PassExamAsync(courseB.CourseId, learnerTwo.Id);
         await fixture.CompleteAllRequiredLessonsAsync(learnerTwo.Id, courseB.RequiredLessonIds);
 
         fixture.DbContext.BrokerLearnerAssignments.AddRange(
@@ -611,7 +611,7 @@ public class EnrollmentServiceTests
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Compliance Basics");
 
-        await fixture.PassAssessmentAsync(seed.CourseId, learner.Id);
+        await fixture.PassExamAsync(seed.CourseId, learner.Id);
         await fixture.EnrollmentService.SetLessonCompletionAsync(learner.Id, seed.RequiredLessonIds[0], true);
         await fixture.EnrollmentService.SetLessonCompletionAsync(learner.Id, seed.RequiredLessonIds[1], true);
 
@@ -649,15 +649,15 @@ public class EnrollmentServiceTests
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
 
         var activeSeed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Active Certificate Course");
-        await fixture.PassAssessmentAsync(activeSeed.CourseId, learner.Id);
+        await fixture.PassExamAsync(activeSeed.CourseId, learner.Id);
         await fixture.CompleteAllRequiredLessonsAsync(learner.Id, activeSeed.RequiredLessonIds);
 
         var expiredSeed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Expired Certificate Course");
-        await fixture.PassAssessmentAsync(expiredSeed.CourseId, learner.Id);
+        await fixture.PassExamAsync(expiredSeed.CourseId, learner.Id);
         await fixture.CompleteAllRequiredLessonsAsync(learner.Id, expiredSeed.RequiredLessonIds);
 
         var revokedSeed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Revoked Certificate Course");
-        await fixture.PassAssessmentAsync(revokedSeed.CourseId, learner.Id);
+        await fixture.PassExamAsync(revokedSeed.CourseId, learner.Id);
         await fixture.CompleteAllRequiredLessonsAsync(learner.Id, revokedSeed.RequiredLessonIds);
 
         var activeCertificate = await fixture.DbContext.CompletionCertificates.SingleAsync(certificate => certificate.EnrollmentId == activeSeed.EnrollmentId);
@@ -697,7 +697,7 @@ public class EnrollmentServiceTests
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Renewal Course");
 
-        await fixture.PassAssessmentAsync(seed.CourseId, learner.Id);
+        await fixture.PassExamAsync(seed.CourseId, learner.Id);
         await fixture.CompleteAllRequiredLessonsAsync(learner.Id, seed.RequiredLessonIds);
 
         var certificate = await fixture.DbContext.CompletionCertificates.SingleAsync(existing => existing.EnrollmentId == seed.EnrollmentId);
@@ -729,7 +729,7 @@ public class EnrollmentServiceTests
         var instructor = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "jordan.lee@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "PDF Access Course");
 
-        await fixture.PassAssessmentAsync(seed.CourseId, learner.Id);
+        await fixture.PassExamAsync(seed.CourseId, learner.Id);
         await fixture.CompleteAllRequiredLessonsAsync(learner.Id, seed.RequiredLessonIds);
 
         var certificate = await fixture.DbContext.CompletionCertificates.AsNoTracking().SingleAsync(existing => existing.EnrollmentId == seed.EnrollmentId);
@@ -791,12 +791,12 @@ public class EnrollmentServiceTests
     }
 
     [Fact]
-    public async Task SetLessonCompletionAsync_DoesNotIssueCertificateBeforeCompletionOrAssessmentPass()
+    public async Task SetLessonCompletionAsync_DoesNotIssueCertificateBeforeCompletionOrExamPass()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
         var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
-        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Assessment Gate Course");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Exam Gate Course");
 
         await fixture.EnrollmentService.SetLessonCompletionAsync(learner.Id, seed.RequiredLessonIds[0], true);
 
@@ -806,7 +806,7 @@ public class EnrollmentServiceTests
 
         Assert.Null(beforePass);
 
-        await fixture.PassAssessmentAsync(seed.CourseId, learner.Id);
+        await fixture.PassExamAsync(seed.CourseId, learner.Id);
 
         var afterPassBeforeCompletion = await fixture.DbContext.CompletionCertificates
             .AsNoTracking()
@@ -847,9 +847,9 @@ public class EnrollmentServiceTests
         };
         fixture.DbContext.Courses.Add(course);
 
-        var module = new Module { Course = course, Title = "Module 1", OrderIndex = 1 };
-        fixture.DbContext.Modules.Add(module);
-        var lesson = new Lesson { Module = module, Title = "Lesson A", ContentType = "Text", TextContent = "A", DurationMinutes = 10, OrderIndex = 1, IsRequired = true };
+        var unit = new Unit { Course = course, Title = "Unit 1", OrderIndex = 1 };
+        fixture.DbContext.Units.Add(unit);
+        var lesson = new Lesson { Unit = unit, Title = "Lesson A", ContentType = "Text", TextContent = "A", DurationMinutes = 10, OrderIndex = 1, IsRequired = true };
         fixture.DbContext.Lessons.Add(lesson);
 
         var enrollment = new Enrollment
@@ -864,9 +864,9 @@ public class EnrollmentServiceTests
         };
         fixture.DbContext.Enrollments.Add(enrollment);
         await fixture.DbContext.SaveChangesAsync();
-        await fixture.AssessmentService.EnsureDefaultAssessmentForCourseAsync(course.Id);
+        await fixture.ExamService.EnsureDefaultExamForCourseAsync(course.Id);
 
-        await fixture.PassAssessmentAsync(course.Id, learner.Id);
+        await fixture.PassExamAsync(course.Id, learner.Id);
         await fixture.EnrollmentService.SetLessonCompletionAsync(learner.Id, lesson.Id, true);
 
         var beforeAttendance = await fixture.DbContext.CompletionCertificates
@@ -888,7 +888,7 @@ public class EnrollmentServiceTests
     }
 
     [Fact]
-    public async Task ReconcileCompletionAsync_AfterAssessmentPass_UsesPersistedLessonProgressAndIssuesCertificate()
+    public async Task ReconcileCompletionAsync_AfterExamPass_UsesPersistedLessonProgressAndIssuesCertificate()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
@@ -903,7 +903,7 @@ public class EnrollmentServiceTests
         staleEnrollment.CompletedAtUtc = null;
         await fixture.DbContext.SaveChangesAsync();
 
-        await fixture.PassAssessmentAsync(seed.CourseId, learner.Id);
+        await fixture.PassExamAsync(seed.CourseId, learner.Id);
         await fixture.EnrollmentService.ReconcileCompletionAsync(learner.Id, seed.CourseId);
 
         var enrollment = await fixture.DbContext.Enrollments
@@ -953,15 +953,15 @@ public class EnrollmentServiceTests
 
         public ApplicationDbContext DbContext { get; }
         public IEnrollmentService EnrollmentService { get; }
-        public IAssessmentService AssessmentService { get; }
+        public IExamService ExamService { get; }
         public ICourseActivityService CourseActivityService { get; }
 
-        private TestFixture(SqliteConnection connection, ApplicationDbContext dbContext, IEnrollmentService enrollmentService, IAssessmentService assessmentService, ICourseActivityService courseActivityService)
+        private TestFixture(SqliteConnection connection, ApplicationDbContext dbContext, IEnrollmentService enrollmentService, IExamService examService, ICourseActivityService courseActivityService)
         {
             _connection = connection;
             DbContext = dbContext;
             EnrollmentService = enrollmentService;
-            AssessmentService = assessmentService;
+            ExamService = examService;
             CourseActivityService = courseActivityService;
         }
 
@@ -981,10 +981,10 @@ public class EnrollmentServiceTests
             var userAccountService = new UserAccountService(dbContext, auditLogService);
             await userAccountService.EnsureSeedUsersAsync();
 
-            var assessmentService = new AssessmentService(dbContext, auditLogService);
+            var examService = new ExamService(dbContext, auditLogService);
             var courseActivityService = new CourseActivityService(dbContext);
-            var enrollmentService = new EnrollmentService(dbContext, auditLogService, assessmentService, new SchoolProfileService(dbContext, auditLogService), courseActivityService);
-            return new TestFixture(connection, dbContext, enrollmentService, assessmentService, courseActivityService);
+            var enrollmentService = new EnrollmentService(dbContext, auditLogService, examService, new SchoolProfileService(dbContext, auditLogService), courseActivityService);
+            return new TestFixture(connection, dbContext, enrollmentService, examService, courseActivityService);
         }
 
         public async Task<(Guid CourseId, Guid EnrollmentId, List<Guid> RequiredLessonIds)> CreateCourseGraphWithEnrollmentAsync(Guid learnerId, string title)
@@ -1003,18 +1003,18 @@ public class EnrollmentServiceTests
 
             DbContext.Courses.Add(course);
 
-            var module = new Module
+            var unit = new Unit
             {
                 Course = course,
-                Title = "Module 1",
+                Title = "Unit 1",
                 OrderIndex = 1
             };
 
-            DbContext.Modules.Add(module);
+            DbContext.Units.Add(unit);
 
             var lessonA = new Lesson
             {
-                Module = module,
+                Unit = unit,
                 Title = "Lesson A",
                 ContentType = "Text",
                 TextContent = "A",
@@ -1025,7 +1025,7 @@ public class EnrollmentServiceTests
 
             var lessonB = new Lesson
             {
-                Module = module,
+                Unit = unit,
                 Title = "Lesson B",
                 ContentType = "Text",
                 TextContent = "B",
@@ -1050,7 +1050,7 @@ public class EnrollmentServiceTests
             DbContext.Enrollments.Add(enrollment);
             await DbContext.SaveChangesAsync();
 
-            await AssessmentService.EnsureDefaultAssessmentForCourseAsync(course.Id);
+            await ExamService.EnsureDefaultExamForCourseAsync(course.Id);
 
             return (course.Id, enrollment.Id, [lessonA.Id, lessonB.Id]);
         }
@@ -1092,16 +1092,16 @@ public class EnrollmentServiceTests
             }
         }
 
-        public async Task PassAssessmentAsync(Guid courseId, Guid learnerId)
+        public async Task PassExamAsync(Guid courseId, Guid learnerId)
         {
-            await AssessmentService.EnsureDefaultAssessmentForCourseAsync(courseId);
+            await ExamService.EnsureDefaultExamForCourseAsync(courseId);
 
-            var assessment = await DbContext.CourseAssessments
+            var exam = await DbContext.CourseExams
                 .Include(existing => existing.Questions)
                 .FirstAsync(existing => existing.CourseId == courseId && existing.IsRequired);
 
-            var answers = assessment.Questions.ToDictionary(question => question.Id, question => question.CorrectOption);
-            await AssessmentService.SubmitAttemptAsync(courseId, learnerId, answers);
+            var answers = exam.Questions.ToDictionary(question => question.Id, question => question.CorrectOption);
+            await ExamService.SubmitAttemptAsync(courseId, learnerId, answers);
         }
 
         public async ValueTask DisposeAsync()

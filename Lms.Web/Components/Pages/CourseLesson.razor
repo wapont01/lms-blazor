@@ -7,8 +7,8 @@
 @implements IDisposable
 @inject ICourseService CourseService
 @inject IEnrollmentService EnrollmentService
-@inject IModuleCheckpointService CheckpointService
-@inject IAssessmentService AssessmentService
+@inject IUnitExamService UnitExamService
+@inject IExamService ExamService
 @inject ILearnerDashboardService LearnerDashboardService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
@@ -28,8 +28,8 @@ else if (!_isEnrolled)
 				<section class="flow-feedback-banner" aria-live="polite">
 					<p class="muted-text">You must enroll in this course before taking lessons.</p>
 				</section>
-				<div class="checkpoint-actions">
-					<button type="button" class="checkpoint-submit-button" @onclick="GoToCourseOverview">Go to Course Overview</button>
+				<div class="unit-exam-actions">
+					<button type="button" class="unit-exam-submit-button" @onclick="GoToCourseOverview">Go to Course Overview</button>
 				</div>
 			</section>
 		</section>
@@ -38,7 +38,7 @@ else if (!_isEnrolled)
 else
 {
 	<div class="lesson-layout">
-		@if (!(_activeCheckpoint is not null && _showCheckpointResult))
+		@if (!(_activeUnitExam is not null && _showUnitExamResult))
 		{
 		<aside class="card lesson-menu-column" aria-label="Course menu">
 			@if (ShowMenuProgress)
@@ -60,31 +60,31 @@ else
 				<p class="menu-lock-note">Menu unlocks after you begin the timed course.</p>
 			}
 			<div class="lesson-menu-list">
-				@foreach (var module in _orderedModules)
+				@foreach (var unit in _orderedUnits)
 				{
-					if (IsGettingStartedModule(module))
+					if (IsGettingStartedUnit(unit))
 					{
 						continue;
 					}
 
-					var moduleLessons = module.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
+					var unitLessons = unit.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
 					var forceExpandedMenu = _currentLesson is not null && IsGettingStartedLesson(_currentLesson.Id);
-					var isCurrentModule = moduleLessons.Any(lesson => lesson.Id == _currentLesson!.Id);
-					var isExpanded = forceExpandedMenu ? true : IsModuleExpanded(module.Id, isCurrentModule);
+					var isCurrentUnit = unitLessons.Any(lesson => lesson.Id == _currentLesson!.Id);
+					var isExpanded = forceExpandedMenu ? true : IsUnitExpanded(unit.Id, isCurrentUnit);
 
-					<section class="lesson-menu-module @(isCurrentModule ? "is-active-module" : string.Empty)">
-						<button type="button" class="menu-module-toggle" @onclick="(() => ToggleModuleExpanded(module.Id))" aria-expanded="@isExpanded" disabled="@forceExpandedMenu">
-							<span class="module-toggle-label">@module.Title</span>
-							<span class="module-toggle-icon @(isExpanded ? "is-expanded" : string.Empty)" aria-hidden="true">▸</span>
+					<section class="lesson-menu-unit @(isCurrentUnit ? "is-active-unit" : string.Empty)">
+						<button type="button" class="menu-unit-toggle" @onclick="(() => ToggleUnitExpanded(unit.Id))" aria-expanded="@isExpanded" disabled="@forceExpandedMenu">
+							<span class="unit-toggle-label">@unit.Title</span>
+							<span class="unit-toggle-icon @(isExpanded ? "is-expanded" : string.Empty)" aria-hidden="true">▸</span>
 						</button>
-						@if (isExpanded && moduleLessons.Count == 0)
+						@if (isExpanded && unitLessons.Count == 0)
 						{
 							<p class="muted-text">No lessons yet.</p>
 						}
 						else if (isExpanded)
 						{
 							<ul>
-								@foreach (var lesson in moduleLessons)
+								@foreach (var lesson in unitLessons)
 								{
 									var isCurrentLesson = lesson.Id == _currentLesson!.Id;
 									var lessonIsUnlocked = !MenuLinksEnabled || IsLessonUnlockedForMenu(lesson.Id);
@@ -112,12 +112,12 @@ else
 
 			<section class="course-summary-strip" aria-label="Lesson summary">
 				<div class="summary-chip">
-					<span class="summary-label">Module</span>
-					<strong>@_currentModuleTitle</strong>
+					<span class="summary-label">Unit</span>
+					<strong>@_currentUnitTitle</strong>
 				</div>
 				<div class="summary-chip">
 					<span class="summary-label">Current lesson</span>
-					<strong>@(_activeCheckpoint?.Title ?? _currentLesson!.Title)</strong>
+					<strong>@(_activeUnitExam?.Title ?? _currentLesson!.Title)</strong>
 				</div>
 			</section>
 
@@ -129,10 +129,10 @@ else
 			}
 
 			<section class="card lesson-content-card">
-				@if (!string.IsNullOrWhiteSpace(_checkpointMessage) && _activeCheckpoint is null && !_showFinalAssessmentResults)
+				@if (!string.IsNullOrWhiteSpace(_unitExamMessage) && _activeUnitExam is null && !_showFinalExamResults)
 				{
 					<section class="flow-feedback-banner" aria-live="polite">
-						<p class="muted-text">@_checkpointMessage</p>
+						<p class="muted-text">@_unitExamMessage</p>
 					</section>
 				}
 
@@ -147,83 +147,83 @@ else
 					</section>
 				}
 
-				@if (ShowFinalAssessmentAnnouncement)
+				@if (ShowFinalExamAnnouncement)
 				{
-					<section class="final-assessment-gate" aria-label="Final assessment announcement">
-						<h2>Final Assessment</h2>
-						<p>You have reached the final assessment. It contains 10 questions and is scored automatically.</p>
+					<section class="final-exam-gate" aria-label="Final exam announcement">
+						<h2>Final Exam</h2>
+						<p>You have reached the final exam. It contains 10 questions and is scored automatically.</p>
 						<div class="timed-start-actions">
-							<button type="button" class="timer-start-button" @onclick="BeginFinalAssessmentAsync">Begin Final Assessment</button>
+							<button type="button" class="timer-start-button" @onclick="BeginFinalExamAsync">Begin Final Exam</button>
 							<button type="button" class="secondary-button" @onclick="GoPreviousInCourseAsync">Back</button>
 						</div>
 					</section>
 				}
 
-				@if (ShowFinalAssessmentQuiz)
+				@if (ShowFinalExamQuiz)
 				{
-					<section class="final-assessment-quiz" aria-label="Final assessment quiz">
-						<h2>@_finalAssessment!.Title</h2>
+					<section class="final-exam-quiz" aria-label="Final exam quiz">
+						<h2>@_finalExam!.Title</h2>
 						<p>Answer all 10 questions. The answers are checked automatically when you submit.</p>
 
-						@foreach (var question in _finalAssessment.Questions)
+						@foreach (var question in _finalExam.Questions)
 						{
-							<div class="final-assessment-question">
-								<p class="final-assessment-prompt">@question.Prompt</p>
-								<div class="final-assessment-options">
-									<label class="checkpoint-option-label">
-										<input type="radio" class="checkpoint-option-input" name=@($"final-{question.Id}") checked="@IsFinalAssessmentOptionSelected(question.Id, "A")" @onchange="@(args => SelectFinalAssessmentOption(question.Id, "A", args.Value))" />
+							<div class="final-exam-question">
+								<p class="final-exam-prompt">@question.Prompt</p>
+								<div class="final-exam-options">
+									<label class="unit-exam-option-label">
+										<input type="radio" class="unit-exam-option-input" name=@($"final-{question.Id}") checked="@IsFinalExamOptionSelected(question.Id, "A")" @onchange="@(args => SelectFinalExamOption(question.Id, "A", args.Value))" />
 										<span>A. @question.OptionA</span>
 									</label>
-									<label class="checkpoint-option-label">
-										<input type="radio" class="checkpoint-option-input" name=@($"final-{question.Id}") checked="@IsFinalAssessmentOptionSelected(question.Id, "B")" @onchange="@(args => SelectFinalAssessmentOption(question.Id, "B", args.Value))" />
+									<label class="unit-exam-option-label">
+										<input type="radio" class="unit-exam-option-input" name=@($"final-{question.Id}") checked="@IsFinalExamOptionSelected(question.Id, "B")" @onchange="@(args => SelectFinalExamOption(question.Id, "B", args.Value))" />
 										<span>B. @question.OptionB</span>
 									</label>
-									<label class="checkpoint-option-label">
-										<input type="radio" class="checkpoint-option-input" name=@($"final-{question.Id}") checked="@IsFinalAssessmentOptionSelected(question.Id, "C")" @onchange="@(args => SelectFinalAssessmentOption(question.Id, "C", args.Value))" />
+									<label class="unit-exam-option-label">
+										<input type="radio" class="unit-exam-option-input" name=@($"final-{question.Id}") checked="@IsFinalExamOptionSelected(question.Id, "C")" @onchange="@(args => SelectFinalExamOption(question.Id, "C", args.Value))" />
 										<span>C. @question.OptionC</span>
 									</label>
-									<label class="checkpoint-option-label">
-										<input type="radio" class="checkpoint-option-input" name=@($"final-{question.Id}") checked="@IsFinalAssessmentOptionSelected(question.Id, "D")" @onchange="@(args => SelectFinalAssessmentOption(question.Id, "D", args.Value))" />
+									<label class="unit-exam-option-label">
+										<input type="radio" class="unit-exam-option-input" name=@($"final-{question.Id}") checked="@IsFinalExamOptionSelected(question.Id, "D")" @onchange="@(args => SelectFinalExamOption(question.Id, "D", args.Value))" />
 										<span>D. @question.OptionD</span>
 									</label>
 								</div>
 							</div>
 						}
 
-						<div class="checkpoint-actions">
-							<button type="button" class="secondary-button" @onclick="FillWrongFinalAssessmentAnswersAsync">Fill Wrong Answers (Fail Scenario)</button>
-							<button type="button" class="secondary-button" @onclick="FillCorrectFinalAssessmentAnswersAsync">Fill Correct Answers</button>
-							<button type="button" class="checkpoint-submit-button" @onclick="SubmitFinalAssessmentAsync">Submit Final Assessment</button>
+						<div class="unit-exam-actions">
+							<button type="button" class="secondary-button" @onclick="FillWrongFinalExamAnswersAsync">Fill Wrong Answers (Fail Scenario)</button>
+							<button type="button" class="secondary-button" @onclick="FillCorrectFinalExamAnswersAsync">Fill Correct Answers</button>
+							<button type="button" class="unit-exam-submit-button" @onclick="SubmitFinalExamAsync">Submit Final Exam</button>
 						</div>
 
 					</section>
 				}
 
-				@if (_showFinalAssessmentResults && _finalAssessment is not null)
+				@if (_showFinalExamResults && _finalExam is not null)
 				{
-					<section class="final-assessment-result" aria-label="Final assessment result">
-						<h2>Final Assessment Result</h2>
-						<p class="@(_finalAssessmentPassed ? null : "assessment-failure-text")">@(_finalAssessmentPassed ? "Success" : "Result: Failure")</p>
-						<p>Elapsed time: @_finalAssessmentElapsedText</p>
-						<p>Score: @_finalAssessmentCorrectAnswers of @_finalAssessmentTotalQuestions (@_finalAssessmentScorePercent.ToString("0")%)</p>
-						@if (_finalAssessmentAnswerReview.Count > 0)
+					<section class="final-exam-result" aria-label="Final exam result">
+						<h2>Final Exam Result</h2>
+						<p class="@(_finalExamPassed ? null : "exam-failure-text")">@(_finalExamPassed ? "Success" : "Result: Failure")</p>
+						<p>Elapsed time: @_finalExamElapsedText</p>
+						<p>Score: @_finalExamCorrectAnswers of @_finalExamTotalQuestions (@_finalExamScorePercent.ToString("0")%)</p>
+						@if (_finalExamAnswerReview.Count > 0)
 						{
-							<section class="final-assessment-review" aria-label="Final assessment answer review">
+							<section class="final-exam-review" aria-label="Final exam answer review">
 								<h3>Answer Review</h3>
-								@foreach (var review in _finalAssessmentAnswerReview)
+								@foreach (var review in _finalExamAnswerReview)
 								{
 									<div class="course-item">
-										<p class="final-assessment-prompt">@review.Prompt</p>
+										<p class="final-exam-prompt">@review.Prompt</p>
 										<p class="muted-text">Your answer: @review.SelectedOptionLabel</p>
 										<p class="muted-text">Correct answer: @review.CorrectOptionLabel</p>
-										<p class="@(review.IsCorrect ? null : "assessment-failure-text")">@(review.IsCorrect ? "Correct" : "Incorrect")</p>
+										<p class="@(review.IsCorrect ? null : "exam-failure-text")">@(review.IsCorrect ? "Correct" : "Incorrect")</p>
 									</div>
 								}
 							</section>
 						}
-						<div class="checkpoint-actions">
-							<button type="button" class="checkpoint-submit-button" @onclick="GoToCourseOverview">Back to Course Overview</button>
-							@if (_finalAssessmentPassed)
+						<div class="unit-exam-actions">
+							<button type="button" class="unit-exam-submit-button" @onclick="GoToCourseOverview">Back to Course Overview</button>
+							@if (_finalExamPassed)
 							{
 								<button type="button" class="secondary-button" @onclick="GoToLearnerCertificates">View Certificate</button>
 							}
@@ -231,7 +231,7 @@ else
 					</section>
 				}
 
-				@if (_activeCheckpoint is null && _currentLessonPages.Count > 0 && !ShowTimerStartGate && !ShowFinalAssessmentAnnouncement && !ShowFinalAssessmentQuiz && !_showFinalAssessmentResults)
+				@if (_activeUnitExam is null && _currentLessonPages.Count > 0 && !ShowTimerStartGate && !ShowFinalExamAnnouncement && !ShowFinalExamQuiz && !_showFinalExamResults)
 				{
 					<p class="lesson-text-content">@_currentLessonPages[_currentLessonPageIndex]</p>
 
@@ -241,74 +241,74 @@ else
 					}
 				}
 
-				@if (_activeCheckpoint is not null)
+				@if (_activeUnitExam is not null)
 				{
-					<section class="module-checkpoint" aria-label="Module checkpoint quiz">
-						<h2>@_activeCheckpoint.Title</h2>
-						@if (!_showCheckpointResult)
+					<section class="unit-exam" aria-label="Unit exam quiz">
+						<h2>@_activeUnitExam.Title</h2>
+						@if (!_showUnitExamResult)
 						{
-							<p>@_activeCheckpoint.Prompt</p>
-							<p class="muted-text">@_activeCheckpoint.Description</p>
+							<p>@_activeUnitExam.Prompt</p>
+							<p class="muted-text">@_activeUnitExam.Description</p>
 
-							@foreach (var option in _activeCheckpoint.Options)
+							@foreach (var option in _activeUnitExam.Options)
 							{
-								<div class="checkpoint-option-row">
-									<label class="checkpoint-option-label">
+								<div class="unit-exam-option-row">
+									<label class="unit-exam-option-label">
 										<input type="checkbox"
-											class="checkpoint-option-input"
-											checked="@_selectedCheckpointOptionKeys.Contains(option.Key)"
-											@onchange="@(eventArgs => ToggleCheckpointOption(option.Key, eventArgs.Value))" />
+											class="unit-exam-option-input"
+											checked="@_selectedUnitExamOptionKeys.Contains(option.Key)"
+											@onchange="@(eventArgs => ToggleUnitExamOption(option.Key, eventArgs.Value))" />
 										@option.Label
 									</label>
 								</div>
 							}
 
-							<div class="checkpoint-actions">
-								<button type="button" class="secondary-button" @onclick="AutoFillWrongCheckpointAnswers">Fill Wrong Answers (Fail Scenario)</button>
-								<button type="button" class="secondary-button" @onclick="AutoFillCheckpointAnswers">Fill Correct Answers</button>
-								<button type="button" class="checkpoint-submit-button" @onclick="SubmitCheckpointAsync">Submit</button>
+							<div class="unit-exam-actions">
+								<button type="button" class="secondary-button" @onclick="AutoFillWrongUnitExamAnswers">Fill Wrong Answers (Fail Scenario)</button>
+								<button type="button" class="secondary-button" @onclick="AutoFillUnitExamAnswers">Fill Correct Answers</button>
+								<button type="button" class="unit-exam-submit-button" @onclick="SubmitUnitExamAsync">Submit</button>
 							</div>
 
-							@if (!string.IsNullOrWhiteSpace(_checkpointMessage))
+							@if (!string.IsNullOrWhiteSpace(_unitExamMessage))
 							{
-								<p class="muted-text">@_checkpointMessage</p>
+								<p class="muted-text">@_unitExamMessage</p>
 							}
 						}
 						else
 						{
-							<h3>Checkpoint Result</h3>
-							<p class="@(_checkpointPassed ? null : "assessment-failure-text")">@(_checkpointPassed ? "Success" : "Result: Failure")</p>
-							<p class="muted-text">Score: @_checkpointMatchedCorrectCount of @_checkpointTotalCorrectCount correct selections</p>
+							<h3>Unit Exam Result</h3>
+							<p class="@(_unitExamPassed ? null : "exam-failure-text")">@(_unitExamPassed ? "Success" : "Result: Failure")</p>
+							<p class="muted-text">Score: @_unitExamMatchedCorrectCount of @_unitExamTotalCorrectCount correct selections</p>
 
-							@if (!string.IsNullOrWhiteSpace(_checkpointResultMessage))
+							@if (!string.IsNullOrWhiteSpace(_unitExamResultMessage))
 							{
-								<p class="muted-text">@_checkpointResultMessage</p>
+								<p class="muted-text">@_unitExamResultMessage</p>
 							}
 
-							@if (!_checkpointPassed)
+							@if (!_unitExamPassed)
 							{
-								<section class="checkpoint-answer-review" aria-label="Checkpoint answer review">
-									<h3>Checkpoint Answer Review</h3>
-									<p class="muted-text">Correct answers: @string.Join(", ", GetCheckpointCorrectOptionLabels())</p>
-									@if (GetCheckpointWrongSelectedOptionLabels().Count > 0)
+								<section class="unit-exam-answer-review" aria-label="Unit Exam answer review">
+									<h3>Unit Exam Answer Review</h3>
+									<p class="muted-text">Correct answers: @string.Join(", ", GetUnitExamCorrectOptionLabels())</p>
+									@if (GetUnitExamWrongSelectedOptionLabels().Count > 0)
 									{
-										<p class="assessment-failure-text">Incorrect selections: @string.Join(", ", GetCheckpointWrongSelectedOptionLabels())</p>
+										<p class="exam-failure-text">Incorrect selections: @string.Join(", ", GetUnitExamWrongSelectedOptionLabels())</p>
 									}
-									@if (GetCheckpointMissedCorrectOptionLabels().Count > 0)
+									@if (GetUnitExamMissedCorrectOptionLabels().Count > 0)
 									{
-										<p class="assessment-failure-text">Missed correct answers: @string.Join(", ", GetCheckpointMissedCorrectOptionLabels())</p>
+										<p class="exam-failure-text">Missed correct answers: @string.Join(", ", GetUnitExamMissedCorrectOptionLabels())</p>
 									}
 								</section>
 							}
 
-							<div class="checkpoint-actions">
-								@if (_checkpointPassed)
+							<div class="unit-exam-actions">
+								@if (_unitExamPassed)
 								{
 									<p class="muted-text">Use the Next arrow to continue.</p>
 								}
 								else
 								{
-									<button type="button" class="secondary-button" @onclick="RetakeCheckpoint">Re-take Checkpoint</button>
+									<button type="button" class="secondary-button" @onclick="RetakeUnitExam">Re-take Unit Exam</button>
 									<p class="muted-text">Use the Next arrow to continue regardless.</p>
 								}
 							</div>
@@ -316,7 +316,7 @@ else
 					</section>
 				}
 
-				@if (_activeCheckpoint is null && _isEnrolled && !_showFinalAssessmentResults)
+				@if (_activeUnitExam is null && _isEnrolled && !_showFinalExamResults)
 				{
 					@if (IsLessonCompleted(_currentLesson!.Id))
 					{
@@ -327,14 +327,14 @@ else
 						<p class="muted-text">Untimed section. Continue to the timed section to start your course timer.</p>
 					}
 				}
-				else if (_activeCheckpoint is null)
+				else if (_activeUnitExam is null)
 				{
 					<p class="muted-text">Sign in and enroll to track completion as you move through the lessons.</p>
 				}
 
-				@if (!_showFinalAssessmentResults)
+				@if (!_showFinalExamResults)
 				{
-				<div class="module-pager module-pager-bottom">
+				<div class="unit-pager unit-pager-bottom">
 					<div class="pager-controls">
 						<button type="button" class="pager-arrow" @onclick="GoPreviousInCourseAsync" disabled="@(_currentLessonIndexInCourse < 0)" aria-label="Previous page or lesson">←</button>
 						<button type="button" class="pager-arrow" @onclick="GoNextInCourseAsync" disabled="@IsNextNavigationDisabled" aria-label="Next page or lesson">→</button>
@@ -360,60 +360,60 @@ else
 	private bool _isEnrolled;
 	private decimal _enrollmentProgressPercent;
 	private Dictionary<Guid, bool> _lessonCompletion = new();
-	private List<Module> _orderedModules = new();
+	private List<Unit> _orderedUnits = new();
 	private List<Lesson> _orderedLessons = new();
-	private List<Lesson> _currentModuleLessons = new();
+	private List<Lesson> _currentUnitLessons = new();
 	private List<Lesson> _progressTrackedLessons = new();
-	private readonly HashSet<Guid> _expandedModuleIds = new();
+	private readonly HashSet<Guid> _expandedUnitIds = new();
 	private Lesson? _currentLesson;
 	private int _currentLessonIndexInCourse;
-	private int _currentLessonIndexInModule;
-	private int _currentModuleIndex;
-	private string _currentModuleTitle = string.Empty;
+	private int _currentLessonIndexInUnit;
+	private int _currentUnitIndex;
+	private string _currentUnitTitle = string.Empty;
 	private decimal _menuProgressPercent;
 	private List<string> _currentLessonPages = new();
 	private int _currentLessonPageIndex;
-	private List<ModuleCheckpointDefinition> _checkpointDefinitions = new();
-	private HashSet<string> _passedCheckpointKeys = new(StringComparer.OrdinalIgnoreCase);
-	private ModuleCheckpointDefinition? _activeCheckpoint;
-	private readonly HashSet<string> _selectedCheckpointOptionKeys = new(StringComparer.OrdinalIgnoreCase);
-	private bool _showCheckpointResult;
-	private bool _checkpointPassed;
-	private string? _checkpointResultMessage;
-	private int _checkpointMatchedCorrectCount;
-	private int _checkpointTotalCorrectCount;
-	private Guid? _pendingCheckpointNextLessonId;
-	private bool _checkpointCompletesCourse;
-	private string? _checkpointMessage;
-	private CourseAssessmentView? _finalAssessment;
-	private readonly Dictionary<Guid, string> _finalAssessmentSelectedOptions = new();
-	private AssessmentEligibility? _finalAssessmentEligibility;
-	private bool _passedFinalAssessmentOnFirstAttempt;
-	private bool _hasFinalAssessmentRetakeGrantOverride;
-	private bool _isFinalAssessmentRetakeLimitReached;
-	private bool _showFinalAssessmentResults;
-	private string? _finalAssessmentElapsedText;
-	private int _finalAssessmentCorrectAnswers;
-	private int _finalAssessmentTotalQuestions;
-	private decimal _finalAssessmentScorePercent;
-	private bool _finalAssessmentPassed;
-	private readonly List<FinalAssessmentAnswerReviewItem> _finalAssessmentAnswerReview = new();
+	private List<UnitExamDefinition> _unitExamDefinitions = new();
+	private HashSet<string> _passedUnitExamKeys = new(StringComparer.OrdinalIgnoreCase);
+	private UnitExamDefinition? _activeUnitExam;
+	private readonly HashSet<string> _selectedUnitExamOptionKeys = new(StringComparer.OrdinalIgnoreCase);
+	private bool _showUnitExamResult;
+	private bool _unitExamPassed;
+	private string? _unitExamResultMessage;
+	private int _unitExamMatchedCorrectCount;
+	private int _unitExamTotalCorrectCount;
+	private Guid? _pendingUnitExamNextLessonId;
+	private bool _unitExamCompletesCourse;
+	private string? _unitExamMessage;
+	private CourseExamView? _finalExam;
+	private readonly Dictionary<Guid, string> _finalExamSelectedOptions = new();
+	private ExamEligibility? _finalExamEligibility;
+	private bool _passedFinalExamOnFirstAttempt;
+	private bool _hasFinalExamRetakeGrantOverride;
+	private bool _isFinalExamRetakeLimitReached;
+	private bool _showFinalExamResults;
+	private string? _finalExamElapsedText;
+	private int _finalExamCorrectAnswers;
+	private int _finalExamTotalQuestions;
+	private decimal _finalExamScorePercent;
+	private bool _finalExamPassed;
+	private readonly List<FinalExamAnswerReviewItem> _finalExamAnswerReview = new();
 	private DateTime? _timedSessionStartedAtUtc;
 	private bool _isTimerStateLoaded;
 	private Timer? _timerRefresh;
-	private bool _showFinalAssessmentAnnouncement;
-	private bool _isFinalAssessmentOpen;
+	private bool _showFinalExamAnnouncement;
+	private bool _isFinalExamOpen;
 	private int _highestUnlockedTrackedLessonIndex;
 	private bool _isInitialized;
 	private bool IsNextNavigationDisabled =>
-		(_activeCheckpoint is not null && !_showCheckpointResult) ||
+		(_activeUnitExam is not null && !_showUnitExamResult) ||
 		ShowTimerStartGate ||
-		ShowFinalAssessmentAnnouncement ||
-		ShowFinalAssessmentQuiz ||
+		ShowFinalExamAnnouncement ||
+		ShowFinalExamQuiz ||
 		_orderedLessons.Count == 0 ||
 		(_currentLessonIndexInCourse >= _orderedLessons.Count - 1 &&
 		 _currentLessonPageIndex >= _currentLessonPages.Count - 1 &&
-		 !CanTriggerFinalAssessment());
+		 !CanTriggerFinalExam());
 	private bool MenuLinksEnabled => IsTimedSessionRunning;
 	private bool ShowMenuProgress => _currentLesson is not null && !IsGettingStartedLesson(_currentLesson.Id);
 	private bool IsTimedSessionRunning => _timedSessionStartedAtUtc.HasValue;
@@ -422,12 +422,12 @@ else
 	private bool ShowTimerStartGate => _currentLesson is not null
 		&& !IsGettingStartedLesson(_currentLesson.Id)
 		&& !IsTimedSessionRunning
-		&& _activeCheckpoint is null
-		&& !ShowFinalAssessmentAnnouncement
-		&& !ShowFinalAssessmentQuiz
-		&& !_showFinalAssessmentResults;
-	private bool ShowFinalAssessmentAnnouncement => _showFinalAssessmentAnnouncement && _finalAssessment is not null;
-	private bool ShowFinalAssessmentQuiz => _isFinalAssessmentOpen && _finalAssessment is not null && !_showFinalAssessmentResults;
+		&& _activeUnitExam is null
+		&& !ShowFinalExamAnnouncement
+		&& !ShowFinalExamQuiz
+		&& !_showFinalExamResults;
+	private bool ShowFinalExamAnnouncement => _showFinalExamAnnouncement && _finalExam is not null;
+	private bool ShowFinalExamQuiz => _isFinalExamOpen && _finalExam is not null && !_showFinalExamResults;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -450,7 +450,7 @@ else
 		}
 
 		BuildOrderedLessons();
-		_checkpointDefinitions = await CheckpointService.GetCheckpointDefinitionsAsync(CourseId);
+		_unitExamDefinitions = await UnitExamService.GetUnitExamDefinitionsAsync(CourseId);
 		ResolveCurrentLesson();
 
 		if (_viewerUserId.HasValue)
@@ -471,9 +471,9 @@ else
 				if (_isEnrolled)
 				{
 					await RefreshLessonStateAsync();
-					_passedCheckpointKeys = await CheckpointService.GetPassedCheckpointKeysAsync(_userId.Value, _course.Id);
-					await RefreshFinalAssessmentStateAsync();
-					if (EnforceAssessmentTerminalOverviewLock())
+					_passedUnitExamKeys = await UnitExamService.GetPassedUnitExamKeysAsync(_userId.Value, _course.Id);
+					await RefreshFinalExamStateAsync();
+					if (EnforceExamTerminalOverviewLock())
 					{
 						return;
 					}
@@ -522,9 +522,9 @@ else
 		if (_isEnrolled && _userId.HasValue)
 		{
 			await RefreshLessonStateAsync();
-			_passedCheckpointKeys = await CheckpointService.GetPassedCheckpointKeysAsync(_userId.Value, _course.Id);
-			await RefreshFinalAssessmentStateAsync();
-			if (EnforceAssessmentTerminalOverviewLock())
+			_passedUnitExamKeys = await UnitExamService.GetPassedUnitExamKeysAsync(_userId.Value, _course.Id);
+			await RefreshFinalExamStateAsync();
+			if (EnforceExamTerminalOverviewLock())
 			{
 				return;
 			}
@@ -553,14 +553,14 @@ else
 			return;
 		}
 
-		_orderedModules = _course.Modules.OrderBy(module => module.OrderIndex).ToList();
-		_orderedLessons = _course.Modules
-			.OrderBy(module => module.OrderIndex)
-			.SelectMany(module => module.Lessons.OrderBy(lesson => lesson.OrderIndex))
+		_orderedUnits = _course.Units.OrderBy(unit => unit.OrderIndex).ToList();
+		_orderedLessons = _course.Units
+			.OrderBy(unit => unit.OrderIndex)
+			.SelectMany(unit => unit.Lessons.OrderBy(lesson => lesson.OrderIndex))
 			.ToList();
-		_progressTrackedLessons = _orderedModules
-			.Where(module => !IsGettingStartedModule(module))
-			.SelectMany(module => module.Lessons.OrderBy(lesson => lesson.OrderIndex))
+		_progressTrackedLessons = _orderedUnits
+			.Where(unit => !IsGettingStartedUnit(unit))
+			.SelectMany(unit => unit.Lessons.OrderBy(lesson => lesson.OrderIndex))
 			.ToList();
 	}
 
@@ -577,8 +577,8 @@ else
 			_currentLesson = null;
 			_currentLessonIndexInCourse = -1;
 			_menuProgressPercent = 0;
-			_currentModuleLessons = new List<Lesson>();
-			_currentModuleTitle = string.Empty;
+			_currentUnitLessons = new List<Lesson>();
+			_currentUnitTitle = string.Empty;
 			_currentLessonPages = new List<string>();
 			_currentLessonPageIndex = 0;
 			return;
@@ -587,49 +587,49 @@ else
 		_currentLesson = _orderedLessons[lessonIndex];
 		_currentLessonIndexInCourse = lessonIndex;
 		_menuProgressPercent = CalculateLearnerFlowProgressPercent();
-		_currentModuleIndex = _orderedModules.FindIndex(module => module.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
-		if (_currentModuleIndex < 0)
+		_currentUnitIndex = _orderedUnits.FindIndex(unit => unit.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
+		if (_currentUnitIndex < 0)
 		{
-			_currentModuleIndex = 0;
+			_currentUnitIndex = 0;
 		}
 
-		var currentModule = _orderedModules.ElementAtOrDefault(_currentModuleIndex);
-		_currentModuleLessons = currentModule?.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList() ?? new List<Lesson>();
-		_currentLessonIndexInModule = _currentModuleLessons.FindIndex(lesson => lesson.Id == _currentLesson.Id);
-		if (_currentLessonIndexInModule < 0)
+		var currentUnit = _orderedUnits.ElementAtOrDefault(_currentUnitIndex);
+		_currentUnitLessons = currentUnit?.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList() ?? new List<Lesson>();
+		_currentLessonIndexInUnit = _currentUnitLessons.FindIndex(lesson => lesson.Id == _currentLesson.Id);
+		if (_currentLessonIndexInUnit < 0)
 		{
-			_currentLessonIndexInModule = 0;
+			_currentLessonIndexInUnit = 0;
 		}
 
-		_currentModuleTitle = currentModule?.Title ?? string.Empty;
-		if (currentModule is not null && !IsGettingStartedModule(currentModule))
+		_currentUnitTitle = currentUnit?.Title ?? string.Empty;
+		if (currentUnit is not null && !IsGettingStartedUnit(currentUnit))
 		{
-			_expandedModuleIds.Add(currentModule.Id);
+			_expandedUnitIds.Add(currentUnit.Id);
 		}
 
 		_currentLessonPages = SplitLessonIntoPages(_currentLesson.TextContent);
 		_currentLessonPageIndex = 0;
 	}
 
-	private bool IsModuleExpanded(Guid moduleId, bool isCurrentModule)
+	private bool IsUnitExpanded(Guid unitId, bool isCurrentUnit)
 	{
-		return isCurrentModule || _expandedModuleIds.Contains(moduleId);
+		return isCurrentUnit || _expandedUnitIds.Contains(unitId);
 	}
 
-	private void ToggleModuleExpanded(Guid moduleId)
+	private void ToggleUnitExpanded(Guid unitId)
 	{
 		if (_currentLesson is not null && IsGettingStartedLesson(_currentLesson.Id))
 		{
 			return;
 		}
 
-		if (_expandedModuleIds.Contains(moduleId))
+		if (_expandedUnitIds.Contains(unitId))
 		{
-			_expandedModuleIds.Remove(moduleId);
+			_expandedUnitIds.Remove(unitId);
 			return;
 		}
 
-		_expandedModuleIds.Add(moduleId);
+		_expandedUnitIds.Add(unitId);
 	}
 
 	private static List<string> SplitLessonIntoPages(string? textContent)
@@ -653,24 +653,24 @@ else
 		return pages.Count == 0 ? new List<string> { normalized.Trim() } : pages;
 	}
 
-	private bool IsGettingStartedModule(Module module)
+	private bool IsGettingStartedUnit(Unit unit)
 	{
-		if (string.Equals(module.Title, "Getting Started", StringComparison.OrdinalIgnoreCase))
+		if (string.Equals(unit.Title, "Getting Started", StringComparison.OrdinalIgnoreCase))
 		{
 			return true;
 		}
 
-		// Fallback for courses that use a different intro-module label.
-		var firstModule = _orderedModules
+		// Fallback for courses that use a different intro-unit label.
+		var firstUnit = _orderedUnits
 			.OrderBy(existing => existing.OrderIndex)
 			.FirstOrDefault();
 
-		if (firstModule is null || firstModule.Id != module.Id)
+		if (firstUnit is null || firstUnit.Id != unit.Id)
 		{
 			return false;
 		}
 
-		var firstLesson = firstModule.Lessons
+		var firstLesson = firstUnit.Lessons
 			.OrderBy(lesson => lesson.OrderIndex)
 			.FirstOrDefault();
 
@@ -690,9 +690,9 @@ else
 
 	private bool IsGettingStartedLesson(Guid lessonId)
 	{
-		return _orderedModules
-			.Where(IsGettingStartedModule)
-			.SelectMany(module => module.Lessons)
+		return _orderedUnits
+			.Where(IsGettingStartedUnit)
+			.SelectMany(unit => unit.Lessons)
 			.Any(lesson => lesson.Id == lessonId);
 	}
 
@@ -820,7 +820,7 @@ else
 		}
 
 		var redirectLesson = _progressTrackedLessons[highestUnlockedIndex];
-		_checkpointMessage = "Complete your current lesson or use Next to unlock the next lesson.";
+		_unitExamMessage = "Complete your current lesson or use Next to unlock the next lesson.";
 		NavigationManager.NavigateTo(BuildLessonUri(redirectLesson.Id));
 		await Task.CompletedTask;
 	}
@@ -857,7 +857,7 @@ else
 
 	private async Task GoPreviousInCourseAsync()
 	{
-		if (_activeCheckpoint is not null)
+		if (_activeUnitExam is not null)
 		{
 			return;
 		}
@@ -889,17 +889,17 @@ else
 
 	private async Task GoNextInCourseAsync()
 	{
-		if (_activeCheckpoint is not null)
+		if (_activeUnitExam is not null)
 		{
-			if (_showCheckpointResult)
+			if (_showUnitExamResult)
 			{
-				await ContinueAfterCheckpointAsync(continueRegardless: !_checkpointPassed);
+				await ContinueAfterUnitExamAsync(continueRegardless: !_unitExamPassed);
 			}
 
 			return;
 		}
 
-		if (_showFinalAssessmentAnnouncement || _isFinalAssessmentOpen)
+		if (_showFinalExamAnnouncement || _isFinalExamOpen)
 		{
 			return;
 		}
@@ -916,12 +916,12 @@ else
 
 			if (IsTimedSessionRunning && IsAtFinalLessonBoundary())
 			{
-				if (TryBeginEndOfModuleCheckpoint(null))
+				if (TryBeginEndOfUnitExam(null))
 				{
 					return;
 				}
 
-				if (await TryBeginFinalAssessmentAsync())
+				if (await TryBeginFinalExamAsync())
 				{
 					return;
 				}
@@ -933,12 +933,12 @@ else
 
 		if (_currentLessonIndexInCourse >= _orderedLessons.Count - 1)
 		{
-			if (TryBeginEndOfModuleCheckpoint(null))
+			if (TryBeginEndOfUnitExam(null))
 			{
 				return;
 			}
 
-			if (await TryBeginFinalAssessmentAsync())
+			if (await TryBeginFinalExamAsync())
 			{
 				return;
 			}
@@ -949,7 +949,7 @@ else
 		}
 
 		var nextLesson = _orderedLessons[_currentLessonIndexInCourse + 1];
-		if (TryBeginEndOfModuleCheckpoint(nextLesson.Id))
+		if (TryBeginEndOfUnitExam(nextLesson.Id))
 		{
 			return;
 		}
@@ -960,192 +960,192 @@ else
 		await Task.CompletedTask;
 	}
 
-	private bool TryBeginEndOfModuleCheckpoint(Guid? nextLessonId)
+	private bool TryBeginEndOfUnitExam(Guid? nextLessonId)
 	{
 		if (_currentLesson is null)
 		{
 			return false;
 		}
 
-		var currentModule = _orderedModules.FirstOrDefault(module => module.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
+		var currentUnit = _orderedUnits.FirstOrDefault(unit => unit.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
 
-		if (currentModule is null || IsGettingStartedModule(currentModule))
+		if (currentUnit is null || IsGettingStartedUnit(currentUnit))
 		{
 			return false;
 		}
 
-		var orderedModuleLessons = currentModule.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
-		if (orderedModuleLessons.Count == 0)
+		var orderedUnitLessons = currentUnit.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
+		if (orderedUnitLessons.Count == 0)
 		{
 			return false;
 		}
 
-		var lastLessonInModule = orderedModuleLessons[^1];
-		var atLastLessonOfModule = lastLessonInModule.Id == _currentLesson.Id;
+		var lastLessonInUnit = orderedUnitLessons[^1];
+		var atLastLessonOfUnit = lastLessonInUnit.Id == _currentLesson.Id;
 		var atLastPageOfLesson = _currentLessonPages.Count == 0 || _currentLessonPageIndex >= _currentLessonPages.Count - 1;
 
-		if (!atLastLessonOfModule || !atLastPageOfLesson)
+		if (!atLastLessonOfUnit || !atLastPageOfLesson)
 		{
 			return false;
 		}
 
-		var checkpointKey = ModuleCheckpointService.BuildModuleCheckpointKey(currentModule.Id);
-		if (_passedCheckpointKeys.Contains(checkpointKey))
+		var unitExamKey = UnitExamService.BuildUnitExamKey(currentUnit.Id);
+		if (_passedUnitExamKeys.Contains(unitExamKey))
 		{
 			return false;
 		}
 
-		var checkpoint = _checkpointDefinitions.FirstOrDefault(item => string.Equals(item.Key, checkpointKey, StringComparison.OrdinalIgnoreCase));
-		if (checkpoint is null)
+		var unitExam = _unitExamDefinitions.FirstOrDefault(item => string.Equals(item.Key, unitExamKey, StringComparison.OrdinalIgnoreCase));
+		if (unitExam is null)
 		{
 			return false;
 		}
 
-		_activeCheckpoint = checkpoint;
-		_pendingCheckpointNextLessonId = nextLessonId;
-		_checkpointCompletesCourse = nextLessonId is null && IsAtFinalLessonBoundary();
-		_checkpointMessage = null;
-		_showCheckpointResult = false;
-		_checkpointPassed = false;
-		_checkpointResultMessage = null;
-		_checkpointMatchedCorrectCount = 0;
-		_checkpointTotalCorrectCount = 0;
-		AutoFillCheckpointAnswers();
+		_activeUnitExam = unitExam;
+		_pendingUnitExamNextLessonId = nextLessonId;
+		_unitExamCompletesCourse = nextLessonId is null && IsAtFinalLessonBoundary();
+		_unitExamMessage = null;
+		_showUnitExamResult = false;
+		_unitExamPassed = false;
+		_unitExamResultMessage = null;
+		_unitExamMatchedCorrectCount = 0;
+		_unitExamTotalCorrectCount = 0;
+		AutoFillUnitExamAnswers();
 		return true;
 	}
 
-	private async Task<bool> TryBeginFinalAssessmentAsync(bool skipModuleCheckpointGate = false)
+	private async Task<bool> TryBeginFinalExamAsync(bool skipUnitExamGate = false)
 	{
-		if (!skipModuleCheckpointGate && TryBeginEndOfModuleCheckpoint(null))
+		if (!skipUnitExamGate && TryBeginEndOfUnitExam(null))
 		{
 			return true;
 		}
 
-		await RefreshFinalAssessmentStateAsync();
+		await RefreshFinalExamStateAsync();
 
-		if (_finalAssessmentEligibility?.HasPassed == true)
+		if (_finalExamEligibility?.HasPassed == true)
 		{
 			return false;
 		}
 
-		if (_finalAssessment is null)
+		if (_finalExam is null)
 		{
 			return false;
 		}
 
-		_showFinalAssessmentAnnouncement = true;
-		_isFinalAssessmentOpen = false;
-		_finalAssessmentSelectedOptions.Clear();
+		_showFinalExamAnnouncement = true;
+		_isFinalExamOpen = false;
+		_finalExamSelectedOptions.Clear();
 		return true;
 	}
 
 	private async Task EvaluateFlowGatesOnLessonLoadAsync()
 	{
-		if (!_isEnrolled || _currentLesson is null || _showFinalAssessmentResults)
+		if (!_isEnrolled || _currentLesson is null || _showFinalExamResults)
 		{
 			return;
 		}
 
-		if (EnforceAssessmentTerminalOverviewLock())
+		if (EnforceExamTerminalOverviewLock())
 		{
 			return;
 		}
 
 		if (!IsAtFinalLessonBoundary())
 		{
-			_showFinalAssessmentAnnouncement = false;
-			_isFinalAssessmentOpen = false;
+			_showFinalExamAnnouncement = false;
+			_isFinalExamOpen = false;
 		}
 
-		if (_activeCheckpoint is null)
+		if (_activeUnitExam is null)
 		{
-			var pendingCheckpoint = FindPendingModuleCheckpointForCurrentPosition();
-			if (pendingCheckpoint is not null)
+			var pendingUnitExam = FindPendingUnitExamForCurrentPosition();
+			if (pendingUnitExam is not null)
 			{
-				_activeCheckpoint = pendingCheckpoint;
-				_checkpointMessage = null;
-				_showCheckpointResult = false;
-				_checkpointPassed = false;
-				_checkpointResultMessage = null;
-				_checkpointMatchedCorrectCount = 0;
-				_checkpointTotalCorrectCount = 0;
-				AutoFillCheckpointAnswers();
+				_activeUnitExam = pendingUnitExam;
+				_unitExamMessage = null;
+				_showUnitExamResult = false;
+				_unitExamPassed = false;
+				_unitExamResultMessage = null;
+				_unitExamMatchedCorrectCount = 0;
+				_unitExamTotalCorrectCount = 0;
+				AutoFillUnitExamAnswers();
 				return;
 			}
 		}
 
-		if (_activeCheckpoint is null && TryBeginEndOfModuleCheckpoint(null))
+		if (_activeUnitExam is null && TryBeginEndOfUnitExam(null))
 		{
 			return;
 		}
 
-		if (!_showFinalAssessmentAnnouncement && !_isFinalAssessmentOpen && IsAtFinalLessonBoundary())
+		if (!_showFinalExamAnnouncement && !_isFinalExamOpen && IsAtFinalLessonBoundary())
 		{
-			await TryBeginFinalAssessmentAsync();
+			await TryBeginFinalExamAsync();
 		}
 	}
 
-	private ModuleCheckpointDefinition? FindPendingModuleCheckpointForCurrentPosition()
+	private UnitExamDefinition? FindPendingUnitExamForCurrentPosition()
 	{
 		if (_currentLesson is null)
 		{
 			return null;
 		}
 
-		var currentModule = _orderedModules.FirstOrDefault(module => module.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
-		if (currentModule is null || IsGettingStartedModule(currentModule))
+		var currentUnit = _orderedUnits.FirstOrDefault(unit => unit.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
+		if (currentUnit is null || IsGettingStartedUnit(currentUnit))
 		{
 			return null;
 		}
 
-		var priorTrackedModules = _orderedModules
-			.Where(module => module.OrderIndex < currentModule.OrderIndex && !IsGettingStartedModule(module))
-			.OrderBy(module => module.OrderIndex)
+		var priorTrackedUnits = _orderedUnits
+			.Where(unit => unit.OrderIndex < currentUnit.OrderIndex && !IsGettingStartedUnit(unit))
+			.OrderBy(unit => unit.OrderIndex)
 			.ToList();
 
-		foreach (var module in priorTrackedModules)
+		foreach (var unit in priorTrackedUnits)
 		{
-			var checkpointKey = ModuleCheckpointService.BuildModuleCheckpointKey(module.Id);
-			if (_passedCheckpointKeys.Contains(checkpointKey))
+			var unitExamKey = UnitExamService.BuildUnitExamKey(unit.Id);
+			if (_passedUnitExamKeys.Contains(unitExamKey))
 			{
 				continue;
 			}
 
-			var checkpoint = _checkpointDefinitions.FirstOrDefault(item => string.Equals(item.Key, checkpointKey, StringComparison.OrdinalIgnoreCase));
-			if (checkpoint is not null)
+			var unitExam = _unitExamDefinitions.FirstOrDefault(item => string.Equals(item.Key, unitExamKey, StringComparison.OrdinalIgnoreCase));
+			if (unitExam is not null)
 			{
-				return checkpoint;
+				return unitExam;
 			}
 		}
 
 		return null;
 	}
 
-	private bool CanTriggerFinalAssessment()
+	private bool CanTriggerFinalExam()
 	{
-		return _finalAssessmentEligibility?.HasPassed != true;
+		return _finalExamEligibility?.HasPassed != true;
 	}
 
-	private void ToggleCheckpointOption(string optionKey, object? value)
+	private void ToggleUnitExamOption(string optionKey, object? value)
 	{
 		if (value is bool isChecked && isChecked)
 		{
-			_selectedCheckpointOptionKeys.Add(optionKey);
+			_selectedUnitExamOptionKeys.Add(optionKey);
 			return;
 		}
 
-		_selectedCheckpointOptionKeys.Remove(optionKey);
+		_selectedUnitExamOptionKeys.Remove(optionKey);
 	}
 
-	private async Task SubmitCheckpointAsync()
+	private async Task SubmitUnitExamAsync()
 	{
-		if (_activeCheckpoint is null)
+		if (_activeUnitExam is null)
 		{
 			return;
 		}
 
-		var selectedKeys = _selectedCheckpointOptionKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
-		var correctKeys = _activeCheckpoint.Options
+		var selectedKeys = _selectedUnitExamOptionKeys.ToHashSet(StringComparer.OrdinalIgnoreCase);
+		var correctKeys = _activeUnitExam.Options
 			.Where(option => option.IsCorrect)
 			.Select(option => option.Key)
 			.ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -1155,7 +1155,7 @@ else
 
 		if (_userId.HasValue)
 		{
-			var submitResult = await CheckpointService.SubmitCheckpointAsync(_userId.Value, CourseId, _activeCheckpoint.Key, _selectedCheckpointOptionKeys.ToList());
+			var submitResult = await UnitExamService.SubmitUnitExamAsync(_userId.Value, CourseId, _activeUnitExam.Key, _selectedUnitExamOptionKeys.ToList());
 			isPassed = submitResult.IsPassed;
 			correctKeys = submitResult.CorrectOptionKeys;
 			resultMessage = submitResult.Message;
@@ -1163,53 +1163,53 @@ else
 		else
 		{
 			resultMessage = isPassed
-				? "Checkpoint passed."
+				? "Unit Exam passed."
 				: "Not quite. Select every correct answer and no incorrect answers.";
 		}
 
-		_checkpointMatchedCorrectCount = selectedKeys.Intersect(correctKeys, StringComparer.OrdinalIgnoreCase).Count();
-		_checkpointTotalCorrectCount = correctKeys.Count;
-		_checkpointPassed = isPassed;
-		_checkpointResultMessage = resultMessage;
-		_showCheckpointResult = true;
-		_checkpointMessage = null;
+		_unitExamMatchedCorrectCount = selectedKeys.Intersect(correctKeys, StringComparer.OrdinalIgnoreCase).Count();
+		_unitExamTotalCorrectCount = correctKeys.Count;
+		_unitExamPassed = isPassed;
+		_unitExamResultMessage = resultMessage;
+		_showUnitExamResult = true;
+		_unitExamMessage = null;
 	}
 
-	private async Task ContinueAfterCheckpointAsync(bool continueRegardless)
+	private async Task ContinueAfterUnitExamAsync(bool continueRegardless)
 	{
-		if (_activeCheckpoint is null)
+		if (_activeUnitExam is null)
 		{
 			return;
 		}
 
-		if (!_checkpointPassed && !continueRegardless)
+		if (!_unitExamPassed && !continueRegardless)
 		{
 			return;
 		}
 
-		if (!_checkpointPassed && continueRegardless && _userId.HasValue)
+		if (!_unitExamPassed && continueRegardless && _userId.HasValue)
 		{
-			var correctOptionKeys = _activeCheckpoint.Options
+			var correctOptionKeys = _activeUnitExam.Options
 				.Where(option => option.IsCorrect)
 				.Select(option => option.Key)
 				.ToList();
-			await CheckpointService.SubmitCheckpointAsync(_userId.Value, CourseId, _activeCheckpoint.Key, correctOptionKeys);
+			await UnitExamService.SubmitUnitExamAsync(_userId.Value, CourseId, _activeUnitExam.Key, correctOptionKeys);
 		}
 
-		var completedCheckpointKey = _activeCheckpoint.Key;
-		var pendingNextLessonId = _pendingCheckpointNextLessonId;
-		var completesCourseBoundary = _checkpointCompletesCourse;
+		var completedUnitExamKey = _activeUnitExam.Key;
+		var pendingNextLessonId = _pendingUnitExamNextLessonId;
+		var completesCourseBoundary = _unitExamCompletesCourse;
 
-		_passedCheckpointKeys.Add(completedCheckpointKey);
-		_activeCheckpoint = null;
-		_selectedCheckpointOptionKeys.Clear();
-		_pendingCheckpointNextLessonId = null;
-		_checkpointCompletesCourse = false;
-		_showCheckpointResult = false;
-		_checkpointPassed = false;
-		_checkpointResultMessage = null;
-		_checkpointMatchedCorrectCount = 0;
-		_checkpointTotalCorrectCount = 0;
+		_passedUnitExamKeys.Add(completedUnitExamKey);
+		_activeUnitExam = null;
+		_selectedUnitExamOptionKeys.Clear();
+		_pendingUnitExamNextLessonId = null;
+		_unitExamCompletesCourse = false;
+		_showUnitExamResult = false;
+		_unitExamPassed = false;
+		_unitExamResultMessage = null;
+		_unitExamMatchedCorrectCount = 0;
+		_unitExamTotalCorrectCount = 0;
 
 		if (pendingNextLessonId.HasValue)
 		{
@@ -1218,35 +1218,35 @@ else
 			return;
 		}
 
-		if (completesCourseBoundary && completedCheckpointKey.StartsWith("module:", StringComparison.OrdinalIgnoreCase))
+		if (completesCourseBoundary && completedUnitExamKey.StartsWith("unit:", StringComparison.OrdinalIgnoreCase))
 		{
-			_checkpointMessage = null;
-			await TryBeginFinalAssessmentAsync(true);
+			_unitExamMessage = null;
+			await TryBeginFinalExamAsync(true);
 		}
 	}
 
-	private void RetakeCheckpoint()
+	private void RetakeUnitExam()
 	{
-		_showCheckpointResult = false;
-		_checkpointPassed = false;
-		_checkpointResultMessage = null;
-		_checkpointMatchedCorrectCount = 0;
-		_checkpointTotalCorrectCount = 0;
-		_checkpointMessage = null;
+		_showUnitExamResult = false;
+		_unitExamPassed = false;
+		_unitExamResultMessage = null;
+		_unitExamMatchedCorrectCount = 0;
+		_unitExamTotalCorrectCount = 0;
+		_unitExamMessage = null;
 	}
 
-	private void AutoFillWrongCheckpointAnswers()
+	private void AutoFillWrongUnitExamAnswers()
 	{
-		_selectedCheckpointOptionKeys.Clear();
+		_selectedUnitExamOptionKeys.Clear();
 
-		if (_activeCheckpoint is null)
+		if (_activeUnitExam is null)
 		{
 			return;
 		}
 
-		foreach (var option in _activeCheckpoint.Options.Where(option => !option.IsCorrect))
+		foreach (var option in _activeUnitExam.Options.Where(option => !option.IsCorrect))
 		{
-			_selectedCheckpointOptionKeys.Add(option.Key);
+			_selectedUnitExamOptionKeys.Add(option.Key);
 		}
 	}
 
@@ -1271,64 +1271,64 @@ else
 			// Keep session in-memory if local storage is temporarily unavailable.
 		}
 
-		if (IsAtFinalLessonBoundary() && await TryBeginFinalAssessmentAsync())
+		if (IsAtFinalLessonBoundary() && await TryBeginFinalExamAsync())
 		{
 			return;
 		}
 	}
 
-	private async Task BeginFinalAssessmentAsync()
+	private async Task BeginFinalExamAsync()
 	{
-		await RefreshFinalAssessmentStateAsync();
-		if (_finalAssessment is null)
+		await RefreshFinalExamStateAsync();
+		if (_finalExam is null)
 		{
 			return;
 		}
 
-		_showFinalAssessmentAnnouncement = false;
-		_isFinalAssessmentOpen = true;
-		_showFinalAssessmentResults = false;
-		_finalAssessmentElapsedText = null;
-		_finalAssessmentCorrectAnswers = 0;
-		_finalAssessmentTotalQuestions = 0;
-		_finalAssessmentScorePercent = 0m;
-		_finalAssessmentPassed = false;
-		_finalAssessmentSelectedOptions.Clear();
+		_showFinalExamAnnouncement = false;
+		_isFinalExamOpen = true;
+		_showFinalExamResults = false;
+		_finalExamElapsedText = null;
+		_finalExamCorrectAnswers = 0;
+		_finalExamTotalQuestions = 0;
+		_finalExamScorePercent = 0m;
+		_finalExamPassed = false;
+		_finalExamSelectedOptions.Clear();
 	}
 
-	private bool IsFinalAssessmentOptionSelected(Guid questionId, string option)
+	private bool IsFinalExamOptionSelected(Guid questionId, string option)
 	{
-		return _finalAssessmentSelectedOptions.TryGetValue(questionId, out var selected) && string.Equals(selected, option, StringComparison.OrdinalIgnoreCase);
+		return _finalExamSelectedOptions.TryGetValue(questionId, out var selected) && string.Equals(selected, option, StringComparison.OrdinalIgnoreCase);
 	}
 
-	private void SelectFinalAssessmentOption(Guid questionId, string option, object? value)
+	private void SelectFinalExamOption(Guid questionId, string option, object? value)
 	{
 		if (value is bool isChecked && !isChecked)
 		{
 			return;
 		}
 
-		_finalAssessmentSelectedOptions[questionId] = option;
+		_finalExamSelectedOptions[questionId] = option;
 	}
 
-	private async Task SubmitFinalAssessmentAsync()
+	private async Task SubmitFinalExamAsync()
 	{
-		if (_finalAssessment is null)
+		if (_finalExam is null)
 		{
 			return;
 		}
 
 		var elapsedText = GetElapsedTimerText();
-		var answers = _finalAssessmentSelectedOptions.ToDictionary(item => item.Key, item => item.Value);
-		var correctAnswers = await AssessmentService.GetCorrectAnswerMapAsync(CourseId);
-		_checkpointMessage = null;
-		_finalAssessmentAnswerReview.Clear();
-		var correctCount = _finalAssessment.Questions.Count(question => answers.TryGetValue(question.Id, out var selectedOption)
+		var answers = _finalExamSelectedOptions.ToDictionary(item => item.Key, item => item.Value);
+		var correctAnswers = await ExamService.GetCorrectAnswerMapAsync(CourseId);
+		_unitExamMessage = null;
+		_finalExamAnswerReview.Clear();
+		var correctCount = _finalExam.Questions.Count(question => answers.TryGetValue(question.Id, out var selectedOption)
 			&& correctAnswers.TryGetValue(question.Id, out var correctOption)
 			&& string.Equals(selectedOption, correctOption, StringComparison.OrdinalIgnoreCase));
-		var totalQuestions = _finalAssessment.Questions.Count;
+		var totalQuestions = _finalExam.Questions.Count;
 
-		foreach (var question in _finalAssessment.Questions)
+		foreach (var question in _finalExam.Questions)
 		{
 			answers.TryGetValue(question.Id, out var selectedOption);
 			correctAnswers.TryGetValue(question.Id, out var correctOption);
@@ -1337,19 +1337,19 @@ else
 			var normalizedCorrect = string.IsNullOrWhiteSpace(correctOption) ? "-" : correctOption!.Trim().ToUpperInvariant();
 			var isCorrect = string.Equals(normalizedSelected, normalizedCorrect, StringComparison.OrdinalIgnoreCase);
 
-			_finalAssessmentAnswerReview.Add(new FinalAssessmentAnswerReviewItem(
+			_finalExamAnswerReview.Add(new FinalExamAnswerReviewItem(
 				question.Prompt,
-				BuildAssessmentOptionLabel(question, normalizedSelected),
-				BuildAssessmentOptionLabel(question, normalizedCorrect),
+				BuildExamOptionLabel(question, normalizedSelected),
+				BuildExamOptionLabel(question, normalizedCorrect),
 				isCorrect));
 		}
 
-		AssessmentAttemptSummary? attempt = null;
+		ExamAttemptSummary? attempt = null;
 		if (_userId.HasValue)
 		{
-			attempt = await AssessmentService.SubmitAttemptAsync(CourseId, _userId.Value, answers);
-			_finalAssessmentEligibility = await AssessmentService.GetEligibilityAsync(CourseId, _userId.Value);
-			// Re-run enrollment progress persistence so certificate issuance is evaluated after passing assessment.
+			attempt = await ExamService.SubmitAttemptAsync(CourseId, _userId.Value, answers);
+			_finalExamEligibility = await ExamService.GetEligibilityAsync(CourseId, _userId.Value);
+			// Re-run enrollment progress persistence so certificate issuance is evaluated after passing exam.
 			await EnrollmentService.UpdateProgressAsync(_userId.Value, CourseId, _enrollmentProgressPercent);
 			correctCount = attempt.CorrectAnswers;
 			totalQuestions = attempt.TotalQuestions;
@@ -1358,49 +1358,49 @@ else
 		var passed = attempt?.Passed == true || (totalQuestions > 0 && correctCount == totalQuestions);
 		await StopTimedCourseAsync();
 
-		_finalAssessmentElapsedText = elapsedText;
-		_finalAssessmentCorrectAnswers = correctCount;
-		_finalAssessmentTotalQuestions = totalQuestions;
-		_finalAssessmentScorePercent = attempt?.ScorePercent ?? (totalQuestions == 0 ? 0m : (decimal)correctCount * 100m / totalQuestions);
-		_finalAssessmentPassed = passed;
-		_showFinalAssessmentResults = true;
-		_showFinalAssessmentAnnouncement = false;
-		_isFinalAssessmentOpen = false;
+		_finalExamElapsedText = elapsedText;
+		_finalExamCorrectAnswers = correctCount;
+		_finalExamTotalQuestions = totalQuestions;
+		_finalExamScorePercent = attempt?.ScorePercent ?? (totalQuestions == 0 ? 0m : (decimal)correctCount * 100m / totalQuestions);
+		_finalExamPassed = passed;
+		_showFinalExamResults = true;
+		_showFinalExamAnnouncement = false;
+		_isFinalExamOpen = false;
 	}
 
-	private async Task RefreshFinalAssessmentStateAsync()
+	private async Task RefreshFinalExamStateAsync()
 	{
 		if (_course is null)
 		{
 			return;
 		}
 
-		_finalAssessment = await AssessmentService.GetCourseAssessmentAsync(_course.Id);
-		_passedFinalAssessmentOnFirstAttempt = false;
-		_isFinalAssessmentRetakeLimitReached = false;
+		_finalExam = await ExamService.GetCourseExamAsync(_course.Id);
+		_passedFinalExamOnFirstAttempt = false;
+		_isFinalExamRetakeLimitReached = false;
 		if (_userId.HasValue)
 		{
-			_finalAssessmentEligibility = await AssessmentService.GetEligibilityAsync(_course.Id, _userId.Value);
-			_hasFinalAssessmentRetakeGrantOverride = _finalAssessmentEligibility?.HasRetakeGrantOverride == true;
-			_isFinalAssessmentRetakeLimitReached = _finalAssessmentEligibility is { RequiresAssessment: true, HasPassed: false } eligibility
+			_finalExamEligibility = await ExamService.GetEligibilityAsync(_course.Id, _userId.Value);
+			_hasFinalExamRetakeGrantOverride = _finalExamEligibility?.HasRetakeGrantOverride == true;
+			_isFinalExamRetakeLimitReached = _finalExamEligibility is { RequiresExam: true, HasPassed: false } eligibility
 				&& eligibility.AttemptsUsed >= eligibility.AttemptsAllowed;
-			var assessmentHistory = await AssessmentService.GetAttemptHistoryAsync(_course.Id, _userId.Value);
-			_passedFinalAssessmentOnFirstAttempt = assessmentHistory
+			var examHistory = await ExamService.GetAttemptHistoryAsync(_course.Id, _userId.Value);
+			_passedFinalExamOnFirstAttempt = examHistory
 				.OrderBy(item => item.AttemptNumber)
 				.ThenBy(item => item.SubmittedAt)
 				.FirstOrDefault()?.Passed == true;
 		}
 	}
 
-	private bool EnforceAssessmentTerminalOverviewLock()
+	private bool EnforceExamTerminalOverviewLock()
 	{
-		if (_finalAssessmentEligibility?.RequiresAssessment != true)
+		if (_finalExamEligibility?.RequiresExam != true)
 		{
 			return false;
 		}
 
-		var lockToOverview = (_passedFinalAssessmentOnFirstAttempt && !_hasFinalAssessmentRetakeGrantOverride)
-			|| (_finalAssessmentEligibility.HasPassed == false && _isFinalAssessmentRetakeLimitReached);
+		var lockToOverview = (_passedFinalExamOnFirstAttempt && !_hasFinalExamRetakeGrantOverride)
+			|| (_finalExamEligibility.HasPassed == false && _isFinalExamRetakeLimitReached);
 
 		if (!lockToOverview)
 		{
@@ -1411,31 +1411,31 @@ else
 		return true;
 	}
 
-	private async Task FillCorrectFinalAssessmentAnswersAsync()
+	private async Task FillCorrectFinalExamAnswersAsync()
 	{
-		await AutoFillFinalAssessmentAnswersAsync(preferCorrectAnswers: true);
+		await AutoFillFinalExamAnswersAsync(preferCorrectAnswers: true);
 	}
 
-	private async Task FillWrongFinalAssessmentAnswersAsync()
+	private async Task FillWrongFinalExamAnswersAsync()
 	{
-		await AutoFillFinalAssessmentAnswersAsync(preferCorrectAnswers: false);
+		await AutoFillFinalExamAnswersAsync(preferCorrectAnswers: false);
 	}
 
-	private async Task AutoFillFinalAssessmentAnswersAsync(bool preferCorrectAnswers)
+	private async Task AutoFillFinalExamAnswersAsync(bool preferCorrectAnswers)
 	{
-		_finalAssessmentSelectedOptions.Clear();
+		_finalExamSelectedOptions.Clear();
 
-		if (_finalAssessment is null)
+		if (_finalExam is null)
 		{
 			return;
 		}
 
-		var correctAnswers = await AssessmentService.GetCorrectAnswerMapAsync(CourseId);
-		foreach (var question in _finalAssessment.Questions)
+		var correctAnswers = await ExamService.GetCorrectAnswerMapAsync(CourseId);
+		foreach (var question in _finalExam.Questions)
 		{
 			if (correctAnswers.TryGetValue(question.Id, out var correctOption))
 			{
-				_finalAssessmentSelectedOptions[question.Id] = preferCorrectAnswers
+				_finalExamSelectedOptions[question.Id] = preferCorrectAnswers
 					? correctOption
 					: GetAlternateOption(correctOption);
 			}
@@ -1453,7 +1453,7 @@ else
 		};
 	}
 
-	private static string BuildAssessmentOptionLabel(AssessmentQuestionView question, string option)
+	private static string BuildExamOptionLabel(ExamQuestionView question, string option)
 	{
 		return option switch
 		{
@@ -1495,7 +1495,7 @@ else
 
 	private void GoToCourseOverview()
 	{
-		if (_finalAssessmentPassed)
+		if (_finalExamPassed)
 		{
 			NavigationManager.NavigateTo(BuildCourseOverviewUri("Successfully Completed"));
 			return;
@@ -1568,7 +1568,7 @@ else
 		return $"{lessonUri}?learnerId={Uri.EscapeDataString(_learnerContextUserId.Value.ToString())}";
 	}
 
-	private string BuildCourseOverviewUri(string? finalAssessmentResult = null)
+	private string BuildCourseOverviewUri(string? finalExamResult = null)
 	{
 		var queryParts = new List<string>();
 
@@ -1577,9 +1577,9 @@ else
 			queryParts.Add($"learnerId={Uri.EscapeDataString(_learnerContextUserId.Value.ToString())}");
 		}
 
-		if (!string.IsNullOrWhiteSpace(finalAssessmentResult))
+		if (!string.IsNullOrWhiteSpace(finalExamResult))
 		{
-			queryParts.Add($"finalAssessmentResult={Uri.EscapeDataString(finalAssessmentResult)}");
+			queryParts.Add($"finalExamResult={Uri.EscapeDataString(finalExamResult)}");
 		}
 
 		return queryParts.Count == 0
@@ -1626,61 +1626,61 @@ else
 		return $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
 	}
 
-	private void AutoFillCheckpointAnswers()
+	private void AutoFillUnitExamAnswers()
 	{
-		_selectedCheckpointOptionKeys.Clear();
+		_selectedUnitExamOptionKeys.Clear();
 
-		if (_activeCheckpoint is null)
+		if (_activeUnitExam is null)
 		{
 			return;
 		}
 
-		foreach (var option in _activeCheckpoint.Options.Where(option => option.IsCorrect))
+		foreach (var option in _activeUnitExam.Options.Where(option => option.IsCorrect))
 		{
-			_selectedCheckpointOptionKeys.Add(option.Key);
+			_selectedUnitExamOptionKeys.Add(option.Key);
 		}
 	}
 
-	private List<string> GetCheckpointCorrectOptionLabels()
+	private List<string> GetUnitExamCorrectOptionLabels()
 	{
-		if (_activeCheckpoint is null)
+		if (_activeUnitExam is null)
 		{
 			return new List<string>();
 		}
 
-		return _activeCheckpoint.Options
+		return _activeUnitExam.Options
 			.Where(option => option.IsCorrect)
 			.Select(option => option.Label)
 			.ToList();
 	}
 
-	private List<string> GetCheckpointWrongSelectedOptionLabels()
+	private List<string> GetUnitExamWrongSelectedOptionLabels()
 	{
-		if (_activeCheckpoint is null)
+		if (_activeUnitExam is null)
 		{
 			return new List<string>();
 		}
 
-		return _activeCheckpoint.Options
-			.Where(option => !option.IsCorrect && _selectedCheckpointOptionKeys.Contains(option.Key))
+		return _activeUnitExam.Options
+			.Where(option => !option.IsCorrect && _selectedUnitExamOptionKeys.Contains(option.Key))
 			.Select(option => option.Label)
 			.ToList();
 	}
 
-	private List<string> GetCheckpointMissedCorrectOptionLabels()
+	private List<string> GetUnitExamMissedCorrectOptionLabels()
 	{
-		if (_activeCheckpoint is null)
+		if (_activeUnitExam is null)
 		{
 			return new List<string>();
 		}
 
-		return _activeCheckpoint.Options
-			.Where(option => option.IsCorrect && !_selectedCheckpointOptionKeys.Contains(option.Key))
+		return _activeUnitExam.Options
+			.Where(option => option.IsCorrect && !_selectedUnitExamOptionKeys.Contains(option.Key))
 			.Select(option => option.Label)
 			.ToList();
 	}
 
-	private sealed record FinalAssessmentAnswerReviewItem(
+	private sealed record FinalExamAnswerReviewItem(
 		string Prompt,
 		string SelectedOptionLabel,
 		string CorrectOptionLabel,

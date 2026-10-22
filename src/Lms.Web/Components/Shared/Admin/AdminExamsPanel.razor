@@ -1,24 +1,24 @@
 @using Lms.Application.Services
 @using Lms.Domain.Entities
 
-<section class="card" id="admin-assessment-editor">
-    <h2>Assessment Editor</h2>
+<section class="card" id="admin-exam-editor">
+    <h2>Exam Editor</h2>
 
-    @if (!string.IsNullOrWhiteSpace(AssessmentError))
+    @if (!string.IsNullOrWhiteSpace(ExamError))
     {
-        <p class="auth-error">@AssessmentError</p>
+        <p class="auth-error">@ExamError</p>
     }
 
-    @if (!string.IsNullOrWhiteSpace(AssessmentMessage))
+    @if (!string.IsNullOrWhiteSpace(ExamMessage))
     {
-        <p class="auth-help">@AssessmentMessage</p>
+        <p class="auth-help">@ExamMessage</p>
     }
 
     <div class="form-field">
         <label>Active course</label>
-        @if (string.IsNullOrWhiteSpace(AssessmentCourseIdText))
+        @if (string.IsNullOrWhiteSpace(ExamCourseIdText))
         {
-            <p class="muted-text">Select a course above to manage its final assessment.</p>
+            <p class="muted-text">Select a course above to manage its final exam.</p>
         }
         else
         {
@@ -26,18 +26,18 @@
         }
     </div>
     <div class="course-actions">
-        <button type="button" @onclick="OnLoadAssessmentEditor" disabled="@string.IsNullOrWhiteSpace(AssessmentCourseIdText)">Load Assessment</button>
+        <button type="button" @onclick="OnLoadExamEditor" disabled="@string.IsNullOrWhiteSpace(ExamCourseIdText)">Load Exam</button>
     </div>
 
-    @if (AssessmentEditor is not null)
+    @if (ExamEditor is not null)
     {
         <div class="form-field">
-            <label>Assessment Title</label>
-            <InputText @bind-Value="AssessmentEditor.Title" />
+            <label>Exam Title</label>
+            <InputText @bind-Value="ExamEditor.Title" />
         </div>
         <div class="form-field">
             <label>Pass Percent</label>
-            <InputNumber @bind-Value="AssessmentEditor.PassPercent" />
+            <InputNumber @bind-Value="ExamEditor.PassPercent" />
         </div>
         <div class="form-row">
             <div class="form-field">
@@ -46,14 +46,14 @@
             </div>
             <div class="form-field">
                 <label>Retake Cooldown Minutes</label>
-                <InputNumber @bind-Value="AssessmentEditor.RetakeCooldownMinutes" />
+                <InputNumber @bind-Value="ExamEditor.RetakeCooldownMinutes" />
             </div>
         </div>
 
         <h3>Questions</h3>
-        @for (var index = 0; index < AssessmentEditor.Questions.Count; index++)
+        @for (var index = 0; index < ExamEditor.Questions.Count; index++)
         {
-            var question = AssessmentEditor.Questions[index];
+            var question = ExamEditor.Questions[index];
             <article class="course-item">
                 <div class="form-field">
                     <label>Question @(index + 1)</label>
@@ -91,15 +91,15 @@
                     </div>
                     <div class="form-field">
                         <label>&nbsp;</label>
-                        <button type="button" @onclick="() => OnRemoveAssessmentQuestion.InvokeAsync(index)">Remove Question</button>
+                        <button type="button" @onclick="() => OnRemoveExamQuestion.InvokeAsync(index)">Remove Question</button>
                     </div>
                 </div>
             </article>
         }
 
         <div class="course-actions">
-            <button type="button" @onclick="OnAddAssessmentQuestion">Add Question</button>
-            <button type="button" @onclick="OnSaveAssessmentEditor">Save Assessment</button>
+            <button type="button" @onclick="OnAddExamQuestion">Add Question</button>
+            <button type="button" @onclick="OnSaveExamEditor">Save Exam</button>
         </div>
 
         <h3>Grant Retake Attempts</h3>
@@ -174,10 +174,10 @@
 
 @code {
     [Parameter]
-    public string? AssessmentError { get; set; }
+    public string? ExamError { get; set; }
 
     [Parameter]
-    public string? AssessmentMessage { get; set; }
+    public string? ExamMessage { get; set; }
 
     [Parameter]
     public IReadOnlyList<Course> Courses { get; set; } = [];
@@ -186,28 +186,28 @@
     public IReadOnlyList<UserAccount> Users { get; set; } = [];
 
     [Parameter]
-    public string AssessmentCourseIdText { get; set; } = string.Empty;
+    public string ExamCourseIdText { get; set; } = string.Empty;
 
     [Parameter]
     public string? ActiveCourseTitle { get; set; }
 
     [Parameter]
-    public EventCallback<ChangeEventArgs> OnAssessmentCourseChanged { get; set; }
+    public EventCallback<ChangeEventArgs> OnExamCourseChanged { get; set; }
 
     [Parameter]
-    public EventCallback OnLoadAssessmentEditor { get; set; }
+    public EventCallback OnLoadExamEditor { get; set; }
 
     [Parameter]
-    public AssessmentEditorModel? AssessmentEditor { get; set; }
+    public ExamEditorModel? ExamEditor { get; set; }
 
     [Parameter]
-    public EventCallback OnAddAssessmentQuestion { get; set; }
+    public EventCallback OnAddExamQuestion { get; set; }
 
     [Parameter]
-    public EventCallback<int> OnRemoveAssessmentQuestion { get; set; }
+    public EventCallback<int> OnRemoveExamQuestion { get; set; }
 
     [Parameter]
-    public EventCallback OnSaveAssessmentEditor { get; set; }
+    public EventCallback OnSaveExamEditor { get; set; }
 
     [Parameter]
     public EventCallback<ChangeEventArgs> OnRetakeLearnerChanged { get; set; }

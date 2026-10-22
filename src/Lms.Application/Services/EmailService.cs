@@ -165,7 +165,7 @@ public class EmailService : IEmailService
                 <h3>What's Next?</h3>
                 <ul>
                     <li>Access your purchased courses from your dashboard</li>
-                    <li>Track your progress and complete assessments</li>
+                    <li>Track your progress and complete exams</li>
                     <li>Download certificates upon completion</li>
                     <li>Contact support for any questions</li>
                 </ul>

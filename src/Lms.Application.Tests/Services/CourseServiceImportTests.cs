@@ -10,7 +10,7 @@ namespace Lms.Application.Tests.Services;
 public class CourseServiceImportTests
 {
     [Fact]
-    public async Task ImportCourseStructureAsync_CreatesModulesAndLessonsFromMarkers()
+    public async Task ImportCourseStructureAsync_CreatesUnitsAndLessonsFromMarkers()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
@@ -26,14 +26,14 @@ public class CourseServiceImportTests
         await fixture.DbContext.SaveChangesAsync();
 
         const string importText = """
-            [module] Welcome
+            [unit] Welcome
             [lesson] Intro Lesson | duration=5 | required=true
             This is the intro lesson.
 
             [lesson] Practice Lesson | duration=8 | required=false
             This is the practice lesson.
 
-            [module] Advanced
+            [unit] Advanced
             [lesson] Final Lesson | duration=12 | required=true
             This is the final lesson.
             """;
@@ -42,27 +42,27 @@ public class CourseServiceImportTests
 
         var refreshed = await fixture.DbContext.Courses
             .AsNoTracking()
-            .Include(course => course.Modules)
-                .ThenInclude(module => module.Lessons)
+            .Include(course => course.Units)
+                .ThenInclude(unit => unit.Lessons)
             .SingleAsync(course => course.Id == course.Id);
 
-        Assert.Equal(2, refreshed.Modules.Count);
+        Assert.Equal(2, refreshed.Units.Count);
 
-        var welcomeModule = Assert.Single(refreshed.Modules.Where(module => module.Title == "Welcome"));
-        Assert.Equal(2, welcomeModule.Lessons.Count);
+        var welcomeUnit = Assert.Single(refreshed.Units.Where(unit => unit.Title == "Welcome"));
+        Assert.Equal(2, welcomeUnit.Lessons.Count);
 
-        var introLesson = welcomeModule.Lessons.Single(lesson => lesson.Title == "Intro Lesson");
+        var introLesson = welcomeUnit.Lessons.Single(lesson => lesson.Title == "Intro Lesson");
         Assert.Equal(5, introLesson.DurationMinutes);
         Assert.True(introLesson.IsRequired);
         Assert.Equal("This is the intro lesson.", introLesson.TextContent);
 
-        var practiceLesson = welcomeModule.Lessons.Single(lesson => lesson.Title == "Practice Lesson");
+        var practiceLesson = welcomeUnit.Lessons.Single(lesson => lesson.Title == "Practice Lesson");
         Assert.Equal(8, practiceLesson.DurationMinutes);
         Assert.False(practiceLesson.IsRequired);
         Assert.Equal("This is the practice lesson.", practiceLesson.TextContent);
 
-        var advancedModule = Assert.Single(refreshed.Modules.Where(module => module.Title == "Advanced"));
-        var finalLesson = Assert.Single(advancedModule.Lessons);
+        var advancedUnit = Assert.Single(refreshed.Units.Where(unit => unit.Title == "Advanced"));
+        var finalLesson = Assert.Single(advancedUnit.Lessons);
         Assert.Equal("Final Lesson", finalLesson.Title);
         Assert.Equal(12, finalLesson.DurationMinutes);
         Assert.True(finalLesson.IsRequired);
@@ -70,7 +70,7 @@ public class CourseServiceImportTests
     }
 
     [Fact]
-    public async Task GetCoursesForInstructorAsync_LoadsModulesAndLessonsForOwnedCourses()
+    public async Task GetCoursesForInstructorAsync_LoadsUnitsAndLessonsForOwnedCourses()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
@@ -93,18 +93,18 @@ public class CourseServiceImportTests
             OwnerInstructorId = instructor.Id
         };
 
-        var module = new Module
+        var unit = new Unit
         {
             Id = Guid.NewGuid(),
             CourseId = course.Id,
-            Title = "Module 1",
+            Title = "Unit 1",
             OrderIndex = 1
         };
 
         var lesson = new Lesson
         {
             Id = Guid.NewGuid(),
-            ModuleId = module.Id,
+            UnitId = unit.Id,
             Title = "Lesson 1",
             TextContent = "Lesson content",
             DurationMinutes = 5,
@@ -114,17 +114,17 @@ public class CourseServiceImportTests
 
         fixture.DbContext.UserAccounts.Add(instructor);
         fixture.DbContext.Courses.Add(course);
-        fixture.DbContext.Modules.Add(module);
+        fixture.DbContext.Units.Add(unit);
         fixture.DbContext.Lessons.Add(lesson);
         await fixture.DbContext.SaveChangesAsync();
 
         var result = await fixture.CourseService.GetCoursesForInstructorAsync(instructor.Id);
 
         var ownedCourse = Assert.Single(result);
-        var loadedModule = Assert.Single(ownedCourse.Modules);
-        Assert.Equal("Module 1", loadedModule.Title);
+        var loadedUnit = Assert.Single(ownedCourse.Units);
+        Assert.Equal("Unit 1", loadedUnit.Title);
 
-        var loadedLesson = Assert.Single(loadedModule.Lessons);
+        var loadedLesson = Assert.Single(loadedUnit.Lessons);
         Assert.Equal("Lesson 1", loadedLesson.Title);
     }
 
@@ -145,11 +145,11 @@ public class CourseServiceImportTests
         await fixture.DbContext.SaveChangesAsync();
 
         const string importText = """
-            [module] Intro
+            [unit] Intro
             [lesson] Welcome
             This is the welcome lesson.
 
-            [module] Advanced
+            [unit] Advanced
             [lesson] Next Steps
             This is the next step lesson.
             """;
@@ -158,12 +158,12 @@ public class CourseServiceImportTests
 
         var refreshed = await fixture.DbContext.Courses
             .AsNoTracking()
-            .Include(course => course.Modules)
-                .ThenInclude(module => module.Lessons)
+            .Include(course => course.Units)
+                .ThenInclude(unit => unit.Lessons)
             .SingleAsync(course => course.Id == course.Id);
 
-        var introModule = Assert.Single(refreshed.Modules.Where(module => module.Title == "Intro"));
-        var welcomeLesson = Assert.Single(introModule.Lessons);
+        var introUnit = Assert.Single(refreshed.Units.Where(unit => unit.Title == "Intro"));
+        var welcomeLesson = Assert.Single(introUnit.Lessons);
 
         Assert.Equal("Welcome", welcomeLesson.Title);
         Assert.Equal(0, welcomeLesson.DurationMinutes);
@@ -172,15 +172,15 @@ public class CourseServiceImportTests
     }
 
     [Fact]
-    public async Task ImportCourseStructureAsync_ImportsAssessmentsAndCheckpointsWithCorrectAnswers()
+    public async Task ImportCourseStructureAsync_ImportsExamsAndUnitExamsWithCorrectAnswers()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
         var course = new Course
         {
-            Title = "Imported Assessment Course",
+            Title = "Imported Exam Course",
             Level = "Beginner",
-            Description = "Imported with assessments and checkpoints",
+            Description = "Imported with exams and unit exams",
             Price = 0
         };
 
@@ -188,19 +188,19 @@ public class CourseServiceImportTests
         await fixture.DbContext.SaveChangesAsync();
 
         const string importText = """
-            [module] Intro
+            [unit] Intro
             [lesson] Welcome
             Welcome lesson content.
 
-            [checkpoint] Intro
-            title=Choose the lessons that belong to this module
+            [unit exam] Intro
+            title=Choose the lessons that belong to this unit
             prompt=Select every correct lesson.
-            description=This checkpoint verifies the module content.
+            description=This unit exam verifies the unit content.
             [option] Welcome | correct=true
             [option] Extra lesson | correct=false
 
-            [assessment]
-            title=Imported Final Assessment
+            [exam]
+            title=Imported Final Exam
             passpercent=90
             [question] What should you review first? | optionA=The syllabus | optionB=The office color | optionC=The parking map | optionD=The snack menu | correct=A | feedback=Start with the plan.
             [question] Which response is best? | optionA=Ignore it | optionB=Document it | optionC=Wait | optionD=Escalate later | correct=B | feedback=Document the update.
@@ -208,36 +208,36 @@ public class CourseServiceImportTests
 
         await fixture.CourseService.ImportCourseStructureAsync(course.Id, importText);
 
-        var checkpoints = await fixture.DbContext.CourseCheckpointDefinitions
+        var unitExams = await fixture.DbContext.CourseUnitExamDefinitions
             .AsNoTracking()
             .Include(definition => definition.Options)
             .Where(definition => definition.CourseId == course.Id)
             .ToListAsync();
 
-        var moduleCheckpoint = Assert.Single(checkpoints.Where(definition => !definition.IsFinal));
-        Assert.Equal("Choose the lessons that belong to this module", moduleCheckpoint.Title);
-        Assert.Contains(moduleCheckpoint.Options, option => option.IsCorrect && option.Label == "Welcome");
-        Assert.Contains(moduleCheckpoint.Options, option => !option.IsCorrect && option.Label == "Extra lesson");
+        var unitExam = Assert.Single(unitExams.Where(definition => !definition.IsFinal));
+        Assert.Equal("Choose the lessons that belong to this unit", unitExam.Title);
+        Assert.Contains(unitExam.Options, option => option.IsCorrect && option.Label == "Welcome");
+        Assert.Contains(unitExam.Options, option => !option.IsCorrect && option.Label == "Extra lesson");
 
-        var assessment = await fixture.DbContext.CourseAssessments
+        var exam = await fixture.DbContext.CourseExams
             .AsNoTracking()
             .Include(existing => existing.Questions)
             .SingleAsync(existing => existing.CourseId == course.Id && existing.IsRequired);
 
-        Assert.Equal("Imported Final Assessment", assessment.Title);
-        Assert.Equal(90m, assessment.PassPercent);
-        Assert.Equal(2, assessment.Questions.Count);
-        Assert.Equal("A", assessment.Questions.OrderBy(question => question.OrderIndex).First().CorrectOption);
+        Assert.Equal("Imported Final Exam", exam.Title);
+        Assert.Equal(90m, exam.PassPercent);
+        Assert.Equal(2, exam.Questions.Count);
+        Assert.Equal("A", exam.Questions.OrderBy(question => question.OrderIndex).First().CorrectOption);
     }
 
     [Fact]
-    public async Task ImportCourseStructureAsync_ImportsMultipleUnitAssessments()
+    public async Task ImportCourseStructureAsync_ImportsMultipleUnitExams()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
         var course = new Course
         {
-            Title = "Unit Assessment Course",
+            Title = "Unit Exam Course",
             Level = "Beginner",
             Description = "Imports unit and final exams",
             Price = 0
@@ -249,36 +249,36 @@ public class CourseServiceImportTests
             [unit] Unit 2
             [lesson] Licensing
             Licensing lesson content.
-            [assessment] Unit 2 Exam | unit=Unit 2
+            [exam] Unit 2 Exam | unit=Unit 2
             passpercent=80
             [question] Which rule applies? | optionA=Rule A | optionB=Rule B | optionC=Rule C | optionD=Rule D | correct=B
 
             [unit] Unit 3
             [lesson] Escrow
             Escrow lesson content.
-            [assessment] Unit 3 Exam | unit=Unit 3
+            [exam] Unit 3 Exam | unit=Unit 3
             [question] Which record is required? | optionA=Record A | optionB=Record B | optionC=Record C | optionD=Record D | correct=C
 
-            [assessment]
+            [exam]
             title=Final Exam
             [question] What is the final answer? | optionA=A | optionB=B | optionC=C | optionD=D | correct=D
             """;
 
         await fixture.CourseService.ImportCourseStructureAsync(course.Id, importText);
 
-        var assessments = await fixture.DbContext.CourseAssessments
+        var exams = await fixture.DbContext.CourseExams
             .AsNoTracking()
-            .Include(assessment => assessment.Questions)
-            .Where(assessment => assessment.CourseId == course.Id)
+            .Include(exam => exam.Questions)
+            .Where(exam => exam.CourseId == course.Id)
             .ToListAsync();
 
-        Assert.Equal(3, assessments.Count);
-        var unit2 = Assert.Single(assessments.Where(assessment => assessment.Title == "Unit 2 Exam"));
-        var unit3 = Assert.Single(assessments.Where(assessment => assessment.Title == "Unit 3 Exam"));
-        var final = Assert.Single(assessments.Where(assessment => assessment.Title == "Final Exam"));
-        Assert.Equal("Unit 2", await fixture.DbContext.Modules.Where(module => module.Id == unit2.ModuleId).Select(module => module.Title).SingleAsync());
-        Assert.Equal("Unit 3", await fixture.DbContext.Modules.Where(module => module.Id == unit3.ModuleId).Select(module => module.Title).SingleAsync());
-        Assert.Null(final.ModuleId);
+        Assert.Equal(3, exams.Count);
+        var unit2 = Assert.Single(exams.Where(exam => exam.Title == "Unit 2 Exam"));
+        var unit3 = Assert.Single(exams.Where(exam => exam.Title == "Unit 3 Exam"));
+        var final = Assert.Single(exams.Where(exam => exam.Title == "Final Exam"));
+        Assert.Equal("Unit 2", await fixture.DbContext.Units.Where(unit => unit.Id == unit2.UnitId).Select(unit => unit.Title).SingleAsync());
+        Assert.Equal("Unit 3", await fixture.DbContext.Units.Where(unit => unit.Id == unit3.UnitId).Select(unit => unit.Title).SingleAsync());
+        Assert.Null(final.UnitId);
         Assert.Equal("B", Assert.Single(unit2.Questions).CorrectOption);
         Assert.Equal("C", Assert.Single(unit3.Questions).CorrectOption);
         Assert.Equal("D", Assert.Single(final.Questions).CorrectOption);

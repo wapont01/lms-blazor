@@ -8,21 +8,21 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<Course> Courses => Set<Course>();
     public DbSet<SchoolProfile> SchoolProfiles => Set<SchoolProfile>();
     public DbSet<SchoolStaffMember> SchoolStaffMembers => Set<SchoolStaffMember>();
-    public DbSet<Module> Modules => Set<Module>();
+    public DbSet<Unit> Units => Set<Unit>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<LessonProgress> LessonProgresses => Set<LessonProgress>();
     public DbSet<CompletionCertificate> CompletionCertificates => Set<CompletionCertificate>();
-    public DbSet<CourseAssessment> CourseAssessments => Set<CourseAssessment>();
-    public DbSet<AssessmentQuestion> AssessmentQuestions => Set<AssessmentQuestion>();
-    public DbSet<AssessmentAttempt> AssessmentAttempts => Set<AssessmentAttempt>();
-    public DbSet<AssessmentAnswer> AssessmentAnswers => Set<AssessmentAnswer>();
+    public DbSet<CourseExam> CourseExams => Set<CourseExam>();
+    public DbSet<ExamQuestion> ExamQuestions => Set<ExamQuestion>();
+    public DbSet<ExamAttempt> ExamAttempts => Set<ExamAttempt>();
+    public DbSet<ExamAnswer> ExamAnswers => Set<ExamAnswer>();
     public DbSet<RetakeGrant> RetakeGrants => Set<RetakeGrant>();
-    public DbSet<CourseCheckpointDefinition> CourseCheckpointDefinitions => Set<CourseCheckpointDefinition>();
-    public DbSet<CourseCheckpointOption> CourseCheckpointOptions => Set<CourseCheckpointOption>();
-    public DbSet<ModuleCheckpointProgress> ModuleCheckpointProgresses => Set<ModuleCheckpointProgress>();
+    public DbSet<CourseUnitExamDefinition> CourseUnitExamDefinitions => Set<CourseUnitExamDefinition>();
+    public DbSet<CourseUnitExamOption> CourseUnitExamOptions => Set<CourseUnitExamOption>();
+    public DbSet<UnitExamProgress> UnitExamProgresses => Set<UnitExamProgress>();
     public DbSet<ExamProctoringSession> ExamProctoringSessions => Set<ExamProctoringSession>();
     public DbSet<CourseActivitySession> CourseActivitySessions => Set<CourseActivitySession>();
     public DbSet<BrokerLearnerAssignment> BrokerLearnerAssignments => Set<BrokerLearnerAssignment>();
@@ -64,13 +64,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(course => course.ReviewNote).HasMaxLength(1000);
         });
 
-        modelBuilder.Entity<Module>(entity =>
+        modelBuilder.Entity<Unit>(entity =>
         {
-            entity.HasKey(module => module.Id);
-            entity.Property(module => module.Title).HasMaxLength(160).IsRequired();
-            entity.HasOne(module => module.Course)
-                .WithMany(course => course.Modules)
-                .HasForeignKey(module => module.CourseId)
+            entity.HasKey(unit => unit.Id);
+            entity.Property(unit => unit.Title).HasMaxLength(160).IsRequired();
+            entity.HasOne(unit => unit.Course)
+                .WithMany(course => course.Units)
+                .HasForeignKey(unit => unit.CourseId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -79,9 +79,9 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasKey(lesson => lesson.Id);
             entity.Property(lesson => lesson.Title).HasMaxLength(160).IsRequired();
             entity.Property(lesson => lesson.ContentType).HasMaxLength(40).IsRequired();
-            entity.HasOne(lesson => lesson.Module)
-                .WithMany(module => module.Lessons)
-                .HasForeignKey(lesson => lesson.ModuleId)
+            entity.HasOne(lesson => lesson.Unit)
+                .WithMany(unit => unit.Lessons)
+                .HasForeignKey(lesson => lesson.UnitId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -301,22 +301,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<CourseAssessment>(entity =>
+        modelBuilder.Entity<CourseExam>(entity =>
         {
-            entity.HasKey(assessment => assessment.Id);
-            entity.Property(assessment => assessment.Title).HasMaxLength(160).IsRequired();
-            entity.Property(assessment => assessment.PassPercent).HasPrecision(5, 2);
-            entity.HasIndex(assessment => new { assessment.CourseId, assessment.IsRequired });
+            entity.HasKey(exam => exam.Id);
+            entity.Property(exam => exam.Title).HasMaxLength(160).IsRequired();
+            entity.Property(exam => exam.PassPercent).HasPrecision(5, 2);
+            entity.HasIndex(exam => new { exam.CourseId, exam.IsRequired });
 
-            entity.HasOne(assessment => assessment.Course)
-                .WithMany(course => course.Assessments)
-                .HasForeignKey(assessment => assessment.CourseId)
+            entity.HasOne(exam => exam.Course)
+                .WithMany(course => course.Exams)
+                .HasForeignKey(exam => exam.CourseId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.Ignore(assessment => assessment.Module);
+            entity.Ignore(exam => exam.Unit);
         });
 
-        modelBuilder.Entity<AssessmentQuestion>(entity =>
+        modelBuilder.Entity<ExamQuestion>(entity =>
         {
             entity.HasKey(question => question.Id);
             entity.Property(question => question.Prompt).HasMaxLength(500).IsRequired();
@@ -326,57 +326,57 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(question => question.OptionD).HasMaxLength(220).IsRequired();
             entity.Property(question => question.CorrectOption).HasMaxLength(1).IsRequired();
             entity.Property(question => question.FeedbackText).HasMaxLength(500);
-            entity.HasIndex(question => new { question.CourseAssessmentId, question.OrderIndex });
+            entity.HasIndex(question => new { question.CourseExamId, question.OrderIndex });
 
-            entity.HasOne(question => question.CourseAssessment)
-                .WithMany(assessment => assessment.Questions)
-                .HasForeignKey(question => question.CourseAssessmentId)
+            entity.HasOne(question => question.CourseExam)
+                .WithMany(exam => exam.Questions)
+                .HasForeignKey(question => question.CourseExamId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<AssessmentAttempt>(entity =>
+        modelBuilder.Entity<ExamAttempt>(entity =>
         {
             entity.HasKey(attempt => attempt.Id);
             entity.Property(attempt => attempt.ScorePercent).HasPrecision(5, 2);
             entity.Property(attempt => attempt.FeedbackSummary).HasMaxLength(500);
-            entity.HasIndex(attempt => new { attempt.CourseAssessmentId, attempt.UserAccountId, attempt.SubmittedAt });
+            entity.HasIndex(attempt => new { attempt.CourseExamId, attempt.UserAccountId, attempt.SubmittedAt });
 
-            entity.HasOne(attempt => attempt.CourseAssessment)
-                .WithMany(assessment => assessment.Attempts)
-                .HasForeignKey(attempt => attempt.CourseAssessmentId)
+            entity.HasOne(attempt => attempt.CourseExam)
+                .WithMany(exam => exam.Attempts)
+                .HasForeignKey(attempt => attempt.CourseExamId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(attempt => attempt.UserAccount)
-                .WithMany(user => user.AssessmentAttempts)
+                .WithMany(user => user.ExamAttempts)
                 .HasForeignKey(attempt => attempt.UserAccountId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<AssessmentAnswer>(entity =>
+        modelBuilder.Entity<ExamAnswer>(entity =>
         {
             entity.HasKey(answer => answer.Id);
             entity.Property(answer => answer.SelectedOption).HasMaxLength(1).IsRequired();
-            entity.HasIndex(answer => new { answer.AssessmentAttemptId, answer.AssessmentQuestionId }).IsUnique();
+            entity.HasIndex(answer => new { answer.ExamAttemptId, answer.ExamQuestionId }).IsUnique();
 
-            entity.HasOne(answer => answer.AssessmentAttempt)
+            entity.HasOne(answer => answer.ExamAttempt)
                 .WithMany(attempt => attempt.Answers)
-                .HasForeignKey(answer => answer.AssessmentAttemptId)
+                .HasForeignKey(answer => answer.ExamAttemptId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(answer => answer.AssessmentQuestion)
+            entity.HasOne(answer => answer.ExamQuestion)
                 .WithMany(question => question.Answers)
-                .HasForeignKey(answer => answer.AssessmentQuestionId)
+                .HasForeignKey(answer => answer.ExamQuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<RetakeGrant>(entity =>
         {
             entity.HasKey(grant => grant.Id);
-            entity.HasIndex(grant => new { grant.CourseAssessmentId, grant.UserAccountId }).IsUnique();
+            entity.HasIndex(grant => new { grant.CourseExamId, grant.UserAccountId }).IsUnique();
 
-            entity.HasOne(grant => grant.CourseAssessment)
+            entity.HasOne(grant => grant.CourseExam)
                 .WithMany()
-                .HasForeignKey(grant => grant.CourseAssessmentId)
+                .HasForeignKey(grant => grant.CourseExamId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(grant => grant.UserAccount)
@@ -390,7 +390,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<CourseCheckpointDefinition>(entity =>
+        modelBuilder.Entity<CourseUnitExamDefinition>(entity =>
         {
             entity.HasKey(definition => definition.Id);
             entity.Property(definition => definition.Key).HasMaxLength(80).IsRequired();
@@ -404,38 +404,38 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
                 .HasForeignKey(definition => definition.CourseId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(definition => definition.Module)
+            entity.HasOne(definition => definition.Unit)
                 .WithMany()
-                .HasForeignKey(definition => definition.ModuleId)
+                .HasForeignKey(definition => definition.UnitId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
-        modelBuilder.Entity<CourseCheckpointOption>(entity =>
+        modelBuilder.Entity<CourseUnitExamOption>(entity =>
         {
             entity.HasKey(option => option.Id);
             entity.Property(option => option.Key).HasMaxLength(80).IsRequired();
             entity.Property(option => option.Label).HasMaxLength(220).IsRequired();
-            entity.HasIndex(option => new { option.CourseCheckpointDefinitionId, option.OrderIndex });
+            entity.HasIndex(option => new { option.CourseUnitExamDefinitionId, option.OrderIndex });
 
-            entity.HasOne(option => option.CourseCheckpointDefinition)
+            entity.HasOne(option => option.CourseUnitExamDefinition)
                 .WithMany(definition => definition.Options)
-                .HasForeignKey(option => option.CourseCheckpointDefinitionId)
+                .HasForeignKey(option => option.CourseUnitExamDefinitionId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 
-        modelBuilder.Entity<ModuleCheckpointProgress>(entity =>
+        modelBuilder.Entity<UnitExamProgress>(entity =>
         {
             entity.HasKey(progress => progress.Id);
-            entity.Property(progress => progress.CheckpointKey).HasMaxLength(80).IsRequired();
-            entity.HasIndex(progress => new { progress.UserAccountId, progress.CourseId, progress.CheckpointKey }).IsUnique();
+            entity.Property(progress => progress.UnitExamKey).HasMaxLength(80).IsRequired();
+            entity.HasIndex(progress => new { progress.UserAccountId, progress.CourseId, progress.UnitExamKey }).IsUnique();
 
             entity.HasOne(progress => progress.UserAccount)
-                .WithMany(user => user.ModuleCheckpointProgresses)
+                .WithMany(user => user.UnitExamProgresses)
                 .HasForeignKey(progress => progress.UserAccountId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(progress => progress.Course)
-                .WithMany(course => course.ModuleCheckpointProgresses)
+                .WithMany(course => course.UnitExamProgresses)
                 .HasForeignKey(progress => progress.CourseId)
                 .OnDelete(DeleteBehavior.Cascade);
         });

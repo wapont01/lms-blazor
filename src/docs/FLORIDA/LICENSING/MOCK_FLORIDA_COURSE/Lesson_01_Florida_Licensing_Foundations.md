@@ -35,7 +35,7 @@ Education is not just preparation for testing; it is also part of licensing comp
 This course is designed for online delivery only. Students are expected to:
 - complete all required learning activities;
 - complete work independently;
-- complete assessments and examinations under the required security and verification procedures;
+- complete exams and examinations under the required security and verification procedures;
 - meet all course and renewal deadlines within the applicable time periods.
 
 ## Course requirement reminder
@@ -54,7 +54,7 @@ Why is it important for Florida real estate education to be tied to licensing st
 ## Quick review
 - Florida regulates real estate professionals through the Florida Real Estate Commission and related rules.
 - Florida licensing categories are more than a title; they affect the type of education and activities allowed.
-- Distance learning must still comply with state rules for completion, assessment, and verification.
+- Distance learning must still comply with state rules for completion, exam, and verification.
 
 ## Knowledge check
 1. Which agency oversees Florida real estate regulation?

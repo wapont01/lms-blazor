@@ -67,7 +67,7 @@ Give instructors usable learner outcome visibility.
 Backlog:
 1. Read models
 - Course/path completion rollups
-- Assessment status and attempts summary
+- Exam status and attempts summary
 - Late/overdue indicators
 
 2. Query services
@@ -79,7 +79,7 @@ Backlog:
 - Learner detail drawer/page with status chips
 
 Acceptance criteria:
-- Instructor can view per-course learner progress and assessment status
+- Instructor can view per-course learner progress and exam status
 - Instructor can filter to incomplete and at-risk learners
 - Learner detail includes attempt totals and progress snapshot
 
@@ -162,7 +162,7 @@ Test gates:
 ## Definition of Done (Phase 2)
 
 - Learning paths and prerequisites are enforceable and admin-configurable
-- Instructors have actionable learner progress/assessment visibility
+- Instructors have actionable learner progress/exam visibility
 - At-risk learners can be identified and intervention actions tracked
 - All features are covered by automated tests and release checklist sign-off
 

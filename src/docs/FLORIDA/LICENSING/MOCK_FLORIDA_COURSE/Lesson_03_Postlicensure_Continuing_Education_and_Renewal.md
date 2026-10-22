@@ -24,7 +24,7 @@ Continuing education is required for active licensees during renewal periods. Th
 A license may become void, inactive, or subject to noncompliance if a required education requirement is not completed before the applicable deadline. This creates a direct link between course completion, renewal, and active legal practice.
 
 ### 4. Distance learning and timing
-Online delivery does not remove the requirement to meet deadlines. A learner still must complete the course within the required period, meet any required assessments, and satisfy the renewal-related education requirement before the deadline passes.
+Online delivery does not remove the requirement to meet deadlines. A learner still must complete the course within the required period, meet any required exams, and satisfy the renewal-related education requirement before the deadline passes.
 
 ### 5. Legal consequences of noncompliance
 Failure to complete required education or maintain active licensure can affect a person's ability to lawfully operate as a sales associate or broker. In practical terms, completion records, renewal records, and compliance records are essential to maintaining good standing.

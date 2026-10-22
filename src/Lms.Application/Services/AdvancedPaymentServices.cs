@@ -8,7 +8,7 @@ namespace Lms.Application.Services;
 // ============ INTERFACES ============
 
 /// <summary>
-/// Fraud detection and risk assessment service for payments and refunds
+/// Fraud detection and risk exam service for payments and refunds
 /// </summary>
 public interface IFraudDetectionService
 {

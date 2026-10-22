@@ -16,7 +16,7 @@ public interface IDueDateReminderService
 public sealed record LearnerDueDateRow(Guid CourseId, string CourseTitle, DateTime DueAtUtc, bool IsOverdue, int DaysRemaining);
 public sealed record DueDateReminderRunResult(int DueSoonSent, int OverdueSent, int Processed);
 public sealed record LicenseComplianceRunResult(int Sent, int Processed);
-public sealed record CourseReminderRunResult(int DueSoonSent, int OverdueSent, int CourseStartSent, int EnrollmentClosingSent, int AssessmentDeadlineSent, int TotalProcessed, int LicenseComplianceSent = 0);
+public sealed record CourseReminderRunResult(int DueSoonSent, int OverdueSent, int CourseStartSent, int EnrollmentClosingSent, int ExamDeadlineSent, int TotalProcessed, int LicenseComplianceSent = 0);
 
 public class DueDateReminderService : IDueDateReminderService
 {
@@ -162,7 +162,7 @@ public class DueDateReminderService : IDueDateReminderService
             result.OverdueSent,
             CourseStartSent: 0,
             EnrollmentClosingSent: 0,
-            AssessmentDeadlineSent: 0,
+            ExamDeadlineSent: 0,
             result.Processed,
             licenseResult.Sent);
     }

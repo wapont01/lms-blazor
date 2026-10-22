@@ -9,17 +9,17 @@ public static class ProctoringDefaults
     public const string CompanyName = "WILLIAMS LAND REALTY LLC";
 }
 
-public interface IAssessmentService
+public interface IExamService
 {
-    Task EnsureDefaultAssessmentForCourseAsync(Guid courseId);
-    Task<CourseAssessmentView?> GetCourseAssessmentAsync(Guid courseId, Guid? moduleId = null);
-    Task<Dictionary<Guid, string>> GetCorrectAnswerMapAsync(Guid courseId, Guid? moduleId = null);
-    Task<AssessmentEditorModel?> GetAssessmentEditorAsync(Guid courseId);
-    Task SaveAssessmentEditorAsync(Guid courseId, AssessmentEditorModel editor, Guid actorUserId, string actorEmail);
-    Task<AssessmentEligibility> GetEligibilityAsync(Guid courseId, Guid userId, Guid? moduleId = null);
-    Task<AssessmentAttemptSummary> SubmitAttemptAsync(Guid courseId, Guid userId, Dictionary<Guid, string> answersByQuestionId, Guid? moduleId = null);
-    Task<bool> HasPassedRequiredAssessmentAsync(Guid courseId, Guid userId);
-    Task<List<AssessmentAttemptHistoryItem>> GetAttemptHistoryAsync(Guid courseId, Guid userId, Guid? moduleId = null);
+    Task EnsureDefaultExamForCourseAsync(Guid courseId);
+    Task<CourseExamView?> GetCourseExamAsync(Guid courseId, Guid? unitId = null);
+    Task<Dictionary<Guid, string>> GetCorrectAnswerMapAsync(Guid courseId, Guid? unitId = null);
+    Task<ExamEditorModel?> GetExamEditorAsync(Guid courseId);
+    Task SaveExamEditorAsync(Guid courseId, ExamEditorModel editor, Guid actorUserId, string actorEmail);
+    Task<ExamEligibility> GetEligibilityAsync(Guid courseId, Guid userId, Guid? unitId = null);
+    Task<ExamAttemptSummary> SubmitAttemptAsync(Guid courseId, Guid userId, Dictionary<Guid, string> answersByQuestionId, Guid? unitId = null);
+    Task<bool> HasPassedRequiredExamAsync(Guid courseId, Guid userId);
+    Task<List<ExamAttemptHistoryItem>> GetAttemptHistoryAsync(Guid courseId, Guid userId, Guid? unitId = null);
     Task GrantRetakeAsync(Guid courseId, Guid learnerUserId, int grantedAttempts, bool resetCooldownTimer, Guid adminUserId, string adminEmail);
     Task<List<RetakeGrantView>> GetRetakeGrantsAsync(Guid courseId);
     Task SetRetakeGrantAttemptsAsync(Guid courseId, Guid learnerUserId, int grantedAttempts, bool resetCooldownTimer, Guid adminUserId, string adminEmail);
@@ -30,35 +30,35 @@ public interface IAssessmentService
     Task ReportProctoringIncidentAsync(Guid sessionId, string notes, Guid actorUserId, string actorEmail);
 }
 
-public sealed record AssessmentQuestionView(Guid Id, string Prompt, string OptionA, string OptionB, string OptionC, string OptionD, int OrderIndex, string? HintText);
-public sealed record CourseAssessmentView(Guid Id, string Title, decimal PassPercent, bool IsRequired, List<AssessmentQuestionView> Questions);
-public sealed record AssessmentAttemptSummary(DateTime SubmittedAt, decimal ScorePercent, bool Passed, int TotalQuestions, int CorrectAnswers);
-public sealed record AssessmentEligibility(
-    bool RequiresAssessment,
+public sealed record ExamQuestionView(Guid Id, string Prompt, string OptionA, string OptionB, string OptionC, string OptionD, int OrderIndex, string? HintText);
+public sealed record CourseExamView(Guid Id, string Title, decimal PassPercent, bool IsRequired, List<ExamQuestionView> Questions);
+public sealed record ExamAttemptSummary(DateTime SubmittedAt, decimal ScorePercent, bool Passed, int TotalQuestions, int CorrectAnswers);
+public sealed record ExamEligibility(
+    bool RequiresExam,
     bool HasPassed,
-    AssessmentAttemptSummary? LatestAttempt,
+    ExamAttemptSummary? LatestAttempt,
     string? BlockingReason,
     bool HasRetakeGrantOverride,
     int AttemptsUsed,
     int AttemptsAllowed,
     bool HasUnlimitedAttempts,
     bool RequiresProctorVerification);
-public sealed record AssessmentAttemptAnswerReview(string Prompt, string SelectedOption, string CorrectOption, bool IsCorrect, string? FeedbackText);
-public sealed record AssessmentAttemptHistoryItem(int AttemptNumber, DateTime SubmittedAt, decimal ScorePercent, bool Passed, List<AssessmentAttemptAnswerReview> Answers, string? FeedbackSummary);
+public sealed record ExamAttemptAnswerReview(string Prompt, string SelectedOption, string CorrectOption, bool IsCorrect, string? FeedbackText);
+public sealed record ExamAttemptHistoryItem(int AttemptNumber, DateTime SubmittedAt, decimal ScorePercent, bool Passed, List<ExamAttemptAnswerReview> Answers, string? FeedbackSummary);
 public sealed record RetakeGrantView(Guid LearnerUserId, string LearnerDisplay, int GrantedAttempts, DateTime GrantedAt, Guid GrantedByAdminId, string GrantedByAdminDisplay);
 public sealed record ExamProctoringSessionView(Guid Id, string ProctorName, string? ExternalSessionId, DateTime IdentityVerifiedAtUtc, DateTime ExpiresAtUtc, bool ClosedBookConfirmed);
 
-public sealed class AssessmentEditorModel
+public sealed class ExamEditorModel
 {
-    public Guid? AssessmentId { get; set; }
-    public string Title { get; set; } = "Final Assessment";
+    public Guid? ExamId { get; set; }
+    public string Title { get; set; } = "Final Exam";
     public decimal PassPercent { get; set; } = 80m;
     public int? MaxRetakesPerLearner { get; set; }
     public int RetakeCooldownMinutes { get; set; }
-    public List<AssessmentQuestionEditorItem> Questions { get; set; } = new();
+    public List<ExamQuestionEditorItem> Questions { get; set; } = new();
 }
 
-public sealed class AssessmentQuestionEditorItem
+public sealed class ExamQuestionEditorItem
 {
     public Guid? QuestionId { get; set; }
     public int OrderIndex { get; set; }
@@ -71,12 +71,12 @@ public sealed class AssessmentQuestionEditorItem
     public string? FeedbackText { get; set; }
 }
 
-public class AssessmentService : IAssessmentService
+public class ExamService : IExamService
 {
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuditLogService _auditLogService;
 
-    private static readonly DefaultAssessmentQuestionSpec[] DefaultAssessmentQuestionSpecs =
+    private static readonly DefaultExamQuestionSpec[] DefaultExamQuestionSpecs =
     [
         new("What should you review first when planning a license path?", "Office branding", "State requirements and education hours", "Social media templates", "Desk layout", "B"),
         new("Why is brokerage supervision important in early practice?", "It replaces study", "It provides required oversight and authorization", "It removes disclosure rules", "It shortens the exam", "B"),
@@ -86,30 +86,30 @@ public class AssessmentService : IAssessmentService
         new("Before working a first client file, what should be confirmed?", "The office paint color", "Supervision, forms, and approval steps", "The marketing slogan", "The break room schedule", "B"),
         new("What is the main purpose of contingencies in a contract?", "Remove all risk", "Define conditions and deadlines", "Replace signatures", "Guarantee commission", "B"),
         new("What should you do if you are unsure about a compliance decision?", "Escalate to a supervisor or responsible party", "Proceed silently", "Randomize the process", "Wait until quarter-end", "A"),
-        new("What is the best way to prepare for the exam?", "Memorize one chapter only", "Study by topic and use practice checkpoints", "Skip review after one pass", "Avoid feedback", "B"),
+        new("What is the best way to prepare for the exam?", "Memorize one chapter only", "Study by topic and use practice unit exams", "Skip review after one pass", "Avoid feedback", "B"),
         new("What belongs in a first-30-day transaction plan?", "Lead intake scripts, disclosure timing, and supervision touchpoints", "Holiday decorations", "Personal slogans", "Office renovation notes", "A")
     ];
 
-    public AssessmentService(ApplicationDbContext dbContext, IAuditLogService auditLogService)
+    public ExamService(ApplicationDbContext dbContext, IAuditLogService auditLogService)
     {
         _dbContext = dbContext;
         _auditLogService = auditLogService;
     }
 
-    // Detects whether an assessment's questions still exactly match the auto-seeded defaults from
-    // EnsureDefaultAssessmentForCourseAsync, so course-readiness checks can require an instructor to
+    // Detects whether an exam's questions still exactly match the auto-seeded defaults from
+    // EnsureDefaultExamForCourseAsync, so course-readiness checks can require an instructor to
     // actually author their own content rather than submitting the placeholder quiz for review as-is.
-    public static bool MatchesDefaultAssessmentContent(CourseAssessment assessment)
+    public static bool MatchesDefaultExamContent(CourseExam exam)
     {
-        if (assessment.Questions.Count != DefaultAssessmentQuestionSpecs.Length)
+        if (exam.Questions.Count != DefaultExamQuestionSpecs.Length)
         {
             return false;
         }
 
-        var orderedQuestions = assessment.Questions.OrderBy(question => question.OrderIndex).ToList();
-        for (var index = 0; index < DefaultAssessmentQuestionSpecs.Length; index++)
+        var orderedQuestions = exam.Questions.OrderBy(question => question.OrderIndex).ToList();
+        for (var index = 0; index < DefaultExamQuestionSpecs.Length; index++)
         {
-            var spec = DefaultAssessmentQuestionSpecs[index];
+            var spec = DefaultExamQuestionSpecs[index];
             var question = orderedQuestions[index];
             if (question.Prompt != spec.Prompt
                 || question.OptionA != spec.OptionA
@@ -125,11 +125,11 @@ public class AssessmentService : IAssessmentService
         return true;
     }
 
-    public async Task EnsureDefaultAssessmentForCourseAsync(Guid courseId)
+    public async Task EnsureDefaultExamForCourseAsync(Guid courseId)
     {
         var defaultTitle = await _dbContext.Courses
             .Where(course => course.Id == courseId)
-            .Select(course => $"{course.Title} Final Assessment")
+            .Select(course => $"{course.Title} Final Exam")
             .FirstOrDefaultAsync();
 
         if (string.IsNullOrWhiteSpace(defaultTitle))
@@ -137,42 +137,42 @@ public class AssessmentService : IAssessmentService
             return;
         }
 
-        var assessment = await _dbContext.CourseAssessments
+        var exam = await _dbContext.CourseExams
             .Include(existing => existing.Questions)
-            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == null);
+            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == null);
 
-        if (assessment is null)
+        if (exam is null)
         {
-            assessment = new CourseAssessment
+            exam = new CourseExam
             {
                 CourseId = courseId,
-                ModuleId = null,
+                UnitId = null,
                 Title = defaultTitle,
                 PassPercent = 80m,
                 IsRequired = true
             };
 
-            _dbContext.CourseAssessments.Add(assessment);
+            _dbContext.CourseExams.Add(exam);
         }
 
-        var shouldSeedDefaultContent = string.Equals(assessment.Title, defaultTitle, StringComparison.OrdinalIgnoreCase)
-            && assessment.Questions.Count != DefaultAssessmentQuestionSpecs.Length;
+        var shouldSeedDefaultContent = string.Equals(exam.Title, defaultTitle, StringComparison.OrdinalIgnoreCase)
+            && exam.Questions.Count != DefaultExamQuestionSpecs.Length;
 
-        if (assessment.Questions.Count > 0 && !shouldSeedDefaultContent)
+        if (exam.Questions.Count > 0 && !shouldSeedDefaultContent)
         {
             return;
         }
 
-        assessment.Title = defaultTitle;
-        assessment.PassPercent = 80m;
-        assessment.IsRequired = true;
-        assessment.MaxRetakesPerLearner = null;
-        assessment.RetakeCooldownMinutes = 0;
+        exam.Title = defaultTitle;
+        exam.PassPercent = 80m;
+        exam.IsRequired = true;
+        exam.MaxRetakesPerLearner = null;
+        exam.RetakeCooldownMinutes = 0;
 
-        var orderedQuestions = assessment.Questions.OrderBy(question => question.OrderIndex).ToList();
-        for (var index = 0; index < DefaultAssessmentQuestionSpecs.Length; index++)
+        var orderedQuestions = exam.Questions.OrderBy(question => question.OrderIndex).ToList();
+        for (var index = 0; index < DefaultExamQuestionSpecs.Length; index++)
         {
-            var spec = DefaultAssessmentQuestionSpecs[index];
+            var spec = DefaultExamQuestionSpecs[index];
             if (index < orderedQuestions.Count)
             {
                 var question = orderedQuestions[index];
@@ -186,7 +186,7 @@ public class AssessmentService : IAssessmentService
                 continue;
             }
 
-            assessment.Questions.Add(new AssessmentQuestion
+            exam.Questions.Add(new ExamQuestion
             {
                 Prompt = spec.Prompt,
                 OptionA = spec.OptionA,
@@ -198,9 +198,9 @@ public class AssessmentService : IAssessmentService
             });
         }
 
-        if (orderedQuestions.Count > DefaultAssessmentQuestionSpecs.Length)
+        if (orderedQuestions.Count > DefaultExamQuestionSpecs.Length)
         {
-            _dbContext.AssessmentQuestions.RemoveRange(orderedQuestions.Skip(DefaultAssessmentQuestionSpecs.Length));
+            _dbContext.ExamQuestions.RemoveRange(orderedQuestions.Skip(DefaultExamQuestionSpecs.Length));
         }
 
         try
@@ -213,30 +213,30 @@ public class AssessmentService : IAssessmentService
         }
     }
 
-    public async Task<CourseAssessmentView?> GetCourseAssessmentAsync(Guid courseId, Guid? moduleId = null)
+    public async Task<CourseExamView?> GetCourseExamAsync(Guid courseId, Guid? unitId = null)
     {
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
-        var assessment = await _dbContext.CourseAssessments
+        var exam = await _dbContext.CourseExams
             .AsNoTracking()
             .Include(existing => existing.Questions)
-            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == moduleId)
+            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == unitId)
             .OrderBy(existing => existing.Title)
             .FirstOrDefaultAsync();
 
-        if (assessment is null)
+        if (exam is null)
         {
             return null;
         }
 
-        return new CourseAssessmentView(
-            assessment.Id,
-            assessment.Title,
-            assessment.PassPercent,
-            assessment.IsRequired,
-            assessment.Questions
+        return new CourseExamView(
+            exam.Id,
+            exam.Title,
+            exam.PassPercent,
+            exam.IsRequired,
+            exam.Questions
                 .OrderBy(question => question.OrderIndex)
-                .Select(question => new AssessmentQuestionView(
+                .Select(question => new ExamQuestionView(
                     question.Id,
                     question.Prompt,
                     question.OptionA,
@@ -248,49 +248,49 @@ public class AssessmentService : IAssessmentService
                 .ToList());
     }
 
-    public async Task<Dictionary<Guid, string>> GetCorrectAnswerMapAsync(Guid courseId, Guid? moduleId = null)
+    public async Task<Dictionary<Guid, string>> GetCorrectAnswerMapAsync(Guid courseId, Guid? unitId = null)
     {
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
-        var assessment = await _dbContext.CourseAssessments
+        var exam = await _dbContext.CourseExams
             .AsNoTracking()
             .Include(existing => existing.Questions)
-            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == moduleId);
+            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == unitId);
 
-        if (assessment is null)
+        if (exam is null)
         {
             return new Dictionary<Guid, string>();
         }
 
-        return assessment.Questions
+        return exam.Questions
             .OrderBy(question => question.OrderIndex)
             .ToDictionary(question => question.Id, question => question.CorrectOption);
     }
 
-    public async Task<AssessmentEditorModel?> GetAssessmentEditorAsync(Guid courseId)
+    public async Task<ExamEditorModel?> GetExamEditorAsync(Guid courseId)
     {
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
-        var assessment = await _dbContext.CourseAssessments
+        var exam = await _dbContext.CourseExams
             .AsNoTracking()
             .Include(existing => existing.Questions)
-            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == null);
+            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == null);
 
-        if (assessment is null)
+        if (exam is null)
         {
             return null;
         }
 
-        return new AssessmentEditorModel
+        return new ExamEditorModel
         {
-            AssessmentId = assessment.Id,
-            Title = assessment.Title,
-            PassPercent = assessment.PassPercent,
-            MaxRetakesPerLearner = assessment.MaxRetakesPerLearner,
-            RetakeCooldownMinutes = assessment.RetakeCooldownMinutes,
-            Questions = assessment.Questions
+            ExamId = exam.Id,
+            Title = exam.Title,
+            PassPercent = exam.PassPercent,
+            MaxRetakesPerLearner = exam.MaxRetakesPerLearner,
+            RetakeCooldownMinutes = exam.RetakeCooldownMinutes,
+            Questions = exam.Questions
                 .OrderBy(question => question.OrderIndex)
-                .Select(question => new AssessmentQuestionEditorItem
+                .Select(question => new ExamQuestionEditorItem
                 {
                     QuestionId = question.Id,
                     OrderIndex = question.OrderIndex,
@@ -306,37 +306,37 @@ public class AssessmentService : IAssessmentService
         };
     }
 
-    public async Task SaveAssessmentEditorAsync(Guid courseId, AssessmentEditorModel editor, Guid actorUserId, string actorEmail)
+    public async Task SaveExamEditorAsync(Guid courseId, ExamEditorModel editor, Guid actorUserId, string actorEmail)
     {
         if (editor.Questions.Count == 0)
         {
-            throw new InvalidOperationException("Assessment must include at least one question.");
+            throw new InvalidOperationException("Exam must include at least one question.");
         }
 
-        var assessment = await _dbContext.CourseAssessments
+        var exam = await _dbContext.CourseExams
             .Include(existing => existing.Questions)
             .Include(existing => existing.Attempts)
-            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == null);
+            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == null);
 
-        if (assessment is null)
+        if (exam is null)
         {
-            assessment = new CourseAssessment
+            exam = new CourseExam
             {
                 CourseId = courseId,
                 IsRequired = true
             };
 
-            _dbContext.CourseAssessments.Add(assessment);
+            _dbContext.CourseExams.Add(exam);
         }
 
-        assessment.Title = string.IsNullOrWhiteSpace(editor.Title)
-            ? "Final Assessment"
+        exam.Title = string.IsNullOrWhiteSpace(editor.Title)
+            ? "Final Exam"
             : editor.Title.Trim();
-        assessment.PassPercent = Math.Clamp(editor.PassPercent, 0m, 100m);
-        assessment.MaxRetakesPerLearner = editor.MaxRetakesPerLearner is null or <= 0 ? null : editor.MaxRetakesPerLearner;
-        assessment.RetakeCooldownMinutes = Math.Max(editor.RetakeCooldownMinutes, 0);
+        exam.PassPercent = Math.Clamp(editor.PassPercent, 0m, 100m);
+        exam.MaxRetakesPerLearner = editor.MaxRetakesPerLearner is null or <= 0 ? null : editor.MaxRetakesPerLearner;
+        exam.RetakeCooldownMinutes = Math.Max(editor.RetakeCooldownMinutes, 0);
 
-        var existingQuestionsById = assessment.Questions.ToDictionary(question => question.Id, question => question);
+        var existingQuestionsById = exam.Questions.ToDictionary(question => question.Id, question => question);
         var retainedQuestionIds = new HashSet<Guid>();
 
         for (var index = 0; index < editor.Questions.Count; index++)
@@ -344,19 +344,19 @@ public class AssessmentService : IAssessmentService
             var input = editor.Questions[index];
             ValidateEditorQuestion(input, index + 1);
 
-            AssessmentQuestion question;
+            ExamQuestion question;
             if (input.QuestionId.HasValue && existingQuestionsById.TryGetValue(input.QuestionId.Value, out var existingQuestion))
             {
                 question = existingQuestion;
             }
             else
             {
-                question = new AssessmentQuestion
+                question = new ExamQuestion
                 {
-                    CourseAssessment = assessment
+                    CourseExam = exam
                 };
 
-                assessment.Questions.Add(question);
+                exam.Questions.Add(question);
             }
 
             question.Prompt = input.Prompt.Trim();
@@ -371,18 +371,18 @@ public class AssessmentService : IAssessmentService
             retainedQuestionIds.Add(question.Id);
         }
 
-        var removedQuestions = assessment.Questions
+        var removedQuestions = exam.Questions
             .Where(question => !retainedQuestionIds.Contains(question.Id))
             .ToList();
 
         if (removedQuestions.Count > 0)
         {
-            _dbContext.AssessmentQuestions.RemoveRange(removedQuestions);
+            _dbContext.ExamQuestions.RemoveRange(removedQuestions);
         }
 
-        if (assessment.Attempts.Count > 0)
+        if (exam.Attempts.Count > 0)
         {
-            _dbContext.AssessmentAttempts.RemoveRange(assessment.Attempts);
+            _dbContext.ExamAttempts.RemoveRange(exam.Attempts);
 
             var issuedCertificates = await _dbContext.CompletionCertificates
                 .Where(certificate => certificate.CourseId == courseId && !certificate.IsRevoked)
@@ -392,7 +392,7 @@ public class AssessmentService : IAssessmentService
             {
                 certificate.IsRevoked = true;
                 certificate.RevokedAt = DateTime.UtcNow;
-                certificate.RevocationReason = "Assessment updated. Learner must pass the latest required assessment.";
+                certificate.RevocationReason = "Exam updated. Learner must pass the latest required exam.";
             }
         }
 
@@ -401,15 +401,15 @@ public class AssessmentService : IAssessmentService
         await _auditLogService.WriteAsync(
             actorUserId,
             actorEmail,
-            "assessment.updated",
-            "CourseAssessment",
-            assessment.Id,
-            $"CourseId={courseId}; Questions={editor.Questions.Count}; PassPercent={assessment.PassPercent:0.##}");
+            "exam.updated",
+            "CourseExam",
+            exam.Id,
+            $"CourseId={courseId}; Questions={editor.Questions.Count}; PassPercent={exam.PassPercent:0.##}");
     }
 
-    public async Task<AssessmentEligibility> GetEligibilityAsync(Guid courseId, Guid userId, Guid? moduleId = null)
+    public async Task<ExamEligibility> GetEligibilityAsync(Guid courseId, Guid userId, Guid? unitId = null)
     {
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
         var course = await _dbContext.Courses
             .AsNoTracking()
@@ -417,27 +417,27 @@ public class AssessmentService : IAssessmentService
 
         if (course is null)
         {
-            return new AssessmentEligibility(false, false, null, "Course not found.", false, 0, 0, false, false);
+            return new ExamEligibility(false, false, null, "Course not found.", false, 0, 0, false, false);
         }
 
-        var assessment = await _dbContext.CourseAssessments
+        var exam = await _dbContext.CourseExams
             .AsNoTracking()
-            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == moduleId)
+            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == unitId)
             .Select(existing => new { existing.Id, existing.IsRequired, existing.MaxRetakesPerLearner, existing.RetakeCooldownMinutes, existing.PassPercent })
             .FirstOrDefaultAsync();
 
-        if (assessment is null || !assessment.IsRequired)
+        if (exam is null || !exam.IsRequired)
         {
-            return new AssessmentEligibility(false, true, null, null, false, 0, 0, false, false);
+            return new ExamEligibility(false, true, null, null, false, 0, 0, false, false);
         }
 
-        var requiredPassPercent = course.UsesUnitBasedStructure ? course.MinimumPassingPercent : assessment.PassPercent;
+        var requiredPassPercent = course.UsesUnitBasedStructure ? course.MinimumPassingPercent : exam.PassPercent;
 
-        var latestAttempt = await _dbContext.AssessmentAttempts
+        var latestAttempt = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .Where(attempt => attempt.CourseAssessmentId == assessment.Id && attempt.UserAccountId == userId)
+            .Where(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId)
             .OrderByDescending(attempt => attempt.SubmittedAt)
-            .Select(attempt => new AssessmentAttemptSummary(
+            .Select(attempt => new ExamAttemptSummary(
                 attempt.SubmittedAt,
                 attempt.ScorePercent,
                 attempt.Passed,
@@ -445,16 +445,16 @@ public class AssessmentService : IAssessmentService
                 attempt.Answers.Count(answer => answer.IsCorrect)))
             .FirstOrDefaultAsync();
 
-        var hasPassed = await _dbContext.AssessmentAttempts
+        var hasPassed = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .AnyAsync(attempt => attempt.CourseAssessmentId == assessment.Id && attempt.UserAccountId == userId && attempt.Passed);
-        var attemptsUsed = await _dbContext.AssessmentAttempts
+            .AnyAsync(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId && attempt.Passed);
+        var attemptsUsed = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .CountAsync(attempt => attempt.CourseAssessmentId == assessment.Id && attempt.UserAccountId == userId);
+            .CountAsync(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId);
 
-        var firstAttemptPassed = await _dbContext.AssessmentAttempts
+        var firstAttemptPassed = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .Where(attempt => attempt.CourseAssessmentId == assessment.Id && attempt.UserAccountId == userId)
+            .Where(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId)
             .OrderBy(attempt => attempt.AttemptNumber)
             .ThenBy(attempt => attempt.SubmittedAt)
             .Select(attempt => (bool?)attempt.Passed)
@@ -462,13 +462,13 @@ public class AssessmentService : IAssessmentService
 
         var grant = await _dbContext.RetakeGrants
             .AsNoTracking()
-            .FirstOrDefaultAsync(existing => existing.CourseAssessmentId == assessment.Id && existing.UserAccountId == userId);
+            .FirstOrDefaultAsync(existing => existing.CourseExamId == exam.Id && existing.UserAccountId == userId);
         var hasRetakeGrantOverride = grant is not null && grant.GrantedAttempts > 0;
         var effectiveHasPassed = hasPassed && !hasRetakeGrantOverride;
         var requiresProctoredExam = course.RequiresProctoredExam;
         var hasActiveProctoringSession = !requiresProctoredExam || await HasActiveProctoringSessionAsync(courseId, userId);
 
-        var baseAttemptsAllowed = GetBaseAttemptsAllowed(course, assessment.MaxRetakesPerLearner, firstAttemptPassed, hasRetakeGrantOverride);
+        var baseAttemptsAllowed = GetBaseAttemptsAllowed(course, exam.MaxRetakesPerLearner, firstAttemptPassed, hasRetakeGrantOverride);
         var hasUnlimitedAttempts = baseAttemptsAllowed is null;
         var attemptsAllowed = hasUnlimitedAttempts
             ? attemptsUsed + 1
@@ -482,11 +482,11 @@ public class AssessmentService : IAssessmentService
         }
         else if (!hasActiveProctoringSession)
         {
-            blockingReason = "Identity verification and a closed-book proctoring session are required before beginning this assessment.";
+            blockingReason = "Identity verification and a closed-book proctoring session are required before beginning this exam.";
         }
         else if (latestAttempt is null)
         {
-            blockingReason = $"Progress is gated until this required assessment is passed at {requiredPassPercent}% or higher.";
+            blockingReason = $"Progress is gated until this required exam is passed at {requiredPassPercent}% or higher.";
         }
         else if (!hasUnlimitedAttempts && attemptsUsed >= attemptsAllowed)
         {
@@ -494,13 +494,13 @@ public class AssessmentService : IAssessmentService
         }
         else
         {
-            var nextAttemptAtUtc = latestAttempt.SubmittedAt.AddMinutes(Math.Max(assessment.RetakeCooldownMinutes, 0));
+            var nextAttemptAtUtc = latestAttempt.SubmittedAt.AddMinutes(Math.Max(exam.RetakeCooldownMinutes, 0));
             blockingReason = nextAttemptAtUtc > DateTime.UtcNow
                 ? $"Retake available at {nextAttemptAtUtc:u}."
-                : $"Latest assessment attempt did not pass. Submit another attempt to unlock certification at {requiredPassPercent}% or higher.";
+                : $"Latest exam attempt did not pass. Submit another attempt to unlock certification at {requiredPassPercent}% or higher.";
         }
 
-        return new AssessmentEligibility(
+        return new ExamEligibility(
             true,
             effectiveHasPassed,
             latestAttempt,
@@ -512,17 +512,17 @@ public class AssessmentService : IAssessmentService
             requiresProctoredExam && !hasActiveProctoringSession);
     }
 
-    public async Task<AssessmentAttemptSummary> SubmitAttemptAsync(Guid courseId, Guid userId, Dictionary<Guid, string> answersByQuestionId, Guid? moduleId = null)
+    public async Task<ExamAttemptSummary> SubmitAttemptAsync(Guid courseId, Guid userId, Dictionary<Guid, string> answersByQuestionId, Guid? unitId = null)
     {
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
-        var assessment = await _dbContext.CourseAssessments
+        var exam = await _dbContext.CourseExams
             .Include(existing => existing.Questions)
-            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == moduleId);
+            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == unitId);
 
-        if (assessment is null)
+        if (exam is null)
         {
-            throw new InvalidOperationException("No required assessment was found for this course.");
+            throw new InvalidOperationException("No required exam was found for this course.");
         }
 
         var course = await _dbContext.Courses
@@ -544,18 +544,18 @@ public class AssessmentService : IAssessmentService
 
             if (proctoringSession is null)
             {
-                throw new InvalidOperationException("A verified, closed-book proctoring session is required before submitting this assessment.");
+                throw new InvalidOperationException("A verified, closed-book proctoring session is required before submitting this exam.");
             }
         }
 
-        var orderedQuestions = assessment.Questions.OrderBy(question => question.OrderIndex).ToList();
+        var orderedQuestions = exam.Questions.OrderBy(question => question.OrderIndex).ToList();
         if (orderedQuestions.Count == 0)
         {
-            throw new InvalidOperationException("Assessment has no questions.");
+            throw new InvalidOperationException("Exam has no questions.");
         }
 
-        var existingAttempts = await _dbContext.AssessmentAttempts
-            .Where(existing => existing.CourseAssessmentId == assessment.Id && existing.UserAccountId == userId)
+        var existingAttempts = await _dbContext.ExamAttempts
+            .Where(existing => existing.CourseExamId == exam.Id && existing.UserAccountId == userId)
             .OrderByDescending(existing => existing.SubmittedAt)
             .ToListAsync();
 
@@ -563,14 +563,14 @@ public class AssessmentService : IAssessmentService
         var latestAttempt = existingAttempts.FirstOrDefault();
 
         var grant = await _dbContext.RetakeGrants
-            .FirstOrDefaultAsync(existing => existing.CourseAssessmentId == assessment.Id && existing.UserAccountId == userId);
+            .FirstOrDefaultAsync(existing => existing.CourseExamId == exam.Id && existing.UserAccountId == userId);
 
         var firstAttempt = existingAttempts
             .OrderBy(existing => existing.AttemptNumber)
             .ThenBy(existing => existing.SubmittedAt)
             .FirstOrDefault();
         var hasRetakeGrantOverride = grant is not null && grant.GrantedAttempts > 0;
-        var baseAttemptsAllowed = GetBaseAttemptsAllowed(course, assessment.MaxRetakesPerLearner, firstAttempt?.Passed, hasRetakeGrantOverride);
+        var baseAttemptsAllowed = GetBaseAttemptsAllowed(course, exam.MaxRetakesPerLearner, firstAttempt?.Passed, hasRetakeGrantOverride);
         var maxAttemptsAllowed = baseAttemptsAllowed is null
             ? (int?)null
             : baseAttemptsAllowed.Value + (grant?.GrantedAttempts ?? 0);
@@ -580,7 +580,7 @@ public class AssessmentService : IAssessmentService
             throw new InvalidOperationException("Retake limit reached. Contact an admin for additional attempts.");
         }
 
-        var cooldownMinutes = Math.Max(assessment.RetakeCooldownMinutes, 0);
+        var cooldownMinutes = Math.Max(exam.RetakeCooldownMinutes, 0);
         if (latestAttempt is not null && cooldownMinutes > 0)
         {
             var nextAttemptAtUtc = latestAttempt.SubmittedAt.AddMinutes(cooldownMinutes);
@@ -590,9 +590,9 @@ public class AssessmentService : IAssessmentService
             }
         }
 
-        var attempt = new AssessmentAttempt
+        var attempt = new ExamAttempt
         {
-            CourseAssessmentId = assessment.Id,
+            CourseExamId = exam.Id,
             UserAccountId = userId,
             StartedAt = DateTime.UtcNow,
             SubmittedAt = DateTime.UtcNow,
@@ -613,9 +613,9 @@ public class AssessmentService : IAssessmentService
                 correctAnswers += 1;
             }
 
-            attempt.Answers.Add(new AssessmentAnswer
+            attempt.Answers.Add(new ExamAnswer
             {
-                AssessmentQuestionId = question.Id,
+                ExamQuestionId = question.Id,
                 SelectedOption = string.IsNullOrWhiteSpace(selected) ? "-" : selected,
                 IsCorrect = isCorrect
             });
@@ -623,16 +623,16 @@ public class AssessmentService : IAssessmentService
 
         var totalQuestions = orderedQuestions.Count;
         var score = Math.Round(100m * correctAnswers / totalQuestions, 2, MidpointRounding.AwayFromZero);
-        var requiredPassPercent = course is not null && course.UsesUnitBasedStructure ? course.MinimumPassingPercent : assessment.PassPercent;
+        var requiredPassPercent = course is not null && course.UsesUnitBasedStructure ? course.MinimumPassingPercent : exam.PassPercent;
         var passed = score >= requiredPassPercent;
 
         attempt.ScorePercent = score;
         attempt.Passed = passed;
         attempt.FeedbackSummary = passed
-            ? "Pass. Assessment requirements are satisfied."
+            ? "Pass. Exam requirements are satisfied."
             : $"Not passed yet. You need {requiredPassPercent}% or higher to meet the course requirement.";
 
-        _dbContext.AssessmentAttempts.Add(attempt);
+        _dbContext.ExamAttempts.Add(attempt);
         if (proctoringSession is not null)
         {
             proctoringSession.UsedAtUtc = attempt.SubmittedAt;
@@ -647,12 +647,12 @@ public class AssessmentService : IAssessmentService
         await _auditLogService.WriteAsync(
             userId,
             actorEmail,
-            passed ? "assessment.attempt.passed" : "assessment.attempt.failed",
-            "CourseAssessment",
-            assessment.Id,
-            $"Score={score:0.##}; PassPercent={assessment.PassPercent:0.##}");
+            passed ? "exam.attempt.passed" : "exam.attempt.failed",
+            "CourseExam",
+            exam.Id,
+            $"Score={score:0.##}; PassPercent={exam.PassPercent:0.##}");
 
-        return new AssessmentAttemptSummary(attempt.SubmittedAt, score, passed, totalQuestions, correctAnswers);
+        return new ExamAttemptSummary(attempt.SubmittedAt, score, passed, totalQuestions, correctAnswers);
     }
 
     private static int? GetBaseAttemptsAllowed(Course? course, int? maxRetakesPerLearner, bool? firstAttemptPassed, bool hasRetakeGrantOverride)
@@ -672,43 +672,43 @@ public class AssessmentService : IAssessmentService
             : 2;
     }
 
-    public async Task<List<AssessmentAttemptHistoryItem>> GetAttemptHistoryAsync(Guid courseId, Guid userId, Guid? moduleId = null)
+    public async Task<List<ExamAttemptHistoryItem>> GetAttemptHistoryAsync(Guid courseId, Guid userId, Guid? unitId = null)
     {
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
-        var assessmentId = await _dbContext.CourseAssessments
+        var examId = await _dbContext.CourseExams
             .AsNoTracking()
-            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == moduleId)
+            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == unitId)
             .Select(existing => (Guid?)existing.Id)
             .FirstOrDefaultAsync();
 
-        if (!assessmentId.HasValue)
+        if (!examId.HasValue)
         {
             return [];
         }
 
-        var attempts = await _dbContext.AssessmentAttempts
+        var attempts = await _dbContext.ExamAttempts
             .AsNoTracking()
             .Include(attempt => attempt.Answers)
-                .ThenInclude(answer => answer.AssessmentQuestion)
-            .Where(attempt => attempt.CourseAssessmentId == assessmentId.Value && attempt.UserAccountId == userId)
+                .ThenInclude(answer => answer.ExamQuestion)
+            .Where(attempt => attempt.CourseExamId == examId.Value && attempt.UserAccountId == userId)
             .OrderByDescending(attempt => attempt.SubmittedAt)
             .ToListAsync();
 
         return attempts
-            .Select(attempt => new AssessmentAttemptHistoryItem(
+            .Select(attempt => new ExamAttemptHistoryItem(
                 attempt.AttemptNumber,
                 attempt.SubmittedAt,
                 attempt.ScorePercent,
                 attempt.Passed,
                 attempt.Answers
-                    .OrderBy(answer => answer.AssessmentQuestion?.OrderIndex ?? int.MaxValue)
-                    .Select(answer => new AssessmentAttemptAnswerReview(
-                        answer.AssessmentQuestion?.Prompt ?? "Question",
+                    .OrderBy(answer => answer.ExamQuestion?.OrderIndex ?? int.MaxValue)
+                    .Select(answer => new ExamAttemptAnswerReview(
+                        answer.ExamQuestion?.Prompt ?? "Question",
                         answer.SelectedOption,
                         "-",
                         answer.IsCorrect,
-                        answer.AssessmentQuestion?.FeedbackText))
+                        answer.ExamQuestion?.FeedbackText))
                     .ToList(),
                 attempt.FeedbackSummary))
             .ToList();
@@ -721,26 +721,26 @@ public class AssessmentService : IAssessmentService
             throw new InvalidOperationException("Granted attempts must be greater than zero.");
         }
 
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
-        var assessment = await _dbContext.CourseAssessments
-            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == null)
+        var exam = await _dbContext.CourseExams
+            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == null)
             .Select(existing => new { existing.Id, existing.RetakeCooldownMinutes })
             .FirstOrDefaultAsync();
 
-        if (assessment is null)
+        if (exam is null)
         {
-            throw new InvalidOperationException("Assessment not found for this course.");
+            throw new InvalidOperationException("Exam not found for this course.");
         }
 
         var grant = await _dbContext.RetakeGrants
-            .FirstOrDefaultAsync(existing => existing.CourseAssessmentId == assessment.Id && existing.UserAccountId == learnerUserId);
+            .FirstOrDefaultAsync(existing => existing.CourseExamId == exam.Id && existing.UserAccountId == learnerUserId);
 
         if (grant is null)
         {
             grant = new RetakeGrant
             {
-                CourseAssessmentId = assessment.Id,
+                CourseExamId = exam.Id,
                 UserAccountId = learnerUserId,
                 GrantedAttempts = grantedAttempts,
                 GrantedByAdminId = adminUserId,
@@ -758,24 +758,24 @@ public class AssessmentService : IAssessmentService
 
         if (resetCooldownTimer)
         {
-            await ResetRetakeCooldownTimerAsync(assessment.Id, learnerUserId, assessment.RetakeCooldownMinutes);
+            await ResetRetakeCooldownTimerAsync(exam.Id, learnerUserId, exam.RetakeCooldownMinutes);
         }
 
         await _dbContext.SaveChangesAsync();
-        await _auditLogService.WriteAsync(adminUserId, adminEmail, "assessment.retake.granted", "CourseAssessment", assessment.Id, $"Learner={learnerUserId}; Attempts={grantedAttempts}; ResetCooldownTimer={resetCooldownTimer}");
+        await _auditLogService.WriteAsync(adminUserId, adminEmail, "exam.retake.granted", "CourseExam", exam.Id, $"Learner={learnerUserId}; Attempts={grantedAttempts}; ResetCooldownTimer={resetCooldownTimer}");
     }
 
     public async Task<List<RetakeGrantView>> GetRetakeGrantsAsync(Guid courseId)
     {
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
-        var assessmentId = await _dbContext.CourseAssessments
+        var examId = await _dbContext.CourseExams
             .AsNoTracking()
-            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == null)
+            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == null)
             .Select(existing => (Guid?)existing.Id)
             .FirstOrDefaultAsync();
 
-        if (!assessmentId.HasValue)
+        if (!examId.HasValue)
         {
             return [];
         }
@@ -784,7 +784,7 @@ public class AssessmentService : IAssessmentService
             .AsNoTracking()
             .Include(grant => grant.UserAccount)
             .Include(grant => grant.GrantedByAdmin)
-            .Where(grant => grant.CourseAssessmentId == assessmentId.Value)
+            .Where(grant => grant.CourseExamId == examId.Value)
             .OrderByDescending(grant => grant.GrantedAt)
             .ToListAsync();
 
@@ -806,26 +806,26 @@ public class AssessmentService : IAssessmentService
             throw new InvalidOperationException("Granted attempts must be greater than zero.");
         }
 
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
-        var assessment = await _dbContext.CourseAssessments
-            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == null)
+        var exam = await _dbContext.CourseExams
+            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == null)
             .Select(existing => new { existing.Id, existing.RetakeCooldownMinutes })
             .FirstOrDefaultAsync();
 
-        if (assessment is null)
+        if (exam is null)
         {
-            throw new InvalidOperationException("Assessment not found for this course.");
+            throw new InvalidOperationException("Exam not found for this course.");
         }
 
         var grant = await _dbContext.RetakeGrants
-            .FirstOrDefaultAsync(existing => existing.CourseAssessmentId == assessment.Id && existing.UserAccountId == learnerUserId);
+            .FirstOrDefaultAsync(existing => existing.CourseExamId == exam.Id && existing.UserAccountId == learnerUserId);
 
         if (grant is null)
         {
             grant = new RetakeGrant
             {
-                CourseAssessmentId = assessment.Id,
+                CourseExamId = exam.Id,
                 UserAccountId = learnerUserId,
                 GrantedAttempts = grantedAttempts,
                 GrantedByAdminId = adminUserId,
@@ -843,29 +843,29 @@ public class AssessmentService : IAssessmentService
 
         if (resetCooldownTimer)
         {
-            await ResetRetakeCooldownTimerAsync(assessment.Id, learnerUserId, assessment.RetakeCooldownMinutes);
+            await ResetRetakeCooldownTimerAsync(exam.Id, learnerUserId, exam.RetakeCooldownMinutes);
         }
 
         await _dbContext.SaveChangesAsync();
-        await _auditLogService.WriteAsync(adminUserId, adminEmail, "assessment.retake.updated", "CourseAssessment", assessment.Id, $"Learner={learnerUserId}; Attempts={grantedAttempts}; ResetCooldownTimer={resetCooldownTimer}");
+        await _auditLogService.WriteAsync(adminUserId, adminEmail, "exam.retake.updated", "CourseExam", exam.Id, $"Learner={learnerUserId}; Attempts={grantedAttempts}; ResetCooldownTimer={resetCooldownTimer}");
     }
 
     public async Task RevokeRetakeGrantAsync(Guid courseId, Guid learnerUserId, Guid adminUserId, string adminEmail)
     {
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
-        var assessmentId = await _dbContext.CourseAssessments
-            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.ModuleId == null)
+        var examId = await _dbContext.CourseExams
+            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == null)
             .Select(existing => (Guid?)existing.Id)
             .FirstOrDefaultAsync();
 
-        if (!assessmentId.HasValue)
+        if (!examId.HasValue)
         {
-            throw new InvalidOperationException("Assessment not found for this course.");
+            throw new InvalidOperationException("Exam not found for this course.");
         }
 
         var grant = await _dbContext.RetakeGrants
-            .FirstOrDefaultAsync(existing => existing.CourseAssessmentId == assessmentId.Value && existing.UserAccountId == learnerUserId);
+            .FirstOrDefaultAsync(existing => existing.CourseExamId == examId.Value && existing.UserAccountId == learnerUserId);
 
         if (grant is null)
         {
@@ -874,27 +874,27 @@ public class AssessmentService : IAssessmentService
 
         _dbContext.RetakeGrants.Remove(grant);
         await _dbContext.SaveChangesAsync();
-        await _auditLogService.WriteAsync(adminUserId, adminEmail, "assessment.retake.revoked", "CourseAssessment", assessmentId.Value, $"Learner={learnerUserId}");
+        await _auditLogService.WriteAsync(adminUserId, adminEmail, "exam.retake.revoked", "CourseExam", examId.Value, $"Learner={learnerUserId}");
     }
 
-    public async Task<bool> HasPassedRequiredAssessmentAsync(Guid courseId, Guid userId)
+    public async Task<bool> HasPassedRequiredExamAsync(Guid courseId, Guid userId)
     {
-        await EnsureDefaultAssessmentForCourseAsync(courseId);
+        await EnsureDefaultExamForCourseAsync(courseId);
 
-        var assessmentIds = await _dbContext.CourseAssessments
+        var examIds = await _dbContext.CourseExams
             .AsNoTracking()
-            .Where(assessment => assessment.CourseId == courseId && assessment.IsRequired)
-            .Select(assessment => assessment.Id)
+            .Where(exam => exam.CourseId == courseId && exam.IsRequired)
+            .Select(exam => exam.Id)
             .ToListAsync();
 
-        if (assessmentIds.Count == 0)
+        if (examIds.Count == 0)
         {
             return true;
         }
 
         var hasRetakeGrant = await _dbContext.RetakeGrants
             .AsNoTracking()
-            .AnyAsync(existing => assessmentIds.Contains(existing.CourseAssessmentId)
+            .AnyAsync(existing => examIds.Contains(existing.CourseExamId)
                 && existing.UserAccountId == userId
                 && existing.GrantedAttempts > 0);
 
@@ -903,16 +903,16 @@ public class AssessmentService : IAssessmentService
             return false;
         }
 
-        var passedAssessmentIds = await _dbContext.AssessmentAttempts
+        var passedExamIds = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .Where(attempt => assessmentIds.Contains(attempt.CourseAssessmentId)
+            .Where(attempt => examIds.Contains(attempt.CourseExamId)
                 && attempt.UserAccountId == userId
                 && attempt.Passed)
-            .Select(attempt => attempt.CourseAssessmentId)
+            .Select(attempt => attempt.CourseExamId)
             .Distinct()
             .ToListAsync();
 
-        return assessmentIds.All(passedAssessmentIds.Contains);
+        return examIds.All(passedExamIds.Contains);
     }
 
     public async Task<ExamProctoringSessionView> RegisterProctoringSessionAsync(
@@ -964,7 +964,7 @@ public class AssessmentService : IAssessmentService
 
         _dbContext.ExamProctoringSessions.Add(session);
         await _dbContext.SaveChangesAsync();
-        await _auditLogService.WriteAsync(actorUserId, actorEmail, "assessment.proctoring.verified", "ExamProctoringSession", session.Id, $"CourseId={courseId};Learner={learnerUserId};Proctor={session.ProctorName}");
+        await _auditLogService.WriteAsync(actorUserId, actorEmail, "exam.proctoring.verified", "ExamProctoringSession", session.Id, $"CourseId={courseId};Learner={learnerUserId};Proctor={session.ProctorName}");
         return ToProctoringSessionView(session);
     }
 
@@ -1014,7 +1014,7 @@ public class AssessmentService : IAssessmentService
         }
 
         await _dbContext.SaveChangesAsync();
-        await _auditLogService.WriteAsync(actorUserId, actorEmail, "assessment.proctoring.expired", "ExamProctoringSession", session.Id, $"CourseId={session.CourseId};Learner={session.UserAccountId};Proctor={session.ProctorName}");
+        await _auditLogService.WriteAsync(actorUserId, actorEmail, "exam.proctoring.expired", "ExamProctoringSession", session.Id, $"CourseId={session.CourseId};Learner={session.UserAccountId};Proctor={session.ProctorName}");
     }
 
     public async Task ReportProctoringIncidentAsync(Guid sessionId, string notes, Guid actorUserId, string actorEmail)
@@ -1035,7 +1035,7 @@ public class AssessmentService : IAssessmentService
         session.SecurityIncidentNotes = notes.Trim();
         session.ExpiresAtUtc = DateTime.UtcNow;
         await _dbContext.SaveChangesAsync();
-        await _auditLogService.WriteAsync(actorUserId, actorEmail, "assessment.proctoring.incident-reported", "ExamProctoringSession", session.Id, $"CourseId={session.CourseId};Learner={session.UserAccountId};Proctor={session.ProctorName};Notes={session.SecurityIncidentNotes}");
+        await _auditLogService.WriteAsync(actorUserId, actorEmail, "exam.proctoring.incident-reported", "ExamProctoringSession", session.Id, $"CourseId={session.CourseId};Learner={session.UserAccountId};Proctor={session.ProctorName};Notes={session.SecurityIncidentNotes}");
     }
 
     private async Task<bool> HasActiveProctoringSessionAsync(Guid courseId, Guid learnerUserId)
@@ -1056,7 +1056,7 @@ public class AssessmentService : IAssessmentService
         return new ExamProctoringSessionView(session.Id, session.ProctorName, session.ExternalSessionId, session.IdentityVerifiedAtUtc, session.ExpiresAtUtc, session.ClosedBookConfirmed);
     }
 
-    private async Task ResetRetakeCooldownTimerAsync(Guid assessmentId, Guid learnerUserId, int cooldownMinutes)
+    private async Task ResetRetakeCooldownTimerAsync(Guid examId, Guid learnerUserId, int cooldownMinutes)
     {
         var normalizedCooldownMinutes = Math.Max(cooldownMinutes, 0);
         if (normalizedCooldownMinutes <= 0)
@@ -1064,8 +1064,8 @@ public class AssessmentService : IAssessmentService
             return;
         }
 
-        var latestAttempt = await _dbContext.AssessmentAttempts
-            .Where(existing => existing.CourseAssessmentId == assessmentId && existing.UserAccountId == learnerUserId)
+        var latestAttempt = await _dbContext.ExamAttempts
+            .Where(existing => existing.CourseExamId == examId && existing.UserAccountId == learnerUserId)
             .OrderByDescending(existing => existing.SubmittedAt)
             .FirstOrDefaultAsync();
 
@@ -1096,7 +1096,7 @@ public class AssessmentService : IAssessmentService
         return candidate is "A" or "B" or "C" or "D" ? candidate : string.Empty;
     }
 
-    private static void ValidateEditorQuestion(AssessmentQuestionEditorItem question, int position)
+    private static void ValidateEditorQuestion(ExamQuestionEditorItem question, int position)
     {
         if (string.IsNullOrWhiteSpace(question.Prompt) ||
             string.IsNullOrWhiteSpace(question.OptionA) ||
@@ -1113,5 +1113,5 @@ public class AssessmentService : IAssessmentService
         }
     }
 
-    private sealed record DefaultAssessmentQuestionSpec(string Prompt, string OptionA, string OptionB, string OptionC, string OptionD, string CorrectOption);
+    private sealed record DefaultExamQuestionSpec(string Prompt, string OptionA, string OptionB, string OptionC, string OptionD, string CorrectOption);
 }

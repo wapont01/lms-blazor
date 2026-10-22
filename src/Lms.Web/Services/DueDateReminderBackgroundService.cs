@@ -44,12 +44,12 @@ public class DueDateReminderBackgroundService : BackgroundService
                     var result = await dueDateReminderService.ProcessAllRemindersAsync();
 
                     _logger.LogInformation(
-                        "Processed course reminders: DueSoonSent={DueSoonSent}, OverdueSent={OverdueSent}, CourseStartSent={CourseStartSent}, EnrollmentClosingSent={EnrollmentClosingSent}, AssessmentDeadlineSent={AssessmentDeadlineSent}, TotalProcessed={Processed}",
+                        "Processed course reminders: DueSoonSent={DueSoonSent}, OverdueSent={OverdueSent}, CourseStartSent={CourseStartSent}, EnrollmentClosingSent={EnrollmentClosingSent}, ExamDeadlineSent={ExamDeadlineSent}, TotalProcessed={Processed}",
                         result.DueSoonSent,
                         result.OverdueSent,
                         result.CourseStartSent,
                         result.EnrollmentClosingSent,
-                        result.AssessmentDeadlineSent,
+                        result.ExamDeadlineSent,
                         result.TotalProcessed);
 
                     ((BackgroundJobMonitor)_monitor).RecordRunSuccess(result);

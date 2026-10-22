@@ -45,7 +45,7 @@ The Florida mock course is configured as:
 - Course approval number: 0023061
 - Instructional hours: 6 configured hours
 - Credit hours: 6 configured credits
-- Final assessment: Required
+- Final exam: Required
 - Minimum passing score: 75 percent
 - Completion window: 180 calendar days
 
@@ -53,17 +53,17 @@ Course approval, credit-hour calculations, and delivery requirements must be con
 
 ## Course materials and technology
 
-Required lessons, activities, assessments, and provider-supplied references are delivered through the LMS. Students must have a supported computer or device, current browser, reliable internet, email access, and any webcam or microphone required by the configured identity or examination process.
+Required lessons, activities, unit exams, and provider-supplied references are delivered through the LMS. Students must have a supported computer or device, current browser, reliable internet, email access, and any webcam or microphone required by the configured identity or exam process.
 
-## Student identity, personal work, and examination controls
+## Student identity, personal work, and exam controls
 
-Enrollment is personal to the registered student. Students must provide accurate identifying information and personally complete all lessons, activities, and assessments. The LMS records learner access, progress, assessment attempts, and completion evidence. Where proctoring or identity verification applies, the student must follow the provider's verification instructions and may be required to present identification and complete an identity attestation.
+Enrollment is personal to the registered student. Students must provide accurate identifying information and personally complete all lessons, activities, and exams. The LMS records learner access, progress, exam attempts, and completion evidence. Where proctoring or identity verification applies, the student must follow the provider's verification instructions and may be required to present identification and complete an identity attestation.
 
-The final assessment is closed book unless the approved course rules state otherwise. Unauthorized assistance, account sharing, impersonation, or use of prohibited materials may result in a failing result, removal from the course, and reporting when required by applicable law or rule.
+The final exam is closed book unless the approved course rules state otherwise. Unauthorized assistance, account sharing, impersonation, or use of prohibited materials may result in a failing result, removal from the course, and reporting when required by applicable law or rule.
 
 ## Completion and certificate
 
-A student must complete the required course work, satisfy configured completion and identity controls, and pass the required assessment. A completion certificate records the learner, course, approval number when available, credit hours, completion date, provider, instructor, and education director information. Course completion does not itself renew a real estate license.
+A student must complete the required course work, satisfy configured completion and identity controls, and pass the required exam. A completion certificate records the learner, course, approval number when available, credit hours, completion date, provider, instructor, and education director information. Course completion does not itself renew a real estate license.
 
 ## Cancellation, withdrawal, and refunds
 
@@ -71,7 +71,7 @@ A student must complete the required course work, satisfy configured completion 
 
 ## Records and reporting
 
-WILLIAMS LAND REALTY LLC will maintain enrollment, identity, progress, assessment, completion, certificate, disclosure acknowledgment, and support records according to applicable Florida requirements and the provider's approved retention schedule. Continuing-education completion records will be retained for at least four years where required by applicable law. Required electronic reports will be submitted through the applicable Florida process when the provider and course are approved for reporting.
+WILLIAMS LAND REALTY LLC will maintain enrollment, identity, progress, exam, completion, certificate, disclosure acknowledgment, and support records according to applicable Florida requirements and the provider's approved retention schedule. Continuing-education completion records will be retained for at least four years where required by applicable law. Required electronic reports will be submitted through the applicable Florida process when the provider and course are approved for reporting.
 
 ## Student acknowledgment
 

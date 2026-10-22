@@ -108,11 +108,11 @@
 	@if (IsSectionVisible("blocked"))
 	{
 		<section class="card">
-			<h2>Assessment-Blocked Learners</h2>
+			<h2>Exam-Blocked Learners</h2>
 
 			@if (_blockedRows.Count == 0)
 			{
-				<p class="muted-text">No learners are currently blocked by assessment policy.</p>
+				<p class="muted-text">No learners are currently blocked by exam policy.</p>
 			}
 			else
 			{
@@ -384,7 +384,7 @@
 	private List<BrokerAssignedLearnerRow> _allLearners = new();
 	private CertificateComplianceSummary _certificateSummary = new(0, 0, 0, 0, 0);
 	private List<CertificateComplianceRow> _certificateRows = new();
-	private List<AssessmentBlockedLearnerRow> _blockedRows = new();
+	private List<ExamBlockedLearnerRow> _blockedRows = new();
 	private List<Enrollment> _currentEnrollments = new();
 	private List<Course> _availableCourses = new();
 	private List<Course> _brokerPurchasedCourses = new();
@@ -431,7 +431,7 @@
 		_rows = await EnrollmentService.GetBrokerLearnerRowsAsync(_brokerUserId);
 		_certificateSummary = await EnrollmentService.GetCertificateComplianceSummaryAsync(_brokerUserId);
 		_certificateRows = await EnrollmentService.GetCertificateComplianceRowsAsync(_brokerUserId);
-		_blockedRows = await EnrollmentService.GetAssessmentBlockedLearnersAsync(_brokerUserId);
+		_blockedRows = await EnrollmentService.GetExamBlockedLearnersAsync(_brokerUserId);
 		await RefreshBrokerPurchasedCoursesAsync();
 	}
 
@@ -782,7 +782,7 @@
 		{
 			"portfolio" => "Portfolio",
 			"compliance" => "Compliance",
-			"blocked" => "Assessment Blocked",
+			"blocked" => "Exam Blocked",
 			"certificates" => "Certificates",
 			"support" => "Enrollment Support",
 			"logs" => "Learner Logs",

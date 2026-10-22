@@ -17,136 +17,6 @@ namespace Lms.Application.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.11");
 
-            modelBuilder.Entity("Lms.Domain.Entities.AssessmentAnswer", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("AssessmentAttemptId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("AssessmentQuestionId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsCorrect")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("SelectedOption")
-                        .IsRequired()
-                        .HasMaxLength(1)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AssessmentQuestionId");
-
-                    b.HasIndex("AssessmentAttemptId", "AssessmentQuestionId")
-                        .IsUnique();
-
-                    b.ToTable("AssessmentAnswers");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.AssessmentAttempt", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("AttemptNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid>("CourseAssessmentId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("ExamProctoringSessionId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FeedbackSummary")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("Passed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<decimal>("ScorePercent")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("StartedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("SubmittedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("UserAccountId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ExamProctoringSessionId")
-                        .IsUnique();
-
-                    b.HasIndex("UserAccountId");
-
-                    b.HasIndex("CourseAssessmentId", "UserAccountId", "SubmittedAt");
-
-                    b.ToTable("AssessmentAttempts");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.AssessmentQuestion", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CorrectOption")
-                        .IsRequired()
-                        .HasMaxLength(1)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("CourseAssessmentId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("FeedbackText")
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("OptionA")
-                        .IsRequired()
-                        .HasMaxLength(220)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("OptionB")
-                        .IsRequired()
-                        .HasMaxLength(220)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("OptionC")
-                        .IsRequired()
-                        .HasMaxLength(220)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("OptionD")
-                        .IsRequired()
-                        .HasMaxLength(220)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Prompt")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseAssessmentId", "OrderIndex");
-
-                    b.ToTable("AssessmentQuestions");
-                });
-
             modelBuilder.Entity("Lms.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -395,10 +265,6 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Tier")
-                        .HasMaxLength(40)
-                        .HasColumnType("TEXT");
-
                     b.Property<bool>("IsArchived")
                         .HasColumnType("INTEGER");
 
@@ -457,6 +323,10 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Tier")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(120)
@@ -508,126 +378,6 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("CourseActivitySessions");
                 });
 
-            modelBuilder.Entity("Lms.Domain.Entities.CourseAssessment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("CourseId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsRequired")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int?>("MaxRetakesPerLearner")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<Guid?>("ModuleId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<decimal>("PassPercent")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("RetakeCooldownMinutes")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseId", "IsRequired");
-
-                    b.ToTable("CourseAssessments");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.CourseCheckpointDefinition", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("CourseId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("GatesProgression")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("LessonId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid?>("ModuleId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Prompt")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ModuleId");
-
-                    b.HasIndex("CourseId", "Key")
-                        .IsUnique();
-
-                    b.ToTable("CourseCheckpointDefinitions");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.CourseCheckpointOption", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("CourseCheckpointDefinitionId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsCorrect")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(220)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseCheckpointDefinitionId", "OrderIndex");
-
-                    b.ToTable("CourseCheckpointOptions");
-                });
-
             modelBuilder.Entity("Lms.Domain.Entities.CourseEligibilityPolicy", b =>
                 {
                     b.Property<Guid>("Id")
@@ -671,6 +421,43 @@ namespace Lms.Application.Data.Migrations
                     b.HasIndex("State", "LicenseLevel", "ComplianceType", "EffectiveFrom");
 
                     b.ToTable("CourseEligibilityPolicies");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.CourseExam", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("MaxRetakesPerLearner")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("PassPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("RetakeCooldownMinutes")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UnitId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId", "IsRequired");
+
+                    b.ToTable("CourseExams");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.CourseReminder", b =>
@@ -741,6 +528,89 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("CourseSessions");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.CourseUnitExamDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("GatesProgression")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("LessonId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Prompt")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("UnitId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UnitId");
+
+                    b.HasIndex("CourseId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("CourseUnitExamDefinitions");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.CourseUnitExamOption", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseUnitExamDefinitionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(220)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseUnitExamDefinitionId", "OrderIndex");
+
+                    b.ToTable("CourseUnitExamOptions");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.Enrollment", b =>
                 {
                     b.Property<Guid>("Id")
@@ -748,9 +618,6 @@ namespace Lms.Application.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("AccessGrantedAtUtc")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("AssessmentReminderSentAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CertificationFirstName")
@@ -814,6 +681,9 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("ExamReminderSentAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("OverdueReminderSentAt")
                         .HasColumnType("TEXT");
 
@@ -846,6 +716,83 @@ namespace Lms.Application.Data.Migrations
                     b.HasIndex("UserAccountId", "DueAtUtc");
 
                     b.ToTable("Enrollments");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.ExamAnswer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ExamAttemptId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("ExamQuestionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsCorrect")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SelectedOption")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamQuestionId");
+
+                    b.HasIndex("ExamAttemptId", "ExamQuestionId")
+                        .IsUnique();
+
+                    b.ToTable("ExamAnswers");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.ExamAttempt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("AttemptNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("CourseExamId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("ExamProctoringSessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FeedbackSummary")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Passed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("ScorePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExamProctoringSessionId")
+                        .IsUnique();
+
+                    b.HasIndex("UserAccountId");
+
+                    b.HasIndex("CourseExamId", "UserAccountId", "SubmittedAt");
+
+                    b.ToTable("ExamAttempts");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.ExamProctoringSession", b =>
@@ -898,6 +845,59 @@ namespace Lms.Application.Data.Migrations
                     b.HasIndex("UserAccountId");
 
                     b.ToTable("ExamProctoringSessions");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.ExamQuestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CorrectOption")
+                        .IsRequired()
+                        .HasMaxLength(1)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseExamId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FeedbackText")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OptionA")
+                        .IsRequired()
+                        .HasMaxLength(220)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OptionB")
+                        .IsRequired()
+                        .HasMaxLength(220)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OptionC")
+                        .IsRequired()
+                        .HasMaxLength(220)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OptionD")
+                        .IsRequired()
+                        .HasMaxLength(220)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Prompt")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseExamId", "OrderIndex");
+
+                    b.ToTable("ExamQuestions");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.InstructorPayout", b =>
@@ -999,9 +999,6 @@ namespace Lms.Application.Data.Migrations
                     b.Property<bool>("IsRequired")
                         .HasColumnType("INTEGER");
 
-                    b.Property<Guid>("ModuleId")
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("OrderIndex")
                         .HasColumnType("INTEGER");
 
@@ -1014,9 +1011,12 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(160)
                         .HasColumnType("TEXT");
 
+                    b.Property<Guid>("UnitId")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ModuleId");
+                    b.HasIndex("UnitId");
 
                     b.ToTable("Lessons");
                 });
@@ -1075,63 +1075,6 @@ namespace Lms.Application.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("LicenseComplianceReminders");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.Module", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("CourseId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(160)
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseId");
-
-                    b.ToTable("Modules");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.ModuleCheckpointProgress", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("CheckpointKey")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("CourseId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("Passed")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("PassedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("UserAccountId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CourseId");
-
-                    b.HasIndex("UserAccountId", "CourseId", "CheckpointKey")
-                        .IsUnique();
-
-                    b.ToTable("ModuleCheckpointProgresses");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.PaymentTransaction", b =>
@@ -1612,7 +1555,7 @@ namespace Lms.Application.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<Guid>("CourseAssessmentId")
+                    b.Property<Guid>("CourseExamId")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("GrantedAt")
@@ -1633,7 +1576,7 @@ namespace Lms.Application.Data.Migrations
 
                     b.HasIndex("UserAccountId");
 
-                    b.HasIndex("CourseAssessmentId", "UserAccountId")
+                    b.HasIndex("CourseExamId", "UserAccountId")
                         .IsUnique();
 
                     b.ToTable("RetakeGrants");
@@ -1957,6 +1900,63 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("SystemNotifications");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.Unit", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(160)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.ToTable("Units");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.UnitExamProgress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("CourseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Passed")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("PassedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UnitExamKey")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("UserAccountId")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("UserAccountId", "CourseId", "UnitExamKey")
+                        .IsUnique();
+
+                    b.ToTable("UnitExamProgresses");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.UserAccount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2124,61 +2124,6 @@ namespace Lms.Application.Data.Migrations
                     b.ToTable("UserRegulatoryLicenseLinks");
                 });
 
-            modelBuilder.Entity("Lms.Domain.Entities.AssessmentAnswer", b =>
-                {
-                    b.HasOne("Lms.Domain.Entities.AssessmentAttempt", "AssessmentAttempt")
-                        .WithMany("Answers")
-                        .HasForeignKey("AssessmentAttemptId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Lms.Domain.Entities.AssessmentQuestion", "AssessmentQuestion")
-                        .WithMany("Answers")
-                        .HasForeignKey("AssessmentQuestionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AssessmentAttempt");
-
-                    b.Navigation("AssessmentQuestion");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.AssessmentAttempt", b =>
-                {
-                    b.HasOne("Lms.Domain.Entities.CourseAssessment", "CourseAssessment")
-                        .WithMany("Attempts")
-                        .HasForeignKey("CourseAssessmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Lms.Domain.Entities.ExamProctoringSession", "ExamProctoringSession")
-                        .WithOne("AssessmentAttempt")
-                        .HasForeignKey("Lms.Domain.Entities.AssessmentAttempt", "ExamProctoringSessionId");
-
-                    b.HasOne("Lms.Domain.Entities.UserAccount", "UserAccount")
-                        .WithMany("AssessmentAttempts")
-                        .HasForeignKey("UserAccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CourseAssessment");
-
-                    b.Navigation("ExamProctoringSession");
-
-                    b.Navigation("UserAccount");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.AssessmentQuestion", b =>
-                {
-                    b.HasOne("Lms.Domain.Entities.CourseAssessment", "CourseAssessment")
-                        .WithMany("Questions")
-                        .HasForeignKey("CourseAssessmentId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CourseAssessment");
-                });
-
             modelBuilder.Entity("Lms.Domain.Entities.BrokerLearnerAssignment", b =>
                 {
                     b.HasOne("Lms.Domain.Entities.UserAccount", "AssignedByUser")
@@ -2251,44 +2196,15 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("UserAccount");
                 });
 
-            modelBuilder.Entity("Lms.Domain.Entities.CourseAssessment", b =>
+            modelBuilder.Entity("Lms.Domain.Entities.CourseExam", b =>
                 {
                     b.HasOne("Lms.Domain.Entities.Course", "Course")
-                        .WithMany("Assessments")
+                        .WithMany("Exams")
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Course");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.CourseCheckpointDefinition", b =>
-                {
-                    b.HasOne("Lms.Domain.Entities.Course", "Course")
-                        .WithMany()
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Lms.Domain.Entities.Module", "Module")
-                        .WithMany()
-                        .HasForeignKey("ModuleId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Course");
-
-                    b.Navigation("Module");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.CourseCheckpointOption", b =>
-                {
-                    b.HasOne("Lms.Domain.Entities.CourseCheckpointDefinition", "CourseCheckpointDefinition")
-                        .WithMany("Options")
-                        .HasForeignKey("CourseCheckpointDefinitionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("CourseCheckpointDefinition");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.CourseReminder", b =>
@@ -2311,6 +2227,35 @@ namespace Lms.Application.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.CourseUnitExamDefinition", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.Unit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Course");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.CourseUnitExamOption", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.CourseUnitExamDefinition", "CourseUnitExamDefinition")
+                        .WithMany("Options")
+                        .HasForeignKey("CourseUnitExamDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CourseUnitExamDefinition");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.Enrollment", b =>
@@ -2341,6 +2286,50 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("UserAccount");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.ExamAnswer", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.ExamAttempt", "ExamAttempt")
+                        .WithMany("Answers")
+                        .HasForeignKey("ExamAttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.ExamQuestion", "ExamQuestion")
+                        .WithMany("Answers")
+                        .HasForeignKey("ExamQuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ExamAttempt");
+
+                    b.Navigation("ExamQuestion");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.ExamAttempt", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.CourseExam", "CourseExam")
+                        .WithMany("Attempts")
+                        .HasForeignKey("CourseExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.ExamProctoringSession", "ExamProctoringSession")
+                        .WithOne("ExamAttempt")
+                        .HasForeignKey("Lms.Domain.Entities.ExamAttempt", "ExamProctoringSessionId");
+
+                    b.HasOne("Lms.Domain.Entities.UserAccount", "UserAccount")
+                        .WithMany("ExamAttempts")
+                        .HasForeignKey("UserAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CourseExam");
+
+                    b.Navigation("ExamProctoringSession");
+
+                    b.Navigation("UserAccount");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.ExamProctoringSession", b =>
                 {
                     b.HasOne("Lms.Domain.Entities.Course", "Course")
@@ -2358,6 +2347,17 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("Course");
 
                     b.Navigation("UserAccount");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.ExamQuestion", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.CourseExam", "CourseExam")
+                        .WithMany("Questions")
+                        .HasForeignKey("CourseExamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CourseExam");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.InstructorPayout", b =>
@@ -2384,13 +2384,13 @@ namespace Lms.Application.Data.Migrations
 
             modelBuilder.Entity("Lms.Domain.Entities.Lesson", b =>
                 {
-                    b.HasOne("Lms.Domain.Entities.Module", "Module")
+                    b.HasOne("Lms.Domain.Entities.Unit", "Unit")
                         .WithMany("Lessons")
-                        .HasForeignKey("ModuleId")
+                        .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Module");
+                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.LessonProgress", b =>
@@ -2419,36 +2419,6 @@ namespace Lms.Application.Data.Migrations
                         .HasForeignKey("UserAccountId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("UserAccount");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.Module", b =>
-                {
-                    b.HasOne("Lms.Domain.Entities.Course", "Course")
-                        .WithMany("Modules")
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Course");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.ModuleCheckpointProgress", b =>
-                {
-                    b.HasOne("Lms.Domain.Entities.Course", "Course")
-                        .WithMany("ModuleCheckpointProgresses")
-                        .HasForeignKey("CourseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Lms.Domain.Entities.UserAccount", "UserAccount")
-                        .WithMany("ModuleCheckpointProgresses")
-                        .HasForeignKey("UserAccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Course");
 
                     b.Navigation("UserAccount");
                 });
@@ -2576,9 +2546,9 @@ namespace Lms.Application.Data.Migrations
 
             modelBuilder.Entity("Lms.Domain.Entities.RetakeGrant", b =>
                 {
-                    b.HasOne("Lms.Domain.Entities.CourseAssessment", "CourseAssessment")
+                    b.HasOne("Lms.Domain.Entities.CourseExam", "CourseExam")
                         .WithMany()
-                        .HasForeignKey("CourseAssessmentId")
+                        .HasForeignKey("CourseExamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2594,7 +2564,7 @@ namespace Lms.Application.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("CourseAssessment");
+                    b.Navigation("CourseExam");
 
                     b.Navigation("GrantedByAdmin");
 
@@ -2682,6 +2652,36 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("RecipientUser");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.Unit", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.Course", "Course")
+                        .WithMany("Units")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.UnitExamProgress", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.Course", "Course")
+                        .WithMany("UnitExamProgresses")
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lms.Domain.Entities.UserAccount", "UserAccount")
+                        .WithMany("UnitExamProgresses")
+                        .HasForeignKey("UserAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
+
+                    b.Navigation("UserAccount");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.UserRegulatoryLicenseLink", b =>
                 {
                     b.HasOne("Lms.Domain.Entities.RegulatoryLicensee", "RegulatoryLicensee")
@@ -2709,21 +2709,9 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("UserAccount");
                 });
 
-            modelBuilder.Entity("Lms.Domain.Entities.AssessmentAttempt", b =>
-                {
-                    b.Navigation("Answers");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.AssessmentQuestion", b =>
-                {
-                    b.Navigation("Answers");
-                });
-
             modelBuilder.Entity("Lms.Domain.Entities.Course", b =>
                 {
                     b.Navigation("ActivitySessions");
-
-                    b.Navigation("Assessments");
 
                     b.Navigation("CompletionCertificates");
 
@@ -2731,19 +2719,21 @@ namespace Lms.Application.Data.Migrations
 
                     b.Navigation("ExamProctoringSessions");
 
-                    b.Navigation("ModuleCheckpointProgresses");
+                    b.Navigation("Exams");
 
-                    b.Navigation("Modules");
+                    b.Navigation("UnitExamProgresses");
+
+                    b.Navigation("Units");
                 });
 
-            modelBuilder.Entity("Lms.Domain.Entities.CourseAssessment", b =>
+            modelBuilder.Entity("Lms.Domain.Entities.CourseExam", b =>
                 {
                     b.Navigation("Attempts");
 
                     b.Navigation("Questions");
                 });
 
-            modelBuilder.Entity("Lms.Domain.Entities.CourseCheckpointDefinition", b =>
+            modelBuilder.Entity("Lms.Domain.Entities.CourseUnitExamDefinition", b =>
                 {
                     b.Navigation("Options");
                 });
@@ -2755,19 +2745,24 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("Reminders");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.ExamAttempt", b =>
+                {
+                    b.Navigation("Answers");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.ExamProctoringSession", b =>
                 {
-                    b.Navigation("AssessmentAttempt");
+                    b.Navigation("ExamAttempt");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.ExamQuestion", b =>
+                {
+                    b.Navigation("Answers");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.Lesson", b =>
                 {
                     b.Navigation("LessonProgresses");
-                });
-
-            modelBuilder.Entity("Lms.Domain.Entities.Module", b =>
-                {
-                    b.Navigation("Lessons");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.PaymentTransaction", b =>
@@ -2805,10 +2800,13 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("StaffMembers");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.Unit", b =>
+                {
+                    b.Navigation("Lessons");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.UserAccount", b =>
                 {
-                    b.Navigation("AssessmentAttempts");
-
                     b.Navigation("BrokerAssignments");
 
                     b.Navigation("CompletionCertificates");
@@ -2817,17 +2815,19 @@ namespace Lms.Application.Data.Migrations
 
                     b.Navigation("Enrollments");
 
+                    b.Navigation("ExamAttempts");
+
                     b.Navigation("ExamProctoringSessions");
 
                     b.Navigation("LearnerAssignments");
 
                     b.Navigation("LessonProgresses");
 
-                    b.Navigation("ModuleCheckpointProgresses");
-
                     b.Navigation("Notifications");
 
                     b.Navigation("RegulatoryLicenseLinks");
+
+                    b.Navigation("UnitExamProgresses");
                 });
 #pragma warning restore 612, 618
         }

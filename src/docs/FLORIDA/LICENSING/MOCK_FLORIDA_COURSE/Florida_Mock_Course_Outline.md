@@ -13,23 +13,23 @@ State-specific distance-learning course for Florida licensure preparation and co
 - education providers building an online curriculum model
 
 ## Course structure
-Module 1: Licensing Foundations
+Unit 1: Licensing Foundations
 - Lesson 1: Florida Licensing Foundations
 - Lesson 2: Distance Learning, Provider Rules, and Compliance
 - Lesson 3: Postlicensure Education, Continuing Education, and Renewal
 
-Module 2: Professional Practice and Legal Responsibilities
+Unit 2: Professional Practice and Legal Responsibilities
 - Lesson 4: Brokerage Relationships and Disclosure
 - Lesson 5: Contracts, Trust Funds, and Transaction Compliance
-- Lesson 6: Final Assessment and Renewal Readiness
+- Lesson 6: Final Exam and Renewal Readiness
 
 ## Estimated duration
 6 to 8 hours total for the mock course model.
 
 ## Completion requirements
 - complete all lessons;
-- complete module activities;
-- pass final assessment;
+- complete unit activities;
+- pass final exam;
 - satisfy verification and identity requirements for the online delivery model.
 
 ## Florida compliance notes

@@ -180,32 +180,32 @@ internal static class FloridaFinancePostlicensingCourseSeed
         IReadOnlyList<AdditionalCourseSeed.UnitDefinition> units)
     {
         var course = await dbContext.Courses
-            .Include(existing => existing.Modules)
-                .ThenInclude(module => module.Lessons)
+            .Include(existing => existing.Units)
+                .ThenInclude(unit => unit.Lessons)
             .FirstOrDefaultAsync(existing => existing.Id == CourseId);
-        var assessment = course is null
+        var exam = course is null
             ? null
-            : await dbContext.CourseAssessments
+            : await dbContext.CourseExams
                 .Include(existing => existing.Questions)
                 .FirstOrDefaultAsync(existing =>
                     existing.CourseId == CourseId
-                    && existing.ModuleId == null
+                    && existing.UnitId == null
                     && existing.Title == FinalExamTitle);
 
-        var modulesAreCurrent = course is not null
-            && course.Modules
-                .OrderBy(module => module.OrderIndex)
-                .Select(module => module.Title)
+        var unitsAreCurrent = course is not null
+            && course.Units
+                .OrderBy(unit => unit.OrderIndex)
+                .Select(unit => unit.Title)
                 .SequenceEqual(units.Select(unit => unit.Title))
-            && course.Modules
-                .OrderBy(module => module.OrderIndex)
-                .SelectMany(module => module.Lessons.OrderBy(lesson => lesson.OrderIndex))
+            && course.Units
+                .OrderBy(unit => unit.OrderIndex)
+                .SelectMany(unit => unit.Lessons.OrderBy(lesson => lesson.OrderIndex))
                 .Select(lesson => (lesson.Title, lesson.TextContent))
                 .SequenceEqual(units.SelectMany(unit =>
                     unit.Lessons.Select(lesson => (lesson.Title, (string?)lesson.TextContent))));
-        var assessmentIsCurrent = assessment is not null
-            && assessment.PassPercent == PassPercent
-            && assessment.Questions
+        var examIsCurrent = exam is not null
+            && exam.PassPercent == PassPercent
+            && exam.Questions
                 .OrderBy(question => question.OrderIndex)
                 .Select(question => new QuestionDefinition(
                     question.Prompt,
@@ -227,8 +227,8 @@ internal static class FloridaFinancePostlicensingCourseSeed
             && course.RequiresProctoredExam
             && course.ReviewStatus == CourseReviewStatuses.Draft
             && !course.IsPublished
-            && modulesAreCurrent
-            && assessmentIsCurrent)
+            && unitsAreCurrent
+            && examIsCurrent)
         {
             return;
         }
@@ -262,34 +262,34 @@ internal static class FloridaFinancePostlicensingCourseSeed
         course.ReviewNote = ReviewNote;
         course.UpdatedAt = DateTime.UtcNow;
 
-        if (!modulesAreCurrent)
+        if (!unitsAreCurrent)
         {
-            var existingAssessments = await dbContext.CourseAssessments
+            var existingExams = await dbContext.CourseExams
                 .Where(existing => existing.CourseId == CourseId)
                 .ToListAsync();
-            dbContext.CourseAssessments.RemoveRange(existingAssessments);
-            var existingCheckpoints = await dbContext.CourseCheckpointDefinitions
+            dbContext.CourseExams.RemoveRange(existingExams);
+            var existingUnitExams = await dbContext.CourseUnitExamDefinitions
                 .Where(existing => existing.CourseId == CourseId)
                 .ToListAsync();
-            dbContext.CourseCheckpointDefinitions.RemoveRange(existingCheckpoints);
-            dbContext.Modules.RemoveRange(course.Modules);
+            dbContext.CourseUnitExamDefinitions.RemoveRange(existingUnitExams);
+            dbContext.Units.RemoveRange(course.Units);
             await dbContext.SaveChangesAsync();
-            assessment = null;
+            exam = null;
 
             foreach (var unitDefinition in units)
             {
-                var module = new Module
+                var unit = new Unit
                 {
                     CourseId = CourseId,
                     Title = unitDefinition.Title,
                     OrderIndex = unitDefinition.OrderIndex
                 };
-                dbContext.Modules.Add(module);
+                dbContext.Units.Add(unit);
                 foreach (var lessonDefinition in unitDefinition.Lessons)
                 {
-                    module.Lessons.Add(new Lesson
+                    unit.Lessons.Add(new Lesson
                     {
-                        ModuleId = module.Id,
+                        UnitId = unit.Id,
                         Title = lessonDefinition.Title,
                         ContentType = "Text",
                         TextContent = lessonDefinition.TextContent,
@@ -303,22 +303,22 @@ internal static class FloridaFinancePostlicensingCourseSeed
             await dbContext.SaveChangesAsync();
         }
 
-        if (assessment is not null)
+        if (exam is not null)
         {
-            dbContext.CourseAssessments.Remove(assessment);
+            dbContext.CourseExams.Remove(exam);
         }
 
-        var finalAssessment = new CourseAssessment
+        var finalExam = new CourseExam
         {
             CourseId = CourseId,
             Title = FinalExamTitle,
             PassPercent = PassPercent,
             IsRequired = true
         };
-        dbContext.CourseAssessments.Add(finalAssessment);
-        foreach (var question in FinalQuestions.Select((item, index) => new AssessmentQuestion
+        dbContext.CourseExams.Add(finalExam);
+        foreach (var question in FinalQuestions.Select((item, index) => new ExamQuestion
         {
-            CourseAssessmentId = finalAssessment.Id,
+            CourseExamId = finalExam.Id,
             Prompt = item.Prompt,
             OptionA = item.OptionA,
             OptionB = item.OptionB,
@@ -328,7 +328,7 @@ internal static class FloridaFinancePostlicensingCourseSeed
             OrderIndex = index + 1
         }))
         {
-            dbContext.AssessmentQuestions.Add(question);
+            dbContext.ExamQuestions.Add(question);
         }
 
         await dbContext.SaveChangesAsync();

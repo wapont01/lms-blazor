@@ -1,4 +1,4 @@
-@page "/instructor"
+﻿@page "/instructor"
 @page "/instructor/courses/{CourseId:guid}"
 @page "/instructor/courses/{CourseId:guid}/{Step}"
 @page "/instructor/courses/{CourseId:guid}/{Step}/{SubId:guid}"
@@ -13,7 +13,7 @@
 @using Microsoft.JSInterop
 @inject ICourseService CourseService
 @inject IUserAccountService UserAccountService
-@inject IAssessmentService AssessmentService
+@inject IExamService ExamService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
@@ -27,7 +27,7 @@
 		<div class="instructor-hero-copy">
 			<a class="course-kicker back-to-library-link" href="/instructor">&larr; Back to course library</a>
 			<h1>@_editingCourse.Title</h1>
-			<p class="course-description">Editing course content, checkpoints, and the final assessment.</p>
+			<p class="course-description">Editing course content, unit exams, and the final exam.</p>
 		</div>
 	</div>
 
@@ -47,27 +47,27 @@
 					<div class="lesson-menu-list">
 						@foreach (var step in _editorSteps)
 						{
-							<section class="lesson-menu-module @(step == _activeEditorStep ? "is-active-module" : string.Empty)">
-								<a class="menu-module-toggle" aria-current="@(step == _activeEditorStep ? "page" : null)" href="@BuildEditorUri(_editingCourse.Id, step)">
-									<span class="module-toggle-label">@GetEditorStepLabel(step)</span>
-									<span class="module-toggle-icon @(step == _activeEditorStep ? "is-expanded" : string.Empty)" aria-hidden="true">▸</span>
+							<section class="lesson-menu-unit @(step == _activeEditorStep ? "is-active-unit" : string.Empty)">
+								<a class="menu-unit-toggle" aria-current="@(step == _activeEditorStep ? "page" : null)" href="@BuildEditorUri(_editingCourse.Id, step)">
+									<span class="unit-toggle-label">@GetEditorStepLabel(step)</span>
+									<span class="unit-toggle-icon @(step == _activeEditorStep ? "is-expanded" : string.Empty)" aria-hidden="true">▸</span>
 								</a>
-								@if (step == CourseEditorStep.Modules && _editingCourse.Modules.Count > 0)
+								@if (step == CourseEditorStep.Units && _editingCourse.Units.Count > 0)
 								{
 									<ul>
-										@foreach (var module in _editingCourse.Modules.OrderBy(module => module.OrderIndex))
+										@foreach (var unit in _editingCourse.Units.OrderBy(unit => unit.OrderIndex))
 										{
 											<li>
-												<a class="menu-item-link @(_editingModule?.Id == module.Id ? "active-lesson-link" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules, module.Id)">@module.OrderIndex. @module.Title</a>
+												<a class="menu-item-link @(_editingUnit?.Id == unit.Id ? "active-lesson-link" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.Units, unit.Id)">@unit.OrderIndex. @unit.Title</a>
 											</li>
 										}
 									</ul>
 								}
-								@if (step == CourseEditorStep.Checkpoints)
+								@if (step == CourseEditorStep.UnitExams)
 								{
 									<ul>
 										<li>
-											<a class="menu-item-link @(_editingCheckpoint?.IsFinal == true ? "active-lesson-link" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints)">Final checkpoint @(HasFinalCheckpoint() ? "✓" : string.Empty)</a>
+											<a class="menu-item-link @(_editingUnitExam?.IsFinal == true ? "active-lesson-link" : string.Empty)" href="@BuildEditorUri(_editingCourse.Id, CourseEditorStep.UnitExams)">Final unit exam @(HasFinalUnitExam() ? "✓" : string.Empty)</a>
 										</li>
 									</ul>
 								}
@@ -84,7 +84,7 @@
 						</div>
 						<div class="summary-chip">
 							<span class="summary-label">Units</span>
-							<strong>@_editingCourse.Modules.Count</strong>
+							<strong>@_editingCourse.Units.Count</strong>
 						</div>
 						<div class="summary-chip">
 							<span class="summary-label">Readiness</span>
@@ -176,7 +176,7 @@
 
 						<hr />
 						<h3>Import course structure</h3>
-						<p class="muted-text">Use a .txt file or paste content with [unit], [lesson], [checkpoint], [option], and [assessment] markers. Lesson duration and required flags are optional and default when omitted. Checkpoint metadata supports title, prompt, description, unit, and isfinal. Assessment blocks support title, unit, and passpercent; each [question] block can include optionA/B/C/D, correct, and feedback.</p>
+						<p class="muted-text">Use a .txt file or paste content with [unit], [lesson], [unit exam], [option], and [exam] markers. Lesson duration and required flags are optional and default when omitted. Unit Exam metadata supports title, prompt, description, unit, and isfinal. Exam blocks support title, unit, and passpercent; each [question] block can include optionA/B/C/D, correct, and feedback.</p>
 						<div class="form-field">
 							<label>Upload a text file</label>
 							<InputFile OnChange="HandleImportFileSelection" accept=".txt,text/plain" />
@@ -206,59 +206,59 @@
 						}
 					</EditForm>
 				}
-				else if (_activeEditorStep == CourseEditorStep.Modules)
+				else if (_activeEditorStep == CourseEditorStep.Units)
 				{
 					<div class="form-field">
 						<label>New unit title</label>
-						<InputText @bind-Value="_newModuleTitle" />
+						<InputText @bind-Value="_newUnitTitle" />
 					</div>
-					<button type="button" @onclick="AddModuleAsync">Add unit</button>
+					<button type="button" @onclick="AddUnitAsync">Add unit</button>
 
-					@if (_editingCourse.Modules.Count == 0)
+					@if (_editingCourse.Units.Count == 0)
 					{
 						<p class="muted-text">No units yet.</p>
 					}
 					else
 					{
 						<div class="course-list">
-							@foreach (var module in _editingCourse.Modules.OrderBy(module => module.OrderIndex))
+							@foreach (var unit in _editingCourse.Units.OrderBy(unit => unit.OrderIndex))
 							{
 								<article class="course-item">
 									<div>
-										<h3>@module.OrderIndex. @module.Title</h3>
-										<p>@module.Lessons.Count lessons</p>
-										<p class="muted-text">@GetModuleCheckpointSummary(module.Id)</p>
+										<h3>@unit.OrderIndex. @unit.Title</h3>
+										<p>@unit.Lessons.Count lessons</p>
+										<p class="muted-text">@GetUnitExamSummary(unit.Id)</p>
 									</div>
 									<div class="course-actions">
-										<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules, module.Id))">Edit unit</button>
-										<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints, module.Id))">@(HasModuleCheckpoint(module.Id) ? "Edit checkpoint" : "Add checkpoint")</button>
+										<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Units, unit.Id))">Edit unit</button>
+										<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.UnitExams, unit.Id))">@(HasUnitExam(unit.Id) ? "Edit unit exam" : "Add unit exam")</button>
 									</div>
 								</article>
 							}
 						</div>
 					}
 
-					@if (_editingModule is not null)
+					@if (_editingUnit is not null)
 					{
 						<hr />
 						<h3>Edit unit</h3>
-						<EditForm Model="_editingModule" OnValidSubmit="SaveModuleAsync">
+						<EditForm Model="_editingUnit" OnValidSubmit="SaveUnitAsync">
 							<DataAnnotationsValidator />
 							<ValidationSummary />
 							<div class="form-field">
 								<label>Title</label>
-								<InputText @bind-Value="_editingModule.Title" />
+								<InputText @bind-Value="_editingUnit.Title" />
 							</div>
 							<div class="course-actions">
 								<button type="submit">Save unit</button>
-								<button type="button" @onclick="@(() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Modules)))">Cancel</button>
+								<button type="button" @onclick="@(() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Units)))">Cancel</button>
 							</div>
 						</EditForm>
 					}
 
 					<hr />
 					<h3>Lessons</h3>
-					@if (_editingModule is null)
+					@if (_editingUnit is null)
 					{
 						<p>Select a unit to manage its lessons.</p>
 					}
@@ -286,14 +286,14 @@
 						</div>
 						<button type="button" @onclick="AddLessonAsync">Add lesson</button>
 
-						@if (_editingModule.Lessons.Count == 0)
+						@if (_editingUnit.Lessons.Count == 0)
 						{
 							<p class="muted-text">No lessons yet.</p>
 						}
 						else
 						{
 							<div class="course-list">
-								@foreach (var lesson in _editingModule.Lessons.OrderBy(lesson => lesson.OrderIndex))
+								@foreach (var lesson in _editingUnit.Lessons.OrderBy(lesson => lesson.OrderIndex))
 								{
 									<article class="course-item">
 										<div>
@@ -347,46 +347,46 @@
 						<button type="button" @onclick="NextEditorStep">Next</button>
 					</div>
 				}
-				else if (_activeEditorStep == CourseEditorStep.Checkpoints)
+				else if (_activeEditorStep == CourseEditorStep.UnitExams)
 				{
-					<h3>Final checkpoint</h3>
-					<p class="muted-text">The final checkpoint is a comprehension gate shown before the final assessment unlocks.</p>
+					<h3>Final unit exam</h3>
+					<p class="muted-text">The final unit exam is a comprehension gate shown before the final exam unlocks.</p>
 					<div class="course-actions">
-						<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints))">@(HasFinalCheckpoint() ? "Edit final checkpoint" : "Add final checkpoint")</button>
+						<button type="button" @onclick="() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.UnitExams))">@(HasFinalUnitExam() ? "Edit final unit exam" : "Add final unit exam")</button>
 					</div>
 
-					@if (_editingCheckpoint is not null)
+					@if (_editingUnitExam is not null)
 					{
 						<hr />
-						<h3>@(_editingCheckpoint.IsFinal ? "Edit final checkpoint" : $"Edit checkpoint for {GetModuleTitle(_editingCheckpoint.ModuleId)}")</h3>
+						<h3>@(_editingUnitExam.IsFinal ? "Edit final unit exam" : $"Edit unit exam for {GetUnitTitle(_editingUnitExam.UnitId)}")</h3>
 
-						@if (!string.IsNullOrWhiteSpace(_checkpointError))
+						@if (!string.IsNullOrWhiteSpace(_unitExamError))
 						{
-							<p class="auth-error">@_checkpointError</p>
+							<p class="auth-error">@_unitExamError</p>
 						}
-						@if (!string.IsNullOrWhiteSpace(_checkpointMessage))
+						@if (!string.IsNullOrWhiteSpace(_unitExamMessage))
 						{
-							<p class="auth-help">@_checkpointMessage</p>
+							<p class="auth-help">@_unitExamMessage</p>
 						}
 
 						<div class="form-field">
 							<label>Title</label>
-							<InputText @bind-Value="_editingCheckpoint.Title" />
+							<InputText @bind-Value="_editingUnitExam.Title" />
 						</div>
 						<div class="form-field">
 							<label>Prompt</label>
-							<InputTextArea @bind-Value="_editingCheckpoint.Prompt" />
+							<InputTextArea @bind-Value="_editingUnitExam.Prompt" />
 						</div>
 						<div class="form-field">
 							<label>Description</label>
-							<InputTextArea @bind-Value="_editingCheckpoint.Description" />
+							<InputTextArea @bind-Value="_editingUnitExam.Description" />
 						</div>
 
 						<h4>Options</h4>
-						@for (var optionIndex = 0; optionIndex < _editingCheckpoint.Options.Count; optionIndex++)
+						@for (var optionIndex = 0; optionIndex < _editingUnitExam.Options.Count; optionIndex++)
 						{
 							var capturedIndex = optionIndex;
-							var option = _editingCheckpoint.Options[capturedIndex];
+							var option = _editingUnitExam.Options[capturedIndex];
 							<div class="form-row">
 								<div class="form-field">
 									<label>Option @(capturedIndex + 1)</label>
@@ -400,19 +400,19 @@
 								</div>
 								<div class="form-field">
 									<label>&nbsp;</label>
-									<button type="button" @onclick="() => RemoveCheckpointOption(capturedIndex)">Remove</button>
+									<button type="button" @onclick="() => RemoveUnitExamOption(capturedIndex)">Remove</button>
 								</div>
 							</div>
 						}
 
 						<div class="course-actions">
-							<button type="button" @onclick="AddCheckpointOption">Add option</button>
-							<button type="button" @onclick="SaveCheckpointAsync">Save checkpoint</button>
-							@if (_editingCheckpoint.Id.HasValue)
+							<button type="button" @onclick="AddUnitExamOption">Add option</button>
+							<button type="button" @onclick="SaveUnitExamAsync">Save unit exam</button>
+							@if (_editingUnitExam.Id.HasValue)
 							{
-								<button type="button" @onclick="DeleteCheckpointAsync">Delete checkpoint</button>
+								<button type="button" @onclick="DeleteUnitExamAsync">Delete unit exam</button>
 							}
-							<button type="button" @onclick="@(() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.Checkpoints)))">Cancel</button>
+							<button type="button" @onclick="@(() => NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, CourseEditorStep.UnitExams)))">Cancel</button>
 						</div>
 					}
 
@@ -424,20 +424,20 @@
 				else
 				{
 					<div class="editor-step-summary">
-						<p class="muted-text">Review the assessment flow and finalize the course before sending it for review.</p>
+						<p class="muted-text">Review the exam flow and finalize the course before sending it for review.</p>
 					</div>
-					<AdminAssessmentsPanel
-						AssessmentError="@_assessmentError"
-						AssessmentMessage="@_assessmentMessage"
+					<AdminExamsPanel
+						ExamError="@_examError"
+						ExamMessage="@_examMessage"
 						Courses="_courses"
 						Users="_users"
-						AssessmentCourseIdText="@_assessmentCourseIdText"
+						ExamCourseIdText="@_examCourseIdText"
 						ActiveCourseTitle="@(_editingCourse?.Title ?? "Current course")"
-						OnLoadAssessmentEditor="LoadAssessmentEditorAsync"
-						AssessmentEditor="_assessmentEditor"
-						OnAddAssessmentQuestion="AddAssessmentQuestion"
-						OnRemoveAssessmentQuestion="RemoveAssessmentQuestion"
-						OnSaveAssessmentEditor="SaveAssessmentEditorAsync"
+						OnLoadExamEditor="LoadExamEditorAsync"
+						ExamEditor="_examEditor"
+						OnAddExamQuestion="AddExamQuestion"
+						OnRemoveExamQuestion="RemoveExamQuestion"
+						OnSaveExamEditor="SaveExamEditorAsync"
 						OnRetakeLearnerChanged="OnRetakeLearnerChanged"
 						RetakeLearnerIdText="@GetRetakeLearnerIdText()"
 						RetakeGrantAttempts="_retakeGrantAttempts"
@@ -477,7 +477,7 @@ else
 	{
 		<section class="card instructor-create-panel">
 			<h2>Create course</h2>
-			<p class="muted-text">Start with the essentials, then continue editing to add units, lessons, and checkpoints.</p>
+			<p class="muted-text">Start with the essentials, then continue editing to add units, lessons, and unit exams.</p>
 
 			<EditForm Model="_newCourseDraft" OnValidSubmit="CreateCourseAsync">
 				<DataAnnotationsValidator />
@@ -589,9 +589,9 @@ else
 	private string _courseSearchText = string.Empty;
 	private string _courseStatusFilter = "all";
 	private string _courseSortOption = "updated";
-	private Module? _editingModule;
+	private Unit? _editingUnit;
 	private Lesson? _editingLesson;
-	private string _newModuleTitle = string.Empty;
+	private string _newUnitTitle = string.Empty;
 	private string _newLessonTitle = string.Empty;
 	private string? _newLessonText;
 	private int _newLessonDurationMinutes;
@@ -612,26 +612,26 @@ else
 	private bool _isAdmin;
 	private string? _reviewStatusMessage;
 	private CourseEditorStep _activeEditorStep = CourseEditorStep.Overview;
-	private readonly CourseEditorStep[] _editorSteps = { CourseEditorStep.Overview, CourseEditorStep.Modules, CourseEditorStep.Checkpoints, CourseEditorStep.Assessment };
+	private readonly CourseEditorStep[] _editorSteps = { CourseEditorStep.Overview, CourseEditorStep.Units, CourseEditorStep.UnitExams, CourseEditorStep.Exam };
 
 	private enum CourseEditorStep
 	{
 		Overview = 1,
-		Modules = 2,
-		Checkpoints = 3,
-		Assessment = 4
+		Units = 2,
+		UnitExams = 3,
+		Exam = 4
 	}
 
-	private List<CourseCheckpointDefinition> _checkpoints = new();
-	private CheckpointDefinitionEditorModel? _editingCheckpoint;
-	private string? _checkpointError;
-	private string? _checkpointMessage;
+	private List<CourseUnitExamDefinition> _unitExams = new();
+	private UnitExamDefinitionEditorModel? _editingUnitExam;
+	private string? _unitExamError;
+	private string? _unitExamMessage;
 
-	private AssessmentEditorModel? _assessmentEditor;
-	private Guid? _assessmentCourseId;
-	private string _assessmentCourseIdText = string.Empty;
-	private string? _assessmentError;
-	private string? _assessmentMessage;
+	private ExamEditorModel? _examEditor;
+	private Guid? _examCourseId;
+	private string _examCourseIdText = string.Empty;
+	private string? _examError;
+	private string? _examMessage;
 	private Guid? _retakeLearnerId;
 	private int _retakeGrantAttempts = 1;
 	private bool _resetCooldownTimerOnRetakeGrant = true;
@@ -708,24 +708,24 @@ else
 			return;
 		}
 
-		if (_activeEditorStep == CourseEditorStep.Modules && SubId.HasValue && _editingModule?.Id != SubId.Value)
+		if (_activeEditorStep == CourseEditorStep.Units && SubId.HasValue && _editingUnit?.Id != SubId.Value)
 		{
-			var module = _editingCourse.Modules.FirstOrDefault(candidate => candidate.Id == SubId.Value);
-			if (module is not null)
+			var unit = _editingCourse.Units.FirstOrDefault(candidate => candidate.Id == SubId.Value);
+			if (unit is not null)
 			{
-				BeginEditingModule(module);
+				BeginEditingUnit(unit);
 			}
 		}
-		else if (_activeEditorStep == CourseEditorStep.Checkpoints)
+		else if (_activeEditorStep == CourseEditorStep.UnitExams)
 		{
 			var isFinal = !SubId.HasValue;
-			var alreadyMatching = _editingCheckpoint is not null
-				&& _editingCheckpoint.IsFinal == isFinal
-				&& (isFinal || _editingCheckpoint.ModuleId == SubId);
+			var alreadyMatching = _editingUnitExam is not null
+				&& _editingUnitExam.IsFinal == isFinal
+				&& (isFinal || _editingUnitExam.UnitId == SubId);
 
 			if (!alreadyMatching)
 			{
-				BeginEditingCheckpoint(SubId, isFinal);
+				BeginEditingUnitExam(SubId, isFinal);
 			}
 		}
 	}
@@ -744,9 +744,9 @@ else
 	{
 		return step switch
 		{
-			CourseEditorStep.Modules => "Units",
-			CourseEditorStep.Checkpoints => "Checkpoints",
-			CourseEditorStep.Assessment => "Assessment",
+			CourseEditorStep.Units => "Units",
+			CourseEditorStep.UnitExams => "Unit Exams",
+			CourseEditorStep.Exam => "Exam",
 			_ => "Overview"
 		};
 	}
@@ -755,10 +755,9 @@ else
 	{
 		return step?.ToLowerInvariant() switch
 		{
-			"units" => CourseEditorStep.Modules,
-			"modules" => CourseEditorStep.Modules,
-			"checkpoints" => CourseEditorStep.Checkpoints,
-			"assessment" => CourseEditorStep.Assessment,
+			"units" => CourseEditorStep.Units,
+			"unit exams" => CourseEditorStep.UnitExams,
+			"exam" => CourseEditorStep.Exam,
 			_ => CourseEditorStep.Overview
 		};
 	}
@@ -767,9 +766,9 @@ else
 	{
 		return step switch
 		{
-			CourseEditorStep.Modules => "units",
-			CourseEditorStep.Checkpoints => "checkpoints",
-			CourseEditorStep.Assessment => "assessment",
+			CourseEditorStep.Units => "units",
+			CourseEditorStep.UnitExams => "unit exams",
+			CourseEditorStep.Exam => "exam",
 			_ => "overview"
 		};
 	}
@@ -782,7 +781,7 @@ else
 
 	private void NextEditorStep()
 	{
-		if (_editingCourse is not null && _activeEditorStep < CourseEditorStep.Assessment)
+		if (_editingCourse is not null && _activeEditorStep < CourseEditorStep.Exam)
 		{
 			NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, _activeEditorStep + 1));
 		}
@@ -997,11 +996,11 @@ else
 		await RestoreEditingDraftAsync(course);
 		ShowEditView();
 		_activeEditorStep = CourseEditorStep.Overview;
-		ClearModuleSelection();
+		ClearUnitSelection();
 		ClearLessonSelection();
-		CancelCheckpointEditing();
-		await ReloadCheckpointsAsync();
-		await LoadAssessmentEditorAsync();
+		CancelUnitExamEditing();
+		await ReloadUnitExamsAsync();
+		await LoadExamEditorAsync();
 	}
 
 	private async Task SaveCourseAsync()
@@ -1031,12 +1030,12 @@ else
 		_editingCourse = null;
 		_activeEditorStep = CourseEditorStep.Overview;
 		ShowEditView();
-		_assessmentCourseId = null;
-		_assessmentCourseIdText = string.Empty;
-		_assessmentEditor = null;
+		_examCourseId = null;
+		_examCourseIdText = string.Empty;
+		_examEditor = null;
 		_retakeGrants.Clear();
 		_retakeGrantDraftAttempts.Clear();
-		ClearModuleSelection();
+		ClearUnitSelection();
 		ClearLessonSelection();
 	}
 
@@ -1053,19 +1052,19 @@ else
 		}
 	}
 
-	private async Task AddModuleAsync()
+	private async Task AddUnitAsync()
 	{
-		if (_editingCourse is null || string.IsNullOrWhiteSpace(_newModuleTitle))
+		if (_editingCourse is null || string.IsNullOrWhiteSpace(_newUnitTitle))
 		{
 			return;
 		}
 
-		await CourseService.AddModuleAsync(_editingCourse.Id, new Module
+		await CourseService.AddUnitAsync(_editingCourse.Id, new Unit
 		{
-			Title = _newModuleTitle.Trim()
+			Title = _newUnitTitle.Trim()
 		});
 
-		_newModuleTitle = string.Empty;
+		_newUnitTitle = string.Empty;
 		await ReloadSelectedCourseAsync();
 	}
 
@@ -1100,9 +1099,9 @@ else
 		await CourseService.ImportCourseStructureAsync(_editingCourse.Id, _importText);
 		_importText = string.Empty;
 		_importStatusMessage = "Course structure imported.";
-		CancelCheckpointEditing();
+		CancelUnitExamEditing();
 		await ReloadSelectedCourseAsync();
-		await ReloadCheckpointsAsync();
+		await ReloadUnitExamsAsync();
 	}
 
 	private async Task CreateCourseAsync()
@@ -1152,55 +1151,55 @@ else
 			.Trim('-');
 	}
 
-	private bool HasModuleCheckpoint(Guid moduleId)
+	private bool HasUnitExam(Guid unitId)
 	{
-		return _checkpoints.Any(checkpoint => !checkpoint.IsFinal && checkpoint.ModuleId == moduleId);
+		return _unitExams.Any(unitExam => !unitExam.IsFinal && unitExam.UnitId == unitId);
 	}
 
-	private bool HasFinalCheckpoint()
+	private bool HasFinalUnitExam()
 	{
-		return _checkpoints.Any(checkpoint => checkpoint.IsFinal);
+		return _unitExams.Any(unitExam => unitExam.IsFinal);
 	}
 
-	private string GetModuleCheckpointSummary(Guid moduleId)
+	private string GetUnitExamSummary(Guid unitId)
 	{
-		var checkpoint = _checkpoints.FirstOrDefault(checkpoint => !checkpoint.IsFinal && checkpoint.ModuleId == moduleId);
-		return checkpoint is null ? "No checkpoint configured." : $"Checkpoint: {checkpoint.Title}";
+		var unitExam = _unitExams.FirstOrDefault(unitExam => !unitExam.IsFinal && unitExam.UnitId == unitId);
+		return unitExam is null ? "No unit exam configured." : $"UnitExam: {unitExam.Title}";
 	}
 
-	private string GetModuleTitle(Guid? moduleId)
+	private string GetUnitTitle(Guid? unitId)
 	{
-		return _editingCourse?.Modules.FirstOrDefault(module => module.Id == moduleId)?.Title ?? "unit";
+		return _editingCourse?.Units.FirstOrDefault(unit => unit.Id == unitId)?.Title ?? "unit";
 	}
 
-	private void BeginEditingCheckpoint(Guid? moduleId, bool isFinal)
+	private void BeginEditingUnitExam(Guid? unitId, bool isFinal)
 	{
 		if (_editingCourse is null)
 		{
 			return;
 		}
 
-		_checkpointError = null;
-		_checkpointMessage = null;
+		_unitExamError = null;
+		_unitExamMessage = null;
 
 		var existing = isFinal
-			? _checkpoints.FirstOrDefault(checkpoint => checkpoint.IsFinal)
-			: _checkpoints.FirstOrDefault(checkpoint => !checkpoint.IsFinal && checkpoint.ModuleId == moduleId);
+			? _unitExams.FirstOrDefault(unitExam => unitExam.IsFinal)
+			: _unitExams.FirstOrDefault(unitExam => !unitExam.IsFinal && unitExam.UnitId == unitId);
 
 		if (existing is not null)
 		{
-			_editingCheckpoint = new CheckpointDefinitionEditorModel
+			_editingUnitExam = new UnitExamDefinitionEditorModel
 			{
 				Id = existing.Id,
 				CourseId = existing.CourseId,
-				ModuleId = existing.ModuleId,
+				UnitId = existing.UnitId,
 				IsFinal = existing.IsFinal,
 				Title = existing.Title,
 				Prompt = existing.Prompt,
 				Description = existing.Description,
 				Options = existing.Options
 					.OrderBy(option => option.OrderIndex)
-					.Select(option => new CheckpointOptionEditorItem
+					.Select(option => new UnitExamOptionEditorItem
 					{
 						Id = option.Id,
 						Label = option.Label,
@@ -1211,15 +1210,15 @@ else
 		}
 		else
 		{
-			_editingCheckpoint = new CheckpointDefinitionEditorModel
+			_editingUnitExam = new UnitExamDefinitionEditorModel
 			{
 				CourseId = _editingCourse.Id,
-				ModuleId = isFinal ? null : moduleId,
+				UnitId = isFinal ? null : unitId,
 				IsFinal = isFinal,
-				Title = isFinal ? "Final Checkpoint" : "Unit Checkpoint",
+				Title = isFinal ? "Final Unit Exam" : "Unit Exam",
 				Prompt = string.Empty,
 				Description = string.Empty,
-				Options = new List<CheckpointOptionEditorItem>
+				Options = new List<UnitExamOptionEditorItem>
 				{
 					new() { Label = string.Empty, IsCorrect = true },
 					new() { Label = string.Empty, IsCorrect = false }
@@ -1228,112 +1227,112 @@ else
 		}
 	}
 
-	private void AddCheckpointOption()
+	private void AddUnitExamOption()
 	{
-		_editingCheckpoint?.Options.Add(new CheckpointOptionEditorItem { Label = string.Empty, IsCorrect = false });
+		_editingUnitExam?.Options.Add(new UnitExamOptionEditorItem { Label = string.Empty, IsCorrect = false });
 	}
 
-	private void RemoveCheckpointOption(int index)
+	private void RemoveUnitExamOption(int index)
 	{
-		if (_editingCheckpoint is null || index < 0 || index >= _editingCheckpoint.Options.Count)
+		if (_editingUnitExam is null || index < 0 || index >= _editingUnitExam.Options.Count)
 		{
 			return;
 		}
 
-		_editingCheckpoint.Options.RemoveAt(index);
+		_editingUnitExam.Options.RemoveAt(index);
 	}
 
-	private async Task SaveCheckpointAsync()
+	private async Task SaveUnitExamAsync()
 	{
-		_checkpointError = null;
-		_checkpointMessage = null;
+		_unitExamError = null;
+		_unitExamMessage = null;
 
-		if (_editingCheckpoint is null)
+		if (_editingUnitExam is null)
 		{
 			return;
 		}
 
-		if (string.IsNullOrWhiteSpace(_editingCheckpoint.Title) || string.IsNullOrWhiteSpace(_editingCheckpoint.Prompt))
+		if (string.IsNullOrWhiteSpace(_editingUnitExam.Title) || string.IsNullOrWhiteSpace(_editingUnitExam.Prompt))
 		{
-			_checkpointError = "Title and prompt are required.";
+			_unitExamError = "Title and prompt are required.";
 			return;
 		}
 
-		if (_editingCheckpoint.Options.Count < 2 || _editingCheckpoint.Options.All(option => !option.IsCorrect) || _editingCheckpoint.Options.Any(option => string.IsNullOrWhiteSpace(option.Label)))
+		if (_editingUnitExam.Options.Count < 2 || _editingUnitExam.Options.All(option => !option.IsCorrect) || _editingUnitExam.Options.Any(option => string.IsNullOrWhiteSpace(option.Label)))
 		{
-			_checkpointError = "Add at least two options with labels, and mark at least one as correct.";
+			_unitExamError = "Add at least two options with labels, and mark at least one as correct.";
 			return;
 		}
 
-		await CourseService.SaveCheckpointDefinitionAsync(_editingCheckpoint);
-		_checkpointMessage = "Checkpoint saved.";
-		_editingCheckpoint = null;
-		await ReloadCheckpointsAsync();
+		await CourseService.SaveUnitExamDefinitionAsync(_editingUnitExam);
+		_unitExamMessage = "Unit Exam saved.";
+		_editingUnitExam = null;
+		await ReloadUnitExamsAsync();
 	}
 
-	private async Task DeleteCheckpointAsync()
+	private async Task DeleteUnitExamAsync()
 	{
-		if (_editingCheckpoint?.Id is null)
+		if (_editingUnitExam?.Id is null)
 		{
 			return;
 		}
 
-		await CourseService.DeleteCheckpointDefinitionAsync(_editingCheckpoint.Id.Value);
-		_checkpointMessage = "Checkpoint deleted.";
-		_editingCheckpoint = null;
-		await ReloadCheckpointsAsync();
+		await CourseService.DeleteUnitExamDefinitionAsync(_editingUnitExam.Id.Value);
+		_unitExamMessage = "Unit Exam deleted.";
+		_editingUnitExam = null;
+		await ReloadUnitExamsAsync();
 	}
 
-	private void CancelCheckpointEditing()
+	private void CancelUnitExamEditing()
 	{
-		_editingCheckpoint = null;
-		_checkpointError = null;
-		_checkpointMessage = null;
+		_editingUnitExam = null;
+		_unitExamError = null;
+		_unitExamMessage = null;
 	}
 
-	private async Task ReloadCheckpointsAsync()
+	private async Task ReloadUnitExamsAsync()
 	{
-		_checkpoints = _editingCourse is null
-			? new List<CourseCheckpointDefinition>()
-			: await CourseService.GetCheckpointDefinitionsForEditingAsync(_editingCourse.Id);
+		_unitExams = _editingCourse is null
+			? new List<CourseUnitExamDefinition>()
+			: await CourseService.GetUnitExamDefinitionsForEditingAsync(_editingCourse.Id);
 	}
 
-	private Task OnAssessmentCourseChanged(ChangeEventArgs args)
+	private Task OnExamCourseChanged(ChangeEventArgs args)
 	{
-		_assessmentCourseIdText = args.Value?.ToString() ?? string.Empty;
-		_assessmentCourseId = Guid.TryParse(_assessmentCourseIdText, out var parsed) ? parsed : null;
-		_assessmentEditor = null;
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examCourseIdText = args.Value?.ToString() ?? string.Empty;
+		_examCourseId = Guid.TryParse(_examCourseIdText, out var parsed) ? parsed : null;
+		_examEditor = null;
+		_examError = null;
+		_examMessage = null;
 		_retakeGrants.Clear();
 		_retakeGrantDraftAttempts.Clear();
 		return Task.CompletedTask;
 	}
 
-	private async Task LoadAssessmentEditorAsync()
+	private async Task LoadExamEditorAsync()
 	{
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examError = null;
+		_examMessage = null;
 
 		if (_editingCourse is null)
 		{
-			_assessmentCourseId = null;
-			_assessmentCourseIdText = string.Empty;
-			_assessmentEditor = null;
+			_examCourseId = null;
+			_examCourseIdText = string.Empty;
+			_examEditor = null;
 			_retakeGrants.Clear();
 			_retakeGrantDraftAttempts.Clear();
-			_assessmentMessage = "Select a course to manage its final assessment.";
+			_examMessage = "Select a course to manage its final exam.";
 			return;
 		}
 
-		_assessmentCourseId = _editingCourse.Id;
-		_assessmentCourseIdText = _assessmentCourseId.Value.ToString();
-		_assessmentEditor = await AssessmentService.GetAssessmentEditorAsync(_assessmentCourseId.Value);
-		_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+		_examCourseId = _editingCourse.Id;
+		_examCourseIdText = _examCourseId.Value.ToString();
+		_examEditor = await ExamService.GetExamEditorAsync(_examCourseId.Value);
+		_retakeGrants = await ExamService.GetRetakeGrantsAsync(_examCourseId.Value);
 		_retakeGrantDraftAttempts.Clear();
-		_assessmentMessage = _assessmentEditor is null
-			? "No assessment is available for this course."
-			: "Assessment loaded.";
+		_examMessage = _examEditor is null
+			? "No exam is available for this course."
+			: "Exam loaded.";
 
 		if (_retakeLearnerId is null && _users.Any(user => user.Role == "Learner"))
 		{
@@ -1341,13 +1340,13 @@ else
 		}
 	}
 
-	private void AddAssessmentQuestion()
+	private void AddExamQuestion()
 	{
-		_assessmentEditor ??= new AssessmentEditorModel();
+		_examEditor ??= new ExamEditorModel();
 
-		_assessmentEditor.Questions.Add(new AssessmentQuestionEditorItem
+		_examEditor.Questions.Add(new ExamQuestionEditorItem
 		{
-			OrderIndex = _assessmentEditor.Questions.Count + 1,
+			OrderIndex = _examEditor.Questions.Count + 1,
 			CorrectOption = "A",
 			Prompt = "",
 			OptionA = "",
@@ -1357,46 +1356,46 @@ else
 		});
 	}
 
-	private void RemoveAssessmentQuestion(int index)
+	private void RemoveExamQuestion(int index)
 	{
-		if (_assessmentEditor is null || index < 0 || index >= _assessmentEditor.Questions.Count)
+		if (_examEditor is null || index < 0 || index >= _examEditor.Questions.Count)
 		{
 			return;
 		}
 
-		_assessmentEditor.Questions.RemoveAt(index);
-		for (var i = 0; i < _assessmentEditor.Questions.Count; i++)
+		_examEditor.Questions.RemoveAt(index);
+		for (var i = 0; i < _examEditor.Questions.Count; i++)
 		{
-			_assessmentEditor.Questions[i].OrderIndex = i + 1;
+			_examEditor.Questions[i].OrderIndex = i + 1;
 		}
 	}
 
-	private async Task SaveAssessmentEditorAsync()
+	private async Task SaveExamEditorAsync()
 	{
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examError = null;
+		_examMessage = null;
 
-		if (!_assessmentCourseId.HasValue || _assessmentEditor is null)
+		if (!_examCourseId.HasValue || _examEditor is null)
 		{
-			_assessmentError = "Load an assessment before saving.";
+			_examError = "Load an exam before saving.";
 			return;
 		}
 
 		if (!_actorUserId.HasValue)
 		{
-			_assessmentError = "Unable to identify the signed in account.";
+			_examError = "Unable to identify the signed in account.";
 			return;
 		}
 
 		try
 		{
-			await AssessmentService.SaveAssessmentEditorAsync(_assessmentCourseId.Value, _assessmentEditor, _actorUserId.Value, _actorEmail);
-			_assessmentMessage = "Assessment saved. Existing attempts were reset for this course.";
-			await LoadAssessmentEditorAsync();
+			await ExamService.SaveExamEditorAsync(_examCourseId.Value, _examEditor, _actorUserId.Value, _actorEmail);
+			_examMessage = "Exam saved. Existing attempts were reset for this course.";
+			await LoadExamEditorAsync();
 		}
 		catch (InvalidOperationException exception)
 		{
-			_assessmentError = exception.Message;
+			_examError = exception.Message;
 		}
 	}
 
@@ -1425,33 +1424,33 @@ else
 
 	private async Task GrantRetakeAsync()
 	{
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examError = null;
+		_examMessage = null;
 
-		if (!_assessmentCourseId.HasValue || !_retakeLearnerId.HasValue)
+		if (!_examCourseId.HasValue || !_retakeLearnerId.HasValue)
 		{
-			_assessmentError = "Select both course and learner before granting retake.";
+			_examError = "Select both course and learner before granting retake.";
 			return;
 		}
 
 		if (!_actorUserId.HasValue)
 		{
-			_assessmentError = "Unable to identify the signed in account.";
+			_examError = "Unable to identify the signed in account.";
 			return;
 		}
 
 		try
 		{
-			await AssessmentService.GrantRetakeAsync(_assessmentCourseId.Value, _retakeLearnerId.Value, Math.Max(_retakeGrantAttempts, 1), _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
-			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			await ExamService.GrantRetakeAsync(_examCourseId.Value, _retakeLearnerId.Value, Math.Max(_retakeGrantAttempts, 1), _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await ExamService.GetRetakeGrantsAsync(_examCourseId.Value);
 			_retakeGrantDraftAttempts.Clear();
-			_assessmentMessage = _resetCooldownTimerOnRetakeGrant
+			_examMessage = _resetCooldownTimerOnRetakeGrant
 				? "Retake attempts granted and cooldown timer reset successfully."
 				: "Retake attempts granted successfully.";
 		}
 		catch (InvalidOperationException exception)
 		{
-			_assessmentError = exception.Message;
+			_examError = exception.Message;
 		}
 	}
 
@@ -1473,12 +1472,12 @@ else
 
 	private async Task UpdateRetakeGrantAsync(RetakeGrantView grant)
 	{
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examError = null;
+		_examMessage = null;
 
-		if (!_assessmentCourseId.HasValue || !_actorUserId.HasValue)
+		if (!_examCourseId.HasValue || !_actorUserId.HasValue)
 		{
-			_assessmentError = "Select a course and ensure an instructor account is active.";
+			_examError = "Select a course and ensure an instructor account is active.";
 			return;
 		}
 
@@ -1486,76 +1485,76 @@ else
 
 		try
 		{
-			await AssessmentService.SetRetakeGrantAttemptsAsync(_assessmentCourseId.Value, grant.LearnerUserId, attempts, _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
-			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			await ExamService.SetRetakeGrantAttemptsAsync(_examCourseId.Value, grant.LearnerUserId, attempts, _resetCooldownTimerOnRetakeGrant, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await ExamService.GetRetakeGrantsAsync(_examCourseId.Value);
 			_retakeGrantDraftAttempts.Clear();
-			_assessmentMessage = _resetCooldownTimerOnRetakeGrant
+			_examMessage = _resetCooldownTimerOnRetakeGrant
 				? "Retake grant updated and cooldown timer reset."
 				: "Retake grant updated.";
 		}
 		catch (InvalidOperationException exception)
 		{
-			_assessmentError = exception.Message;
+			_examError = exception.Message;
 		}
 	}
 
 	private async Task RevokeRetakeGrantAsync(RetakeGrantView grant)
 	{
-		_assessmentError = null;
-		_assessmentMessage = null;
+		_examError = null;
+		_examMessage = null;
 
-		if (!_assessmentCourseId.HasValue || !_actorUserId.HasValue)
+		if (!_examCourseId.HasValue || !_actorUserId.HasValue)
 		{
-			_assessmentError = "Select a course and ensure an instructor account is active.";
+			_examError = "Select a course and ensure an instructor account is active.";
 			return;
 		}
 
 		try
 		{
-			await AssessmentService.RevokeRetakeGrantAsync(_assessmentCourseId.Value, grant.LearnerUserId, _actorUserId.Value, _actorEmail);
-			_retakeGrants = await AssessmentService.GetRetakeGrantsAsync(_assessmentCourseId.Value);
+			await ExamService.RevokeRetakeGrantAsync(_examCourseId.Value, grant.LearnerUserId, _actorUserId.Value, _actorEmail);
+			_retakeGrants = await ExamService.GetRetakeGrantsAsync(_examCourseId.Value);
 			_retakeGrantDraftAttempts.Clear();
-			_assessmentMessage = "Retake grant revoked.";
+			_examMessage = "Retake grant revoked.";
 		}
 		catch (InvalidOperationException exception)
 		{
-			_assessmentError = exception.Message;
+			_examError = exception.Message;
 		}
 	}
 
-	private void BeginEditingModule(Module module)
+	private void BeginEditingUnit(Unit unit)
 	{
-		_editingModule = CloneModule(module);
+		_editingUnit = CloneUnit(unit);
 		ClearLessonSelection();
 	}
 
-	private async Task SaveModuleAsync()
+	private async Task SaveUnitAsync()
 	{
-		if (_editingModule is null)
+		if (_editingUnit is null)
 		{
 			return;
 		}
 
-		await CourseService.UpdateModuleAsync(_editingModule);
+		await CourseService.UpdateUnitAsync(_editingUnit);
 		await ReloadSelectedCourseAsync();
 		await PersistEditingDraftAsync();
-		BeginEditingModule(_editingCourse!.Modules.First(module => module.Id == _editingModule.Id));
+		BeginEditingUnit(_editingCourse!.Units.First(unit => unit.Id == _editingUnit.Id));
 	}
 
-	private void ClearModuleSelection()
+	private void ClearUnitSelection()
 	{
-		_editingModule = null;
-		_newModuleTitle = string.Empty;
+		_editingUnit = null;
+		_newUnitTitle = string.Empty;
 	}
 
 	private async Task AddLessonAsync()
 	{
-		if (_editingModule is null || string.IsNullOrWhiteSpace(_newLessonTitle))
+		if (_editingUnit is null || string.IsNullOrWhiteSpace(_newLessonTitle))
 		{
 			return;
 		}
 
-		await CourseService.AddLessonAsync(_editingModule.Id, new Lesson
+		await CourseService.AddLessonAsync(_editingUnit.Id, new Lesson
 		{
 			Title = _newLessonTitle.Trim(),
 			TextContent = _newLessonText,
@@ -1571,8 +1570,8 @@ else
 		await PersistEditingDraftAsync();
 		if (_editingCourse is not null)
 		{
-			var refreshedModule = _editingCourse.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
-			_editingModule = refreshedModule is null ? null : CloneModule(refreshedModule);
+			var refreshedUnit = _editingCourse.Units.FirstOrDefault(unit => unit.Id == _editingUnit.Id);
+			_editingUnit = refreshedUnit is null ? null : CloneUnit(refreshedUnit);
 		}
 	}
 
@@ -1591,14 +1590,14 @@ else
 		await CourseService.UpdateLessonAsync(_editingLesson);
 		await ReloadSelectedCourseAsync();
 		await PersistEditingDraftAsync();
-		if (_editingModule is not null)
+		if (_editingUnit is not null)
 		{
-			var refreshedModule = _editingCourse?.Modules.FirstOrDefault(module => module.Id == _editingModule.Id);
-			_editingModule = refreshedModule is null ? null : CloneModule(refreshedModule);
+			var refreshedUnit = _editingCourse?.Units.FirstOrDefault(unit => unit.Id == _editingUnit.Id);
+			_editingUnit = refreshedUnit is null ? null : CloneUnit(refreshedUnit);
 		}
-		if (_editingModule is not null)
+		if (_editingUnit is not null)
 		{
-			var refreshedLesson = _editingModule.Lessons.FirstOrDefault(lesson => lesson.Id == _editingLesson.Id);
+			var refreshedLesson = _editingUnit.Lessons.FirstOrDefault(lesson => lesson.Id == _editingLesson.Id);
 			_editingLesson = refreshedLesson is null ? null : CloneLesson(refreshedLesson);
 		}
 	}
@@ -1646,22 +1645,22 @@ else
 			ReviewedAt = course.ReviewedAt,
 			CreatedAt = course.CreatedAt,
 			UpdatedAt = course.UpdatedAt,
-			Modules = course.Modules
-				.OrderBy(module => module.OrderIndex)
-				.Select(CloneModule)
+			Units = course.Units
+				.OrderBy(unit => unit.OrderIndex)
+				.Select(CloneUnit)
 				.ToList()
 		};
 	}
 
-	private static Module CloneModule(Module module)
+	private static Unit CloneUnit(Unit unit)
 	{
-		return new Module
+		return new Unit
 		{
-			Id = module.Id,
-			CourseId = module.CourseId,
-			Title = module.Title,
-			OrderIndex = module.OrderIndex,
-			Lessons = module.Lessons
+			Id = unit.Id,
+			CourseId = unit.CourseId,
+			Title = unit.Title,
+			OrderIndex = unit.OrderIndex,
+			Lessons = unit.Lessons
 				.OrderBy(lesson => lesson.OrderIndex)
 				.Select(CloneLesson)
 				.ToList()
@@ -1673,7 +1672,7 @@ else
 		return new Lesson
 		{
 			Id = lesson.Id,
-			ModuleId = lesson.ModuleId,
+			UnitId = lesson.UnitId,
 			Title = lesson.Title,
 			ContentType = lesson.ContentType,
 			ContentUrl = lesson.ContentUrl,

@@ -1,11 +1,11 @@
-using Lms.Domain.Entities;
+﻿using Lms.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lms.Application.Data;
 
 public static class CourseSeed
 {
-    private const string GettingStartedModuleTitle = "Getting Started";
+    private const string GettingStartedUnitTitle = "Getting Started";
     private const string WelcomeLessonTitle = "Welcome";
     private const string WelcomeLessonText = """
         Welcome!
@@ -96,17 +96,17 @@ public static class CourseSeed
             await dbContext.SaveChangesAsync();
         }
 
-        if (!await dbContext.Modules.AnyAsync())
+        if (!await dbContext.Units.AnyAsync())
         {
-            dbContext.Modules.AddRange(
-            new Module
+            dbContext.Units.AddRange(
+            new Unit
             {
                 Id = Guid.Parse("d4b7f3d1-4d60-4c7f-9190-4d41d1b8f0d1"),
                 CourseId = Guid.Parse("64cc1cbb-45fc-4a76-b3b4-de399cb3830f"),
                 Title = "Getting Started",
                 OrderIndex = 1
             },
-            new Module
+            new Unit
             {
                 Id = Guid.Parse("c3c0f6aa-5c55-40a1-bf33-0edb77f7a901"),
                 CourseId = Guid.Parse("5bc4b74b-71ac-40fe-8bc9-1daf5a922782"),
@@ -123,7 +123,7 @@ public static class CourseSeed
                 new Lesson
                 {
                     Id = Guid.Parse("a8b6e232-11ad-4c08-8d2d-8a6f9f00a101"),
-                    ModuleId = Guid.Parse("d4b7f3d1-4d60-4c7f-9190-4d41d1b8f0d1"),
+                    UnitId = Guid.Parse("d4b7f3d1-4d60-4c7f-9190-4d41d1b8f0d1"),
                     Title = "Welcome",
                     ContentType = "Text",
                     TextContent = WelcomeLessonText,
@@ -134,7 +134,7 @@ public static class CourseSeed
                 new Lesson
                 {
                     Id = Guid.Parse("b9e4f47d-3a20-4a32-9be7-0cd54f0d9101"),
-                    ModuleId = Guid.Parse("c3c0f6aa-5c55-40a1-bf33-0edb77f7a901"),
+                    UnitId = Guid.Parse("c3c0f6aa-5c55-40a1-bf33-0edb77f7a901"),
                     Title = "Broker supervision rules",
                     ContentType = "Text",
                     TextContent = """
@@ -163,7 +163,7 @@ public static class CourseSeed
                 new Lesson
                 {
                     Id = Guid.Parse("d9a1f5b2-7fd4-4ce4-b973-9e5e1f7b2201"),
-                    ModuleId = Guid.Parse("c3c0f6aa-5c55-40a1-bf33-0edb77f7a901"),
+                    UnitId = Guid.Parse("c3c0f6aa-5c55-40a1-bf33-0edb77f7a901"),
                     Title = "Disclosure timing and material facts",
                     ContentType = "Text",
                     TextContent = """
@@ -192,7 +192,7 @@ public static class CourseSeed
                 new Lesson
                 {
                     Id = Guid.Parse("f1c48cb6-3f25-4c5d-96d3-f0b936de4202"),
-                    ModuleId = Guid.Parse("c3c0f6aa-5c55-40a1-bf33-0edb77f7a901"),
+                    UnitId = Guid.Parse("c3c0f6aa-5c55-40a1-bf33-0edb77f7a901"),
                     Title = "Advertising and record retention controls",
                     ContentType = "Text",
                     TextContent = """
@@ -221,7 +221,7 @@ public static class CourseSeed
                 new Lesson
                 {
                     Id = Guid.Parse("98e37e1e-9ca5-4e4a-944b-4f3a454e5503"),
-                    ModuleId = Guid.Parse("c3c0f6aa-5c55-40a1-bf33-0edb77f7a901"),
+                    UnitId = Guid.Parse("c3c0f6aa-5c55-40a1-bf33-0edb77f7a901"),
                     Title = "Incident response and corrective action",
                     ContentType = "Text",
                     TextContent = """
@@ -256,7 +256,7 @@ public static class CourseSeed
         await FloridaCoreLawCourseSeed.EnsureAsync(dbContext, FloridaDistanceLearningCourseId);
         await EnsureWelcomeLessonTitleAsync(dbContext);
         await RemoveLicensingChecklistLessonAsync(dbContext);
-        await RemoveCoreLicensingConceptsModuleAsync(dbContext);
+        await RemoveCoreLicensingConceptsUnitAsync(dbContext);
         await EnsureRealEstateLicensingMockDataAsync(dbContext);
         await EnsureIntroStructureForAllCoursesAsync(dbContext);
         await EnsureCourseReviewStatusBackfilledAsync(dbContext);
@@ -732,7 +732,7 @@ public static class CourseSeed
 
         var lessonIds = await dbContext.Lessons
             .AsNoTracking()
-            .Where(lesson => lesson.Module!.CourseId == RealEstateLicensingBasicsCourseId)
+            .Where(lesson => lesson.Unit!.CourseId == RealEstateLicensingBasicsCourseId)
             .Select(lesson => lesson.Id)
             .ToListAsync();
 
@@ -757,8 +757,8 @@ public static class CourseSeed
     private static async Task EnsureIntroStructureForAllCoursesAsync(ApplicationDbContext dbContext)
     {
         var courses = await dbContext.Courses
-            .Include(course => course.Modules)
-                .ThenInclude(module => module.Lessons)
+            .Include(course => course.Units)
+                .ThenInclude(unit => unit.Lessons)
             .ToListAsync();
 
         var hasChanges = false;
@@ -770,34 +770,34 @@ public static class CourseSeed
                 continue;
             }
 
-            var orderedModules = course.Modules
-                .OrderBy(module => module.OrderIndex)
+            var orderedUnits = course.Units
+                .OrderBy(unit => unit.OrderIndex)
                 .ToList();
 
-            var introModule = orderedModules
-                .FirstOrDefault(module => string.Equals(module.Title, GettingStartedModuleTitle, StringComparison.OrdinalIgnoreCase));
+            var introUnit = orderedUnits
+                .FirstOrDefault(unit => string.Equals(unit.Title, GettingStartedUnitTitle, StringComparison.OrdinalIgnoreCase));
 
-            if (introModule is null)
+            if (introUnit is null)
             {
-                foreach (var module in orderedModules)
+                foreach (var unit in orderedUnits)
                 {
-                    module.OrderIndex += 1;
+                    unit.OrderIndex += 1;
                 }
 
-                introModule = new Module
+                introUnit = new Unit
                 {
                     Id = Guid.NewGuid(),
                     CourseId = course.Id,
-                    Title = GettingStartedModuleTitle,
+                    Title = GettingStartedUnitTitle,
                     OrderIndex = 1
                 };
 
-                dbContext.Modules.Add(introModule);
-                orderedModules.Insert(0, introModule);
+                dbContext.Units.Add(introUnit);
+                orderedUnits.Insert(0, introUnit);
                 hasChanges = true;
             }
 
-            var introLessons = introModule.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
+            var introLessons = introUnit.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
 
             var welcomeLesson = introLessons.FirstOrDefault(lesson => string.Equals(lesson.Title, WelcomeLessonTitle, StringComparison.OrdinalIgnoreCase));
             if (welcomeLesson is null)
@@ -805,7 +805,7 @@ public static class CourseSeed
                 dbContext.Lessons.Add(new Lesson
                 {
                     Id = Guid.NewGuid(),
-                    ModuleId = introModule.Id,
+                    UnitId = introUnit.Id,
                     Title = WelcomeLessonTitle,
                     ContentType = "Text",
                     TextContent = WelcomeLessonText,
@@ -831,8 +831,8 @@ public static class CourseSeed
                 }
             }
 
-            var deprecatedNavigationLessons = orderedModules
-                .SelectMany(module => module.Lessons)
+            var deprecatedNavigationLessons = orderedUnits
+                .SelectMany(unit => unit.Lessons)
                 .Where(lesson =>
                     DeprecatedNavigationTitles.Any(title => string.Equals(lesson.Title, title, StringComparison.OrdinalIgnoreCase)))
                 .ToList();
@@ -909,66 +909,66 @@ public static class CourseSeed
             CreatedAt = DateTime.UtcNow
         };
 
-        var modules = new[]
+        var units = new[]
         {
-            new Module { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef1"), CourseId = course.Id, Title = "Licensing Foundations", OrderIndex = 1 },
-            new Module { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef2"), CourseId = course.Id, Title = "Professional Practice and Legal Responsibilities", OrderIndex = 2 }
+            new Unit { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef1"), CourseId = course.Id, Title = "Licensing Foundations", OrderIndex = 1 },
+            new Unit { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef2"), CourseId = course.Id, Title = "Professional Practice and Legal Responsibilities", OrderIndex = 2 }
         };
 
         var lessons = new[]
         {
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde01"), ModuleId = modules[0].Id, Title = "Florida Licensing Foundations", DurationMinutes = 60, OrderIndex = 1, TextContent = "Objectives\n- Identify the Florida licensing and regulatory framework.\n- Distinguish licensure preparation from postlicensure and continuing education.\n\nFlorida real estate education must be matched to the learner's license pathway and the provider's approved course requirements. Treat this mock course as instructional content, not as a substitute for current guidance from the Florida Real Estate Commission or the Department of Business and Professional Regulation." },
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde02"), ModuleId = modules[0].Id, Title = "Distance Learning, Provider Rules, and Compliance", DurationMinutes = 60, OrderIndex = 2, TextContent = "Objectives\n- Describe the controls expected in an online course.\n- Identify provider, identity, progress, assessment, and records obligations.\n\nAn online provider should maintain accurate course descriptions, learner identity controls, progress records, assessment results, completion evidence, and a clear process for support and complaints. Course approval and provider approval must be verified against current Florida requirements before deployment." },
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde03"), ModuleId = modules[0].Id, Title = "Postlicensure Education, Continuing Education, and Renewal", DurationMinutes = 60, OrderIndex = 3, TextContent = "Objectives\n- Separate initial licensing education from renewal education.\n- Build a renewal-readiness checklist.\n\nTrack the learner's license status, required education category, completion date, provider documentation, and renewal deadline independently. Completing an LMS course does not by itself renew a license." },
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde04"), ModuleId = modules[1].Id, Title = "Brokerage Relationships and Disclosure", DurationMinutes = 60, OrderIndex = 1, TextContent = "Objectives\n- Recognize the importance of agency and brokerage disclosures.\n- Apply a timely, documented disclosure workflow.\n\nA defensible transaction file records the relationship selected, disclosures delivered, material facts communicated, and consumer acknowledgments. Escalate uncertainty instead of relying on informal assumptions." },
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde05"), ModuleId = modules[1].Id, Title = "Contracts, Trust Funds, and Transaction Compliance", DurationMinutes = 60, OrderIndex = 2, TextContent = "Objectives\n- Identify controls for contracts, deposits, and transaction records.\n- Explain why reconciliation and escalation matter.\n\nUse approved forms and documented review checkpoints. Trust funds require prompt handling, accurate ledgers, reconciliation, and escalation of discrepancies. Preserve drafts, approvals, communications, and final documents according to the provider and brokerage retention policies." },
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde06"), ModuleId = modules[1].Id, Title = "Final Assessment and Renewal Readiness", DurationMinutes = 60, OrderIndex = 3, TextContent = "Objectives\n- Demonstrate course completion readiness.\n- Assemble a renewal and compliance evidence packet.\n\nBefore completion, confirm every required lesson and activity is complete, the assessment result is recorded, identity and integrity checks are satisfied, and the certificate data is accurate. Recheck current Florida rules before using this mock course for a regulated offering." }
+            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde01"), UnitId = units[0].Id, Title = "Florida Licensing Foundations", DurationMinutes = 60, OrderIndex = 1, TextContent = "Objectives\n- Identify the Florida licensing and regulatory framework.\n- Distinguish licensure preparation from postlicensure and continuing education.\n\nFlorida real estate education must be matched to the learner's license pathway and the provider's approved course requirements. Treat this mock course as instructional content, not as a substitute for current guidance from the Florida Real Estate Commission or the Department of Business and Professional Regulation." },
+            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde02"), UnitId = units[0].Id, Title = "Distance Learning, Provider Rules, and Compliance", DurationMinutes = 60, OrderIndex = 2, TextContent = "Objectives\n- Describe the controls expected in an online course.\n- Identify provider, identity, progress, exam, and records obligations.\n\nAn online provider should maintain accurate course descriptions, learner identity controls, progress records, exam results, completion evidence, and a clear process for support and complaints. Course approval and provider approval must be verified against current Florida requirements before deployment." },
+            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde03"), UnitId = units[0].Id, Title = "Postlicensure Education, Continuing Education, and Renewal", DurationMinutes = 60, OrderIndex = 3, TextContent = "Objectives\n- Separate initial licensing education from renewal education.\n- Build a renewal-readiness checklist.\n\nTrack the learner's license status, required education category, completion date, provider documentation, and renewal deadline independently. Completing an LMS course does not by itself renew a license." },
+            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde04"), UnitId = units[1].Id, Title = "Brokerage Relationships and Disclosure", DurationMinutes = 60, OrderIndex = 1, TextContent = "Objectives\n- Recognize the importance of agency and brokerage disclosures.\n- Apply a timely, documented disclosure workflow.\n\nA defensible transaction file records the relationship selected, disclosures delivered, material facts communicated, and consumer acknowledgments. Escalate uncertainty instead of relying on informal assumptions." },
+            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde05"), UnitId = units[1].Id, Title = "Contracts, Trust Funds, and Transaction Compliance", DurationMinutes = 60, OrderIndex = 2, TextContent = "Objectives\n- Identify controls for contracts, deposits, and transaction records.\n- Explain why reconciliation and escalation matter.\n\nUse approved forms and documented review checkpoints. Trust funds require prompt handling, accurate ledgers, reconciliation, and escalation of discrepancies. Preserve drafts, approvals, communications, and final documents according to the provider and brokerage retention policies." },
+            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde06"), UnitId = units[1].Id, Title = "Final Exam and Renewal Readiness", DurationMinutes = 60, OrderIndex = 3, TextContent = "Objectives\n- Demonstrate course completion readiness.\n- Assemble a renewal and compliance evidence packet.\n\nBefore completion, confirm every required lesson and activity is complete, the exam result is recorded, identity and integrity checks are satisfied, and the certificate data is accurate. Recheck current Florida rules before using this mock course for a regulated offering." }
         };
 
         dbContext.Courses.Add(course);
-        dbContext.Modules.AddRange(modules);
+        dbContext.Units.AddRange(units);
         dbContext.Lessons.AddRange(lessons);
         await dbContext.SaveChangesAsync();
     }
 
-    private static async Task EnsureFloridaFinalAssessmentAsync(ApplicationDbContext dbContext)
+    private static async Task EnsureFloridaFinalExamAsync(ApplicationDbContext dbContext)
     {
-        var assessment = await dbContext.CourseAssessments
+        var exam = await dbContext.CourseExams
             .Include(existing => existing.Questions)
             .FirstOrDefaultAsync(existing => existing.CourseId == FloridaDistanceLearningCourseId && existing.IsRequired);
-        var isNewAssessment = assessment is null;
+        var isNewExam = exam is null;
 
-        if (assessment is not null && assessment.Questions.Count > 0)
+        if (exam is not null && exam.Questions.Count > 0)
         {
             return;
         }
 
-        assessment ??= new CourseAssessment
+        exam ??= new CourseExam
         {
             Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef7"),
             CourseId = FloridaDistanceLearningCourseId,
-            Title = "Florida Distance Learning Fundamentals Final Assessment",
+            Title = "Florida Distance Learning Fundamentals Final Exam",
             PassPercent = 75m,
             IsRequired = true,
             RetakeCooldownMinutes = 0
         };
 
-        assessment.Title = "Florida Distance Learning Fundamentals Final Assessment";
-        assessment.PassPercent = 75m;
-        assessment.IsRequired = true;
-        assessment.Questions =
+        exam.Title = "Florida Distance Learning Fundamentals Final Exam";
+        exam.PassPercent = 75m;
+        exam.IsRequired = true;
+        exam.Questions =
         [
-            new AssessmentQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde11"), Prompt = "Which Florida license category is the appropriate mapping for an NC provisional broker in a Florida scenario?", OptionA = "Sales Associate", OptionB = "Provisional Broker", OptionC = "BIC", OptionD = "Broker-in-Charge", CorrectOption = "A", OrderIndex = 1 },
-            new AssessmentQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde12"), Prompt = "What should an online provider retain to support a course completion record?", OptionA = "Only the learner's name", OptionB = "Progress, assessment, identity, and completion evidence", OptionC = "Only the payment receipt", OptionD = "A verbal confirmation", CorrectOption = "B", OrderIndex = 2 },
-            new AssessmentQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde13"), Prompt = "What does completing an LMS course establish by itself?", OptionA = "Automatic license renewal", OptionB = "A broker designation", OptionC = "Completion of the configured course requirements", OptionD = "A license transfer", CorrectOption = "C", OrderIndex = 3 },
-            new AssessmentQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde14"), Prompt = "When should a material fact and its delivery be documented?", OptionA = "Only after closing", OptionB = "As soon as verified and before key decisions", OptionC = "Only if requested twice", OptionD = "At the next renewal", CorrectOption = "B", OrderIndex = 4 },
-            new AssessmentQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde15"), Prompt = "Which control best supports trust-fund compliance?", OptionA = "Unrecorded verbal approvals", OptionB = "Deleting transaction drafts", OptionC = "Accurate ledgers and reconciliation with escalation", OptionD = "Deferring review until year-end", CorrectOption = "C", OrderIndex = 5 },
-            new AssessmentQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde16"), Prompt = "What should a learner verify before claiming Florida renewal readiness?", OptionA = "Only that the course page loaded", OptionB = "Course completion, assessment result, identity evidence, and current regulator requirements", OptionC = "Only the tuition balance", OptionD = "That an NC PB label was used", CorrectOption = "B", OrderIndex = 6 }
+            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde11"), Prompt = "Which Florida license category is the appropriate mapping for an NC provisional broker in a Florida scenario?", OptionA = "Sales Associate", OptionB = "Provisional Broker", OptionC = "BIC", OptionD = "Broker-in-Charge", CorrectOption = "A", OrderIndex = 1 },
+            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde12"), Prompt = "What should an online provider retain to support a course completion record?", OptionA = "Only the learner's name", OptionB = "Progress, exam, identity, and completion evidence", OptionC = "Only the payment receipt", OptionD = "A verbal confirmation", CorrectOption = "B", OrderIndex = 2 },
+            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde13"), Prompt = "What does completing an LMS course establish by itself?", OptionA = "Automatic license renewal", OptionB = "A broker designation", OptionC = "Completion of the configured course requirements", OptionD = "A license transfer", CorrectOption = "C", OrderIndex = 3 },
+            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde14"), Prompt = "When should a material fact and its delivery be documented?", OptionA = "Only after closing", OptionB = "As soon as verified and before key decisions", OptionC = "Only if requested twice", OptionD = "At the next renewal", CorrectOption = "B", OrderIndex = 4 },
+            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde15"), Prompt = "Which control best supports trust-fund compliance?", OptionA = "Unrecorded verbal approvals", OptionB = "Deleting transaction drafts", OptionC = "Accurate ledgers and reconciliation with escalation", OptionD = "Deferring review until year-end", CorrectOption = "C", OrderIndex = 5 },
+            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde16"), Prompt = "What should a learner verify before claiming Florida renewal readiness?", OptionA = "Only that the course page loaded", OptionB = "Course completion, exam result, identity evidence, and current regulator requirements", OptionC = "Only the tuition balance", OptionD = "That an NC PB label was used", CorrectOption = "B", OrderIndex = 6 }
         ];
 
-        if (isNewAssessment)
+        if (isNewExam)
         {
-            dbContext.CourseAssessments.Add(assessment);
+            dbContext.CourseExams.Add(exam);
         }
 
         await dbContext.SaveChangesAsync();
@@ -1073,18 +1073,18 @@ public static class CourseSeed
             hasChanges = true;
         }
 
-        var pmModuleCampaignsId = Guid.Parse("454a1c4d-70a8-4d9e-8970-bbe4f6a8e77f");
-        var pmModuleLeadsId = Guid.Parse("f5d174c1-e1e4-46e1-b422-f023915e14c9");
-        var tcModuleScheduleId = Guid.Parse("a791083d-b4af-4024-a93d-7d99d2f0915f");
-        var tcModuleClosingId = Guid.Parse("0fd3c5e1-3406-4ef2-bf95-21f5fb7557de");
-        var ccModuleDiscoveryId = Guid.Parse("6c02b698-7884-4588-9aaf-2da5a9304b9c");
-        var ccModuleNegotiationId = Guid.Parse("1a5d2f97-22fe-4faf-a9c1-1949f0f55764");
+        var pmUnitCampaignsId = Guid.Parse("454a1c4d-70a8-4d9e-8970-bbe4f6a8e77f");
+        var pmUnitLeadsId = Guid.Parse("f5d174c1-e1e4-46e1-b422-f023915e14c9");
+        var tcUnitScheduleId = Guid.Parse("a791083d-b4af-4024-a93d-7d99d2f0915f");
+        var tcUnitClosingId = Guid.Parse("0fd3c5e1-3406-4ef2-bf95-21f5fb7557de");
+        var ccUnitDiscoveryId = Guid.Parse("6c02b698-7884-4588-9aaf-2da5a9304b9c");
+        var ccUnitNegotiationId = Guid.Parse("1a5d2f97-22fe-4faf-a9c1-1949f0f55764");
 
-        if (!await dbContext.Modules.AnyAsync(module => module.Id == pmModuleCampaignsId))
+        if (!await dbContext.Units.AnyAsync(unit => unit.Id == pmUnitCampaignsId))
         {
-            dbContext.Modules.Add(new Module
+            dbContext.Units.Add(new Unit
             {
-                Id = pmModuleCampaignsId,
+                Id = pmUnitCampaignsId,
                 CourseId = PropertyMarketingCourseId,
                 Title = "Campaign Planning Fundamentals",
                 OrderIndex = 1
@@ -1092,11 +1092,11 @@ public static class CourseSeed
             hasChanges = true;
         }
 
-        if (!await dbContext.Modules.AnyAsync(module => module.Id == pmModuleLeadsId))
+        if (!await dbContext.Units.AnyAsync(unit => unit.Id == pmUnitLeadsId))
         {
-            dbContext.Modules.Add(new Module
+            dbContext.Units.Add(new Unit
             {
-                Id = pmModuleLeadsId,
+                Id = pmUnitLeadsId,
                 CourseId = PropertyMarketingCourseId,
                 Title = "Lead Qualification and Follow-Up",
                 OrderIndex = 2
@@ -1104,11 +1104,11 @@ public static class CourseSeed
             hasChanges = true;
         }
 
-        if (!await dbContext.Modules.AnyAsync(module => module.Id == tcModuleScheduleId))
+        if (!await dbContext.Units.AnyAsync(unit => unit.Id == tcUnitScheduleId))
         {
-            dbContext.Modules.Add(new Module
+            dbContext.Units.Add(new Unit
             {
-                Id = tcModuleScheduleId,
+                Id = tcUnitScheduleId,
                 CourseId = TransactionCoordinationCourseId,
                 Title = "Schedule and Milestone Control",
                 OrderIndex = 1
@@ -1116,11 +1116,11 @@ public static class CourseSeed
             hasChanges = true;
         }
 
-        if (!await dbContext.Modules.AnyAsync(module => module.Id == tcModuleClosingId))
+        if (!await dbContext.Units.AnyAsync(unit => unit.Id == tcUnitClosingId))
         {
-            dbContext.Modules.Add(new Module
+            dbContext.Units.Add(new Unit
             {
-                Id = tcModuleClosingId,
+                Id = tcUnitClosingId,
                 CourseId = TransactionCoordinationCourseId,
                 Title = "Closing Readiness and File Audit",
                 OrderIndex = 2
@@ -1128,11 +1128,11 @@ public static class CourseSeed
             hasChanges = true;
         }
 
-        if (!await dbContext.Modules.AnyAsync(module => module.Id == ccModuleDiscoveryId))
+        if (!await dbContext.Units.AnyAsync(unit => unit.Id == ccUnitDiscoveryId))
         {
-            dbContext.Modules.Add(new Module
+            dbContext.Units.Add(new Unit
             {
-                Id = ccModuleDiscoveryId,
+                Id = ccUnitDiscoveryId,
                 CourseId = ClientCommunicationCourseId,
                 Title = "Discovery, Framing, and Expectation Setting",
                 OrderIndex = 1
@@ -1140,11 +1140,11 @@ public static class CourseSeed
             hasChanges = true;
         }
 
-        if (!await dbContext.Modules.AnyAsync(module => module.Id == ccModuleNegotiationId))
+        if (!await dbContext.Units.AnyAsync(unit => unit.Id == ccUnitNegotiationId))
         {
-            dbContext.Modules.Add(new Module
+            dbContext.Units.Add(new Unit
             {
-                Id = ccModuleNegotiationId,
+                Id = ccUnitNegotiationId,
                 CourseId = ClientCommunicationCourseId,
                 Title = "Negotiation Scenarios and Deal Alignment",
                 OrderIndex = 2
@@ -1157,7 +1157,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("e0f8182b-3fa3-40e2-b6ec-f829ed3f9e81"),
-                ModuleId = pmModuleCampaignsId,
+                UnitId = pmUnitCampaignsId,
                 Title = "Audience-first campaign setup",
                 ContentType = "Text",
                 TextContent = """
@@ -1174,7 +1174,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("ec0f8116-3d0e-4d9c-afaf-96f39bbf3f4a"),
-                ModuleId = pmModuleCampaignsId,
+                UnitId = pmUnitCampaignsId,
                 Title = "Listing copy that converts",
                 ContentType = "Text",
                 TextContent = """
@@ -1195,7 +1195,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("a1f4b2c6-c0ce-4cef-b23a-6ef8cf2f5e50"),
-                ModuleId = pmModuleLeadsId,
+                UnitId = pmUnitLeadsId,
                 Title = "Lead scoring and response windows",
                 ContentType = "Text",
                 TextContent = """
@@ -1212,7 +1212,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("db83958f-84f7-4720-a0c3-82f29bdb3938"),
-                ModuleId = pmModuleLeadsId,
+                UnitId = pmUnitLeadsId,
                 Title = "Follow-up sequences that keep momentum",
                 ContentType = "Text",
                 TextContent = """
@@ -1229,7 +1229,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("8e39807a-6e6a-41fb-8dea-8f1632e2dc56"),
-                ModuleId = tcModuleScheduleId,
+                UnitId = tcUnitScheduleId,
                 Title = "Milestone mapping for active files",
                 ContentType = "Text",
                 TextContent = """
@@ -1246,7 +1246,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("5ef8b5a9-cac6-4e01-a8d6-b4f5a3f31d59"),
-                ModuleId = tcModuleScheduleId,
+                UnitId = tcUnitScheduleId,
                 Title = "Escalation triggers and exception handling",
                 ContentType = "Text",
                 TextContent = """
@@ -1263,7 +1263,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("a8b53c03-48c7-4e39-b67b-a4453f3f2faa"),
-                ModuleId = tcModuleClosingId,
+                UnitId = tcUnitClosingId,
                 Title = "Pre-closing document verification",
                 ContentType = "Text",
                 TextContent = """
@@ -1280,7 +1280,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("ab1bf2ee-64d8-4cd8-8cd0-338d4f56ef9c"),
-                ModuleId = tcModuleClosingId,
+                UnitId = tcUnitClosingId,
                 Title = "Post-close handoff and archive standards",
                 ContentType = "Text",
                 TextContent = """
@@ -1297,7 +1297,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("e2f1e9f5-39fb-48e7-8bf3-8cf7fc188402"),
-                ModuleId = ccModuleDiscoveryId,
+                UnitId = ccUnitDiscoveryId,
                 Title = "Client discovery interviews that surface priorities",
                 ContentType = "Text",
                 TextContent = """
@@ -1316,7 +1316,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("4bdca25f-61f8-43b1-8ddd-0c8600f0ab96"),
-                ModuleId = ccModuleDiscoveryId,
+                UnitId = ccUnitDiscoveryId,
                 Title = "Messaging frameworks for difficult conversations",
                 ContentType = "Text",
                 TextContent = """
@@ -1335,7 +1335,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("7da8e5f0-67f1-46ea-90a1-a89de4dfaf8f"),
-                ModuleId = ccModuleNegotiationId,
+                UnitId = ccUnitNegotiationId,
                 Title = "Offer strategy and concession planning",
                 ContentType = "Text",
                 TextContent = """
@@ -1354,7 +1354,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("a347ac9e-f98c-4bdf-b3fe-5745b5c06103"),
-                ModuleId = ccModuleNegotiationId,
+                UnitId = ccUnitNegotiationId,
                 Title = "Multi-party alignment and closing communication",
                 ContentType = "Text",
                 TextContent = """
@@ -1387,18 +1387,18 @@ public static class CourseSeed
         }
     }
 
-    private static async Task RemoveCoreLicensingConceptsModuleAsync(ApplicationDbContext dbContext)
+    private static async Task RemoveCoreLicensingConceptsUnitAsync(ApplicationDbContext dbContext)
     {
-        var coreLicensingConceptsModules = await dbContext.Modules
-            .Where(module => module.CourseId == RealEstateLicensingBasicsCourseId && module.Title == "Core Licensing Concepts")
+        var coreLicensingConceptsUnits = await dbContext.Units
+            .Where(unit => unit.CourseId == RealEstateLicensingBasicsCourseId && unit.Title == "Core Licensing Concepts")
             .ToListAsync();
 
-        if (coreLicensingConceptsModules.Count == 0)
+        if (coreLicensingConceptsUnits.Count == 0)
         {
             return;
         }
 
-        dbContext.Modules.RemoveRange(coreLicensingConceptsModules);
+        dbContext.Units.RemoveRange(coreLicensingConceptsUnits);
         await dbContext.SaveChangesAsync();
     }
 
@@ -1441,15 +1441,15 @@ public static class CourseSeed
 
         var hasChanges = false;
 
-        var licensingRequirementsModuleId = Guid.Parse("1d7dbd76-2e6f-4f07-8f7d-7260ea61b8a1");
-        var agencyAndContractsModuleId = Guid.Parse("623f95fd-2398-4c9e-bb7f-c07ece9e0190");
-        var examReadinessModuleId = Guid.Parse("3a4d15bb-284f-4a10-b3e7-53bf5ba0261a");
+        var licensingRequirementsUnitId = Guid.Parse("1d7dbd76-2e6f-4f07-8f7d-7260ea61b8a1");
+        var agencyAndContractsUnitId = Guid.Parse("623f95fd-2398-4c9e-bb7f-c07ece9e0190");
+        var examReadinessUnitId = Guid.Parse("3a4d15bb-284f-4a10-b3e7-53bf5ba0261a");
 
-        if (!await dbContext.Modules.AnyAsync(module => module.Id == licensingRequirementsModuleId))
+        if (!await dbContext.Units.AnyAsync(unit => unit.Id == licensingRequirementsUnitId))
         {
-            dbContext.Modules.Add(new Module
+            dbContext.Units.Add(new Unit
             {
-                Id = licensingRequirementsModuleId,
+                Id = licensingRequirementsUnitId,
                 CourseId = RealEstateLicensingBasicsCourseId,
                 Title = "Licensing Requirements and Eligibility",
                 OrderIndex = 2
@@ -1457,11 +1457,11 @@ public static class CourseSeed
             hasChanges = true;
         }
 
-        if (!await dbContext.Modules.AnyAsync(module => module.Id == agencyAndContractsModuleId))
+        if (!await dbContext.Units.AnyAsync(unit => unit.Id == agencyAndContractsUnitId))
         {
-            dbContext.Modules.Add(new Module
+            dbContext.Units.Add(new Unit
             {
-                Id = agencyAndContractsModuleId,
+                Id = agencyAndContractsUnitId,
                 CourseId = RealEstateLicensingBasicsCourseId,
                 Title = "Agency, Disclosure, and Contracts",
                 OrderIndex = 3
@@ -1469,11 +1469,11 @@ public static class CourseSeed
             hasChanges = true;
         }
 
-        if (!await dbContext.Modules.AnyAsync(module => module.Id == examReadinessModuleId))
+        if (!await dbContext.Units.AnyAsync(unit => unit.Id == examReadinessUnitId))
         {
-            dbContext.Modules.Add(new Module
+            dbContext.Units.Add(new Unit
             {
-                Id = examReadinessModuleId,
+                Id = examReadinessUnitId,
                 CourseId = RealEstateLicensingBasicsCourseId,
                 Title = "Exam Readiness and First Transactions",
                 OrderIndex = 4
@@ -1486,7 +1486,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("f9bb3a77-8701-42d8-b8ec-72ecf7f3d6bf"),
-                ModuleId = licensingRequirementsModuleId,
+                UnitId = licensingRequirementsUnitId,
                 Title = "License pathways and schedules",
                 ContentType = "Text",
                 TextContent = """
@@ -1496,7 +1496,7 @@ public static class CourseSeed
                     --- page ---
 
                     New candidates often underestimate dependency steps like fingerprints, background checks, and sponsor approval.
-                    A practical plan should include checkpoints for each dependency with date ranges, not single-day assumptions.
+                    A practical plan should include unitExams for each dependency with date ranges, not single-day assumptions.
 
                     --- page ---
 
@@ -1512,7 +1512,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("6630c0eb-83d5-4e3f-9833-5cdbda2be7f9"),
-                ModuleId = licensingRequirementsModuleId,
+                UnitId = licensingRequirementsUnitId,
                 Title = "Education hour tracking and compliance records",
                 ContentType = "Text",
                 TextContent = """
@@ -1531,7 +1531,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("26d5d194-b5d8-4ac4-aabc-2a2710f3cb7c"),
-                ModuleId = agencyAndContractsModuleId,
+                UnitId = agencyAndContractsUnitId,
                 Title = "Agency relationships and fiduciary duties",
                 ContentType = "Text",
                 TextContent = """
@@ -1558,7 +1558,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("d896b637-9a5c-4f0f-8cd6-abbb60529799"),
-                ModuleId = agencyAndContractsModuleId,
+                UnitId = agencyAndContractsUnitId,
                 Title = "Contract basics and contingency checkpoints",
                 ContentType = "Text",
                 TextContent = """
@@ -1577,7 +1577,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("7e11b8af-edf6-423a-bcdb-feef164d7d39"),
-                ModuleId = examReadinessModuleId,
+                UnitId = examReadinessUnitId,
                 Title = "Exam blueprint strategy and study cycles",
                 ContentType = "Text",
                 TextContent = """
@@ -1596,7 +1596,7 @@ public static class CourseSeed
             new()
             {
                 Id = Guid.Parse("5ef598f8-958c-4fbf-9238-b2ce20f3509c"),
-                ModuleId = examReadinessModuleId,
+                UnitId = examReadinessUnitId,
                 Title = "First 30-day transaction readiness",
                 ContentType = "Text",
                 TextContent = """

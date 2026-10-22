@@ -286,8 +286,8 @@ public class CheckoutFlowIntegrationTests
         var pdfService = new TestPDFInvoiceService();
         var logger = new TestLogger<PaymentService>();
         var paymentService = new PaymentService(dbContext, logger, auditLogService, emailService, pdfService);
-        var assessmentService = new AssessmentService(dbContext, auditLogService);
-        var enrollmentService = new EnrollmentService(dbContext, auditLogService, assessmentService);
+        var examService = new ExamService(dbContext, auditLogService);
+        var enrollmentService = new EnrollmentService(dbContext, auditLogService, examService);
         var cartService = new ShoppingCartService(dbContext);
 
         var learnerId = Guid.NewGuid();
