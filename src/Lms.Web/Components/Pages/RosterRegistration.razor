@@ -1,0 +1,451 @@
+@page "/roster-registration"
+@page "/roster-registration/create-account"
+@page "/roster-registration/confirm-record"
+@attribute [AllowAnonymous]
+@using System.Security.Claims
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.WebUtilities
+@using Lms.Web.Components.Shared
+@inject IRosterRegistrationService Roster
+@inject EmailJourneyOptions Options
+@inject IWebHostEnvironment Environment
+@inject AuthenticationStateProvider Authentication
+@inject NavigationManager Navigation
+@inject ILogger<RosterRegistration> Logger
+@inject PersistentComponentState ComponentState
+@inject RosterSearchSession SearchSession
+@inject TurnstileOptions Turnstile
+@implements IDisposable
+
+<PageTitle>@PageHeading</PageTitle>
+
+<div class="roster-registration">
+    <h1>@PageHeading</h1>
+    @if (!_accountStep)
+    {
+        <p class="muted-text">@(_userId.HasValue
+            ? "Find your commission record and confirm it to add your license profile."
+            : "Find your license record to get started. Then create your login to purchase courses.")</p>
+    }
+    @if (!Environment.IsDevelopment() || !Options.Enabled)
+    {
+        <p>Licensee registration is currently unavailable.</p>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(Error))
+        {
+            <p class="auth-error" role="alert">@(Error == "delivery"
+                ? "Account saved, but email delivery failed. Sign in to retry verification."
+                : Error == "email-verification" ? "Verify your account email before saving a license record."
+                : Error == "selection" ? "Selection could not be submitted. It may already be submitted, restricted, or outdated. Search again and check your requests below."
+                : "Registration failed. Check your email and matching passwords meet the requirements. If already registered, sign in below.")</p>
+        }
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <p role="alert" class="auth-error">@_message</p>
+        }
+        @if (Submitted)
+        {
+            <p role="status">Your license selection is saved. A verified account email is required to complete confirmation.</p>
+        }
+        @if (!_accountStep)
+        {
+        <section class="card" aria-label="Roster selection">
+            @if (!_userId.HasValue)
+            {
+                <h2 class="search-heading">Licensee Records</h2>
+            }
+            <div class="roster-search-fields @(_extendedSearch ? "has-name-search" : "")">
+                <label>State
+                    <select aria-label="Roster state" @bind="_state" @bind:after="ChangeStateAsync" disabled="@(_busy || !_interactive)">
+                        <option value="">Select state</option>
+                        @foreach (var state in _availableStates) { <option value="@state">@state</option> }
+                    </select>
+                </label>
+                <label>License number
+                    <input aria-label="Roster license number" @bind="_license" @bind:event="oninput" @bind:after="ResetResults" maxlength="40" disabled="@(_busy || _state.Length == 0)" />
+                </label>
+                @if (_extendedSearch)
+                {
+                    <span class="search-or">OR</span>
+                    <label>Name
+                        <input aria-label="Roster name" @bind="_name" @bind:event="oninput" @bind:after="ResetResults" maxlength="160" disabled="@_busy" placeholder="Full name or part of name" />
+                    </label>
+                }
+            </div>
+            @if (_extendedSearch)
+            {
+                <details class="more-filters">
+                    <summary>More filters (optional)</summary>
+                    <div class="form-row">
+                        <label>License type
+                            <select aria-label="Roster license type" @bind="_licenseType" @bind:after="ResetResults" disabled="@_busy">
+                                <option value="">All license types</option>
+                                @foreach (var type in _searchOptions.LicenseTypes)
+                                {
+                                    <option value="@type">@LicenseTypeLabel(type)</option>
+                                }
+                            </select>
+                        </label>
+                        @if (_searchOptions.HasFirmAffiliations)
+                        {
+                            <label>Brokerage / firm
+                                <input aria-label="Roster firm" @bind="_firm" @bind:event="oninput" @bind:after="ResetResults" maxlength="160" disabled="@_busy" placeholder="Full or partial firm name" />
+                            </label>
+                        }
+                    </div>
+                    @if (!_searchOptions.HasFirmAffiliations)
+                    {
+                        <p class="muted-text">Firm filtering is not available in this state's current imported roster.</p>
+                    }
+                </details>
+                <p class="muted-text">Enter a license number or at least 3 characters of the name. All entered filters apply together.</p>
+            }
+            @if (_state.Length > 0)
+            {
+                <p class="muted-text">The full license number works with or without its letter prefix. Keep any leading zeros.</p>
+            }
+            @if (SearchSession.RequiresCaptcha)
+            {
+                @if (Turnstile.IsConfigured)
+                {
+                    <RosterSearchChallenge @ref="_challenge" />
+                }
+                else if (string.IsNullOrEmpty(_message))
+                {
+                    <p class="auth-error" role="alert">Search verification is currently unavailable. Please try again later.</p>
+                }
+            }
+            <div class="search-actions">
+                <button type="button" @onclick="() => SearchAsync()" disabled="@(_busy || _state.Length == 0 || (string.IsNullOrWhiteSpace(_license) && (!_extendedSearch || _name.Trim().Length < 3)))">Find license</button>
+                <button type="button" class="secondary-button" @onclick="Clear" disabled="@_busy">Clear</button>
+            </div>
+            @if (_state.Length == 0)
+            {
+                <p>Select a state before searching. No roster records are loaded by default.</p>
+            }
+            else if (_searched && _results.Count == 0)
+            {
+                <p role="status">No matching records in the latest approved roster. Check your search or remove optional filters.</p>
+            }
+            @if (_searched && _total > 0)
+            {
+                <p role="status">@_total matching record(s). Review the results and confirm the record that belongs to you.</p>
+                <div class="search-actions" aria-label="Roster results pagination">
+                    <button type="button" class="secondary-button" disabled="@(_busy || _page <= 1)" @onclick="() => SearchAsync(_page - 1)">Previous</button>
+                    <span>Page @_page of @Math.Max(1, (_total + 19) / 20)</span>
+                    <button type="button" class="secondary-button" disabled="@(_busy || _page * 20 >= _total)" @onclick="() => SearchAsync(_page + 1)">Next</button>
+                </div>
+            }
+            @foreach (var record in _results)
+            {
+                <article class="card license-result" aria-label="@($"{record.State} license {record.LicenseNumber}")">
+                    <LicenseRecordView Record="record" />
+                    <div class="record-actions">
+                        <span>Review this record before adding it to your account.</span>
+                        <button type="button" @onclick="() => ContinueWithRecord(record.Id)" disabled="@_busy">This is my license record</button>
+                    </div>
+                </article>
+            }
+        </section>
+        }
+        @* Render POST forms initially so antiforgery tokens survive interactive selection. *@
+        <section class="card selected-record" aria-label="Selected roster record" hidden="@(_selected is null || !_accountStep)">
+            <div class="confirmation-notice">
+                <strong>Not confirmed yet</strong>
+                <span>Check the name and license details before continuing.</span>
+            </div>
+            @if (_selected is not null)
+            {
+                <LicenseRecordView Record="_selected" />
+            }
+            @if (_userId.HasValue)
+            {
+                <form method="post" action="/auth/email-test/roster-submit">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="licenseeId" value="@_selected?.Id" />
+                    <div class="record-actions">
+                        <div>
+                            <strong>Ready to add this record?</strong>
+                            <p>Confirm that this is your license record and return to Account. Email verification is required; administrator approval is not. A current, active instructor license also enables instructor tools while keeping your existing access.</p>
+                        </div>
+                        <button type="submit" disabled="@(_selected is null)">Confirm</button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <form method="post" action="/auth/email-test/roster-register" class="auth-form">
+                    <AntiforgeryToken />
+                    <input type="hidden" name="licenseeId" value="@_selected?.Id" />
+                    <label for="roster-email">Email</label>
+                    <input id="roster-email" name="email" type="email" value="@Options.TestRecipient" readonly />
+                    <label for="roster-password">Password</label>
+                    <input id="roster-password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+                    <small>At least 8 characters.</small>
+                    <label for="roster-confirm">Confirm password</label>
+                    <input id="roster-confirm" name="confirmPassword" type="password" autocomplete="new-password" required />
+                    <button type="submit" disabled="@(_selected is null)">Create Account</button>
+                </form>
+            }
+            <p><a href="@ReturnSearchUrl" @onclick="ReturnToRecords" @onclick:preventDefault>Back to license records</a></p>
+        </section>
+        @if (_accountStep && _selected is null)
+        {
+            <p><a href="@ReturnSearchUrl" @onclick="ReturnToRecords" @onclick:preventDefault>Back to license records</a></p>
+        }
+        @if (!_userId.HasValue)
+        {
+            <a href="/login" target="_top" data-enhance-nav="false">Already have an account? Sign in</a>
+        }
+        @if (_isTestLearner)
+        {
+            <section class="card" aria-label="My roster requests">
+                <h2>My license selections</h2>
+                <button type="button" @onclick="RefreshMineAsync" disabled="@_busy">Refresh status</button>
+                @if (_mine.Count == 0) { <p>No roster selections submitted.</p> }
+                @foreach (var request in _mine)
+                {
+                    <article>
+                        <h3>@request.Selection.Name</h3>
+                        <p>@request.Selection.State · @request.Selection.LicenseNumber · @(request.Status == "Confirmed" ? "Confirmed by licensee" : request.Status == "Pending" ? "Email verification required" : request.Status)</p>
+                        <p>Email: @(request.EmailVerified ? "Verified" : "Awaiting verification")</p>
+                        @if (request.ReviewNote.Length > 0) { <p>Review note: @request.ReviewNote</p> }
+                    </article>
+                }
+                <a href="/email-test">Email verification</a>
+            </section>
+        }
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public string? Error { get; set; }
+    [SupplyParameterFromQuery] public bool Submitted { get; set; }
+    [SupplyParameterFromQuery] public Guid? LicenseeId { get; set; }
+    [SupplyParameterFromQuery] public string? SearchState { get; set; }
+    [SupplyParameterFromQuery] public string? SearchLicense { get; set; }
+    [SupplyParameterFromQuery] public string? SearchName { get; set; }
+    [SupplyParameterFromQuery] public string? SearchType { get; set; }
+    [SupplyParameterFromQuery] public string? SearchFirm { get; set; }
+    [SupplyParameterFromQuery] public int? SearchPage { get; set; }
+    private string _state = "";
+    private string _license = "";
+    private string _name = "", _licenseType = "", _firm = "";
+    private int _total, _page = 1;
+    private bool _extendedSearch => _availableStates.Contains(_state);
+    private List<string> _availableStates = [];
+    private RosterSearchOptions _searchOptions = new([], false);
+    private string? _message;
+    private bool _busy, _searched, _isTestLearner;
+    private bool _interactive;
+    private Guid? _userId;
+    private List<RosterSelection> _results = [];
+    private RosterSelection? _selected;
+    private List<RosterRequestRow> _mine = [];
+    private bool _accountStep;
+    private string PageHeading => _accountStep
+        ? (_userId.HasValue ? "Confirm Your License Record" : "Finish Creating Your Account")
+        : (_userId.HasValue ? "Licensee Records" : "Create Your Licensee Account");
+    private RosterSearch? _completedSearch;
+    private RosterSearchChallenge? _challenge;
+    private PersistingComponentStateSubscription _stateSubscription;
+    private sealed record PersistedSearch(RosterSearch Search, List<RosterSelection> Items,
+        int Total, RosterSearchOptions Options, int Submissions);
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _interactive = true;
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Environment.IsDevelopment() || !Options.Enabled) return;
+        if (ComponentState.TryTakeFromJson<PersistedSearch>("roster-completed-search", out var saved) && saved is not null)
+        {
+            _completedSearch = saved.Search;
+            _state = saved.Search.State; _license = saved.Search.LicenseNumber;
+            _name = saved.Search.Name; _licenseType = saved.Search.LicenseType; _firm = saved.Search.Firm;
+            _page = saved.Search.Page; _results = saved.Items; _total = saved.Total;
+            _searchOptions = saved.Options; _searched = true;
+            SearchSession.RestoreMinimum(saved.Submissions);
+        }
+        _stateSubscription = ComponentState.RegisterOnPersisting(() =>
+        {
+            if (_completedSearch is not null && _searched)
+                ComponentState.PersistAsJson("roster-completed-search",
+                    new PersistedSearch(_completedSearch, _results, _total, _searchOptions, SearchSession.Submissions));
+            return Task.CompletedTask;
+        });
+        try { _availableStates = await Roster.GetAvailableStatesAsync(); }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Available roster states could not be loaded.");
+            _message = "Available roster states could not be loaded. Please reload the page.";
+        }
+
+        var principal = (await Authentication.GetAuthenticationStateAsync()).User;
+        if (Guid.TryParse(principal.FindFirstValue(ClaimTypes.NameIdentifier), out var id))
+        {
+            _userId = id;
+            _isTestLearner = (principal.IsInRole("Learner") || principal.IsInRole("Broker") || principal.IsInRole("Instructor"))
+                && Options.AppliesTo(principal.FindFirstValue(ClaimTypes.Email) ?? "");
+            if (_isTestLearner) await RefreshMineAsync();
+        }
+    }
+
+    public void Dispose() => _stateSubscription.Dispose();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?')[0];
+        _accountStep = path.Equals("roster-registration/create-account", StringComparison.OrdinalIgnoreCase)
+            || path.Equals("roster-registration/confirm-record", StringComparison.OrdinalIgnoreCase);
+        if (!Environment.IsDevelopment() || !Options.Enabled) return;
+        if (!_accountStep && !string.IsNullOrEmpty(SearchState))
+        {
+            var previousSearch = new RosterSearch(SearchState, SearchLicense ?? "", SearchName ?? "",
+                SearchType ?? "", SearchFirm ?? "", SearchPage ?? 1);
+            if (_searched && _completedSearch == previousSearch)
+            {
+                _selected = null;
+                _message = null;
+                return;
+            }
+            ResetSearch();
+            _state = SearchState;
+            _license = SearchLicense ?? "";
+            _name = SearchName ?? "";
+            _licenseType = SearchType ?? "";
+            _firm = SearchFirm ?? "";
+            try
+            {
+                _searchOptions = await Roster.GetSearchOptionsAsync(_state);
+                await SearchAsync(SearchPage ?? 1);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Previous roster search could not be restored.");
+                _message = "Your previous search could not be restored. Please try again.";
+            }
+        }
+        if (_accountStep)
+        {
+            _selected = null;
+            _message = null;
+            if (!LicenseeId.HasValue)
+            {
+                _message = "Choose a license record first, then continue.";
+                return;
+            }
+            _busy = true;
+            try { _selected = await Roster.GetSelectionAsync(LicenseeId.Value); }
+            catch (RosterRequestException ex)
+            {
+                Logger.LogWarning("Roster selection rejected: {Reason}", ex.Message);
+                _message = ex.Message;
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Selected roster record could not be loaded.");
+                _message = "Selected roster record could not be loaded. Return to search and try again.";
+            }
+            finally { _busy = false; }
+        }
+    }
+
+    private void ResetResults() { _results = []; _selected = null; _searched = false; _completedSearch = null; _message = null; _total = 0; _page = 1; }
+    private void ResetSearch() { ResetResults(); _license = ""; _name = ""; _licenseType = ""; _firm = ""; _searchOptions = new([], false); }
+    private void Clear() { _state = ""; ResetSearch(); }
+    private string LicenseTypeLabel(string type) => _state == "Florida"
+        ? type switch { "BK" => "Broker (BK)", "SL" => "Sales Associate (SL)", _ => type }
+        : type == "BROKER" ? "Broker" : type;
+
+    private async Task ChangeStateAsync()
+    {
+        ResetSearch();
+        _busy = true;
+        try { _searchOptions = await Roster.GetSearchOptionsAsync(_state); }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Roster search options could not be loaded.");
+            _message = "Search filters could not be loaded. Please select the state again.";
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task SearchAsync(int page = 1)
+    {
+        if (_busy) return;
+        _busy = true; _message = null; _selected = null; _results = [];
+        _searched = false; _completedSearch = null; _total = 0;
+        try
+        {
+            var token = SearchSession.RequiresCaptcha && _challenge is not null
+                ? await _challenge.TakeTokenAsync() : null;
+            var result = await Roster.SearchAsync(new RosterSearch(_state, _license, _name, _licenseType, _firm, page),
+                captchaToken: token);
+            _results = result.Items.ToList(); _total = result.Total; _page = result.Page; _searched = true;
+            _completedSearch = new RosterSearch(_state, _license, _name, _licenseType, _firm, _page);
+        }
+        catch (RosterRequestException ex)
+        {
+            Logger.LogWarning("Roster search rejected: {Reason}", ex.Message);
+            _message = ex.Message;
+        }
+        catch (OperationCanceledException)
+        {
+            Logger.LogWarning("Roster search was cancelled or exceeded its work deadline.");
+            _message = "Search took too long. Please narrow your search or use the full license number.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Roster registration search failed.");
+            _message = "Roster records could not be loaded. Please try again.";
+        }
+        finally { _busy = false; }
+    }
+    private async Task RefreshMineAsync()
+    {
+        _busy = true;
+        try { _mine = await Roster.GetMineAsync(_userId!.Value); }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Roster request status could not be loaded.");
+            _message = "Review status could not be loaded. Please try again.";
+        }
+        finally { _busy = false; }
+    }
+
+    private string ReturnSearchUrl => QueryHelpers.AddQueryString("/roster-registration",
+        SearchQuery(SearchState, SearchLicense, SearchName, SearchType, SearchFirm, SearchPage));
+
+    private static Dictionary<string, string?> SearchQuery(
+        string? state, string? license, string? name, string? type, string? firm, int? page) => new()
+        {
+            ["SearchState"] = state,
+            ["SearchLicense"] = license,
+            ["SearchName"] = name,
+            ["SearchType"] = type,
+            ["SearchFirm"] = firm,
+            ["SearchPage"] = page?.ToString(System.Globalization.CultureInfo.InvariantCulture)
+        };
+
+    private void ContinueWithRecord(Guid licenseeId)
+    {
+        var query = SearchQuery(_state, _license, _name, _licenseType, _firm, _page);
+        query["licenseeId"] = licenseeId.ToString();
+        var destination = _userId.HasValue
+            ? "/roster-registration/confirm-record" : "/roster-registration/create-account";
+        Navigation.NavigateTo(QueryHelpers.AddQueryString(destination, query));
+    }
+
+    private void ReturnToRecords() => Navigation.NavigateTo(ReturnSearchUrl);
+}

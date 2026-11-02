@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Arkansas",
+    "CaptureDate":  "2026-09-19",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\AREC Little Rock Agent Capture 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ARKANSAS\\LICENSING\\TXTs\\AREC Little Rock Agent Capture 01.json",
+                      "Sha256":  "2698E33A803E494982E2BC430F21A542448B8F41697754DBFD1FA556AD33E80B",
+                      "Bytes":  6119,
+                      "OfficialSourceUrl":  "https://labor.arkansas.gov/licensing/real-estate-commission/arec-roster/agent-search/",
+                      "Coverage":  "Little Rock public-search capture; individual agent results"
+                  }
+              ]
+}

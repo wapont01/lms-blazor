@@ -17,7 +17,21 @@ public interface IExamService
     Task<ExamEditorModel?> GetExamEditorAsync(Guid courseId);
     Task SaveExamEditorAsync(Guid courseId, ExamEditorModel editor, Guid actorUserId, string actorEmail);
     Task<ExamEligibility> GetEligibilityAsync(Guid courseId, Guid userId, Guid? unitId = null);
-    Task<ExamAttemptSummary> SubmitAttemptAsync(Guid courseId, Guid userId, Dictionary<Guid, string> answersByQuestionId, Guid? unitId = null);
+    Task<ExamEligibility> GetEligibilityForExamAsync(Guid examId, Guid userId);
+    Task<CourseExamView?> GetExamViewAsync(Guid examId);
+    Task<CourseExamMenuInfo> CreateUnitExamAsync(Guid courseId, Guid unitId, Guid actorUserId, string actorEmail);
+    Task<Dictionary<Guid, string>> GetCorrectAnswerMapForExamAsync(Guid examId);
+    Task<ExamAttemptSummary> SubmitAttemptForExamAsync(Guid examId, Guid userId, Dictionary<Guid, string> answersByQuestionId, DateTime? startedAtUtc = null);
+    Task<List<ExamAttemptHistoryItem>> GetAttemptHistoryForExamAsync(Guid examId, Guid userId);
+    Task<List<ExamAttemptHistoryItem>> GetAttemptHistoryForCourseAsync(Guid courseId, Guid userId);
+    Task<List<ExamAttemptAuditRecord>> GetAttemptAuditAsync(Guid? courseId = null, Guid? learnerUserId = null);
+    Task<List<CourseExamMenuInfo>> GetCourseMenuExamsAsync(Guid courseId);
+    Task<List<SupplementalExamInfo>> GetSupplementalExamsAsync(Guid courseId);
+    Task<SupplementalExamInfo> CreateSupplementalExamAsync(Guid courseId, string kind, Guid? unitId, string? title, Guid actorUserId, string actorEmail);
+    Task DeleteSupplementalExamAsync(Guid examId, Guid actorUserId, string actorEmail);
+    Task<ExamEditorModel?> GetExamEditorByIdAsync(Guid examId);
+    Task SaveExamEditorByIdAsync(Guid examId, ExamEditorModel editor, Guid actorUserId, string actorEmail);
+    Task<ExamAttemptSummary> SubmitAttemptAsync(Guid courseId, Guid userId, Dictionary<Guid, string> answersByQuestionId, Guid? unitId = null, DateTime? startedAtUtc = null);
     Task<bool> HasPassedRequiredExamAsync(Guid courseId, Guid userId);
     Task<List<ExamAttemptHistoryItem>> GetAttemptHistoryAsync(Guid courseId, Guid userId, Guid? unitId = null);
     Task GrantRetakeAsync(Guid courseId, Guid learnerUserId, int grantedAttempts, bool resetCooldownTimer, Guid adminUserId, string adminEmail);
@@ -32,7 +46,15 @@ public interface IExamService
 
 public sealed record ExamQuestionView(Guid Id, string Prompt, string OptionA, string OptionB, string OptionC, string OptionD, int OrderIndex, string? HintText);
 public sealed record CourseExamView(Guid Id, string Title, decimal PassPercent, bool IsRequired, List<ExamQuestionView> Questions);
-public sealed record ExamAttemptSummary(DateTime SubmittedAt, decimal ScorePercent, bool Passed, int TotalQuestions, int CorrectAnswers);
+public sealed record CourseExamMenuInfo(Guid Id, string Kind, Guid? UnitId, string Title, int OrderIndex, int QuestionCount, int ContentVersion = 1, bool IsRequired = true);
+public sealed record SupplementalExamInfo(Guid Id, string Kind, Guid? UnitId, string Title, int OrderIndex, int QuestionCount);
+public sealed record SupplementalExamCreateRequest(string Kind, Guid? UnitId);
+public sealed record ExamAttemptSummary(DateTime SubmittedAt, decimal ScorePercent, bool Passed, int TotalQuestions, int CorrectAnswers, DateTime? StartedAt = null)
+{
+    public TimeSpan Duration => StartedAt.HasValue && SubmittedAt >= StartedAt.Value
+        ? SubmittedAt - StartedAt.Value
+        : TimeSpan.Zero;
+}
 public sealed record ExamEligibility(
     bool RequiresExam,
     bool HasPassed,
@@ -43,8 +65,58 @@ public sealed record ExamEligibility(
     int AttemptsAllowed,
     bool HasUnlimitedAttempts,
     bool RequiresProctorVerification);
-public sealed record ExamAttemptAnswerReview(string Prompt, string SelectedOption, string CorrectOption, bool IsCorrect, string? FeedbackText);
-public sealed record ExamAttemptHistoryItem(int AttemptNumber, DateTime SubmittedAt, decimal ScorePercent, bool Passed, List<ExamAttemptAnswerReview> Answers, string? FeedbackSummary);
+public sealed record ExamAttemptAnswerReview(
+    string Prompt,
+    string SelectedOption,
+    string CorrectOption,
+    bool IsCorrect,
+    string? FeedbackText,
+    string? OptionA = null,
+    string? OptionB = null,
+    string? OptionC = null,
+    string? OptionD = null);
+public sealed record ExamAttemptHistoryItem(
+    int AttemptNumber,
+    DateTime SubmittedAt,
+    decimal ScorePercent,
+    bool Passed,
+    List<ExamAttemptAnswerReview> Answers,
+    string? FeedbackSummary,
+    Guid ExamId = default,
+    string ExamTitle = "",
+    string ExamKind = CourseExamKinds.Standard,
+    string? UnitTitle = null,
+    DateTime? StartedAt = null,
+    int ExamVersion = 1)
+{
+    public TimeSpan Duration => StartedAt.HasValue && SubmittedAt >= StartedAt.Value
+        ? SubmittedAt - StartedAt.Value
+        : TimeSpan.Zero;
+}
+public sealed record ExamAttemptAuditRecord(
+    Guid AttemptId,
+    Guid CourseId,
+    string CourseTitle,
+    Guid ExamId,
+    string ExamTitle,
+    string ExamKind,
+    string? UnitTitle,
+    Guid LearnerUserId,
+    string LearnerName,
+    string LearnerEmail,
+    int AttemptNumber,
+    DateTime StartedAt,
+    DateTime SubmittedAt,
+    decimal ScorePercent,
+    bool Passed,
+    int TotalQuestions,
+    int CorrectAnswers,
+    int ExamVersion)
+{
+    public TimeSpan Duration => SubmittedAt >= StartedAt
+        ? SubmittedAt - StartedAt
+        : TimeSpan.Zero;
+}
 public sealed record RetakeGrantView(Guid LearnerUserId, string LearnerDisplay, int GrantedAttempts, DateTime GrantedAt, Guid GrantedByAdminId, string GrantedByAdminDisplay);
 public sealed record ExamProctoringSessionView(Guid Id, string ProctorName, string? ExternalSessionId, DateTime IdentityVerifiedAtUtc, DateTime ExpiresAtUtc, bool ClosedBookConfirmed);
 
@@ -155,8 +227,7 @@ public class ExamService : IExamService
             _dbContext.CourseExams.Add(exam);
         }
 
-        var shouldSeedDefaultContent = string.Equals(exam.Title, defaultTitle, StringComparison.OrdinalIgnoreCase)
-            && exam.Questions.Count != DefaultExamQuestionSpecs.Length;
+        var shouldSeedDefaultContent = exam.Questions.Count == 0;
 
         if (exam.Questions.Count > 0 && !shouldSeedDefaultContent)
         {
@@ -217,12 +288,16 @@ public class ExamService : IExamService
     {
         await EnsureDefaultExamForCourseAsync(courseId);
 
+        var examId = await ResolveStandardExamIdAsync(courseId, unitId);
+        return examId is null ? null : await GetExamViewAsync(examId.Value);
+    }
+
+    public async Task<CourseExamView?> GetExamViewAsync(Guid examId)
+    {
         var exam = await _dbContext.CourseExams
             .AsNoTracking()
             .Include(existing => existing.Questions)
-            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == unitId)
-            .OrderBy(existing => existing.Title)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(existing => existing.Id == examId);
 
         if (exam is null)
         {
@@ -252,10 +327,16 @@ public class ExamService : IExamService
     {
         await EnsureDefaultExamForCourseAsync(courseId);
 
+        var examId = await ResolveStandardExamIdAsync(courseId, unitId);
+        return examId is null ? new Dictionary<Guid, string>() : await GetCorrectAnswerMapForExamAsync(examId.Value);
+    }
+
+    public async Task<Dictionary<Guid, string>> GetCorrectAnswerMapForExamAsync(Guid examId)
+    {
         var exam = await _dbContext.CourseExams
             .AsNoTracking()
             .Include(existing => existing.Questions)
-            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == unitId);
+            .FirstOrDefaultAsync(existing => existing.Id == examId);
 
         if (exam is null)
         {
@@ -329,14 +410,282 @@ public class ExamService : IExamService
             _dbContext.CourseExams.Add(exam);
         }
 
-        exam.Title = string.IsNullOrWhiteSpace(editor.Title)
-            ? "Final Exam"
-            : editor.Title.Trim();
-        exam.PassPercent = Math.Clamp(editor.PassPercent, 0m, 100m);
-        exam.MaxRetakesPerLearner = editor.MaxRetakesPerLearner is null or <= 0 ? null : editor.MaxRetakesPerLearner;
-        exam.RetakeCooldownMinutes = Math.Max(editor.RetakeCooldownMinutes, 0);
+        await ApplyExamEditorAsync(exam, courseId, editor, actorUserId, actorEmail);
+    }
 
+    public async Task<ExamEditorModel?> GetExamEditorByIdAsync(Guid examId)
+    {
+        var exam = await _dbContext.CourseExams
+            .AsNoTracking()
+            .Include(existing => existing.Questions)
+            .FirstOrDefaultAsync(existing => existing.Id == examId);
+
+        return exam is null ? null : ToEditorModel(exam);
+    }
+
+    public async Task SaveExamEditorByIdAsync(Guid examId, ExamEditorModel editor, Guid actorUserId, string actorEmail)
+    {
+        if (editor.Questions.Count == 0)
+        {
+            throw new InvalidOperationException("Exam must include at least one question.");
+        }
+
+        var exam = await _dbContext.CourseExams
+            .Include(existing => existing.Questions)
+            .Include(existing => existing.Attempts)
+            .FirstOrDefaultAsync(existing => existing.Id == examId)
+            ?? throw new InvalidOperationException("Exam not found.");
+
+        if (exam.Kind == CourseExamKinds.Standard && exam.UnitId is null)
+        {
+            throw new InvalidOperationException("The course Final Exam must be edited from the Final Exam editor.");
+        }
+
+        await ApplyExamEditorAsync(exam, exam.CourseId, editor, actorUserId, actorEmail);
+    }
+
+    public async Task<CourseExamMenuInfo> CreateUnitExamAsync(Guid courseId, Guid unitId, Guid actorUserId, string actorEmail)
+    {
+        var course = await _dbContext.Courses.AsNoTracking()
+            .FirstOrDefaultAsync(existing => existing.Id == courseId)
+            ?? throw new InvalidOperationException("Course not found.");
+        var unit = await _dbContext.Units.AsNoTracking()
+            .FirstOrDefaultAsync(existing => existing.Id == unitId && existing.CourseId == courseId)
+            ?? throw new InvalidOperationException("Unit not found in this course.");
+
+        var existingExam = await _dbContext.CourseExams
+            .FirstOrDefaultAsync(exam => exam.CourseId == courseId
+                && exam.UnitId == unitId
+                && exam.Kind == CourseExamKinds.Standard);
+        if (existingExam is not null)
+        {
+            throw new InvalidOperationException("This unit already has a Unit Exam.");
+        }
+
+        var finalExamPassPercent = await _dbContext.CourseExams
+            .Where(exam => exam.CourseId == courseId
+                && exam.UnitId == null
+                && exam.Kind == CourseExamKinds.Standard)
+            .Select(exam => (decimal?)exam.PassPercent)
+            .FirstOrDefaultAsync();
+        var exam = new CourseExam
+        {
+            CourseId = course.Id,
+            UnitId = unit.Id,
+            Kind = CourseExamKinds.Standard,
+            Title = $"{unit.Title} Unit Exam",
+            PassPercent = finalExamPassPercent ?? 80m,
+            IsRequired = true
+        };
+
+        _dbContext.CourseExams.Add(exam);
+        await _dbContext.SaveChangesAsync();
+        await _auditLogService.WriteAsync(actorUserId, actorEmail, "exam.created", "CourseExam", exam.Id,
+            $"CourseId={courseId}; Kind={exam.Kind}; UnitId={unitId}");
+
+        return new CourseExamMenuInfo(exam.Id, exam.Kind, exam.UnitId, exam.Title, exam.OrderIndex, 0);
+    }
+
+    public async Task<List<CourseExamMenuInfo>> GetCourseMenuExamsAsync(Guid courseId)
+    {
+        return await _dbContext.CourseExams
+            .AsNoTracking()
+            .Where(exam => exam.CourseId == courseId)
+            .OrderBy(exam => exam.UnitId == null ? 1 : 0)
+            .ThenBy(exam => exam.UnitId)
+            .ThenBy(exam => exam.OrderIndex)
+            .Select(exam => new CourseExamMenuInfo(exam.Id, exam.Kind, exam.UnitId, exam.Title, exam.OrderIndex, exam.Questions.Count, exam.ContentVersion, exam.IsRequired))
+            .ToListAsync();
+    }
+
+    public async Task<List<SupplementalExamInfo>> GetSupplementalExamsAsync(Guid courseId)
+    {
+        return await _dbContext.CourseExams
+            .AsNoTracking()
+            .Where(exam => exam.CourseId == courseId && exam.Kind != CourseExamKinds.Standard)
+            .OrderBy(exam => exam.OrderIndex)
+            .ThenBy(exam => exam.Title)
+            .Select(exam => new SupplementalExamInfo(exam.Id, exam.Kind, exam.UnitId, exam.Title, exam.OrderIndex, exam.Questions.Count))
+            .ToListAsync();
+    }
+
+    public async Task<SupplementalExamInfo> CreateSupplementalExamAsync(Guid courseId, string kind, Guid? unitId, string? title, Guid actorUserId, string actorEmail)
+    {
+        if (kind != CourseExamKinds.Intermediate && kind != CourseExamKinds.Practice)
+        {
+            throw new InvalidOperationException("Only Intermediate and Practice exams can be added here.");
+        }
+
+        var course = await _dbContext.Courses.AsNoTracking().FirstOrDefaultAsync(existing => existing.Id == courseId)
+            ?? throw new InvalidOperationException("Course not found.");
+        await EnsureDefaultExamForCourseAsync(courseId);
+
+        if (kind == CourseExamKinds.Intermediate)
+        {
+            if (unitId is null)
+            {
+                throw new InvalidOperationException("An Intermediate Exam must follow a unit.");
+            }
+
+            var unitExists = await _dbContext.Units.AnyAsync(unit => unit.Id == unitId && unit.CourseId == courseId);
+            if (!unitExists)
+            {
+                throw new InvalidOperationException("Unit not found in this course.");
+            }
+        }
+        else
+        {
+            unitId = null;
+            if (await _dbContext.CourseExams.AnyAsync(exam => exam.CourseId == courseId && exam.Kind == CourseExamKinds.Practice))
+            {
+                throw new InvalidOperationException("This course already has a Practice Exam.");
+            }
+        }
+
+        var nextOrder = (await _dbContext.CourseExams
+            .Where(exam => exam.CourseId == courseId && exam.Kind == kind)
+            .Select(exam => (int?)exam.OrderIndex)
+            .MaxAsync() ?? 0) + 1;
+
+        var finalExam = await _dbContext.CourseExams
+            .AsNoTracking()
+            .Include(existing => existing.Questions)
+            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.Kind == CourseExamKinds.Standard && existing.UnitId == null);
+
+        var exam = new CourseExam
+        {
+            CourseId = courseId,
+            UnitId = unitId,
+            Kind = kind,
+            OrderIndex = nextOrder,
+            Title = string.IsNullOrWhiteSpace(title)
+                ? (kind == CourseExamKinds.Practice ? "Practice Exam" : $"Intermediate Exam {nextOrder}")
+                : title.Trim(),
+            PassPercent = finalExam?.PassPercent ?? 80m,
+            IsRequired = kind == CourseExamKinds.Intermediate,
+            MaxRetakesPerLearner = kind == CourseExamKinds.Intermediate ? finalExam?.MaxRetakesPerLearner : null,
+            RetakeCooldownMinutes = kind == CourseExamKinds.Intermediate ? finalExam?.RetakeCooldownMinutes ?? 0 : 0
+        };
+
+        // A Practice Exam mimics the Final Exam, so it starts as a copy of its questions.
+        if (kind == CourseExamKinds.Practice && finalExam is not null)
+        {
+            foreach (var question in finalExam.Questions.OrderBy(q => q.OrderIndex))
+            {
+                exam.Questions.Add(new ExamQuestion
+                {
+                    Prompt = question.Prompt,
+                    OptionA = question.OptionA,
+                    OptionB = question.OptionB,
+                    OptionC = question.OptionC,
+                    OptionD = question.OptionD,
+                    CorrectOption = question.CorrectOption,
+                    FeedbackText = question.FeedbackText,
+                    OrderIndex = question.OrderIndex
+                });
+            }
+        }
+
+        _dbContext.CourseExams.Add(exam);
+        await _dbContext.SaveChangesAsync();
+
+        await _auditLogService.WriteAsync(actorUserId, actorEmail, "exam.created", "CourseExam", exam.Id,
+            $"CourseId={courseId}; Kind={kind}; UnitId={unitId}");
+
+        return new SupplementalExamInfo(exam.Id, exam.Kind, exam.UnitId, exam.Title, exam.OrderIndex, exam.Questions.Count);
+    }
+
+    public async Task DeleteSupplementalExamAsync(Guid examId, Guid actorUserId, string actorEmail)
+    {
+        var exam = await _dbContext.CourseExams.FirstOrDefaultAsync(existing => existing.Id == examId)
+            ?? throw new InvalidOperationException("Exam not found.");
+
+        if (exam.Kind == CourseExamKinds.Standard)
+        {
+            throw new InvalidOperationException("Only Intermediate and Practice exams can be deleted here.");
+        }
+
+        if (await _dbContext.ExamAttempts.AnyAsync(attempt => attempt.CourseExamId == examId))
+        {
+            throw new InvalidOperationException("An exam with recorded attempts cannot be deleted. Retain it for audit history.");
+        }
+
+        _dbContext.CourseExams.Remove(exam);
+        await _dbContext.SaveChangesAsync();
+
+        await _auditLogService.WriteAsync(actorUserId, actorEmail, "exam.deleted", "CourseExam", examId,
+            $"CourseId={exam.CourseId}; Kind={exam.Kind}");
+    }
+
+    private static ExamEditorModel ToEditorModel(CourseExam exam) => new()
+    {
+        ExamId = exam.Id,
+        Title = exam.Title,
+        PassPercent = exam.PassPercent,
+        MaxRetakesPerLearner = exam.MaxRetakesPerLearner,
+        RetakeCooldownMinutes = exam.RetakeCooldownMinutes,
+        Questions = exam.Questions
+            .OrderBy(question => question.OrderIndex)
+            .Select(question => new ExamQuestionEditorItem
+            {
+                QuestionId = question.Id,
+                OrderIndex = question.OrderIndex,
+                Prompt = question.Prompt,
+                OptionA = question.OptionA,
+                OptionB = question.OptionB,
+                OptionC = question.OptionC,
+                OptionD = question.OptionD,
+                CorrectOption = question.CorrectOption,
+                FeedbackText = question.FeedbackText
+            })
+            .ToList()
+    };
+
+    private async Task ApplyExamEditorAsync(CourseExam exam, Guid courseId, ExamEditorModel editor, Guid actorUserId, string actorEmail)
+    {
+        var defaultTitle = exam.Kind switch
+        {
+            CourseExamKinds.Practice => "Practice Exam",
+            CourseExamKinds.Intermediate => "Intermediate Exam",
+            _ when exam.UnitId.HasValue => "Unit Exam",
+            _ => "Final Exam"
+        };
+
+        var updatedTitle = string.IsNullOrWhiteSpace(editor.Title)
+            ? defaultTitle
+            : editor.Title.Trim();
         var existingQuestionsById = exam.Questions.ToDictionary(question => question.Id, question => question);
+        var updatedPassPercent = Math.Clamp(editor.PassPercent, 0m, 100m);
+        var updatedMaxRetakes = editor.MaxRetakesPerLearner is null or <= 0 ? null : editor.MaxRetakesPerLearner;
+        var updatedCooldown = Math.Max(editor.RetakeCooldownMinutes, 0);
+        var contentChanged = exam.Title != updatedTitle
+            || exam.PassPercent != updatedPassPercent
+            || exam.MaxRetakesPerLearner != updatedMaxRetakes
+            || exam.RetakeCooldownMinutes != updatedCooldown
+            || exam.Questions.Count != editor.Questions.Count;
+
+        for (var index = 0; index < editor.Questions.Count; index++)
+        {
+            var input = editor.Questions[index];
+            ValidateEditorQuestion(input, index + 1);
+            if (!input.QuestionId.HasValue || !existingQuestionsById.TryGetValue(input.QuestionId.Value, out var oldQuestion)
+                || oldQuestion.Prompt != input.Prompt.Trim()
+                || oldQuestion.OptionA != input.OptionA.Trim()
+                || oldQuestion.OptionB != input.OptionB.Trim()
+                || oldQuestion.OptionC != input.OptionC.Trim()
+                || oldQuestion.OptionD != input.OptionD.Trim()
+                || oldQuestion.CorrectOption != NormalizeOption(input.CorrectOption)
+                || oldQuestion.FeedbackText != (string.IsNullOrWhiteSpace(input.FeedbackText) ? null : input.FeedbackText.Trim())
+                || oldQuestion.OrderIndex != index + 1)
+            {
+                contentChanged = true;
+            }
+        }
+
+        exam.Title = updatedTitle;
+        exam.PassPercent = updatedPassPercent;
+        exam.MaxRetakesPerLearner = updatedMaxRetakes;
+        exam.RetakeCooldownMinutes = updatedCooldown;
         var retainedQuestionIds = new HashSet<Guid>();
 
         for (var index = 0; index < editor.Questions.Count; index++)
@@ -357,6 +706,7 @@ public class ExamService : IExamService
                 };
 
                 exam.Questions.Add(question);
+                _dbContext.ExamQuestions.Add(question);
             }
 
             question.Prompt = input.Prompt.Trim();
@@ -377,22 +727,32 @@ public class ExamService : IExamService
 
         if (removedQuestions.Count > 0)
         {
+            var removedQuestionIds = removedQuestions.Select(question => question.Id).ToList();
+            var historicalAnswers = await _dbContext.ExamAnswers
+                .Where(answer => answer.ExamQuestionId.HasValue && removedQuestionIds.Contains(answer.ExamQuestionId.Value))
+                .ToListAsync();
+            foreach (var answer in historicalAnswers)
+            {
+                answer.ExamQuestionId = null;
+            }
+
             _dbContext.ExamQuestions.RemoveRange(removedQuestions);
         }
 
-        if (exam.Attempts.Count > 0)
+        if (contentChanged)
         {
-            _dbContext.ExamAttempts.RemoveRange(exam.Attempts);
-
-            var issuedCertificates = await _dbContext.CompletionCertificates
-                .Where(certificate => certificate.CourseId == courseId && !certificate.IsRevoked)
-                .ToListAsync();
-
-            foreach (var certificate in issuedCertificates)
+            exam.ContentVersion += 1;
+            if (exam.Kind != CourseExamKinds.Practice)
             {
-                certificate.IsRevoked = true;
-                certificate.RevokedAt = DateTime.UtcNow;
-                certificate.RevocationReason = "Exam updated. Learner must pass the latest required exam.";
+                var issuedCertificates = await _dbContext.CompletionCertificates
+                    .Where(certificate => certificate.CourseId == courseId && !certificate.IsRevoked)
+                    .ToListAsync();
+                foreach (var certificate in issuedCertificates)
+                {
+                    certificate.IsRevoked = true;
+                    certificate.RevokedAt = DateTime.UtcNow;
+                    certificate.RevocationReason = "Exam updated. Student must pass the latest required exam.";
+                }
             }
         }
 
@@ -411,6 +771,48 @@ public class ExamService : IExamService
     {
         await EnsureDefaultExamForCourseAsync(courseId);
 
+        var courseExists = await _dbContext.Courses.AsNoTracking().AnyAsync(existing => existing.Id == courseId);
+        if (!courseExists)
+        {
+            return new ExamEligibility(false, false, null, "Course not found.", false, 0, 0, false, false);
+        }
+
+        var examId = await ResolveStandardExamIdAsync(courseId, unitId);
+        if (examId is null)
+        {
+            return new ExamEligibility(false, true, null, null, false, 0, 0, false, false);
+        }
+
+        return await GetEligibilityForExamAsync(examId.Value, userId);
+    }
+
+    private async Task<Guid?> ResolveStandardExamIdAsync(Guid courseId, Guid? unitId)
+    {
+        return await _dbContext.CourseExams
+            .AsNoTracking()
+            .Where(existing => existing.CourseId == courseId
+                && existing.IsRequired
+                && existing.Kind == CourseExamKinds.Standard
+                && existing.UnitId == unitId)
+            .OrderBy(existing => existing.Title)
+            .Select(existing => (Guid?)existing.Id)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<ExamEligibility> GetEligibilityForExamAsync(Guid examId, Guid userId)
+    {
+        var exam = await _dbContext.CourseExams
+            .AsNoTracking()
+            .Where(existing => existing.Id == examId)
+            .Select(existing => new { existing.Id, existing.CourseId, existing.Kind, existing.IsRequired, existing.MaxRetakesPerLearner, existing.RetakeCooldownMinutes, existing.PassPercent, existing.ContentVersion })
+            .FirstOrDefaultAsync();
+
+        if (exam is null)
+        {
+            return new ExamEligibility(false, false, null, "Exam not found.", false, 0, 0, false, false);
+        }
+
+        var courseId = exam.CourseId;
         var course = await _dbContext.Courses
             .AsNoTracking()
             .FirstOrDefaultAsync(existing => existing.Id == courseId);
@@ -420,13 +822,32 @@ public class ExamService : IExamService
             return new ExamEligibility(false, false, null, "Course not found.", false, 0, 0, false, false);
         }
 
-        var exam = await _dbContext.CourseExams
-            .AsNoTracking()
-            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == unitId)
-            .Select(existing => new { existing.Id, existing.IsRequired, existing.MaxRetakesPerLearner, existing.RetakeCooldownMinutes, existing.PassPercent })
-            .FirstOrDefaultAsync();
+        if (string.Equals(exam.Kind, CourseExamKinds.Practice, StringComparison.Ordinal))
+        {
+            var practiceLatest = await _dbContext.ExamAttempts
+                .AsNoTracking()
+                .Where(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId && attempt.ExamVersion == exam.ContentVersion)
+                .OrderByDescending(attempt => attempt.SubmittedAt)
+                .Select(attempt => new ExamAttemptSummary(
+                    attempt.SubmittedAt,
+                    attempt.ScorePercent,
+                    attempt.Passed,
+                    attempt.Answers.Count,
+                    attempt.Answers.Count(answer => answer.IsCorrect),
+                    attempt.StartedAt))
+                .FirstOrDefaultAsync();
+            var practiceAttempts = await _dbContext.ExamAttempts
+                .AsNoTracking()
+                .CountAsync(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId && attempt.ExamVersion == exam.ContentVersion);
+            var practicePassed = await _dbContext.ExamAttempts
+                .AsNoTracking()
+                .AnyAsync(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId && attempt.ExamVersion == exam.ContentVersion && attempt.Passed);
 
-        if (exam is null || !exam.IsRequired)
+            // Practice is never gated: unlimited attempts, no cooldown, no proctoring.
+            return new ExamEligibility(true, practicePassed, practiceLatest, null, false, practiceAttempts, practiceAttempts + 1, true, false);
+        }
+
+        if (!exam.IsRequired)
         {
             return new ExamEligibility(false, true, null, null, false, 0, 0, false, false);
         }
@@ -435,26 +856,27 @@ public class ExamService : IExamService
 
         var latestAttempt = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .Where(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId)
+            .Where(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId && attempt.ExamVersion == exam.ContentVersion)
             .OrderByDescending(attempt => attempt.SubmittedAt)
             .Select(attempt => new ExamAttemptSummary(
                 attempt.SubmittedAt,
                 attempt.ScorePercent,
                 attempt.Passed,
                 attempt.Answers.Count,
-                attempt.Answers.Count(answer => answer.IsCorrect)))
+                attempt.Answers.Count(answer => answer.IsCorrect),
+                attempt.StartedAt))
             .FirstOrDefaultAsync();
 
         var hasPassed = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .AnyAsync(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId && attempt.Passed);
+            .AnyAsync(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId && attempt.ExamVersion == exam.ContentVersion && attempt.Passed);
         var attemptsUsed = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .CountAsync(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId);
+            .CountAsync(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId && attempt.ExamVersion == exam.ContentVersion);
 
         var firstAttemptPassed = await _dbContext.ExamAttempts
             .AsNoTracking()
-            .Where(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId)
+            .Where(attempt => attempt.CourseExamId == exam.Id && attempt.UserAccountId == userId && attempt.ExamVersion == exam.ContentVersion)
             .OrderBy(attempt => attempt.AttemptNumber)
             .ThenBy(attempt => attempt.SubmittedAt)
             .Select(attempt => (bool?)attempt.Passed)
@@ -512,24 +934,49 @@ public class ExamService : IExamService
             requiresProctoredExam && !hasActiveProctoringSession);
     }
 
-    public async Task<ExamAttemptSummary> SubmitAttemptAsync(Guid courseId, Guid userId, Dictionary<Guid, string> answersByQuestionId, Guid? unitId = null)
+    public async Task<ExamAttemptSummary> SubmitAttemptAsync(
+        Guid courseId,
+        Guid userId,
+        Dictionary<Guid, string> answersByQuestionId,
+        Guid? unitId = null,
+        DateTime? startedAtUtc = null)
     {
         await EnsureDefaultExamForCourseAsync(courseId);
 
+        var examId = await ResolveStandardExamIdAsync(courseId, unitId);
+        if (examId is null)
+        {
+            throw new InvalidOperationException("No required exam was found for this course.");
+        }
+
+        return await SubmitAttemptForExamAsync(examId.Value, userId, answersByQuestionId, startedAtUtc);
+    }
+
+    public async Task<ExamAttemptSummary> SubmitAttemptForExamAsync(
+        Guid examId,
+        Guid userId,
+        Dictionary<Guid, string> answersByQuestionId,
+        DateTime? startedAtUtc = null)
+    {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
         var exam = await _dbContext.CourseExams
+            .AsNoTracking()
             .Include(existing => existing.Questions)
-            .FirstOrDefaultAsync(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == unitId);
+            .FirstOrDefaultAsync(existing => existing.Id == examId);
 
         if (exam is null)
         {
             throw new InvalidOperationException("No required exam was found for this course.");
         }
 
+        var courseId = exam.CourseId;
+        var isPractice = string.Equals(exam.Kind, CourseExamKinds.Practice, StringComparison.Ordinal);
+
         var course = await _dbContext.Courses
             .AsNoTracking()
             .FirstOrDefaultAsync(existing => existing.Id == courseId);
         ExamProctoringSession? proctoringSession = null;
-        if (course?.RequiresProctoredExam == true)
+        if (!isPractice && course?.RequiresProctoredExam == true)
         {
             proctoringSession = await _dbContext.ExamProctoringSessions
                 .Where(session =>
@@ -555,14 +1002,24 @@ public class ExamService : IExamService
         }
 
         var existingAttempts = await _dbContext.ExamAttempts
+            .AsNoTracking()
             .Where(existing => existing.CourseExamId == exam.Id && existing.UserAccountId == userId)
+            .Where(existing => existing.ExamVersion == exam.ContentVersion)
             .OrderByDescending(existing => existing.SubmittedAt)
             .ToListAsync();
 
+        if (startedAtUtc.HasValue && existingAttempts.Any(attempt => attempt.StartedAt == startedAtUtc.Value))
+        {
+            throw new InvalidOperationException("This exam session has already been submitted. Refresh your exam history before starting another attempt.");
+        }
+
         var attemptCount = existingAttempts.Count;
         var latestAttempt = existingAttempts.FirstOrDefault();
+        var attemptNumber = await _dbContext.ExamAttempts
+            .CountAsync(existing => existing.CourseExamId == exam.Id && existing.UserAccountId == userId) + 1;
 
         var grant = await _dbContext.RetakeGrants
+            .AsNoTracking()
             .FirstOrDefaultAsync(existing => existing.CourseExamId == exam.Id && existing.UserAccountId == userId);
 
         var firstAttempt = existingAttempts
@@ -575,12 +1032,12 @@ public class ExamService : IExamService
             ? (int?)null
             : baseAttemptsAllowed.Value + (grant?.GrantedAttempts ?? 0);
 
-        if (maxAttemptsAllowed.HasValue && attemptCount >= maxAttemptsAllowed.Value)
+        if (!isPractice && maxAttemptsAllowed.HasValue && attemptCount >= maxAttemptsAllowed.Value)
         {
             throw new InvalidOperationException("Retake limit reached. Contact an admin for additional attempts.");
         }
 
-        var cooldownMinutes = Math.Max(exam.RetakeCooldownMinutes, 0);
+        var cooldownMinutes = isPractice ? 0 : Math.Max(exam.RetakeCooldownMinutes, 0);
         if (latestAttempt is not null && cooldownMinutes > 0)
         {
             var nextAttemptAtUtc = latestAttempt.SubmittedAt.AddMinutes(cooldownMinutes);
@@ -590,14 +1047,29 @@ public class ExamService : IExamService
             }
         }
 
+        var submittedAtUtc = DateTime.UtcNow;
+        var attemptStartedAtUtc = startedAtUtc.HasValue && startedAtUtc.Value <= submittedAtUtc
+            ? startedAtUtc.Value
+            : submittedAtUtc;
+        var unitTitle = exam.UnitId.HasValue
+            ? await _dbContext.Units
+                .Where(unit => unit.Id == exam.UnitId.Value)
+                .Select(unit => unit.Title)
+                .FirstOrDefaultAsync()
+            : null;
         var attempt = new ExamAttempt
         {
             CourseExamId = exam.Id,
             UserAccountId = userId,
-            StartedAt = DateTime.UtcNow,
-            SubmittedAt = DateTime.UtcNow,
-            AttemptNumber = attemptCount + 1,
-            ExamProctoringSessionId = proctoringSession?.Id
+            ExamVersion = exam.ContentVersion,
+            StartedAt = attemptStartedAtUtc,
+            SubmittedAt = submittedAtUtc,
+            AttemptNumber = attemptNumber,
+            ExamProctoringSessionId = proctoringSession?.Id,
+            CourseTitleSnapshot = course?.Title,
+            ExamTitleSnapshot = exam.Title,
+            ExamKindSnapshot = exam.Kind,
+            UnitTitleSnapshot = unitTitle
         };
 
         var correctAnswers = 0;
@@ -616,8 +1088,16 @@ public class ExamService : IExamService
             attempt.Answers.Add(new ExamAnswer
             {
                 ExamQuestionId = question.Id,
+                QuestionOrderSnapshot = question.OrderIndex,
                 SelectedOption = string.IsNullOrWhiteSpace(selected) ? "-" : selected,
-                IsCorrect = isCorrect
+                IsCorrect = isCorrect,
+                PromptSnapshot = question.Prompt,
+                OptionASnapshot = question.OptionA,
+                OptionBSnapshot = question.OptionB,
+                OptionCSnapshot = question.OptionC,
+                OptionDSnapshot = question.OptionD,
+                CorrectOptionSnapshot = question.CorrectOption,
+                FeedbackTextSnapshot = question.FeedbackText
             });
         }
 
@@ -647,12 +1127,13 @@ public class ExamService : IExamService
         await _auditLogService.WriteAsync(
             userId,
             actorEmail,
-            passed ? "exam.attempt.passed" : "exam.attempt.failed",
+            isPractice ? "exam.practice.attempt" : passed ? "exam.attempt.passed" : "exam.attempt.failed",
             "CourseExam",
             exam.Id,
             $"Score={score:0.##}; PassPercent={exam.PassPercent:0.##}");
 
-        return new ExamAttemptSummary(attempt.SubmittedAt, score, passed, totalQuestions, correctAnswers);
+        await transaction.CommitAsync();
+        return new ExamAttemptSummary(attempt.SubmittedAt, score, passed, totalQuestions, correctAnswers, attempt.StartedAt);
     }
 
     private static int? GetBaseAttemptsAllowed(Course? course, int? maxRetakesPerLearner, bool? firstAttemptPassed, bool hasRetakeGrantOverride)
@@ -676,42 +1157,130 @@ public class ExamService : IExamService
     {
         await EnsureDefaultExamForCourseAsync(courseId);
 
-        var examId = await _dbContext.CourseExams
-            .AsNoTracking()
-            .Where(existing => existing.CourseId == courseId && existing.IsRequired && existing.UnitId == unitId)
-            .Select(existing => (Guid?)existing.Id)
-            .FirstOrDefaultAsync();
-
+        var examId = await ResolveStandardExamIdAsync(courseId, unitId);
         if (!examId.HasValue)
         {
             return [];
         }
 
+        var currentVersion = await _dbContext.CourseExams
+            .Where(exam => exam.Id == examId.Value)
+            .Select(exam => exam.ContentVersion)
+            .SingleAsync();
+        var history = await GetAttemptHistoryForExamAsync(examId.Value, userId);
+        return history.Where(attempt => attempt.ExamVersion == currentVersion).ToList();
+    }
+
+    public async Task<List<ExamAttemptHistoryItem>> GetAttemptHistoryForCourseAsync(Guid courseId, Guid userId)
+    {
         var attempts = await _dbContext.ExamAttempts
             .AsNoTracking()
+            .Include(attempt => attempt.CourseExam)
+                .ThenInclude(exam => exam!.Course)
             .Include(attempt => attempt.Answers)
                 .ThenInclude(answer => answer.ExamQuestion)
-            .Where(attempt => attempt.CourseExamId == examId.Value && attempt.UserAccountId == userId)
+            .Where(attempt => attempt.CourseExam != null
+                && attempt.CourseExam.CourseId == courseId
+                && attempt.UserAccountId == userId)
             .OrderByDescending(attempt => attempt.SubmittedAt)
             .ToListAsync();
 
-        return attempts
-            .Select(attempt => new ExamAttemptHistoryItem(
+        return attempts.Select(ToHistoryItem).ToList();
+    }
+
+    public async Task<List<ExamAttemptHistoryItem>> GetAttemptHistoryForExamAsync(Guid examId, Guid userId)
+    {
+        var attempts = await _dbContext.ExamAttempts
+            .AsNoTracking()
+            .Include(attempt => attempt.CourseExam)
+                .ThenInclude(exam => exam!.Course)
+            .Include(attempt => attempt.Answers)
+                .ThenInclude(answer => answer.ExamQuestion)
+            .Where(attempt => attempt.CourseExamId == examId && attempt.UserAccountId == userId)
+            .OrderByDescending(attempt => attempt.SubmittedAt)
+            .ToListAsync();
+
+        return attempts.Select(ToHistoryItem).ToList();
+    }
+
+    public async Task<List<ExamAttemptAuditRecord>> GetAttemptAuditAsync(Guid? courseId = null, Guid? learnerUserId = null)
+    {
+        var query = _dbContext.ExamAttempts
+            .AsNoTracking()
+            .Include(attempt => attempt.CourseExam)
+                .ThenInclude(exam => exam!.Course)
+            .Include(attempt => attempt.UserAccount)
+            .Include(attempt => attempt.Answers)
+            .AsQueryable();
+
+        if (courseId.HasValue)
+        {
+            query = query.Where(attempt => attempt.CourseExam != null && attempt.CourseExam.CourseId == courseId.Value);
+        }
+
+        if (learnerUserId.HasValue)
+        {
+            query = query.Where(attempt => attempt.UserAccountId == learnerUserId.Value);
+        }
+
+        var attempts = await query
+            .OrderByDescending(attempt => attempt.SubmittedAt)
+            .ToListAsync();
+
+        return attempts.Select(attempt =>
+        {
+            var exam = attempt.CourseExam;
+            var learner = attempt.UserAccount;
+            return new ExamAttemptAuditRecord(
+                attempt.Id,
+                exam?.CourseId ?? Guid.Empty,
+                attempt.CourseTitleSnapshot ?? exam?.Course?.Title ?? "Course",
+                attempt.CourseExamId,
+                attempt.ExamTitleSnapshot ?? exam?.Title ?? "Exam",
+                attempt.ExamKindSnapshot ?? exam?.Kind ?? CourseExamKinds.Standard,
+                attempt.UnitTitleSnapshot,
+                attempt.UserAccountId,
+                learner?.DisplayName ?? "Student",
+                learner?.Email ?? string.Empty,
                 attempt.AttemptNumber,
+                attempt.StartedAt,
                 attempt.SubmittedAt,
                 attempt.ScorePercent,
                 attempt.Passed,
-                attempt.Answers
-                    .OrderBy(answer => answer.ExamQuestion?.OrderIndex ?? int.MaxValue)
-                    .Select(answer => new ExamAttemptAnswerReview(
-                        answer.ExamQuestion?.Prompt ?? "Question",
-                        answer.SelectedOption,
-                        "-",
-                        answer.IsCorrect,
-                        answer.ExamQuestion?.FeedbackText))
-                    .ToList(),
-                attempt.FeedbackSummary))
-            .ToList();
+                attempt.Answers.Count,
+                attempt.Answers.Count(answer => answer.IsCorrect),
+                attempt.ExamVersion);
+        }).ToList();
+    }
+
+    private static ExamAttemptHistoryItem ToHistoryItem(ExamAttempt attempt)
+    {
+        var exam = attempt.CourseExam;
+        return new ExamAttemptHistoryItem(
+            attempt.AttemptNumber,
+            attempt.SubmittedAt,
+            attempt.ScorePercent,
+            attempt.Passed,
+            attempt.Answers
+                .OrderBy(answer => answer.QuestionOrderSnapshot)
+                .Select(answer => new ExamAttemptAnswerReview(
+                    answer.PromptSnapshot ?? answer.ExamQuestion?.Prompt ?? "Question",
+                    answer.SelectedOption,
+                    answer.CorrectOptionSnapshot ?? answer.ExamQuestion?.CorrectOption ?? "-",
+                    answer.IsCorrect,
+                    answer.FeedbackTextSnapshot ?? answer.ExamQuestion?.FeedbackText,
+                    answer.OptionASnapshot ?? answer.ExamQuestion?.OptionA,
+                    answer.OptionBSnapshot ?? answer.ExamQuestion?.OptionB,
+                    answer.OptionCSnapshot ?? answer.ExamQuestion?.OptionC,
+                    answer.OptionDSnapshot ?? answer.ExamQuestion?.OptionD))
+                .ToList(),
+            attempt.FeedbackSummary,
+            attempt.CourseExamId,
+            attempt.ExamTitleSnapshot ?? exam?.Title ?? "Exam",
+            attempt.ExamKindSnapshot ?? exam?.Kind ?? CourseExamKinds.Standard,
+            attempt.UnitTitleSnapshot,
+            attempt.StartedAt,
+            attempt.ExamVersion);
     }
 
     public async Task GrantRetakeAsync(Guid courseId, Guid learnerUserId, int grantedAttempts, bool resetCooldownTimer, Guid adminUserId, string adminEmail)
@@ -791,7 +1360,7 @@ public class ExamService : IExamService
         return grants
             .Select(grant => new RetakeGrantView(
                 grant.UserAccountId,
-                $"{grant.UserAccount?.DisplayName ?? "Learner"} ({grant.UserAccount?.Email ?? "unknown@lms.local"})",
+                $"{grant.UserAccount?.DisplayName ?? "Student"} ({grant.UserAccount?.Email ?? "unknown@lms.local"})",
                 grant.GrantedAttempts,
                 grant.GrantedAt,
                 grant.GrantedByAdminId,
@@ -907,6 +1476,7 @@ public class ExamService : IExamService
             .AsNoTracking()
             .Where(attempt => examIds.Contains(attempt.CourseExamId)
                 && attempt.UserAccountId == userId
+                && _dbContext.CourseExams.Any(exam => exam.Id == attempt.CourseExamId && exam.ContentVersion == attempt.ExamVersion)
                 && attempt.Passed)
             .Select(attempt => attempt.CourseExamId)
             .Distinct()
@@ -933,7 +1503,7 @@ public class ExamService : IExamService
         var learnerExists = await _dbContext.UserAccounts.AnyAsync(user => user.Id == learnerUserId && user.Role == "Learner" && user.IsActive);
         if (!courseExists || !learnerExists)
         {
-            throw new InvalidOperationException("Course or learner was not found.");
+            throw new InvalidOperationException("Course or student was not found.");
         }
 
         var verifiedAtUtc = DateTime.UtcNow;

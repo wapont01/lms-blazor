@@ -1,0 +1,55 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Connecticut",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Connecticut_Hartford_Active_Firm_Campaign_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "CONNECTICUT\\LICENSING\\XLXS\\Connecticut_Hartford_Active_Firm_Campaign_Sample_20261011.csv",
+                      "Sha256":  "3F02081780F82D20B805E38EF256D3A28284C13753ECEA509CF70C3D3C45BB4A",
+                      "Bytes":  8726,
+                      "OfficialSourceUrl":  "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+                      "Coverage":  "Hartford firm campaign sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Connecticut_Hartford_Active_Firm_Campaign_Sample_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "CONNECTICUT\\LICENSING\\XLXS\\Connecticut_Hartford_Active_Firm_Campaign_Sample_20261011.json",
+                      "Sha256":  "0DC308F53FBBF694EFB8B4A86A5B9DA924F717A71C62D149E41D099209E09DA4",
+                      "Bytes":  2444,
+                      "OfficialSourceUrl":  "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+                      "Coverage":  "Firm campaign sample provenance"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Connecticut_Hartford_Active_Real_Estate_Broker_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "CONNECTICUT\\LICENSING\\XLXS\\Connecticut_Hartford_Active_Real_Estate_Broker_Development_Sample_20261011.csv",
+                      "Sha256":  "F18823FC868D1143EE76B647B27F18E72885557673F5EFC8A975E277AD95170D",
+                      "Bytes":  2478,
+                      "OfficialSourceUrl":  "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+                      "Coverage":  "Hartford active broker-category sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Connecticut_Hartford_Active_Real_Estate_Salesperson_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "CONNECTICUT\\LICENSING\\XLXS\\Connecticut_Hartford_Active_Real_Estate_Salesperson_Development_Sample_20261011.csv",
+                      "Sha256":  "B69074C1EBE318C21C4B1E7200AA25B7E64822583FE85598851B9BEA61596794",
+                      "Bytes":  2480,
+                      "OfficialSourceUrl":  "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+                      "Coverage":  "Hartford active salesperson sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Connecticut_Hartford_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "CONNECTICUT\\LICENSING\\XLXS\\Connecticut_Hartford_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "FF5EC40313890843A1C359D742F91F6A64E9DDA02D45225A142FD3C77A5C065B",
+                      "Bytes":  3452,
+                      "OfficialSourceUrl":  "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+                      "Coverage":  "Query counts sample hashes and coverage caveats"
+                  }
+              ]
+}

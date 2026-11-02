@@ -1,0 +1,13 @@
+@baseUrl = http://127.0.0.1:5012
+
+### Requires an authenticated LMS Admin session.
+GET {{baseUrl}}/admin/regulatory-statistics/exports/Florida/licenses.csv
+
+###
+GET {{baseUrl}}/admin/regulatory-statistics/exports/Florida/licenses.json
+
+###
+GET {{baseUrl}}/admin/regulatory-statistics/exports/Florida/entries.json
+
+### Unknown resources return 404, never an arbitrary collector URL.
+GET {{baseUrl}}/admin/regulatory-statistics/exports/Florida/unknown.json

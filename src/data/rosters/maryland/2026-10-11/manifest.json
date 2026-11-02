@@ -1,0 +1,109 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Maryland",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\XLXS\\Maryland_Baltimore_ASSOCIATE_BROKER_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_ASSOCIATE_BROKER_Development_Sample_20261011.csv",
+                      "Sha256":  "EC0C2C4A83A22ED615C664820BF04C234A3933B7992F5B79E0FB3C2016FAED7F",
+                      "Bytes":  9117,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Baltimore associate broker sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maryland_Baltimore_BROKER_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_BROKER_Development_Sample_20261011.csv",
+                      "Sha256":  "7B1ADECE825408A6CCF09BF0CBE5F6C30C6528EB15304C8FE36B5CEF2901A07C",
+                      "Bytes":  8885,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Baltimore broker sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maryland_Baltimore_Broker_Linked_Location_Campaign_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_Broker_Linked_Location_Campaign_Sample_20261011.csv",
+                      "Sha256":  "A8BAB58EDC26F643DC3883F91343BF813BE30027DAA4511BD1583F8364CD84B8",
+                      "Bytes":  10304,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Broker-linked location sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maryland_Baltimore_Business_Location_Crawl_Coverage_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_Business_Location_Crawl_Coverage_20261011.csv",
+                      "Sha256":  "F8D2EDFD776DA5AB710BDFA90E7B93730D5282FF6ABE5582AFE2437074852096",
+                      "Bytes":  104546,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Business location crawl coverage and completeness"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maryland_Baltimore_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_Development_Samples_20261011.json",
+                      "Sha256":  "B6FAB203FF01032888C1718C86CB9BC973D669711AB7D179D6813DDC5CE3B5A8",
+                      "Bytes":  3365,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Sample and source hash manifest"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maryland_Baltimore_SALESPERSON_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_SALESPERSON_Development_Sample_20261011.csv",
+                      "Sha256":  "487046370437F72F23D3FFA052354C3DA8EB8FFB6A9CD272F97377DCB69D38C9",
+                      "Bytes":  9034,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Baltimore salesperson sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maryland_Baltimore_Smith_Personal_License_Query_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_Smith_Personal_License_Query_20261011.csv",
+                      "Sha256":  "A9AA0D7D7DD363814DE5E1DBCCABEDA0A010AC3BD764A4459C36C18C10FE4311",
+                      "Bytes":  5389,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Name-based search result capture"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Maryland_Baltimore_Business_Location_Query_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_Business_Location_Query_20261011.csv",
+                      "Sha256":  "8EE078816BA8C0A27FE352377834FF1B6A9BD509C3726672651BF31C6D74C437",
+                      "Bytes":  97145,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Baltimore business-location query results"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Maryland_Baltimore_Location_Crawl_Failures_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_Location_Crawl_Failures_20261011.json",
+                      "Sha256":  "C1869216CA61E86CE13FB69664A7E3C18F1B858B7B0141A03FF0017AF46C2DCD",
+                      "Bytes":  714,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Crawl failure evidence"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Maryland_Baltimore_Location_Personal_Licensees_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_Location_Personal_Licensees_20261011.csv",
+                      "Sha256":  "4D4E990106B3742349B665DBB359F092C3E326A599BD4F5C7A79AC9D0D3F2382",
+                      "Bytes":  1058746,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Baltimore location crawl of 2,434 personal license rows"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Maryland_Baltimore_Location_Roster_Captures_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MARYLAND\\XLXS\\Maryland_Baltimore_Location_Roster_Captures_20261011.json",
+                      "Sha256":  "2C785260B9C473882A29DCC4513CE821D24B9440781B64EDB24270DCA2014B33",
+                      "Bytes":  2138417,
+                      "OfficialSourceUrl":  "https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup",
+                      "Coverage":  "Source roster captures and crawl metadata"
+                  }
+              ]
+}

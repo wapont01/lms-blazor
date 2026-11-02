@@ -1,0 +1,56 @@
+.exam-history {
+    padding: 16px;
+}
+
+h3 {
+    margin: 0 0 12px;
+}
+
+.exam-history-list {
+    display: grid;
+    gap: 10px;
+}
+
+.exam-history-item {
+    border: 1px solid #dbe2ea;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.exam-history-summary {
+    cursor: pointer;
+}
+
+.exam-history-title {
+    margin-left: 4px;
+}
+
+.exam-history-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 24px;
+    margin-top: 10px;
+}
+
+.exam-history-stat {
+    display: grid;
+    gap: 4px;
+    font-size: .875rem;
+}
+
+.exam-history-stat > span {
+    color: #526174;
+}
+
+.exam-history-item[open] .exam-history-summary {
+    padding-bottom: 12px;
+    border-bottom: 1px solid #dbe2ea;
+}
+
+ol {
+    padding-left: 24px;
+}
+
+li + li {
+    margin-top: 16px;
+}

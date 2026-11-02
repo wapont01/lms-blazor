@@ -1,0 +1,14 @@
+@baseUrl = http://localhost:5012
+# Administrator session required. DRE licensee and broker-associate files only; examinee list excluded.
+
+### Original statewide role list ZIP
+GET {{baseUrl}}/admin/california-bulk/exports/CurrList.zip
+
+### Original responsible-broker affiliation workbook
+GET {{baseUrl}}/admin/california-bulk/exports/broker_associates_list.xls
+
+### Hashes, acquisition timestamps, source HTTP metadata and row counts
+GET {{baseUrl}}/admin/california-bulk/exports/manifest.json
+
+### Excluded source: 404
+GET {{baseUrl}}/admin/california-bulk/exports/ExamineeList.xls

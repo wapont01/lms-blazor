@@ -24,6 +24,7 @@ public sealed class CourseActivityService : ICourseActivityService
 
     public async Task<Guid> StartAsync(Guid userId, Guid courseId)
     {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
         var enrolled = await _dbContext.Enrollments.AnyAsync(enrollment => enrollment.UserAccountId == userId && enrollment.CourseId == courseId);
         if (!enrolled)
         {
@@ -38,8 +39,10 @@ public sealed class CourseActivityService : ICourseActivityService
 
         if (existing is not null)
         {
+            await _dbContext.Entry(existing).ReloadAsync();
             existing.LastActivityAtUtc = nowUtc;
             await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
             return existing.Id;
         }
 
@@ -52,24 +55,29 @@ public sealed class CourseActivityService : ICourseActivityService
         };
         _dbContext.CourseActivitySessions.Add(session);
         await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
         return session.Id;
     }
 
     public async Task PulseAsync(Guid sessionId, Guid userId)
     {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
         var session = await _dbContext.CourseActivitySessions
             .FirstOrDefaultAsync(existing => existing.Id == sessionId && existing.UserAccountId == userId && existing.EndedAtUtc == null);
         if (session is null)
         {
-            return;
+            throw new InvalidOperationException("This attendance session is no longer active. Refresh the lesson to resume attendance tracking.");
         }
 
+        await _dbContext.Entry(session).ReloadAsync();
         CreditElapsedActivity(session, DateTime.UtcNow);
         await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
     }
 
     public async Task EndAsync(Guid sessionId, Guid userId)
     {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
         var session = await _dbContext.CourseActivitySessions
             .FirstOrDefaultAsync(existing => existing.Id == sessionId && existing.UserAccountId == userId && existing.EndedAtUtc == null);
         if (session is null)
@@ -77,10 +85,12 @@ public sealed class CourseActivityService : ICourseActivityService
             return;
         }
 
+        await _dbContext.Entry(session).ReloadAsync();
         var nowUtc = DateTime.UtcNow;
         CreditElapsedActivity(session, nowUtc);
         session.EndedAtUtc = nowUtc;
         await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
     }
 
     public async Task<int> GetCreditedMinutesAsync(Guid userId, Guid courseId)

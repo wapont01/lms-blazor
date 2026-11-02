@@ -4,7 +4,6 @@
 @using Lms.Web.Components.Shared
 @using System.Security.Claims
 @inject IEnrollmentService EnrollmentService
-@inject IUserAccountService UserAccountService
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -19,7 +18,7 @@
 			<h2>Portfolio Snapshot</h2>
 			<div class="stats-grid">
 				<article class="stat-card">
-					<h3>Learners</h3>
+					<h3>Students</h3>
 					<p>@_summary.Learners</p>
 				</article>
 				<article class="stat-card">
@@ -44,30 +43,12 @@
 				</article>
 			</div>
 		</section>
-
-		@if (_brokerUser is not null)
-		{
-			var education = LicenseEducationRules.CalculateForState(_brokerUser.State, _brokerUser.InitialLicensureDate, _brokerUser.PostlicensingCompletedAt, _brokerUser.ContinuingEducationDueDate, _brokerUser.LicenseRenewalDueDate, DateTime.UtcNow);
-			<section class="card">
-				<h2>License Education</h2>
-				<p><strong>@education.Phase@(education.IsPostlicensingOverdue ? " (overdue)" : string.Empty)</strong></p>
-				<div class="form-grid">
-					<div class="form-field"><label>Initial license date</label><span>@(education.InitialLicensureDate?.ToString("yyyy-MM-dd") ?? "Not set")</span></div>
-					<div class="form-field"><label>Expected post-license date</label><span>@(education.ExpectedPostlicensingDate?.ToString("yyyy-MM-dd") ?? "Not set")</span></div>
-					<div class="form-field"><label>Expected CE date</label><span>@(education.ExpectedContinuingEducationDate?.ToString("yyyy-MM-dd") ?? "Not set")</span></div>
-				</div>
-				@if (!education.InitialLicensureDate.HasValue)
-				{
-					<p class="muted-text">Your initial license date has not been entered. Contact an administrator to calculate your education phase.</p>
-				}
-			</section>
-		}
 	}
 
 	@if (IsSectionVisible("compliance"))
 	{
 		<section class="card">
-			<h2>Learner Compliance</h2>
+			<h2>Student Compliance</h2>
 
 			@if (_rows.Count == 0)
 			{
@@ -78,7 +59,7 @@
 				<table class="simple-table">
 					<thead>
 						<tr>
-							<th>Learner</th>
+							<th>Student</th>
 							<th>Course</th>
 							<th>Progress</th>
 							<th>Status</th>
@@ -108,18 +89,18 @@
 	@if (IsSectionVisible("blocked"))
 	{
 		<section class="card">
-			<h2>Exam-Blocked Learners</h2>
+			<h2>Exam-Blocked Students</h2>
 
 			@if (_blockedRows.Count == 0)
 			{
-				<p class="muted-text">No learners are currently blocked by exam policy.</p>
+				<p class="muted-text">No students are currently blocked by exam policy.</p>
 			}
 			else
 			{
 				<table class="simple-table">
 					<thead>
 						<tr>
-							<th>Learner</th>
+							<th>Student</th>
 							<th>Course</th>
 							<th>Latest Score</th>
 							<th>Reason</th>
@@ -155,7 +136,7 @@
 				<table class="simple-table">
 					<thead>
 						<tr>
-							<th>Learner</th>
+							<th>Student</th>
 							<th>Course</th>
 							<th>Certificate</th>
 							<th>Verification</th>
@@ -197,7 +178,7 @@
 	{
 		<section class="card support-ownership-card">
 			<h3>Broker enrolled courses</h3>
-			<p class="muted-text">Courses this broker can enroll learners into.</p>
+			<p class="muted-text">Courses this broker can enroll students into.</p>
 
 			@if (_brokerPurchasedCourses.Count > 0)
 			{
@@ -218,7 +199,7 @@
 		{
 			<section class="card">
 				<h2>Enrollment Support</h2>
-				<p class="muted-text">No learners are assigned to this broker.</p>
+				<p class="muted-text">No students are assigned to this broker.</p>
 			</section>
 		}
 		else
@@ -235,7 +216,7 @@
 				</div>
 
 				<div class="support-learner-row">
-					<label for="Support-learner">Learner</label>
+					<label for="Support-learner">Student</label>
 					<select id="Support-learner" value="@_selectedLearnerIdText" @onchange="HandleLearnerSelectionChangedAsync">
 						@foreach (var learner in _allLearners)
 						{
@@ -257,7 +238,7 @@
 
 				@if (_availableCourses.Count == 0)
 				{
-					<p class="muted-text">No broker enrolled courses are available for this learner. Enroll and Unenroll actions are disabled.</p>
+					<p class="muted-text">No broker enrolled courses are available for this student. Enroll and Unenroll actions are disabled.</p>
 				}
 
 				<div class="support-op-actions">
@@ -272,8 +253,8 @@
 			</section>
 
 			<section class="card support-ownership-card">
-				<h3>Broker enrolled learner courses</h3>
-				<p class="muted-text">Assigned learners and the courses broker enrolled for them.</p>
+				<h3>Broker enrolled student courses</h3>
+				<p class="muted-text">Assigned students and the courses broker enrolled for them.</p>
 
 				@if (_brokerSponsoredLearnerCourses.Count > 0)
 				{
@@ -303,8 +284,8 @@
 			</section>
 
 			<section class="card support-ownership-card" @key="@(_selectedLearnerIdText)">
-				<h3>Learner enrolled courses</h3>
-				<p class="muted-text">Courses the selected learner enrolled in directly.</p>
+				<h3>Student enrolled courses</h3>
+				<p class="muted-text">Courses the selected student enrolled in directly.</p>
 
 				@{
 					var learnerOwnedCourses = GetSelectedLearnerEnrolledCourses();
@@ -326,7 +307,7 @@
 				}
 				else
 				{
-					<p class="muted-text">This learner has no learner enrolled courses.</p>
+					<p class="muted-text">This student has no directly enrolled courses.</p>
 				}
 			</section>
 		}
@@ -335,11 +316,11 @@
 	@if (IsSectionVisible("logs"))
 	{
 		<section class="card">
-			<h2>Learner 360 Logs</h2>
+			<h2>Student 360 Logs</h2>
 
 			@if (_logs.Count == 0)
 			{
-				<p class="muted-text">No log events available for the selected learner.</p>
+				<p class="muted-text">No log events available for the selected student.</p>
 			}
 			else
 			{
@@ -398,7 +379,6 @@
 	private string? _SupportStatus;
 	private bool? _SupportSucceeded;
 	private Guid _brokerUserId;
-	private UserAccount? _brokerUser;
 
 	protected override async Task OnInitializedAsync()
 	{
@@ -411,7 +391,6 @@
 		}
 
 		_actorEmail = authState.User.FindFirst(ClaimTypes.Email)?.Value ?? string.Empty;
-		_brokerUser = await UserAccountService.GetByIdAsync(_brokerUserId);
 
 		await RefreshBrokerDataAsync();
 		await RefreshLearnerDirectoryAsync();
@@ -524,7 +503,7 @@
 		}
 
 		var fallbackLearner = _allLearners.FirstOrDefault();
-		return fallbackLearner is null ? "Current learner" : $"{fallbackLearner.LearnerName} ({fallbackLearner.LearnerEmail})";
+		return fallbackLearner is null ? "Current student" : $"{fallbackLearner.LearnerName} ({fallbackLearner.LearnerEmail})";
 	}
 
 	private async Task RefreshSupportContextAsync()
@@ -631,7 +610,7 @@
 	{
 		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue)
 		{
-			_SupportStatus = "Select learner and course before enrolling.";
+			_SupportStatus = "Select student and course before enrolling.";
 			_SupportSucceeded = false;
 			return;
 		}
@@ -691,7 +670,7 @@
 	{
 		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue)
 		{
-			_SupportStatus = "Select learner and course before unenrolling.";
+			_SupportStatus = "Select student and course before unenrolling.";
 			_SupportSucceeded = false;
 			return;
 		}
@@ -699,20 +678,20 @@
 		var selectedEnrollment = _currentEnrollments.FirstOrDefault(item => item.CourseId == _selectedCourseId.Value);
 		if (selectedEnrollment is null)
 		{
-			_SupportStatus = "Selected learner is not enrolled in this course.";
+			_SupportStatus = "Selected student is not enrolled in this course.";
 			_SupportSucceeded = false;
 			return;
 		}
 
 		if (!IsBrokerEnrolledByCurrentBroker(selectedEnrollment))
 		{
-			_SupportStatus = "This course is learner enrolled and cannot be removed by broker support.";
+			_SupportStatus = "This course is student enrolled and cannot be removed by broker support.";
 			_SupportSucceeded = false;
 			return;
 		}
 
 		var currentCourse = selectedEnrollment;
-		if (!await ConfirmAsync($"Unenroll learner from {currentCourse?.Course?.Title ?? "the selected course"}?"))
+		if (!await ConfirmAsync($"Unenroll student from {currentCourse?.Course?.Title ?? "the selected course"}?"))
 		{
 			_SupportStatus = "Unenroll action cancelled.";
 			_SupportSucceeded = false;
@@ -785,7 +764,7 @@
 			"blocked" => "Exam Blocked",
 			"certificates" => "Certificates",
 			"support" => "Enrollment Support",
-			"logs" => "Learner Logs",
+			"logs" => "Student Logs",
 			_ => "Broker Dashboard"
 		};
 	}

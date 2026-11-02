@@ -515,8 +515,7 @@
         try
         {
             _allPayouts = await PayoutService.GetPendingPayoutsAsync();
-            var instructors = await DbContext.UserAccounts
-                .Where(u => u.Role == "Instructor")
+            var instructors = await InstructorAccess.Accounts(DbContext)
                 .ToListAsync();
             _instructors = instructors;
             FilterPayouts();

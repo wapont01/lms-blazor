@@ -1,0 +1,64 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Ohio",
+    "CaptureDate":  "2026-10-10",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTs\\Ohio Real Estate License Roster Notes 20261010.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OHIO\\TXTs\\Ohio Real Estate License Roster Notes 20261010.txt",
+                      "Sha256":  "4F11491A99E233239FC3C1541FD06514D428FCBA6686B99012C9A37A6B6672A7",
+                      "Bytes":  3152,
+                      "OfficialSourceUrl":  "https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx",
+                      "Coverage":  "Source roster as-of date type counts and limitations"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Ohio_Active_Affiliation_Development_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OHIO\\XLXS\\Ohio_Active_Affiliation_Development_Sample_20261010.csv",
+                      "Sha256":  "30155BF27B660A51BF306374871F96A26D2F8D93A9BA9F861B6C8CFA9EF94BA8",
+                      "Bytes":  14582,
+                      "OfficialSourceUrl":  "https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx",
+                      "Coverage":  "Published primary-license relationships"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Ohio_Active_Entity_Branch_Campaign_Development_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OHIO\\XLXS\\Ohio_Active_Entity_Branch_Campaign_Development_Sample_20261010.csv",
+                      "Sha256":  "75D6A09B6ACBEFFCF1D04C91A7158C5E19860235E4CF93B710E0FFF01E1B8CC5",
+                      "Bytes":  10262,
+                      "OfficialSourceUrl":  "https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx",
+                      "Coverage":  "Entity and branch sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Ohio_Active_Individual_Development_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OHIO\\XLXS\\Ohio_Active_Individual_Development_Sample_20261010.csv",
+                      "Sha256":  "9DB56788A77E55D870A9C137C8F48FF44CA3E06B39DCD6ADE6BAEFB0D16BD9D1",
+                      "Bytes":  8176,
+                      "OfficialSourceUrl":  "https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx",
+                      "Coverage":  "Individual license sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Ohio_Real_Estate_Development_Samples_20261010.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OHIO\\XLXS\\Ohio_Real_Estate_Development_Samples_20261010.json",
+                      "Sha256":  "42543B963F28DDAB8D02F1F88EE848792D24B4BF870C3DE850769AD5B078F34F",
+                      "Bytes":  5063,
+                      "OfficialSourceUrl":  "https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx",
+                      "Coverage":  "Source counts active/expiration logic and sample provenance"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\repl_LicenseLookUpwithAffiliations.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OHIO\\XLXS\\repl_LicenseLookUpwithAffiliations.xlsx",
+                      "Sha256":  "05731C5BC2251BE1027BF5FF8787603E668BE675B0F0F4BDD71F36BA711E0A99",
+                      "Bytes":  7341330,
+                      "OfficialSourceUrl":  "https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx",
+                      "Coverage":  "Statewide active roster export; as-of 2026-09-04"
+                  }
+              ]
+}

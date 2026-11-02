@@ -1,6 +1,6 @@
 using Lms.Domain.Entities;
 
-namespace Lms.Web.Components.Pages;
+namespace Lms.Web.Components.Shared;
 
 public sealed record SupportEnrollmentCourseDisplay(string Title, string SourceLabel, string SourceCssClass);
 
@@ -24,7 +24,7 @@ public static class SupportEnrollmentDisplay
 	{
 		if (string.Equals(enrollment.EnrollmentSource, "LearnerPurchase", StringComparison.Ordinal))
 		{
-			return "Learner enrolled";
+			return "Student enrolled";
 		}
 
 		if (string.Equals(enrollment.EnrollmentSource, "BrokerSponsored", StringComparison.Ordinal))

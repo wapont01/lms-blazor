@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "South Carolina",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\SC LLR Columbia 20 License Types.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "SOUTH CAROLINA\\LICENSING\\TXTs\\SC LLR Columbia 20 License Types.json",
+                      "Sha256":  "49F76CF965F4A3F6B9A99E0BE706E4D6E5D0F5561A4D8DF4E230FC98BA20AD5D",
+                      "Bytes":  2231,
+                      "OfficialSourceUrl":  "https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19",
+                      "Coverage":  "Columbia license-type search capture"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\SC LLR Columbia 20 Links 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "SOUTH CAROLINA\\LICENSING\\TXTs\\SC LLR Columbia 20 Links 01.json",
+                      "Sha256":  "3C5584A159A6BB211DFABC9B2E27AFDD92B382DD12B8D8CCDAF2547BEC6E6037",
+                      "Bytes":  1011,
+                      "OfficialSourceUrl":  "https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19",
+                      "Coverage":  "Search result links capture batch 1"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\SC LLR Columbia 20 Links 02.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "SOUTH CAROLINA\\LICENSING\\TXTs\\SC LLR Columbia 20 Links 02.json",
+                      "Sha256":  "80458806666D5CA2A4E014CDFB330CCEF065B03BE47A2F2BD04E46B9C9BDB5E1",
+                      "Bytes":  1369,
+                      "OfficialSourceUrl":  "https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19",
+                      "Coverage":  "Search result links capture batch 2"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\SC LLR Columbia 20 Links 03.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "SOUTH CAROLINA\\LICENSING\\TXTs\\SC LLR Columbia 20 Links 03.json",
+                      "Sha256":  "4B6A419FCD016945BE23963D991583C4A79241BAF6D479BF9F087A2F1049383D",
+                      "Bytes":  4198,
+                      "OfficialSourceUrl":  "https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19",
+                      "Coverage":  "Search result links capture batch 3"
+                  }
+              ]
+}

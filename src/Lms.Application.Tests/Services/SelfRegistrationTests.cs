@@ -9,6 +9,33 @@ namespace Lms.Application.Tests.Services;
 
 public class SelfRegistrationTests
 {
+    [Theory]
+    [InlineData("abcdefgh")]
+    [InlineData("12345678")]
+    [InlineData("two words")]
+    [InlineData(" abcdef ")]
+    public async Task RegisterLearnerAsync_AcceptsEightCharactersWithoutCompositionRules(string password)
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var user = await fixture.UserAccountService.RegisterLearnerAsync("simple@example.com", password);
+        var login = await fixture.UserAccountService.AuthenticateAsync(user.Email, password);
+        Assert.Equal(LoginStatus.Succeeded, login.Status);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("abcdefg")]
+    [InlineData("       ")]
+    [InlineData("        ")]
+    public async Task RegisterLearnerAsync_RejectsShortOrWhitespaceOnlyPasswords(string password)
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            fixture.UserAccountService.RegisterLearnerAsync("short@example.com", password));
+        Assert.Equal("Password must be at least 8 characters.", error.Message);
+        Assert.False(await fixture.DbContext.UserAccounts.AnyAsync(user => user.Email == "short@example.com"));
+    }
+
     [Fact]
     public async Task RegisterLearnerAsync_CreatesActiveLearner_WithoutAdminIntervention()
     {
@@ -18,7 +45,7 @@ public class SelfRegistrationTests
             "New.Agent@Example.com", "NewAgent123!");
 
         Assert.Equal("new.agent@example.com", user.Email);
-        Assert.Equal("Guest Learner", user.DisplayName);
+        Assert.Equal("Guest", user.DisplayName);
         Assert.Equal("Learner", user.Role);
         Assert.True(user.IsActive);
         Assert.Null(user.State);

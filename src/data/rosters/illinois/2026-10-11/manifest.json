@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Illinois",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\TXTs\\Illinois Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ILLINOIS\\LICENSING\\TXTs\\Illinois Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "A55555063E8C92467207BEFC25AAB6189521AB70A628E9F26D4AB26B2A360E65",
+                      "Bytes":  2413,
+                      "OfficialSourceUrl":  "https://data.illinois.gov/Business-and-Workforce/Professional-Licensing/pzzh-kp68",
+                      "Coverage":  "Development-source selection and scope notes"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Illinois_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ILLINOIS\\LICENSING\\XLXS\\Illinois_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "5924A42B841C611AE2678FE2E6892220FC9D8A07E73A8E1812610D05C07B6FAE",
+                      "Bytes":  36753,
+                      "OfficialSourceUrl":  "https://data.illinois.gov/Business-and-Workforce/Professional-Licensing/pzzh-kp68",
+                      "Coverage":  "Active entity development sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Illinois_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ILLINOIS\\LICENSING\\XLXS\\Illinois_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "421C70A12B085D5AAD49117D0D83A1C04D586BD5E454F9C8F842459079601C20",
+                      "Bytes":  4741,
+                      "OfficialSourceUrl":  "https://data.illinois.gov/Business-and-Workforce/Professional-Licensing/pzzh-kp68",
+                      "Coverage":  "Manifest and sample provenance"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\Illinois_Active_Real_Estate_Business_Licenses_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ILLINOIS\\LICENSING\\XLXS\\Illinois_Active_Real_Estate_Business_Licenses_20261011.json",
+                      "Sha256":  "D0B2E823AB1B8F3FF9EC84A041C46C85BFAE5412B4107EF5EE6AE0DFC7436D63",
+                      "Bytes":  3719091,
+                      "OfficialSourceUrl":  "https://data.illinois.gov/Business-and-Workforce/Professional-Licensing/pzzh-kp68",
+                      "Coverage":  "Active real-estate business license source data"
+                  }
+              ]
+}

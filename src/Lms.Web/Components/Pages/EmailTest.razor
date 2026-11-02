@@ -1,0 +1,159 @@
+@page "/email-test"
+@attribute [AllowAnonymous]
+@using Microsoft.AspNetCore.Authorization
+@using Lms.Application.Services
+@inject EmailJourneyOptions Options
+@inject IWebHostEnvironment Environment
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IEmailJourneyService Journey
+@inject ILogger<EmailTest> Logger
+
+@if (Step == "verify")
+{
+    <HeadContent><meta name="referrer" content="no-referrer" /></HeadContent>
+}
+
+<div class="email-test-page">
+    <AuthorizeView>
+        <Authorized Context="headingAuth">
+            <PageTitle>@HeadingFor(headingAuth.User)</PageTitle>
+            <h1>@HeadingFor(headingAuth.User)</h1>
+        </Authorized>
+        <NotAuthorized>
+            <PageTitle>Email verification</PageTitle>
+            <h1>Email verification</h1>
+        </NotAuthorized>
+    </AuthorizeView>
+    @if (!Options.Enabled || !Environment.IsDevelopment())
+    {
+        <p>Email verification is currently unavailable.</p>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(Error))
+        {
+            <p class="auth-error" role="alert">@ErrorMessage</p>
+        }
+        @if (Step == "verify" && Id.HasValue && !string.IsNullOrEmpty(Token))
+        {
+            <p>Confirm this email address. Verification does not prove professional-license ownership.</p>
+            <form method="post" action="/auth/email-test/verify" class="auth-form">
+                <AntiforgeryToken />
+                <input type="hidden" name="id" value="@Id" />
+                <input type="hidden" name="token" value="@Token" />
+                <button type="submit">Verify email address</button>
+            </form>
+        }
+        else if (Step == "sent")
+        {
+            <p role="status">Verification email sent. Check your inbox and follow the link. It expires in 30 minutes.</p>
+            <a href="/login?returnUrl=%2Femail-test">Sign in to resend verification</a>
+        }
+        else if (Step == "verified")
+        {
+            <p role="status">Email verified. Two-step email sign-in is now enabled for your account.</p>
+            <a href="/login?returnUrl=%2Femail-test">Sign in to receive your code</a>
+        }
+        else if (Step == "code")
+        {
+            <p>Enter the six-digit code sent to your email. It expires in 10 minutes; five incorrect attempts invalidate it.</p>
+            <form method="post" action="/auth/email-test/code" class="auth-form">
+                <AntiforgeryToken />
+                <label for="email-code">Sign-in code</label>
+                <input id="email-code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required />
+                <button type="submit">Verify and sign in</button>
+            </form>
+            <a href="/login?returnUrl=%2Femail-test">Sign in again to request a new code</a>
+        }
+        else
+        {
+            <AuthorizeView>
+                <Authorized Context="auth">
+                    @if (Options.AppliesTo(auth.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? ""))
+                    {
+                        <section class="certificate-card" aria-label="Certificate class information">
+                            @if (_certificate is { } certificate)
+                            {
+                                <h2>@certificate.CourseTitle</h2>
+                                <dl class="class-info">
+                                    <div><dt>Student</dt><dd>@certificate.Name</dd></div>
+                                    <div><dt>State</dt><dd>@certificate.State</dd></div>
+                                    <div><dt>Class hours</dt><dd>@certificate.Hours</dd></div>
+                                </dl>
+                            <a class="download-certificate" href="/auth/email-test/certificate" data-enhance-nav="false">Download certificate (PDF)</a>
+                            }
+                            else if (_certificateError is not null)
+                            {
+                                <p role="alert">@_certificateError</p>
+                            }
+                            else
+                            {
+                                <p role="status">Certificate details are unavailable. Refresh the page or contact support.</p>
+                            }
+                        </section>
+                        <a class="back-link" href="/learner">Back to My Courses</a>
+                    }
+                    else
+                    {
+                        <p>Email verification is not available for this account.</p>
+                    }
+                </Authorized>
+                <NotAuthorized>
+                    <form method="post" action="/auth/email-test/register" class="auth-form">
+                        <AntiforgeryToken />
+                        <label for="test-email">Email</label>
+                        <input id="test-email" name="email" type="email" value="@Options.TestRecipient" readonly />
+                        <label for="test-password">Password</label>
+                        <input id="test-password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+                        <small>At least 8 characters.</small>
+                        <label for="test-confirm">Confirm password</label>
+                        <input id="test-confirm" name="confirmPassword" type="password" autocomplete="new-password" required />
+                        <button type="submit">Create account and send verification</button>
+                    </form>
+                    <a href="/login?returnUrl=%2Femail-test">Already registered? Sign in</a>
+                </NotAuthorized>
+            </AuthorizeView>
+        }
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery] public string? Step { get; set; }
+    [SupplyParameterFromQuery] public string? Error { get; set; }
+    [SupplyParameterFromQuery] public Guid? Id { get; set; }
+    [SupplyParameterFromQuery] public string? Token { get; set; }
+    private DevelopmentCertificate? _certificate;
+    private string? _certificateError;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Options.Enabled || !Environment.IsDevelopment()) return;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!Options.AppliesTo(auth.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "")
+            || !Guid.TryParse(auth.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var userId)) return;
+        try
+        {
+            _certificate = await Journey.GetCertificateAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Could not load certificate class information.");
+            _certificateError = "Certificate details could not be loaded. Refresh the page to try again.";
+        }
+    }
+
+    private string HeadingFor(System.Security.Claims.ClaimsPrincipal user) =>
+        Options.Enabled && Environment.IsDevelopment()
+        && Options.AppliesTo(user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "")
+        && Step is not ("verify" or "sent" or "verified" or "code")
+            ? "Your certificate" : "Email verification";
+    private string ErrorMessage => Error switch
+    {
+        "registration" => "Registration failed. Check password requirements and confirmation. If already registered, sign in below to continue.",
+        "delivery" => "Email delivery failed. Sign in again to retry, or contact an administrator.",
+        "verification" => "Verification link is invalid, expired, or already used. Sign in to request another.",
+        "code" => "Code is incorrect, expired, used, or has reached its attempt limit. Retry or sign in again for a new code.",
+        "expired" => "Your pending sign-in expired. Sign in again to request a new code.",
+        _ => "The email verification request could not be completed."
+    };
+}

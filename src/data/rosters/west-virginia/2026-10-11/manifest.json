@@ -1,0 +1,82 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "West Virginia",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\TXTs\\West Virginia Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\TXTs\\West Virginia Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "2B16E813882D107336BD2A9B337F74C1B86C6FB27F96F2E17CFFAD037E8F77B6",
+                      "Bytes":  3685,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx",
+                      "Coverage":  "Source roster and affiliation notes"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\West_Virginia_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\XLXS\\West_Virginia_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "C96B36123070F50F87ED88DCFE7A7188493777CBA5D7D20A9D1B23B188DF66EC",
+                      "Bytes":  10306,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx",
+                      "Coverage":  "Active individual sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\West_Virginia_Company_Affiliation_Contact_Roster_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\XLXS\\West_Virginia_Company_Affiliation_Contact_Roster_20261011.csv",
+                      "Sha256":  "9939CE307D196124C1BD192BC5DA6ABC0C82A740D69D0E1235FC54C4E0A0353A",
+                      "Bytes":  364355,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx",
+                      "Coverage":  "Company affiliation and contact roster"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\West_Virginia_Company_Affiliation_Contact_Roster_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\XLXS\\West_Virginia_Company_Affiliation_Contact_Roster_20261011.json",
+                      "Sha256":  "288C9363CA5A989118AF815E00C8D6DCC6DCDB547C2888143BE0955B873C3BCA",
+                      "Bytes":  3703,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx",
+                      "Coverage":  "Company contact and affiliation provenance"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\West_Virginia_Company_Number_Directory_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\XLXS\\West_Virginia_Company_Number_Directory_20261011.csv",
+                      "Sha256":  "EF8D5E38BCA94BF4DA943FE146A138E606DB4D076C509A4658654A70207802FB",
+                      "Bytes":  326508,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx",
+                      "Coverage":  "Company number directory"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\West_Virginia_Company_Number_Directory_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\XLXS\\West_Virginia_Company_Number_Directory_20261011.json",
+                      "Sha256":  "2A52D3D89403C68B4D3D0E76655190575316C431CD274E2BA77FC171882AFD6C",
+                      "Bytes":  1432,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx",
+                      "Coverage":  "Company directory provenance"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\West_Virginia_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\XLXS\\West_Virginia_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "92937DAF446D450360EFD60E5545939FA991C88E4441D721735A22ABF06D0F1A",
+                      "Bytes":  4050,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx",
+                      "Coverage":  "Sample selection and source manifest"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\West_Virginia_Sampled_Licensee_Firm_Affiliations_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\XLXS\\West_Virginia_Sampled_Licensee_Firm_Affiliations_20261011.csv",
+                      "Sha256":  "3A05BB2E09AEA3ADEE7D45F05CDEAC3900A7442635DA7A67FF097E2C83E3E674",
+                      "Bytes":  16090,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx",
+                      "Coverage":  "Sampled licensee-to-firm affiliations"
+                  }
+              ]
+}

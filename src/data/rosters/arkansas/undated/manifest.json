@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Arkansas",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\TXTs\\AREC Little Rock Agent Type Classification 01.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ARKANSAS\\LICENSING\\TXTs\\AREC Little Rock Agent Type Classification 01.json",
+                      "Sha256":  "3F650EEC33F8158C0E4601EB63A09A265DB6D29F1078B7D565D28D68EFFF4898",
+                      "Bytes":  1852,
+                      "OfficialSourceUrl":  "https://labor.arkansas.gov/licensing/real-estate-commission/arec-roster/agent-search/",
+                      "Coverage":  "Classification notes for captured agent license types"
+                  }
+              ]
+}

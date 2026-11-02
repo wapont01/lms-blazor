@@ -1,0 +1,224 @@
+.login-stage {
+    min-height: calc(100dvh - 3rem);
+    border-radius: 16px;
+    background:
+        radial-gradient(ellipse at 15% 15%, #c2f2ee 0, transparent 55%),
+        radial-gradient(ellipse at 85% 70%, #d9cdf2 0, transparent 55%);
+}
+
+.login-card {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 490px;
+    padding: 1rem;
+    color: #1e293b;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 16px 40px rgba(71, 85, 105, 0.16);
+}
+
+.login-card h1 {
+    margin: 0 0 1rem;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 500;
+}
+
+.login-card .auth-form {
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid #94a3b8;
+    border-radius: 8px;
+}
+
+.signin-welcome {
+    margin: 0 0 0.15rem;
+    text-align: center;
+    font-size: 0.9rem;
+}
+
+.login-card .form-field {
+    margin-bottom: 0;
+}
+
+.login-card label {
+    color: #1e293b;
+    font-weight: 400;
+}
+
+.login-card input {
+    padding: 0.55rem 0.7rem;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.94);
+}
+
+.login-card button {
+    min-height: 42px;
+    border-radius: 8px;
+    font: inherit;
+    font-weight: 500;
+}
+
+.password-control {
+    position: relative;
+}
+
+.password-control input {
+    box-sizing: border-box;
+    width: 100%;
+    padding-right: 2.8rem;
+}
+
+.login-card .password-toggle {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: 44px;
+    padding: 0.65rem;
+    color: #475569;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+.password-toggle svg {
+    display: block;
+    width: 22px;
+    height: 22px;
+}
+
+.login-card .signin-submit {
+    background: #487eb8;
+    color: white;
+    box-shadow: 0 2px 5px rgba(51, 65, 85, 0.16);
+}
+
+.login-card .signin-submit:hover {
+    background: #386ba3;
+}
+
+.signin-submit span {
+    margin-left: 0.5rem;
+}
+
+.account-type-label {
+    margin: 0.9rem 0 0.4rem;
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.guest-signup {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+    gap: 0.75rem;
+}
+
+.guest-signup-button {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.8rem 0.5rem;
+    border: 1px solid #aeb8c8;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.65);
+    color: #1e293b;
+    text-align: center;
+    font-weight: 500;
+    text-decoration: none;
+    box-shadow: 0 3px 5px rgba(51, 65, 85, 0.12);
+}
+
+.guest-signup-button svg {
+    width: 34px;
+    height: 34px;
+}
+
+.guest-signup-button:hover {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: #64748b;
+}
+
+.signin-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin: 1rem 0;
+    color: #475569;
+    font-size: 0.8rem;
+}
+
+.signin-divider::before,
+.signin-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #94a3b8;
+}
+
+.provider-options {
+    display: grid;
+    gap: 0.6rem;
+}
+
+.login-card .provider-button {
+    position: relative;
+    width: 100%;
+    padding: 0.55rem 2.6rem;
+    border: 1px solid #b6bdca;
+    background: white;
+    color: #1e293b;
+    box-shadow: 0 2px 4px rgba(51, 65, 85, 0.12);
+}
+
+.login-card .provider-button:hover {
+    background: #f8fafc;
+    border-color: #64748b;
+    transform: none;
+}
+
+.provider-mark,
+.google-mark {
+    position: absolute;
+    left: 0.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+}
+
+.google-mark {
+    color: #4285f4;
+    font: 700 26px/24px Arial, sans-serif;
+}
+
+.guest-signup-button:focus-visible,
+.login-card button:focus-visible,
+.login-card input:focus-visible,
+.demo-accounts summary:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 2px;
+}
+
+.demo-accounts {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #475569;
+}
+
+.demo-accounts summary {
+    width: fit-content;
+    margin: 0 auto;
+    cursor: pointer;
+}
+
+.demo-accounts p {
+    overflow-wrap: anywhere;
+}
+
+.password-recovery-link {
+    margin: 0.75rem 0 0;
+    text-align: center;
+    font-size: 0.85rem;
+}

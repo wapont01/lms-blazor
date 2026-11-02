@@ -121,6 +121,7 @@ public sealed class UnitExamService : IUnitExamService
 
     public async Task<UnitExamSubmitResult> SubmitUnitExamAsync(Guid userId, Guid courseId, string unitExamKey, IReadOnlyCollection<string> selectedOptionKeys)
     {
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
         if (string.IsNullOrWhiteSpace(unitExamKey))
         {
             return new UnitExamSubmitResult(false, "Unit Exam is invalid.", new HashSet<string>(StringComparer.OrdinalIgnoreCase));
@@ -166,11 +167,13 @@ public sealed class UnitExamService : IUnitExamService
         }
         else
         {
+            await _dbContext.Entry(progress).ReloadAsync();
             progress.Passed = true;
             progress.PassedAt = DateTime.UtcNow;
         }
 
         await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
         return new UnitExamSubmitResult(true, "Pass. Unit Exam requirements are satisfied.", correct);
     }
 

@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "multi-state",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\Full_License_Development_Coverage_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ENTITY_CAMPAIGN\\Full_License_Development_Coverage_20261011.csv",
+                      "Sha256":  "7C4D0A8C9F6751BB97788E136E561530B906B1275CBFA098B21A72E8B45CB7F8",
+                      "Bytes":  1257,
+                      "OfficialSourceUrl":  "",
+                      "Coverage":  "Four-state counts coverage source paths source hashes and scope"
+                  },
+                  {
+                      "Path":  "prepared\\Full_License_Development_Data_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ENTITY_CAMPAIGN\\Full_License_Development_Data_20261011.csv",
+                      "Sha256":  "CBACB852A0F9BF4174ABE36021A79A9A462807353F2F0ABE17D0AE447056BB9E",
+                      "Bytes":  52370291,
+                      "OfficialSourceUrl":  "",
+                      "Coverage":  "Normalized four-state development records: Idaho Indiana Kentucky and Washington"
+                  },
+                  {
+                      "Path":  "prepared\\Full_License_Development_Data_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ENTITY_CAMPAIGN\\Full_License_Development_Data_20261011.json",
+                      "Sha256":  "C1F2B0C15A2494A85656880FBA2924088D29085FD058D0FB95C5BEF1A97B54F3",
+                      "Bytes":  2209,
+                      "OfficialSourceUrl":  "",
+                      "Coverage":  "Dataset manifest and SHA-256 hashes"
+                  },
+                  {
+                      "Path":  "prepared\\Full_License_Development_Relationships_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ENTITY_CAMPAIGN\\Full_License_Development_Relationships_20261011.csv",
+                      "Sha256":  "99490C25D10A31199CD727C1233F909A918CB4D9F407F12E48FC45F32B1B56CC",
+                      "Bytes":  573,
+                      "OfficialSourceUrl":  "",
+                      "Coverage":  "One explicit Kentucky principal-broker relationship edge"
+                  }
+              ]
+}

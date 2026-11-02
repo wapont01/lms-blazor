@@ -1,0 +1,76 @@
+@using Lms.Application.Services
+
+<div class="record-view">
+    <header class="record-heading">
+        <div>
+            <p class="record-state">@Record.State</p>
+            <h3>@Record.Name</h3>
+        </div>
+        <div class="record-number">
+            <span>License number</span>
+            <strong>@Record.LicenseNumber</strong>
+        </div>
+    </header>
+    <dl class="record-summary">
+        @if (!string.IsNullOrWhiteSpace(Record.LicenseType))
+        {
+            <div><dt>License type</dt><dd>@TypeLabel</dd></div>
+        }
+        @if (!string.IsNullOrWhiteSpace(Record.LicenseStatus))
+        {
+            <div><dt>License status</dt><dd>@Record.LicenseStatus</dd></div>
+        }
+        @foreach (var detail in Record.Details.Where(detail => detail.Label == "Renewal / expiration"))
+        {
+            <div><dt>@detail.Label</dt><dd>@detail.Value</dd></div>
+        }
+    </dl>
+    @if (Record.Details.Any(detail => !IsFirmDetail(detail) && detail.Label != "Renewal / expiration"))
+    {
+        <section class="record-section" aria-label="Credential details">
+            <h4>Credential details</h4>
+            <dl class="record-details">
+                @foreach (var detail in Record.Details.Where(detail => !IsFirmDetail(detail) && detail.Label != "Renewal / expiration"))
+                {
+                    <div><dt>@detail.Label</dt><dd>@detail.Value</dd></div>
+                }
+            </dl>
+        </section>
+    }
+    @if (Record.Details.Any(IsFirmDetail))
+    {
+        <section class="record-section" aria-label="Brokerage and affiliations">
+            <h4>Brokerage &amp; affiliations</h4>
+            <dl class="record-details">
+                @foreach (var detail in Record.Details.Where(IsFirmDetail))
+                {
+                    <div><dt>@detail.Label</dt><dd>@detail.Value</dd></div>
+                }
+            </dl>
+        </section>
+    }
+    <footer class="record-source">
+        <span>@Record.SourceName <span class="source-date">Retrieved @Record.RetrievedAtUtc.ToString("yyyy-MM-dd")</span></span>
+        @if (Record.State == "Florida")
+        {
+            <a href="https://www.myfloridalicense.com/wl11.asp?mode=0&amp;SID=" target="_blank" rel="noopener noreferrer">Search official DBPR records</a>
+        }
+        else if (Record.SourceUrl is not null)
+        {
+            <a href="@Record.SourceUrl" target="_blank" rel="noopener noreferrer">View source</a>
+        }
+    </footer>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public RosterSelection Record { get; set; } = default!;
+
+    private string? TypeLabel => Record.State == "Florida"
+        ? Record.LicenseType switch { "BK" => "Broker (BK)", "SL" => "Sales Associate (SL)", _ => Record.LicenseType }
+        : Record.LicenseType == "BROKER" ? "Broker" : Record.LicenseType;
+
+    private static bool IsFirmDetail(RosterDetail detail) =>
+        detail.Label.StartsWith("Firm ", StringComparison.Ordinal)
+        || detail.Label.StartsWith("Affiliation ", StringComparison.Ordinal)
+        || detail.Label is "Brokerage / firm" or "Qualifying broker" or "Broker in charge";
+}

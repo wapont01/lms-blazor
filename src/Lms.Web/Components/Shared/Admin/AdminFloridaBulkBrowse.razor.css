@@ -1,0 +1,10 @@
+.bulk-browse { padding: 12px; margin-bottom: 12px; min-width: 0; overflow-wrap: anywhere; }
+h2 { margin: 0 0 8px; font-size: 1.15rem; }
+fieldset { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; padding: 10px; border: 1px solid var(--panel-border); border-radius: 8px; }
+legend { font-size: .85rem; }
+label { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+input, select { box-sizing: border-box; width: 100%; padding: 8px; min-width: 0; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.table-wrap { max-width: 100%; overflow-x: auto; max-height: 440px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--panel-border); }

@@ -1,0 +1,154 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Montana",
+    "CaptureDate":  "2026-10-12",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Montana Real Estate Development Data Notes 20261012.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\TXTS\\Montana Real Estate Development Data Notes 20261012.txt",
+                      "Sha256":  "1CBE4077177C497D2344F1CDF831786FB330526EC1B29EB9689A15FFF201B8C3",
+                      "Bytes":  6639,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Export scope and source completeness notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Montana_All_Captured_Development_Campaign_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_All_Captured_Development_Campaign_20261012.csv",
+                      "Sha256":  "22124D48C7A9738C25BAD37B0B991331B8E72FACF1BF390AD1C799770B7B6588",
+                      "Bytes":  18322235,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "All captured individual-category credentials; mixed statuses"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Montana_Captured_Coverage_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_Captured_Coverage_20261012.csv",
+                      "Sha256":  "7012682179151661DBB2C4EE027306F840C3FA336A79ABD3BDBED6560EF88655",
+                      "Bytes":  1670,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Source export coverage evidence"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Montana_Core_Brokerage_Development_Campaign_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_Core_Brokerage_Development_Campaign_20261012.csv",
+                      "Sha256":  "F98B143A49B74B6C79AD0CD1D8EC437B7E8BAE7B25CC2AFCAD99F4B4852FFE39",
+                      "Bytes":  18269625,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Core brokerage development data"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Montana_Development_Data_20261012.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_Development_Data_20261012.json",
+                      "Sha256":  "648C3B4086781DD108B27C94486B2D9B7E7000997C3D0CB162E9E1BF1B8A8A5B",
+                      "Bytes":  7551,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Manifest and completeness limitations"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Montana_Exact_Active_Individuals_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_Exact_Active_Individuals_20261012.csv",
+                      "Sha256":  "8C5E966EFB97E84465E187CE6D27BE2E7ED9243B94F1141661EFC13467D661BF",
+                      "Bytes":  6368352,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Exact active individual license subset"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Montana_Supplementary_Timeshare_Development_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_Supplementary_Timeshare_Development_20261012.csv",
+                      "Sha256":  "93664B13471288AC026663DAA4AAB519D9C743E83D36AE78BE8BD24707FA52C9",
+                      "Bytes":  52975,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Supplementary historical timeshare salesperson records"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Montana_Unresolved_Business_Name_References_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_Unresolved_Business_Name_References_20261012.csv",
+                      "Sha256":  "848C63F42A6E97422287775B306D721BF9571BBC2E60057BDE1C055BAC54B19E",
+                      "Bytes":  2029302,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Unresolved business-name annotations; not verified firm licenses"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\portal_samples\\Montana_Sample_Search_BerkshireHathaway_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\portal_samples\\Montana_Sample_Search_BerkshireHathaway_20261012.csv",
+                      "Sha256":  "C6EC739DA58837807D0160F873E32004C8952F9E313D4E133779D8046B32E80E",
+                      "Bytes":  3852,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Sample portal business-name search results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\portal_samples\\Montana_Sample_Search_ERALandmark_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\portal_samples\\Montana_Sample_Search_ERALandmark_20261012.csv",
+                      "Sha256":  "E1D0D1B86693901FBE9B3D5E9C3D4EFD23CEEC9D7B35194FCCC52E13C48ACF67",
+                      "Bytes":  1333,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Sample portal business-name search results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\portal_samples\\Montana_Sample_Search_KellerWilliams_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\portal_samples\\Montana_Sample_Search_KellerWilliams_20261012.csv",
+                      "Sha256":  "A5AD581DFA5C508B4365A66C2CAB3EC1314B7A0ECB45D73038C2DF0197639E20",
+                      "Bytes":  7345,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Sample portal business-name search results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\portal_samples\\Montana_Sample_Search_PureWest_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\portal_samples\\Montana_Sample_Search_PureWest_20261012.csv",
+                      "Sha256":  "4E740510B0DC9D3988106DC01CC85E6BE2EABB24C3453806212BACF3760462BA",
+                      "Bytes":  448,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Sample portal business-name search results"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Montana_Broker_License_Export_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_Broker_License_Export_20261012.csv",
+                      "Sha256":  "C03EB1EC9FB37434D042D21304E4F45FC286CF1D2CDA2799E92175917C67842E",
+                      "Bytes":  489793,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "User-supplied official broker export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Montana_Salesperson_License_Export_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_Salesperson_License_Export_20261012.csv",
+                      "Sha256":  "B7578FAF6B6C1951051C6A66D015FD5D1D6B42B01F97AB952E5A5D9805666168",
+                      "Bytes":  1466164,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "User-supplied official salesperson export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Montana_Salesperson_Temporary_License_Export_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_Salesperson_Temporary_License_Export_20261012.csv",
+                      "Sha256":  "E5ADC96D691FA13A638F93BCD6A1F420AF11B7324935E4D294178A4303C49876",
+                      "Bytes":  1275,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "User-supplied temporary salesperson export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Montana_Timeshare_Salesperson_License_Export_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MONTANA\\XLXS\\Montana_Timeshare_Salesperson_License_Export_20261012.csv",
+                      "Sha256":  "E15652D0A482A93FFD522EA87ECA19676FD7FB1CBFFD3E155A4D7DEF529606F7",
+                      "Bytes":  5399,
+                      "OfficialSourceUrl":  "https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses",
+                      "Coverage":  "Supplementary timeshare salesperson export"
+                  }
+              ]
+}

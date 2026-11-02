@@ -1,0 +1,87 @@
+@implements IAsyncDisposable
+@using System.Data.Common
+@using Lms.Application.Services
+@using Lms.Web.Services
+@inject NevadaBulkBrowseService Browser
+@inject ILogger<AdminNevadaBulkBrowse> Logger
+
+<section class="card bulk-browse" aria-label="Nevada license lookup">
+    <h2>License lookup</h2>
+    <fieldset disabled="@(_loading || !_interactive)">
+        <legend class="muted-text">Search the current imported Nevada roster. No license records are loaded until you search.</legend>
+        <label>License type
+            <select aria-label="Nevada license type" @bind="_type">
+                <option value="">All imported license types</option>
+                @foreach (var type in NevadaNredBulkImportService.AllLicenseTypes.Where(type => type != "Homeowners Association"))
+                {
+                    <option>@type</option>
+                }
+            </select>
+        </label>
+        <label>Name or license <input aria-label="Nevada name or license" @bind="_name" maxlength="100" /></label>
+    </fieldset>
+    <button type="button" class="secondary-btn" @onclick="SearchAsync" disabled="@(_loading || !_interactive)">
+        @(_loading ? "Searching..." : "Search Nevada licenses")
+    </button>
+    @if (_error is not null) { <p role="alert" class="auth-error">@_error</p> }
+    @if (_searched && !_loading && _result is null && _error is null)
+    { <p>No imported Nevada roster is available. Collect data first.</p> }
+    @if (_result is { } result)
+    {
+        <p role="status">@result.Total.ToString("N0") matching licenses - snapshot @result.SnapshotId</p>
+        <div class="table-wrap">
+            <table aria-label="Filtered Nevada licenses">
+                <thead><tr><th>Name</th><th>License</th><th>Type</th><th>Source status</th><th>Expires</th><th>Company</th></tr></thead>
+                <tbody>
+                    @foreach (var row in result.Records)
+                    {
+                        <tr><td>@row.Name</td><th scope="row">@row.Number</th><td>@row.Type</td><td>@row.Status</td><td>@row.Expires?.ToString("yyyy-MM-dd")</td><td>@row.Company</td></tr>
+                    }
+                    @if (result.Records.Count == 0) { <tr><td colspan="6">No licenses match these filters.</td></tr> }
+                </tbody>
+            </table>
+        </div>
+        <nav aria-label="Nevada license pages">
+            <button type="button" class="secondary-btn" @onclick="PreviousAsync" disabled="@(_loading || result.Page == 0)">Previous Nevada licenses</button>
+            <span>Page @(result.Page + 1) of @Math.Max(1, (result.Total + NevadaBulkBrowseService.PageSize - 1) / NevadaBulkBrowseService.PageSize)</span>
+            <button type="button" class="secondary-btn" @onclick="NextAsync" disabled="@(_loading || ((long)result.Page + 1) * NevadaBulkBrowseService.PageSize >= result.Total)">Next Nevada licenses</button>
+        </nav>
+    }
+    <p class="muted-text">Admin lookup includes all 11 imported numbered-license categories. Public registration still exposes only Broker, Broker-Salesperson and Salesperson. HOA entries remain source evidence, not individual licenses.</p>
+</section>
+
+@code {
+    private readonly CancellationTokenSource _stop = new();
+    private string _type = "", _name = "";
+    private bool _loading, _interactive, _searched;
+    private string? _error;
+    private NevadaBulkBrowseResult? _result;
+    private NevadaBulkBrowseQuery? _applied;
+    private Task? _search;
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) { _interactive = true; StateHasChanged(); }
+    }
+    private Task SearchAsync() => _search = LoadAsync(new(_type, _name));
+    private Task PreviousAsync() => _search = LoadAsync(_applied! with { Page = Math.Max(0, _result!.Page - 1) });
+    private Task NextAsync() => _search = LoadAsync(_applied! with { Page = _result!.Page + 1 });
+    private async Task LoadAsync(NevadaBulkBrowseQuery query)
+    {
+        if (_loading) return;
+        _loading = true; _searched = true; _error = null; _result = null; _applied = query;
+        try { _result = await Browser.GetAsync(query, _stop.Token); }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is DbException or InvalidOperationException or ArgumentException)
+        {
+            Logger.LogError(exception, "Nevada license lookup failed");
+            _error = "Nevada licenses could not be loaded. Try again or check collection status.";
+        }
+        finally { _loading = false; }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        _stop.Cancel();
+        if (_search is not null) await _search;
+        _stop.Dispose();
+    }
+}

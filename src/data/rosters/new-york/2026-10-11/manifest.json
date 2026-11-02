@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "New York",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\TXTs\\New York Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\New York Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "F02C15224C84CFA7B57A8DB55AC7FE1F312F13D77226E7DE7B2E108F22B99D68",
+                      "Bytes":  2047,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Crawl scope and source notes"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\New_York_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\XLXS\\New_York_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "EA7DE84BCCF52E40811110198B06E875CD674E0C684084A9F9757342B95087CC",
+                      "Bytes":  35896,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Active real-estate entity development sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\New_York_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\XLXS\\New_York_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "6BBD78C779279C1260716AC780E513BD87858A8901112BC61FF4A305666CA3F4",
+                      "Bytes":  4079,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "State sample manifest"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\New_York_Active_Real_Estate_Entity_Licenses_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\XLXS\\New_York_Active_Real_Estate_Entity_Licenses_20261011.json",
+                      "Sha256":  "A366F128A18672AE4F62BB18002996B247141E6E4DA9E1F6A5E60327760CBBF9",
+                      "Bytes":  12644556,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Active real-estate entity license records"
+                  }
+              ]
+}

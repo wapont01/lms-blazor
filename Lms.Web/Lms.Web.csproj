@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <Target Name="RejectLegacyWebEntryPoint" BeforeTargets="PrepareForBuild;ComputeRunArguments">
+    <Error Text="This legacy LMS web entry point is retired. Run dotnet run --project src\Lms.Web\Lms.Web.csproj from the repository root, or use the LMS (canonical app) VS Code launch configuration. Existing databases have not been moved or deleted." />
+  </Target>
+
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>

@@ -128,6 +128,7 @@ public static class SchoolStaffRoles
 public class SchoolStaffMember
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid? UserAccountId { get; set; }
     public Guid SchoolProfileId { get; set; }
     public SchoolProfile? SchoolProfile { get; set; }
 

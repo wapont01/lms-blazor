@@ -1,0 +1,92 @@
+@page "/dev/exam-history-preview"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+@using Lms.Application.Services
+@using Lms.Web.Components.Shared
+
+<PageTitle>Exam History Preview</PageTitle>
+
+<div class="lesson-main-column">
+    <section class="card">
+        <p class="muted-text course-kicker">Sample preview</p>
+        <h1>Exam History</h1>
+        <p>Sample results only. These attempts are not saved to your account.</p>
+    </section>
+    <ExamAttemptHistoryPanel Attempts="_sampleAttempts" />
+</div>
+
+@code {
+    private readonly IReadOnlyList<ExamAttemptHistoryItem> _sampleAttempts = CreateSampleAttempts();
+
+    private static IReadOnlyList<ExamAttemptHistoryItem> CreateSampleAttempts()
+    {
+        var now = DateTime.Now;
+        var failedSubmittedAt = now.Date.AddDays(-2).AddHours(11).AddMinutes(40);
+        var passedSubmittedAt = now.Date.AddDays(-1).AddHours(10).AddMinutes(5);
+
+        return
+        [
+            new ExamAttemptHistoryItem(
+                2,
+                passedSubmittedAt,
+                90m,
+                true,
+                [
+                    new ExamAttemptAnswerReview(
+                        "Which comparable is the strongest starting point?",
+                        "A",
+                        "A",
+                        true,
+                        "Recent sales with similar characteristics are usually the most relevant.",
+                        "A recent nearby sale with similar size and condition",
+                        "A distant listing with a higher asking price",
+                        "A sale from several years ago",
+                        "A property with a different use"),
+                    new ExamAttemptAnswerReview(
+                        "What should an agent do when a comparable differs materially?",
+                        "C",
+                        "C",
+                        true,
+                        "Explain material differences and any adjustments transparently.",
+                        "Ignore the difference",
+                        "Use the property without explanation",
+                        "Explain the difference and its effect on the analysis",
+                        "Remove all other comparables")
+                ],
+                "Passed on the second attempt.",
+                Guid.Parse("4f280d4d-6e38-4b66-8cac-716d8ad72c62"),
+                "Preparing a Market Analysis - Best Practices Final Exam",
+                StartedAt: passedSubmittedAt.AddMinutes(-18)),
+            new ExamAttemptHistoryItem(
+                1,
+                failedSubmittedAt,
+                60m,
+                false,
+                [
+                    new ExamAttemptAnswerReview(
+                        "Which comparable is the strongest starting point?",
+                        "B",
+                        "A",
+                        false,
+                        "Start with recent properties that closely match the subject.",
+                        "A recent nearby sale with similar size and condition",
+                        "A distant listing with a higher asking price",
+                        "A sale from several years ago",
+                        "A property with a different use"),
+                    new ExamAttemptAnswerReview(
+                        "What should an agent do when a comparable differs materially?",
+                        "C",
+                        "C",
+                        true,
+                        "Explain material differences and any adjustments transparently.",
+                        "Ignore the difference",
+                        "Use the property without explanation",
+                        "Explain the difference and its effect on the analysis",
+                        "Remove all other comparables")
+                ],
+                "Review comparable selection before retaking.",
+                Guid.Parse("4f280d4d-6e38-4b66-8cac-716d8ad72c62"),
+                "Preparing a Market Analysis - Best Practices Final Exam",
+                StartedAt: failedSubmittedAt.AddMinutes(-35))
+        ];
+    }
+}

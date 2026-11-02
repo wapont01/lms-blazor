@@ -1,0 +1,321 @@
+@page "/admin/regulatory-statistics"
+@attribute [Authorize(Roles = "Admin")]
+@using System.Data.Common
+@using Lms.Application.Services
+@using Lms.Web.Services
+@inject RegulatoryStatisticsService Statistics
+@inject ILogger<AdminRegulatoryStatistics> Logger
+@inject IConfiguration Configuration
+
+<PageTitle>State Collection Statistics</PageTitle>
+
+<div class="state-statistics">
+    <header>
+        <h1>State collection statistics</h1>
+        <p class="muted-text">Weekly bulk synchronization and roster changes by state.</p>
+    </header>
+    <section class="card filters" aria-label="Statistics selection">
+        <select aria-label="Statistics state" value="@_state" @onchange="ChangeStateAsync" disabled="@(_loading || !_interactive)">
+            @foreach (var state in _states)
+            {
+                <option value="@state">@state</option>
+            }
+        </select>
+    </section>
+
+    @if (_state == "Colorado")
+    {
+        <section class="card colorado-source-notice" aria-label="Colorado eLicense source" role="status">
+            <h2>Colorado real-estate sources</h2>
+            <p><strong>Selected DORA dataset:</strong> Licensed Real Estate Professionals in Colorado, dataset version 2468. This is the source selected for Colorado real-estate imports.</p>
+            <p><a href="https://data.colorado.gov/Regulations/Licensed-Real-Estate-Professionals-in-Colorado/4zse-6bnw/about_data" target="_blank" rel="noopener noreferrer">Open the DORA real-estate license dataset</a></p>
+            <p><strong>eLicense imports:</strong> The DRE roster generator provides the Active Associate Broker, Responsible Broker, Individual Proprietor, and Real Estate Company CSVs. CAPTCHA prevents automated retrieval, so an admin must provide the files for import.</p>
+            <p><a href="https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx" target="_blank" rel="noopener noreferrer">Open Colorado DRE eLicense roster generator</a></p>
+            <p class="muted-text">Colorado's existing eLicense snapshot is retained. The selected DORA real-estate dataset has not yet been imported.</p>
+        </section>
+    }
+
+    @if (IsBulkState)
+    {
+        <Lms.Web.Components.Shared.Admin.AdminFloridaBulkCollection @key="_state" State="@_state" SnapshotCompleted="OnBulkSnapshotCompletedAsync" />
+        @if (_state == "Florida")
+        {
+        <Lms.Web.Components.Shared.Admin.AdminFloridaBulkBrowse />
+        }
+        else if (_state == "Texas")
+        {
+            <Lms.Web.Components.Shared.Admin.AdminTexasBulkBrowse />
+        }
+        else if (_state == "California")
+        {
+            <Lms.Web.Components.Shared.Admin.AdminCaliforniaBulkBrowse />
+        }
+        else if (_state == "Nevada")
+        {
+            <Lms.Web.Components.Shared.Admin.AdminNevadaBulkBrowse @key="_progressVersion" />
+        }
+    }
+    else
+    {
+        <Lms.Web.Components.Shared.Admin.AdminCollectionProgress @key="(_state, _incomingId, _progressVersion)" State="@_state" SnapshotId="@_incomingId" />
+    }
+
+    @if (_error is not null)
+    {
+        <p role="alert" class="auth-error">@_error</p>
+        <button type="button" class="secondary-btn" @onclick="RefreshAsync" disabled="@(_loading || !_interactive)">Retry statistics</button>
+    }
+    else if (_statistics is { } stats)
+    {
+        <section class="card" aria-label="Comparison scope">
+            <h2>@stats.State</h2>
+            @if (!IsBulkState)
+            {
+            <div class="comparison-actions" aria-label="Comparison selection">
+                @if (stats.PendingSnapshots.Count > 0)
+                {
+                    <select aria-label="Incoming snapshot" value="@stats.Incoming?.Id" @onchange="ChangeSnapshotAsync" disabled="@(_loading || !_interactive)">
+                        @foreach (var snapshot in stats.PendingSnapshots)
+                        {
+                            <option value="@snapshot.Id">@snapshot.SourceName (@Utc(snapshot.RetrievedAtUtc))</option>
+                        }
+                    </select>
+                }
+                <button type="button" class="secondary-btn" @onclick="RefreshAsync" disabled="@(_loading || !_interactive)">Refresh statistics</button>
+                <a href="/admin/regulatory-directory">Review snapshots</a>
+            </div>
+            }
+            <div class="summary-metrics" aria-label="State totals">
+                <div><span>@BaselineLabel</span><strong>@Number(stats.Professions.Sum(row => row.Current))</strong></div>
+                <div><span>@CollectionLabel</span><strong>@Number(stats.Professions.Sum(row => row.Collected))</strong></div>
+                <div><span>Status changes</span><strong>@Number(stats.Records.Count(row => row.Classification == "Status changed"))</strong></div>
+                <div><span>New to baseline</span><strong>@Number(stats.Professions.Sum(row => row.New))</strong></div>
+                <div><span>Other updates</span><strong>@Number(stats.Records.Count(row => row.Classification == "Other updates"))</strong></div>
+                <div><span>Unchanged</span><strong>@Number(stats.Professions.Sum(row => row.Unchanged))</strong></div>
+            </div>
+            @if (stats.Incoming?.SourceName.Contains("INCOMPLETE", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                <p role="status"><strong>Incomplete collection.</strong> Staged batches may lag the collector; these are not final statewide totals.</p>
+            }
+            @if (stats.Incoming is not null && stats.Baseline is null)
+            {
+                <p><strong>@(IsBulkState ? "Initial synchronization; no previous roster." : "Initial collection; no approved baseline.")</strong> Newly collected does not mean newly issued.</p>
+            }
+            @if (!IsBulkState && stats.Incoming is not null && stats.Baseline is not null && stats.Incoming.RetrievedAtUtc < stats.Baseline.RetrievedAtUtc)
+            {
+                <p role="status"><strong>Pending collection predates the approved baseline.</strong> Differences are not necessarily newer updates.</p>
+            }
+            @if (stats.Incoming is null)
+            {
+                <p>@(IsBulkState ? "No synchronized bulk roster for this state." : "No pending collection for this state.")</p>
+            }
+            <details>
+                <summary>Sources, timestamps and coverage</summary>
+            <dl>
+                <dt>@BaselineLabel</dt>
+                <dd>@(stats.Baseline?.SourceName ?? (IsBulkState ? "No previous roster" : "No approved baseline"))
+                    @if (stats.Baseline is { } baseline) { <span class="muted-text"> · Retrieved @Utc(baseline.RetrievedAtUtc)</span> }
+                </dd>
+                <dt>@CollectionLabel</dt>
+                <dd>@(stats.Incoming?.SourceName ?? (IsBulkState ? "No synchronized roster" : "No pending collection"))
+                    @if (stats.Incoming is { } incoming) { <span class="muted-text"> · Retrieved @Utc(incoming.RetrievedAtUtc) · @(IsBulkState ? "Synchronized" : "Pending review")</span> }
+                </dd>
+                <dt>Statistics checked</dt>
+                <dd>@Utc(stats.CheckedAtUtc)</dd>
+            </dl>
+                <p class="muted-text">Snapshots may have different coverage. Florida bulk excludes Null &amp; Void; Texas retains all published statuses; California preserves DRE's current roles and corporate relationships. Unobserved records are never classified as removed. Bulk comparisons show the current synchronized roster against its previous version and update when synchronization completes.</p>
+            </details>
+        </section>
+        <section class="card" aria-label="Record comparison">
+            <h2>@(IsBulkState ? "Previous and current roster" : "Current and incoming records")</h2>
+            <p class="muted-text">Counts are licenses, not unique people. @(IsBulkState ? "Current roster means the latest validated synchronization, not an active license status. New to baseline counts license identities absent from the previous roster." : "Current means approved in the LMS, not an active license status. New to baseline counts identities absent from the approved snapshot.") It does not mean newly issued licenses. Counts are based on matched records, not subtraction of snapshot totals.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Record group</th><th>Profession / type</th><th>@BaselineLabel</th><th>@CollectionLabel</th><th>New to baseline</th><th>Changed</th><th>Unchanged</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in stats.Professions)
+                        {
+                            <tr><td>@row.Kind</td><th scope="row">@row.Profession</th><td>@Number(row.Current)</td><td>@Number(row.Collected)</td><td class="increment-positive">@Number(row.New)</td><td>@Number(row.Changed)</td><td>@Number(row.Unchanged)</td></tr>
+                        }
+                        @if (stats.Professions.Count == 0)
+                        {
+                            <tr><td colspan="7">No numbered records in the selected snapshots.</td></tr>
+                        }
+                    </tbody>
+                    <tfoot><tr><th colspan="2">Total licenses</th><td>@Number(stats.Professions.Sum(row => row.Current))</td><td>@Number(stats.Professions.Sum(row => row.Collected))</td><td class="increment-positive">@Number(stats.Professions.Sum(row => row.New))</td><td>@Number(stats.Professions.Sum(row => row.Changed))</td><td>@Number(stats.Professions.Sum(row => row.Unchanged))</td></tr></tfoot>
+                </table>
+            </div>
+            <details>
+                <summary>How records are compared</summary>
+                <p class="muted-text">Matched by record group, license type and license number (trimmed, case-insensitive). California also distinguishes the published related-license type and number, preserving multiple officer/corporation relationships; totals are role records, including corporations, not unique people. Florida SL/Sales Associate, BK/Broker/Broker Sales and ZH/Real Estate Instructor use shared credential identities; Broker Sales remains a separate profession row. Other different types are separate credentials. Changed means stored profile, status, date, restriction or education fields differ; firm changes also include address and qualifying broker. Missing fields can reflect source differences rather than regulator changes. Affiliations are not compared. Identical duplicate licenses count once.</p>
+            </details>
+            @if (stats.ExcludedCurrent + stats.ExcludedCollected > 0)
+            {
+                <p>Excluded records without a license number: @Number(stats.ExcludedCurrent) current; @Number(stats.ExcludedCollected) incoming.</p>
+            }
+        </section>
+        <section class="card" aria-label="Published license statuses">
+            <h2>Published license statuses</h2>
+            <div class="table-wrap">
+                <table aria-label="Source status transitions">
+                    <thead><tr><th>Record group</th><th>@(IsBulkState ? "Source status: previous → current" : "Source status: approved → incoming")</th><th>Matched licenses</th></tr></thead>
+                    <tbody>
+                        @{
+                            var transitions = stats.Records.Where(record => record.Classification == "Status changed")
+                                .SelectMany(record => record.Changes.Where(change => change.Field == "Status")
+                                    .Select(change => new { record.Kind, change.Previous, change.Incoming }))
+                                .GroupBy(change => (change.Kind, change.Previous, change.Incoming))
+                                .OrderBy(group => group.Key.Kind).ThenBy(group => group.Key.Previous).ThenBy(group => group.Key.Incoming)
+                                .ToList();
+                        }
+                        @foreach (var transition in transitions)
+                        {
+                            <tr><td>@transition.Key.Kind</td><th scope="row">@StatusLabel(transition.Key.Previous) → @StatusLabel(transition.Key.Incoming)</th><td>@Number(transition.Count())</td></tr>
+                        }
+                        @if (transitions.Count == 0)
+                        {
+                            <tr><td colspan="3">No matched status transitions in the selected snapshots.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <p class="muted-text">Entered and left count status transitions of matched licenses only; new licenses are separate. One Active → Inactive transition shows −1 Active and +1 Inactive without changing the total license count. Missing records are not exits. Source status labels remain as published and may differ in formatting.</p>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Record group</th><th>Source status</th><th>@BaselineLabel</th><th>@CollectionLabel</th><th>New licenses</th><th>Entered</th><th>Left</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in stats.Statuses)
+                        {
+                            <tr><td>@row.Kind</td><th scope="row">@StatusLabel(row.Status)</th><td>@Number(row.Current)</td><td>@Number(row.Collected)</td><td class="increment-positive">@Number(row.NewLicenses)</td><td class="increment-positive">@(row.Entered > 0 ? "+ " : "")@Number(row.Entered)</td><td class="increment-negative">@(row.Left > 0 ? "- " : "")@Number(row.Left)</td></tr>
+                        }
+                        @if (stats.Statuses.Count == 0)
+                        {
+                            <tr><td colspan="7">No published statuses available.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <section class="card" aria-label="License reconciliation">
+            <h2>License reconciliation</h2>
+            <p class="muted-text">Match by license identity against the @(IsBulkState ? "previous roster" : "approved baseline"). Not observed means unverified, not removed. Status-changed records include any other changed fields. Values below are normalized for comparison; blank means not reported. Bulk reports update when synchronization completes.</p>
+            @if (stats.Incoming is null)
+            {
+                <p>No incoming snapshot available for reconciliation.</p>
+            }
+            else
+            {
+                <label>Record classification
+                    <select aria-label="Reconciliation classification" @bind="_classification" @bind:after="ResetRecordPage">
+                        @foreach (var classification in Classifications)
+                        {
+                            <option value="@classification">@classification (@Number(stats.Records.Count(row => row.Classification == classification)))</option>
+                        }
+                    </select>
+                </label>
+                var matching = stats.Records.Where(row => row.Classification == _classification).ToList();
+                <div class="table-wrap">
+                    <table aria-label="Reconciled licenses">
+                        <thead><tr><th>Group</th><th>License</th><th>Profession / type</th><th>Classification</th><th>Old → new details</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in matching.Skip(_recordPage * 50).Take(50))
+                            {
+                                <tr><td>@row.Kind</td><th scope="row">@row.LicenseNumber</th><td>@row.Profession</td><td>@row.Classification</td><td>
+                                    @foreach (var change in row.Changes)
+                                    {
+                                        <div><strong>@change.Field:</strong> @FieldValue(change.Field, change.Previous) → @FieldValue(change.Field, change.Incoming)</div>
+                                    }
+                                    @if (row.Changes.Count == 0)
+                                    {
+                                        <span>@(row.Classification == "New license" ? (IsBulkState ? "Not present in previous roster." : "Not present in approved baseline.") : row.Classification == "Not observed" ? "Not observed in this roster; not a confirmed removal." : "No changed fields.")</span>
+                                    }
+                                </td></tr>
+                            }
+                            @if (matching.Count == 0) { <tr><td colspan="5">No records in this classification.</td></tr> }
+                        </tbody>
+                    </table>
+                </div>
+                <button type="button" disabled="@(_recordPage == 0)" @onclick="() => _recordPage--">Previous records</button>
+                <span>Page @(_recordPage + 1) / @Math.Max(1, (matching.Count + 49) / 50)</span>
+                <button type="button" disabled="@((_recordPage + 1) * 50 >= matching.Count)" @onclick="() => _recordPage++">Next records</button>
+            }
+        </section>
+    }
+</div>
+
+@code {
+    private bool IsBulkState => RegulatoryRoster.HasBulkProvider(_state);
+    private string BaselineLabel => IsBulkState ? "Previous roster" : "Current approved";
+    private string CollectionLabel => IsBulkState ? "Current roster" : "Incoming collected";
+    private List<string> _states = [];
+    private string _state = "Florida";
+    private Guid? _incomingId;
+    private RegulatoryStateStatistics? _statistics;
+    private bool _loading;
+    private bool _interactive;
+    private string? _error;
+    private int _progressVersion;
+    private static readonly string[] Classifications = ["Status changed", "Other updates", "New license", "Unchanged", "Not observed"];
+    private string _classification = "Status changed";
+    private int _recordPage;
+    private void ResetRecordPage() => _recordPage = 0;
+
+    protected override Task OnInitializedAsync() => RefreshAsync();
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) { _interactive = true; StateHasChanged(); }
+    }
+
+    private async Task ChangeStateAsync(ChangeEventArgs args)
+    {
+        _state = args.Value?.ToString() ?? "Florida";
+        _incomingId = null;
+        await RefreshAsync();
+    }
+
+    private async Task ChangeSnapshotAsync(ChangeEventArgs args)
+    {
+        _incomingId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : null;
+        await RefreshAsync();
+    }
+
+    private async Task OnBulkSnapshotCompletedAsync(Guid snapshotId)
+    {
+        _incomingId = snapshotId;
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (_loading) return;
+        _loading = true;
+        _error = null;
+        _statistics = null;
+        ResetRecordPage();
+        try
+        {
+            _states = await Statistics.GetStatesAsync();
+            _statistics = await Statistics.GetAsync(_state, _incomingId, bulkOnly: IsBulkState);
+            _incomingId = _statistics.Incoming?.Id;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or DbException)
+        {
+            Logger.LogError(exception, "Could not load regulatory statistics for {State}", _state);
+            _error = exception is InvalidOperationException ? exception.Message : "Statistics could not be loaded. Please try Refresh statistics again.";
+            _incomingId = null;
+        }
+        finally
+        {
+            _loading = false;
+            _progressVersion++;
+        }
+    }
+
+    private static string Number(int value) => value.ToString("N0");
+    private string StatusLabel(string value) => Configuration.GetValue<bool>("RegulatoryDisplay:SimplifyFloridaStatusLabels")
+        ? RegulatoryStatusDisplay.Format(_state, value) : value;
+    private string FieldValue(string field, string value) => value.Length == 0 ? "(not reported)"
+        : field == "Status" ? StatusLabel(value) : value;
+    private static string Utc(DateTime value) => value.ToString("yyyy-MM-dd HH:mm:ss 'UTC'");
+}

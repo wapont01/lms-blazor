@@ -71,7 +71,7 @@ public class CaliforniaDreCaptureSeedTests
 
         Assert.Equal(RegulatorySnapshotStatuses.Approved, snapshot.Status);
         Assert.Equal("https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html", snapshot.SourceUrl);
-        Assert.Contains("education information only", snapshot.SourceName, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("education information only", snapshot.SourceName, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(new DateTime(2026, 10, 10, 0, 32, 13, DateTimeKind.Utc).AddTicks(1_852_840), snapshot.RetrievedAtUtc);
         Assert.Equal(3, await fixture.DbContext.RegulatoryFirms.CountAsync(firm => firm.SnapshotId == snapshot.Id));
         Assert.Equal(6, await fixture.DbContext.RegulatoryLicensees.CountAsync(licensee => licensee.SnapshotId == snapshot.Id));

@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Massachusetts",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\XLXS\\Real-Estate-Brokers-and-Salespersons-Business-License-Affiliations-Form.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MASSACHUSETTS\\XLXS\\Real-Estate-Brokers-and-Salespersons-Business-License-Affiliations-Form.csv",
+                      "Sha256":  "2EA0D58EB7F5DC61A8183E91F85DA9DCB57E31B53A8C169F9D808B47F90972D2",
+                      "Bytes":  334,
+                      "OfficialSourceUrl":  "https://occupationallicensingandpermitting.mass.gov/madol/s/license-search-page",
+                      "Coverage":  "Real-estate broker and salesperson affiliation source form"
+                  }
+              ]
+}

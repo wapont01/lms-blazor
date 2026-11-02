@@ -1,0 +1,6 @@
+.card { min-width: 0; overflow-wrap: anywhere; }
+.table-wrap { max-width: 100%; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--panel-border); }
+.course-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+input:not([type="checkbox"]) { display: block; width: 100%; }

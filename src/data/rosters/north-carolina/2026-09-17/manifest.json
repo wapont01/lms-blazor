@@ -1,0 +1,28 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "North Carolina",
+    "CaptureDate":  "2026-09-17",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TEXTs\\BROKER ROSTER\\Charlotte - 65 Firms - NCREC Link Map 2026-09-17.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\TEXTs\\BROKER ROSTER\\Charlotte - 65 Firms - NCREC Link Map 2026-09-17.json",
+                      "Sha256":  "5352855A66068E28824C04599F7E496FD0804946D2F2468D99A9FA6A188D8B9B",
+                      "Bytes":  9895,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "Charlotte roster link map"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TEXTs\\BROKER ROSTER\\Charlotte - 65 Firms - NCREC Roster Capture 2026-09-17.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\TEXTs\\BROKER ROSTER\\Charlotte - 65 Firms - NCREC Roster Capture 2026-09-17.json",
+                      "Sha256":  "4A67A9BF0D94E19AA18A458461F2743BC1BA1A3559C4288ECD81CB102442FBC8",
+                      "Bytes":  468658,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "Charlotte firm roster capture"
+                  }
+              ]
+}

@@ -1,0 +1,73 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Nebraska",
+    "CaptureDate":  "2026-10-12",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Nebraska Real Estate Development Data Notes 20261012.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEBRASKA\\TXTS\\Nebraska Real Estate Development Data Notes 20261012.txt",
+                      "Sha256":  "B43A56A530DCF23034212B236899CF4922EF9721F4A6A70499E60E0B9DED6EDF",
+                      "Bytes":  3976,
+                      "OfficialSourceUrl":  "https://nrec.igovsolution.net/online/Verification/Individual",
+                      "Coverage":  "Captured source scope and credential identity notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Nebraska_All_Captured_Development_Campaign_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEBRASKA\\XLXS\\Nebraska_All_Captured_Development_Campaign_20261012.csv",
+                      "Sha256":  "3F5AD05A3656A0691C18588C89B0E1B8769FC6F1E7D3272DAB7121290F1E6E6D",
+                      "Bytes":  10160035,
+                      "OfficialSourceUrl":  "https://nrec.igovsolution.net/online/Verification/Individual",
+                      "Coverage":  "All captured development records"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Nebraska_Exact_Active_Individuals_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEBRASKA\\XLXS\\Nebraska_Exact_Active_Individuals_20261012.csv",
+                      "Sha256":  "C8733F1EFC0CF78FCA3331C555FE2723876008CD15F8EFB7C5FE4933C127F28D",
+                      "Bytes":  5330382,
+                      "OfficialSourceUrl":  "https://nrec.igovsolution.net/online/Verification/Individual",
+                      "Coverage":  "Exact active individuals; distinct credential identifiers retained"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Nebraska_Sample_Active_Individuals_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEBRASKA\\XLXS\\Nebraska_Sample_Active_Individuals_20261012.csv",
+                      "Sha256":  "104DBB72C99EB006E67592839FCBE3619664DA43F4DD6A710557ADCFE8E120F0",
+                      "Bytes":  116740,
+                      "OfficialSourceUrl":  "https://nrec.igovsolution.net/online/Verification/Individual",
+                      "Coverage":  "Active individual sample"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Nebraska_Active_Brokers_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEBRASKA\\XLXS\\Nebraska_Active_Brokers_20261012.csv",
+                      "Sha256":  "FB3550DD325BE3CC8A9F615EA54B25EF17899BFA4868E7E7BC0F6B60C1DA3309",
+                      "Bytes":  526438,
+                      "OfficialSourceUrl":  "https://nrec.igovsolution.net/online/Verification/Individual",
+                      "Coverage":  "Active broker query export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Nebraska_Active_Salespersons_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEBRASKA\\XLXS\\Nebraska_Active_Salespersons_20261012.csv",
+                      "Sha256":  "5D2354FE4FD5A529C6A35DF511C764EED7A1E2A51635C5C2815D4DFE676F3964",
+                      "Bytes":  1586669,
+                      "OfficialSourceUrl":  "https://nrec.igovsolution.net/online/Verification/Individual",
+                      "Coverage":  "Active salesperson query export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Nebraska_Inactive_Licensees_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEBRASKA\\XLXS\\Nebraska_Inactive_Licensees_20261012.csv",
+                      "Sha256":  "64F37F3B22053D1A0D86711E44A0638F4B24F9E7FDFFEF69597A73965372CB1D",
+                      "Bytes":  234341,
+                      "OfficialSourceUrl":  "https://nrec.igovsolution.net/online/Verification/Individual",
+                      "Coverage":  "Inactive licensees source export"
+                  }
+              ]
+}

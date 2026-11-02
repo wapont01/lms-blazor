@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "North Dakota",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\TXTS\\North Dakota Fargo and Bismarck Roster Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NORTH DAKOTA\\TXTS\\North Dakota Fargo and Bismarck Roster Capture.json",
+                      "Sha256":  "9BDA980062994E3D5893F811DF97FB3B3D68E67FCC4C2784E6DA39FAE9705BF5",
+                      "Bytes":  4987,
+                      "OfficialSourceUrl":  "https://services.realestatend.org/directory/index.asp",
+                      "Coverage":  "Fargo and Bismarck query capture"
+                  }
+              ]
+}

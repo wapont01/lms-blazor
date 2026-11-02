@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "New Hampshire",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\TXTS\\New Hampshire OPLC Real Estate Roster Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW HAMPSHIRE\\TXTS\\New Hampshire OPLC Real Estate Roster Capture.json",
+                      "Sha256":  "6D4E953F471468FE2F8B4B5E6B8E9F51CF7E0FF51C5CA951C2AB89D36BD3AC82",
+                      "Bytes":  3046,
+                      "OfficialSourceUrl":  "https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types",
+                      "Coverage":  "Official roster retrieval capture"
+                  }
+              ]
+}

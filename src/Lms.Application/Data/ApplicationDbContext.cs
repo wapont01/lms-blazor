@@ -6,11 +6,16 @@ namespace Lms.Application.Data;
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
     public DbSet<Course> Courses => Set<Course>();
+    public DbSet<StateLicensingEntry> StateLicensingEntries => Set<StateLicensingEntry>();
     public DbSet<SchoolProfile> SchoolProfiles => Set<SchoolProfile>();
     public DbSet<SchoolStaffMember> SchoolStaffMembers => Set<SchoolStaffMember>();
     public DbSet<Unit> Units => Set<Unit>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<UserAccount> UserAccounts => Set<UserAccount>();
+    public DbSet<EmailChallenge> EmailChallenges => Set<EmailChallenge>();
+    public DbSet<MailboxState> MailboxStates => Set<MailboxState>();
+    public DbSet<ExternalIdentity> ExternalIdentities => Set<ExternalIdentity>();
+    public DbSet<RosterAccountRequest> RosterAccountRequests => Set<RosterAccountRequest>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<LessonProgress> LessonProgresses => Set<LessonProgress>();
@@ -29,6 +34,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<SystemNotification> SystemNotifications => Set<SystemNotification>();
     public DbSet<LicenseComplianceReminder> LicenseComplianceReminders => Set<LicenseComplianceReminder>();
     public DbSet<RegulatoryDataSnapshot> RegulatoryDataSnapshots => Set<RegulatoryDataSnapshot>();
+    public DbSet<RegulatorySourceRecord> RegulatorySourceRecords => Set<RegulatorySourceRecord>();
     public DbSet<RegulatoryFirm> RegulatoryFirms => Set<RegulatoryFirm>();
     public DbSet<RegulatoryLicensee> RegulatoryLicensees => Set<RegulatoryLicensee>();
     public DbSet<RegulatoryFirmLicenseeAffiliation> RegulatoryFirmLicenseeAffiliations => Set<RegulatoryFirmLicenseeAffiliation>();
@@ -49,6 +55,58 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<SchoolStaffMember>()
+            .HasOne<UserAccount>().WithMany().HasForeignKey(member => member.UserAccountId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<MailboxState>(entity =>
+        {
+            entity.HasIndex(item => new { item.UserAccountId, item.AccountKey, item.MessageId }).IsUnique();
+            entity.HasOne<UserAccount>().WithMany().HasForeignKey(item => item.UserAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ExternalIdentity>(entity =>
+        {
+            entity.Property(item => item.Issuer).HasMaxLength(200).IsRequired();
+            entity.Property(item => item.Subject).HasMaxLength(255).IsRequired();
+            entity.HasIndex(item => new { item.Issuer, item.Subject }).IsUnique();
+            entity.HasOne(item => item.UserAccount).WithMany().HasForeignKey(item => item.UserAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RosterAccountRequest>(entity =>
+        {
+            entity.HasIndex(item => new { item.UserAccountId, item.RegulatoryLicenseeId }).IsUnique();
+            entity.HasIndex(item => new { item.Status, item.SubmittedAtUtc });
+            entity.Property(item => item.Status).HasMaxLength(20).IsRequired();
+            entity.Property(item => item.ReviewNote).HasMaxLength(1000).IsRequired();
+            entity.HasOne(item => item.UserAccount).WithMany().HasForeignKey(item => item.UserAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(item => item.RegulatoryLicensee).WithMany().HasForeignKey(item => item.RegulatoryLicenseeId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EmailChallenge>(entity =>
+        {
+            entity.HasIndex(item => new { item.UserAccountId, item.Purpose });
+            entity.Property(item => item.Purpose).HasMaxLength(30).IsRequired();
+            entity.Property(item => item.SecretHash).HasMaxLength(64).IsRequired();
+            entity.HasOne(item => item.UserAccount).WithMany().HasForeignKey(item => item.UserAccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<StateLicensingEntry>(entity =>
+        {
+            entity.HasKey(entry => entry.Id);
+            entity.HasIndex(entry => entry.SeedKey).IsUnique();
+            entity.HasIndex(entry => entry.State);
+            entity.Property(entry => entry.State).HasMaxLength(100).IsRequired();
+            entity.Property(entry => entry.Question).HasMaxLength(500).IsRequired();
+            entity.Property(entry => entry.Answer).IsRequired();
+            entity.Property(entry => entry.SourceNotes).IsRequired();
+        });
 
         modelBuilder.Entity<Course>(entity =>
         {
@@ -129,6 +187,22 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasIndex(snapshot => new { snapshot.State, snapshot.Status, snapshot.RetrievedAtUtc });
         });
 
+        modelBuilder.Entity<RegulatorySourceRecord>(entity =>
+        {
+            entity.HasKey(record => record.Id);
+            entity.Property(record => record.LicensePrefix).HasMaxLength(20);
+            entity.Property(record => record.LicenseNumber).HasMaxLength(40);
+            entity.Property(record => record.LicenseType).HasMaxLength(120);
+            entity.Property(record => record.LicenseStatus).HasMaxLength(40);
+            entity.Property(record => record.SourceRecordJson).IsRequired();
+            entity.HasIndex(record => new { record.SnapshotId, record.SourceRowNumber }).IsUnique();
+            entity.HasIndex(record => new { record.SnapshotId, record.LicenseType, record.LicenseStatus });
+            entity.HasOne(record => record.Snapshot)
+                .WithMany(snapshot => snapshot.SourceRecords)
+                .HasForeignKey(record => record.SnapshotId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<RegulatoryFirm>(entity =>
         {
             entity.HasKey(firm => firm.Id);
@@ -153,6 +227,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(licensee => licensee.LicenseNumber).HasMaxLength(40).IsRequired();
             entity.Property(licensee => licensee.Name).HasMaxLength(160).IsRequired();
             entity.Property(licensee => licensee.LicenseType).HasMaxLength(40);
+            entity.Property(licensee => licensee.SourceLicenseType).HasMaxLength(120);
             entity.Property(licensee => licensee.LicenseLevel).HasMaxLength(20);
             entity.Property(licensee => licensee.LicenseStatus).HasMaxLength(40);
             entity.HasIndex(licensee => new
@@ -254,7 +329,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(audit => audit.ActorEmail).HasMaxLength(160).IsRequired();
             entity.Property(audit => audit.Action).HasMaxLength(80).IsRequired();
             entity.Property(audit => audit.TargetType).HasMaxLength(80).IsRequired();
-            entity.Property(audit => audit.Details).HasMaxLength(800);
+            entity.Property(audit => audit.Details);
             entity.HasIndex(audit => audit.CreatedAt);
             entity.HasIndex(audit => audit.Action);
         });
@@ -306,6 +381,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasKey(exam => exam.Id);
             entity.Property(exam => exam.Title).HasMaxLength(160).IsRequired();
             entity.Property(exam => exam.PassPercent).HasPrecision(5, 2);
+            entity.Property(exam => exam.Kind).HasMaxLength(20).IsRequired().HasDefaultValue(CourseExamKinds.Standard);
+            entity.Property(exam => exam.ContentVersion).HasDefaultValue(1);
             entity.HasIndex(exam => new { exam.CourseId, exam.IsRequired });
 
             entity.HasOne(exam => exam.Course)
@@ -339,6 +416,11 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasKey(attempt => attempt.Id);
             entity.Property(attempt => attempt.ScorePercent).HasPrecision(5, 2);
             entity.Property(attempt => attempt.FeedbackSummary).HasMaxLength(500);
+            entity.Property(attempt => attempt.ExamVersion).HasDefaultValue(1);
+            entity.Property(attempt => attempt.CourseTitleSnapshot).HasMaxLength(160);
+            entity.Property(attempt => attempt.ExamTitleSnapshot).HasMaxLength(160);
+            entity.Property(attempt => attempt.ExamKindSnapshot).HasMaxLength(20);
+            entity.Property(attempt => attempt.UnitTitleSnapshot).HasMaxLength(160);
             entity.HasIndex(attempt => new { attempt.CourseExamId, attempt.UserAccountId, attempt.SubmittedAt });
 
             entity.HasOne(attempt => attempt.CourseExam)
@@ -356,6 +438,13 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         {
             entity.HasKey(answer => answer.Id);
             entity.Property(answer => answer.SelectedOption).HasMaxLength(1).IsRequired();
+            entity.Property(answer => answer.PromptSnapshot).HasMaxLength(500);
+            entity.Property(answer => answer.OptionASnapshot).HasMaxLength(220);
+            entity.Property(answer => answer.OptionBSnapshot).HasMaxLength(220);
+            entity.Property(answer => answer.OptionCSnapshot).HasMaxLength(220);
+            entity.Property(answer => answer.OptionDSnapshot).HasMaxLength(220);
+            entity.Property(answer => answer.CorrectOptionSnapshot).HasMaxLength(1);
+            entity.Property(answer => answer.FeedbackTextSnapshot).HasMaxLength(500);
             entity.HasIndex(answer => new { answer.ExamAttemptId, answer.ExamQuestionId }).IsUnique();
 
             entity.HasOne(answer => answer.ExamAttempt)
@@ -366,7 +455,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.HasOne(answer => answer.ExamQuestion)
                 .WithMany(question => question.Answers)
                 .HasForeignKey(answer => answer.ExamQuestionId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<RetakeGrant>(entity =>

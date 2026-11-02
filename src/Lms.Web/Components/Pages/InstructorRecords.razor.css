@@ -1,0 +1,13 @@
+.instructor-records { margin: -8px; padding-top: 20px; min-width: 0; }
+header { margin-bottom: 12px; }
+h1 { margin: 0; font-size: 1.5rem; line-height: 1.2; }
+header p { margin: 8px 0 0; }
+.card { padding: 16px; margin-bottom: 12px; min-width: 0; overflow-wrap: anywhere; }
+h2, h3 { margin-top: 0; }
+dl { display: grid; grid-template-columns: minmax(120px, 220px) minmax(0, 1fr); gap: 8px 16px; }
+dt { font-weight: 600; }
+dd { margin: 0; overflow-wrap: anywhere; }
+select { max-width: 100%; margin: 8px; }
+[role=alert] { padding: 10px; color: #8b1a1a; background: #fff0f0; }
+@media (max-width: 900px) { .instructor-records { margin: 0; padding: 0; } }
+@media (max-width: 500px) { dl { grid-template-columns: minmax(0, 1fr); gap: 4px; } dd { margin-bottom: 8px; } }

@@ -2,46 +2,97 @@
 @attribute [AllowAnonymous]
 @using Microsoft.AspNetCore.Authorization
 @inject IConfiguration Configuration
+@inject Lms.Application.Services.EmailJourneyOptions EmailJourney
+@inject IWebHostEnvironment HostEnvironment
 
 <PageTitle>Login</PageTitle>
 
-<div class="card auth-card">
+<div class="login-stage">
+<div class="card auth-card login-card">
     <h1>Sign in</h1>
 
     @if (_hasError)
     {
         <p class="auth-error">@GetErrorMessage()</p>
     }
+    @if (PasswordReset)
+    {
+        <p role="status">Your password has been reset. Sign in with your new password.</p>
+    }
 
     <form method="post" action="/auth/login" class="auth-form">
+        <p class="signin-welcome">Welcome back! Please sign in to your dashboard.</p>
         <input type="hidden" name="returnUrl" value="@GetReturnUrl()" />
 
         <div class="form-field">
-            <label>Email</label>
-            <input type="email" name="email" autocomplete="username" value="william.learner@wlr.com" />
+            <label for="login-email">Email</label>
+            <input id="login-email" type="email" name="email" autocomplete="username" value="william.guest@wlr.com" />
         </div>
 
         <div class="form-field">
-            <label>Password</label>
-            <input type="password" name="password" autocomplete="current-password" value="Learner123!" />
+            <label for="login-password">Password</label>
+            <div class="password-control">
+                <input id="login-password" type="@(_showPassword ? "text" : "password")" name="password" autocomplete="current-password" @bind="_password" @bind:event="oninput" />
+                <button type="button" class="password-toggle" disabled="@(!_interactive)" aria-label="@(_showPassword ? "Hide password" : "Show password")" aria-pressed="@(_showPassword ? "true" : "false")" aria-controls="login-password" @onclick="() => _showPassword = !_showPassword">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" />@if (!_showPassword) { <path d="m3 3 18 18" /> }</svg>
+                </button>
+            </div>
         </div>
 
-        <button type="submit">Sign in</button>
+        <button type="submit" class="signin-submit">Sign in <span aria-hidden="true">&#8250;</span></button>
     </form>
 
-    <p class="auth-help">New here? <a href="/register?returnUrl=@Uri.EscapeDataString(GetReturnUrl())">Create an account</a> and start purchasing courses right away.</p>
+    <p class="account-type-label" id="account-type-label">Create an Account</p>
+    <div class="guest-signup" role="group" aria-labelledby="account-type-label">
+        @* Load a fresh document so the registration form receives its antiforgery token. *@
+        <a class="guest-signup-button" href="/register?returnUrl=@Uri.EscapeDataString(GetReturnUrl())" target="_top" data-enhance-nav="false">
+            <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="13" cy="8" r="5" /><path d="M4 28v-3a9 9 0 0 1 14-7" /><rect x="20" y="21" width="10" height="9" rx="1.5" /><path d="M22 21v-3a3 3 0 0 1 6 0v3" /></svg>
+            <span>For Guests</span>
+        </a>
+        @if (HostEnvironment.IsDevelopment() && EmailJourney.Enabled)
+        {
+            <a class="guest-signup-button" href="/roster-registration" target="_top" data-enhance-nav="false">
+                <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="13" cy="8" r="5" /><path d="M4 28v-3a9 9 0 0 1 14-7M24 17l6 3v5c0 3-6 6-6 6s-6-3-6-6v-5Z" /><path d="m21 24 2 2 4-4" /></svg>
+                <span>For Licensees</span>
+            </a>
+        }
+    </div>
 
-    @if (IsSsoEnabled())
+    @if (IsSsoEnabled() || Configuration.GetValue<bool>("Authentication:Google:Enabled"))
     {
-        <form method="get" action="/auth/sso/login" class="auth-form auth-sso-form">
-            <input type="hidden" name="returnUrl" value="@GetReturnUrl()" />
-            <button type="submit" class="secondary-btn">@GetSsoButtonText()</button>
-        </form>
+        <div class="signin-divider"><span>OR</span></div>
+        <div class="provider-options" role="group" aria-label="Other sign-in options">
+            @if (Configuration.GetValue<bool>("Authentication:Google:Enabled"))
+            {
+                <form method="get" action="/auth/google/login" class="auth-sso-form">
+                    <input type="hidden" name="returnUrl" value="@GetReturnUrl()" />
+                    <button type="submit" class="provider-button"><span class="google-mark" aria-hidden="true">G</span><span>Continue with Google</span></button>
+                </form>
+            }
+            @if (IsSsoEnabled())
+            {
+                <form method="get" action="/auth/sso/login" class="auth-sso-form">
+                    <input type="hidden" name="returnUrl" value="@GetReturnUrl()" />
+                    <button type="submit" class="provider-button">
+                        @if (string.Equals(Configuration["Authentication:Sso:DisplayName"]?.Trim(), "Microsoft", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <svg class="provider-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="#f25022" d="M1 1h10v10H1z" /><path fill="#7fba00" d="M13 1h10v10H13z" /><path fill="#00a4ef" d="M1 13h10v10H1z" /><path fill="#ffb900" d="M13 13h10v10H13z" /></svg>
+                        }
+                        <span>@GetSsoButtonText()</span>
+                    </button>
+                </form>
+            }
+        </div>
     }
 
-    <p class="auth-help">
-        Seeded users: admin@wlr.com / Admin123!, jordan.lee@wlr.com / Instructor123!, clara.aponte@wlr.com / Instructor234!, susan.malloy@wlr.com / Instructor345!, william.aponte@wlr.com / Instructor456!, william.broker@wlr.com / Broker123!, clara.broker@wlr.com / Broker234!, william.learner@wlr.com / Learner123!, maya.thompson@wlr.com / Learner234!, ethan.brooks@wlr.com / Learner345!
-    </p>
+    <details class="demo-accounts">
+        <summary>Demo accounts</summary>
+        <p class="auth-help">
+        Seeded users: admin@wlr.com / Admin123!, jordan.lee@wlr.com / Instructor123!, clara.aponte@wlr.com / Instructor234!, susan.malloy@wlr.com / Instructor345!, william.aponte@wlr.com / Instructor456!, william.broker@wlr.com / Broker123!, clara.broker@wlr.com / Broker234!, william.guest@wlr.com / Learner123!, maya.thompson@wlr.com / Learner234!, ethan.brooks@wlr.com / Learner345!
+        </p>
+    </details>
+    <p class="password-recovery-link"><a href="/forgot-password" target="_top" data-enhance-nav="false">Forgot password?</a></p>
+</div>
 </div>
 
 @code {
@@ -54,7 +105,22 @@
     [SupplyParameterFromQuery]
     public int? LockoutMinutes { get; set; }
 
+    [SupplyParameterFromQuery]
+    public bool PasswordReset { get; set; }
+
     private bool _hasError => !string.IsNullOrWhiteSpace(Error);
+    private bool _showPassword;
+    private bool _interactive;
+    private string _password = "Learner123!";
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _interactive = true;
+            StateHasChanged();
+        }
+    }
 
     private string GetReturnUrl()
     {
@@ -68,6 +134,9 @@
             "inactive" => "This account is disabled. Contact an administrator.",
             "locked" => $"Too many failed attempts. Try again in {Math.Max(LockoutMinutes ?? 15, 1)} minute(s).",
             "expired" => "Your password has expired. Contact an administrator for a reset.",
+            "email-unavailable" => "Email sign-in verification is unavailable. Contact an administrator.",
+            "sso" => "Microsoft sign-in could not be completed. If this email already has an LMS account, use its existing sign-in method. Otherwise retry or contact an administrator.",
+            "google" => "Google sign-in could not be completed. If this email already has an LMS account, use its existing sign-in method. Otherwise retry or contact an administrator.",
             _ => "Invalid email or password."
         };
     }
@@ -81,7 +150,7 @@
     {
         var displayName = Configuration["Authentication:Sso:DisplayName"];
         return string.IsNullOrWhiteSpace(displayName)
-            ? "Sign in with SSO"
-            : $"Sign in with {displayName.Trim()}";
+            ? "Continue with SSO"
+            : $"Continue with {displayName.Trim()}";
     }
 }

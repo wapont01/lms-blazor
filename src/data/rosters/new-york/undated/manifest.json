@@ -1,0 +1,343 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "New York",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Associate Broker Crawl Page 1.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Associate Broker Crawl Page 1.json",
+                      "Sha256":  "32B0124B8F65785BA182483107C388E69AE157FBA85CDDB8B0C8E67A6976F21B",
+                      "Bytes":  5297,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Associate broker crawl page"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Branch Office Crawl Complete.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Branch Office Crawl Complete.json",
+                      "Sha256":  "380EAD6F15B14FEE52DA3EB99DD9AB9BBDEE47A63575199F20DF88B2240D7E04",
+                      "Bytes":  1075,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Branch office full crawl"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Branch Office Crawl Summary.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Branch Office Crawl Summary.json",
+                      "Sha256":  "5CBEB302A347F78B27C01F9628FC493E36592CA6B8CC0BE7A3E3E92D7F754DD2",
+                      "Bytes":  1088,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Branch office crawl summary"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Branch Office Details Retry.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Branch Office Details Retry.json",
+                      "Sha256":  "1133D5ED597A061590CBC73D8B9049BFB87A695A0BD1C986690E0E045C2102B0",
+                      "Bytes":  1481,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Branch office profile retry evidence"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Corporate Broker Crawl Complete.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Corporate Broker Crawl Complete.json",
+                      "Sha256":  "3EF062AC511545B57DF10C7AD7126C2CE3288965098C595C78DF9685CBE840EC",
+                      "Bytes":  1412,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Corporate broker full crawl"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Corporate Broker Crawl Summary.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Corporate Broker Crawl Summary.json",
+                      "Sha256":  "D80AB365A04A3198507E494F85BC17F9ED817B52134AA114BB2B64745FC85B1C",
+                      "Bytes":  1376,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Corporate broker crawl summary"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Corporate Broker Details Retry.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Corporate Broker Details Retry.json",
+                      "Sha256":  "9B13AD8D098B7D975FA3CEF5756961233430F054ACAF8A2C0E23FB2D29B66E6E",
+                      "Bytes":  1437,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Corporate broker profile retry evidence"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Individual Broker Crawl Summary.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Individual Broker Crawl Summary.json",
+                      "Sha256":  "5F8554321AFACF2641DCC2D4CA7EBE8E01AD3B6E3D8B7675941138AA36382EE9",
+                      "Bytes":  1345,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Individual broker crawl summary"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Individual Broker Detail Chunk 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Individual Broker Detail Chunk 01.json",
+                      "Sha256":  "96A0BFB1DE7BECB7298F649ADE9CC0D5F10CE6E8E57564CA103E7AD2DB1F7A4A",
+                      "Bytes":  423,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Individual broker detail records chunk 1"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Individual Broker Detail Chunk 02.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Individual Broker Detail Chunk 02.json",
+                      "Sha256":  "90EA6FEB535EBA76F7C52F4B04C34AB13E3F0BDE1BE2507CC0AB40166746D501",
+                      "Bytes":  429,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Individual broker detail records chunk 2"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Individual Broker Detail Chunk 03.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Individual Broker Detail Chunk 03.json",
+                      "Sha256":  "B3006FC63A87ABF9CF9B330CA4FD89745202295B968EB6AED31E478EEBA5C4CF",
+                      "Bytes":  443,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Individual broker detail records chunk 3"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Individual Broker Detail Chunk 04.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Individual Broker Detail Chunk 04.json",
+                      "Sha256":  "0F6DF150A84E285698F14F6EBEDBE3D9B49D1840365BB0C211F9A1D555FAA8B4",
+                      "Bytes":  449,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Individual broker detail records chunk 4"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Chunk 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Chunk 01.json",
+                      "Sha256":  "97A84BA6222B18B5349D74156415FE79AF12DE9B975F9B42380D840EB78467BF",
+                      "Bytes":  948,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "LLC broker crawl chunk 1"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Chunk 02.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Chunk 02.json",
+                      "Sha256":  "35A555927A88E71EA670455C1933C4AE9231EC66B43BD8F6D4547034DCBB5E0C",
+                      "Bytes":  887,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "LLC broker crawl chunk 2"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Chunk 03.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Chunk 03.json",
+                      "Sha256":  "8B32D7E1073596CFB3F013390EE14C1CA925E6E4AAD7DE90481C5A567C262871",
+                      "Bytes":  881,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "LLC broker crawl chunk 3"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Chunk 04.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Chunk 04.json",
+                      "Sha256":  "A9040869ACC4DC4A01C8A2E9250839FF0CE77AC073166F179E4AB2FFAA4E62B3",
+                      "Bytes":  497,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "LLC broker crawl chunk 4"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Chunk 05.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Chunk 05.json",
+                      "Sha256":  "A1C6420A5B3C7456B1C02DB72C5F28665DD1592497F04862E4FEB40E21431188",
+                      "Bytes":  516,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "LLC broker crawl chunk 5"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Summary.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon LLC Broker Crawl Summary.json",
+                      "Sha256":  "C414DB8281FB89331568B6F50AC5EEF3683B6ED68CFA63FC51B2C566BBE3B493",
+                      "Bytes":  557,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "LLC broker crawl summary"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Partnership Broker Crawl Summary.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Partnership Broker Crawl Summary.json",
+                      "Sha256":  "86424BB9FCACC6C1E3A33F37E61842FA0306F471B38AA649D7FFEC0AFA504205",
+                      "Bytes":  286,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Partnership broker crawl summary"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 01.json",
+                      "Sha256":  "A6EB3F26572CF23824443EBBB8F78307473FFA874595017F2EA277E089E882B5",
+                      "Bytes":  972,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl chunk 1"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 02.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 02.json",
+                      "Sha256":  "CC12048600A8E71433C4BB96CF4169F84CE4F33F2CFB5119DEE4D37229B90702",
+                      "Bytes":  1030,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl chunk 2"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 03.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 03.json",
+                      "Sha256":  "8D2C6B796CA1C3A938380A76B8EA87CD3B7F4893AFD60F37D3739DF68F964730",
+                      "Bytes":  777,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl chunk 3"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 04.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 04.json",
+                      "Sha256":  "E51F91D6A0A7CB63F14D7792A4588711F14FB59AB41B65F0F640FB2D005A20C5",
+                      "Bytes":  944,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl chunk 4"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 05.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 05.json",
+                      "Sha256":  "7AF71534C1A297046886F4289A63F72607BAD4520439F73253D4DEE0798617AE",
+                      "Bytes":  1011,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl chunk 5"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 06.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 06.json",
+                      "Sha256":  "9CAF5C0D138401837FE12750131BCF1409E8C073B3E23E0C189F686DE61030ED",
+                      "Bytes":  1975,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl chunk 6"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 07.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 07.json",
+                      "Sha256":  "1A42721A62AE3E2EFEDCF52B073E7E1AAA9FD173846F39C9E3A1E7201550A254",
+                      "Bytes":  1271,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl chunk 7"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 08.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 08.json",
+                      "Sha256":  "B82F14ECA43968CA9CC8A1DBFD34345D75FE6C188D7E5C1B2D65548BF1A4151B",
+                      "Bytes":  945,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl chunk 8"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 09.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 09.json",
+                      "Sha256":  "3D96AD5DD03EE11BE76168B1E789023C430C9220A9CDFBD3F09A0380922BB259",
+                      "Bytes":  1937,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl chunk 9"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 10.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Chunk 10.json",
+                      "Sha256":  "85E24A128B12EF3EAEDFC506A48BE3BCFA779260BB01B9056533B0A5184F05EF",
+                      "Bytes":  883,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl chunk 10"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Summary.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Principal Office Crawl Summary.json",
+                      "Sha256":  "2FE88268016EB56B93B42C172C7137DF4339D125C1061C8823B40F9A7AE587FB",
+                      "Bytes":  769,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Principal office crawl summary"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Roster Crawl Summary.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Roster Crawl Summary.json",
+                      "Sha256":  "EB6DC115F997D84F27F8AE8E3F72859CC1CEC92DF49856B249EEC0E182E56276",
+                      "Bytes":  1098,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Beacon roster crawl summary"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Salesperson Crawl Page 1 Batch 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Salesperson Crawl Page 1 Batch 01.json",
+                      "Sha256":  "10A3155D7338991B17B60A38013ADBF004E997B8C72184B376500242F177AF5A",
+                      "Bytes":  1858,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Salesperson crawl page 1 batch 1"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Salesperson Crawl Page 1 Batch 02.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Salesperson Crawl Page 1 Batch 02.json",
+                      "Sha256":  "0D171B1AFC91EB65D52CD7A91FDA3C03A89B51D1753FD86830E89D3A7FA5E567",
+                      "Bytes":  2890,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Salesperson crawl page 1 batch 2"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Salesperson Crawl Page 2 Batch 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Salesperson Crawl Page 2 Batch 01.json",
+                      "Sha256":  "34EB1C7875E8CB7045D0BCD016A9B7C807075D7C9CA095B524295A17AF3EEE6F",
+                      "Bytes":  2871,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Salesperson crawl page 2"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Salesperson Crawl Page 3 Batch 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Salesperson Crawl Page 3 Batch 01.json",
+                      "Sha256":  "4474F714885BBCB3A27D771D500B1E2AF347466C5D9403F927A6827FEAA20554",
+                      "Bytes":  2746,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Salesperson crawl page 3"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Salesperson Crawl Page 4 Batch 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Salesperson Crawl Page 4 Batch 01.json",
+                      "Sha256":  "F66338727F3E875304B6AEAE46D94AD62BE083648C4BF85817A000B15365BDE7",
+                      "Bytes":  6230,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Salesperson crawl page 4"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\NY Beacon Trade Name Broker Crawl.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW YORK\\LICENSING\\TXTs\\NY Beacon Trade Name Broker Crawl.json",
+                      "Sha256":  "BE2F4EBEBA129DD177213E702532F6F1B860D14482F386970C26A90F8301FE07",
+                      "Bytes":  911,
+                      "OfficialSourceUrl":  "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+                      "Coverage":  "Trade name broker crawl"
+                  }
+              ]
+}

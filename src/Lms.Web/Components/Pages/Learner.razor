@@ -8,17 +8,17 @@
 @inject IRegulatoryComplianceService RegulatoryComplianceService
 @inject NavigationManager NavigationManager
 
-<PageTitle>Learner Courses</PageTitle>
+<PageTitle>My Courses</PageTitle>
 
-<h1>Learner Courses</h1>
+<h1>My Courses</h1>
 @if (_dashboardContext?.IsAdminViewer == true)
 {
     <p>
-        <strong>Viewing learner:</strong>
+        <strong>Viewing student:</strong>
         <select value="@(_dashboardContext.LearnerUserId?.ToString() ?? string.Empty)" @onchange="OnLearnerSelectionChanged" disabled="@(_learnerOptions.Count == 0)">
             @if (_learnerOptions.Count == 0)
             {
-                <option value="">No learner accounts available</option>
+                <option value="">No student accounts available</option>
             }
             else
             {
@@ -38,7 +38,7 @@
 
 @if (_dashboardContext?.IsAdminViewer == true && !_dashboardContext.LearnerUserId.HasValue)
 {
-    <p>No learner accounts available.</p>
+    <p>No student accounts available.</p>
 }
 else if (_courses.Count == 0)
 {
@@ -197,8 +197,8 @@ else
         if (_dashboardContext?.IsAdminViewer == true)
         {
             return _dashboardContext.LearnerUserId.HasValue
-                ? "Selected learner is not enrolled in any courses yet."
-                : "No learner accounts available.";
+                ? "Selected student is not enrolled in any courses yet."
+                : "No student accounts available.";
         }
 
         return "You are not enrolled in any courses yet.";

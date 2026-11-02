@@ -14,7 +14,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var courses = new[]
         {
             new Course { Title = "Due Soon Reminder Test", Slug = "due-soon-reminder-test", Level = "Beginner", Description = "Test course", Price = 0m },
@@ -71,7 +71,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var course = await fixture.DbContext.Courses.FirstAsync();
 
         var enrollment = new Enrollment
@@ -108,7 +108,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var initialLicensureDate = DateTime.UtcNow.AddMonths(-17).AddDays(-20);
         learner.InitialLicensureDate = initialLicensureDate;
         learner.LicenseStatus = "Provisional";
@@ -129,7 +129,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         learner.State = "North Carolina";
         learner.LicenseType = "PB";
         learner.InitialLicensureDate = DateTime.UtcNow.AddMonths(-17).AddDays(-20);
@@ -153,7 +153,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         learner.InitialLicensureDate = DateTime.UtcNow.AddMonths(-19);
         learner.LicenseStatus = "Provisional";
         learner.PostlicensingCompletedAt = null;
@@ -173,7 +173,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         learner.LicenseRenewalDueDate = new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc);
         learner.LicenseRenewalDueDateSource = LicenseDateProvenance.Derived;
         await fixture.DbContext.SaveChangesAsync();
@@ -191,7 +191,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         learner.LicenseRenewalDueDate = new DateTime(2026, 9, 20, 0, 0, 0, DateTimeKind.Utc);
         learner.LicenseRenewalDueDateSource = LicenseDateProvenance.Unknown;
         await fixture.DbContext.SaveChangesAsync();
@@ -208,7 +208,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         learner.State = "TX";
         learner.LicenseType = "SA";
         learner.InitialLicensureDate = null;
@@ -236,7 +236,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         learner.State = "New York";
         learner.LicenseType = "Salesperson";
         learner.InitialLicensureDate = new DateTime(2024, 10, 5, 0, 0, 0, DateTimeKind.Utc);
@@ -266,7 +266,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         learner.State = "Georgia";
         learner.LicenseType = "Salesperson";
         learner.InitialLicensureDate = new DateTime(2025, 10, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -294,7 +294,7 @@ public class DueDateReminderServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         learner.State = "South Carolina";
         learner.LicenseType = "Associate";
         learner.InitialLicensureDate = new DateTime(2025, 5, 1, 0, 0, 0, DateTimeKind.Utc);

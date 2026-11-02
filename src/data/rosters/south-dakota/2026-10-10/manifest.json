@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "South Dakota",
+    "CaptureDate":  "2026-10-10",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\XLXS\\South_Dakota_Rapid_City_Additional_Firms_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "SOUTH DAKOTA\\XLXS\\South_Dakota_Rapid_City_Additional_Firms_20261010.csv",
+                      "Sha256":  "75D99FB7C7EC74878F604AEAD123CFC50D37E69B73F40E65130F1BEBB514755E",
+                      "Bytes":  21229,
+                      "OfficialSourceUrl":  "https://sdrec.sd.gov/registration/licenseelist.aspx",
+                      "Coverage":  "Additional Rapid City firm results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\South_Dakota_Rapid_City_Additional_Licensees_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "SOUTH DAKOTA\\XLXS\\South_Dakota_Rapid_City_Additional_Licensees_20261010.csv",
+                      "Sha256":  "BFA4536398946BF0DBCDD7E6BB5055DAB194E2829EC151372DE200CEFDAFAD3E",
+                      "Bytes":  7832,
+                      "OfficialSourceUrl":  "https://sdrec.sd.gov/registration/licenseelist.aspx",
+                      "Coverage":  "Additional Rapid City licensee results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\South_Dakota_Real_Estate_City_Sample_Firms_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "SOUTH DAKOTA\\XLXS\\South_Dakota_Real_Estate_City_Sample_Firms_20261010.csv",
+                      "Sha256":  "34E246B6F2D4034B52E8B44DE3D6699020E1680A9383350FBC8E9507BFF6DAF3",
+                      "Bytes":  2732,
+                      "OfficialSourceUrl":  "https://sdrec.sd.gov/registration/licenseelist.aspx",
+                      "Coverage":  "City-query firm sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\South_Dakota_Real_Estate_City_Sample_Licensees_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "SOUTH DAKOTA\\XLXS\\South_Dakota_Real_Estate_City_Sample_Licensees_20261010.csv",
+                      "Sha256":  "30A898B3444D5522FB4DC984223576BF53D6DCD08A16902B527875F44B216A05",
+                      "Bytes":  6304,
+                      "OfficialSourceUrl":  "https://sdrec.sd.gov/registration/licenseelist.aspx",
+                      "Coverage":  "City-query licensee sample"
+                  }
+              ]
+}

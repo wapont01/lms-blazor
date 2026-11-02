@@ -1,89 +1,247 @@
 @page "/certification/{CourseId:guid}"
 @attribute [Authorize(Roles = "Learner,Admin")]
 @using System.Security.Claims
+@using System.ComponentModel.DataAnnotations
 @using Lms.Application.Services
+@using Lms.Domain.Entities
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IEnrollmentService EnrollmentService
+@inject ICourseService CourseService
+@inject IRosterRegistrationService Roster
 @inject NavigationManager NavigationManager
+@inject ILogger<Certification> Logger
 
-<PageTitle>Certification Details</PageTitle>
+<PageTitle>Certificate Details</PageTitle>
 
-<div class="card auth-card">
-    <h1>Certification Details</h1>
-    @if (_isEligible)
+<div class="certification-page">
+    <header class="page-heading">
+        <h1>Certificate Details</h1>
+        <p>Review the information for your course-completion certificate.</p>
+    </header>
+    @if (_error is not null)
     {
-        <p>Enter the identity and license information to be printed on your certificate and prepared for state commission review.</p>
-
-        @if (!string.IsNullOrWhiteSpace(_message))
+        <p class="auth-error" role="alert">@_error</p>
+    }
+    @if (_loading)
+    {
+        <p role="status">Loading your certificate details…</p>
+    }
+    else if (_course is not null && _isEligible)
+    {
+        <section class="course-summary" aria-label="Completed course">
+            <div><span>Completed course</span><strong>@_course.Title</strong></div>
+            <div><span>Course state</span><strong>@_course.State</strong></div>
+            <div><span>Course type</span><strong>@CourseComplianceTypes.ToDisplayText(_course.ComplianceType)</strong></div>
+        </section>
+        @if (_saved || _alreadyIssued)
         {
-            <p class="auth-help">@_message</p>
+            <section class="card certificate-saved" role="status">
+                <h2>@(_alreadyIssued ? "Your certificate is available" : "Certificate details saved")</h2>
+                <p>@(_course.IsDevelopmentSample
+                    ? "This is a sample course. No official certificate or regulatory credit is issued."
+                    : "Your course-completion certificate uses the confirmed details. Certificate processing and reporting requirements still apply.")</p>
+                <a class="primary-link" href="/learner">Go to My Courses &amp; certificates</a>
+            </section>
         }
-
-        <EditForm Model="_model" OnValidSubmit="SubmitAsync">
-            <DataAnnotationsValidator />
-            <ValidationSummary />
-            <div class="form-field"><label>First name</label><InputText @bind-Value="_model.FirstName" /></div>
-            <div class="form-field"><label>Last name</label><InputText @bind-Value="_model.LastName" /></div>
-            <div class="form-field"><label>License number</label><InputText @bind-Value="_model.LicenseNumber" /></div>
-            <div class="form-field"><label>License state</label><InputText @bind-Value="_model.State" /></div>
-            <div class="form-field">
-                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:normal;">
-                    <InputCheckbox @bind-Value="_model.ConfirmPrintedName" style="width:auto;" />
-                    I confirm this is the name to print on my certificate.
-                </label>
-            </div>
-            <button type="submit">Submit Certification Details</button>
-        </EditForm>
+        else
+        {
+            @if (_course.RequiresCommissionRecord)
+            {
+                <section class="card commission-record" aria-label="Certificate license record">
+                    <h2>Your commission record</h2>
+                    @if (_records.Count == 0)
+                    {
+                        <p>Find and confirm your license record for @_course.State before submitting certificate details. Your course progress and exam result are saved.</p>
+                        <a class="primary-link" href="/roster-registration">Find my license record</a>
+                        <button type="button" class="secondary-button" @onclick="RefreshRecordsAsync" disabled="@(!_interactiveReady || _busy)">Refresh saved records</button>
+                    }
+                    else
+                    {
+                        <label for="certificate-record">Confirmed license for this course</label>
+                        <select id="certificate-record"
+                                @bind="_selectedRequestId"
+                                @bind:after="ApplySelectedRecordDefaultsAsync"
+                                disabled="@(!_interactiveReady || _busy)">
+                            @foreach (var record in _records)
+                            {
+                                <option value="@record.Id">@record.Selection.Name — @record.Selection.LicenseNumber</option>
+                            }
+                        </select>
+                        @if (SelectedRecord is { } selected)
+                        {
+                            <p class="confirmation-status">Confirmed by student · Email verified</p>
+                            <LicenseRecordView Record="selected.Selection" />
+                        }
+                        <p class="record-help">The license number comes from this commission record. Confirm your printed name below; your account and the commission record are not changed.</p>
+                    }
+                </section>
+            }
+            <section class="card certificate-form" aria-label="Printed certificate details">
+                <h2>Name on certificate</h2>
+                @if (SelectedRecord is { } rosterRecord)
+                {
+                    <p>Review the name as it appears in the @_course.State license roster. Change it only if you want a different printed name.</p>
+                    <p class="muted-text">Roster name: <strong>@rosterRecord.Selection.Name</strong></p>
+                }
+                else
+                {
+                    <p>Enter your full name exactly as you want it printed on the certificate.</p>
+                }
+                <EditForm Model="_model" OnValidSubmit="SubmitAsync" FormName="certificate-details">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+                    <div class="form-field">
+                        <label for="certificate-printed-name">Full name as printed</label>
+                        <InputText id="certificate-printed-name" @bind-Value="_model.PrintedName" maxlength="160" autocomplete="name" disabled="@(!_interactiveReady || _busy)" />
+                    </div>
+                    @if (!_course.IsPrelicensing && !_course.RequiresCommissionRecord)
+                    {
+                        <div class="form-field"><label for="certificate-license">License number</label><InputText id="certificate-license" @bind-Value="_model.LicenseNumber" disabled="@(!_interactiveReady || _busy)" /></div>
+                        <div class="form-field"><label for="certificate-state">License state</label><InputText id="certificate-state" @bind-Value="_model.State" disabled="@(!_interactiveReady || _busy)" /></div>
+                    }
+                    <label class="confirm-name">
+                        <InputCheckbox @bind-Value="_model.ConfirmPrintedName" disabled="@(!_interactiveReady || _busy)" />
+                        I confirm that this is the name to print on my course-completion certificate.
+                    </label>
+                    <div class="form-actions">
+                        <button type="submit" disabled="@(!_interactiveReady || _busy || (_course.RequiresCommissionRecord && SelectedRecord is null))">@(_busy ? "Saving…" : "Confirm certificate details")</button>
+                        <a href="/learner">Back to My Courses</a>
+                    </div>
+                </EditForm>
+            </section>
+        }
     }
 </div>
 
 @code {
     [Parameter] public Guid CourseId { get; set; }
     private Guid? _userId;
-    private bool _isEligible;
-    private string? _message;
+    private Course? _course;
+    private bool _isEligible, _busy, _saved, _alreadyIssued, _interactiveReady, _hasConfirmedPrintedName;
+    private bool _loading = true;
+    private string? _error;
     private CertificationModel _model = new();
+    private List<RosterRequestRow> _records = [];
+    private Guid _selectedRequestId;
+    private string? _rosterPrefilledName;
+    private RosterRequestRow? SelectedRecord => _records.FirstOrDefault(item => item.Id == _selectedRequestId);
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnAfterRender(bool firstRender)
     {
-        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        var claim = state.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (Guid.TryParse(claim, out var userId))
+        if (firstRender)
         {
-            _userId = userId;
-            var enrollment = await EnrollmentService.GetEnrollmentAsync(userId, CourseId);
-            _isEligible = enrollment?.Completed == true;
-            if (!_isEligible)
-            {
-                NavigationManager.NavigateTo("/learner", replace: true);
-            }
+            _interactiveReady = true;
+            StateHasChanged();
         }
     }
 
-    private async Task SubmitAsync()
+    protected override async Task OnInitializedAsync()
     {
-        if (!_userId.HasValue)
+        try
         {
-            return;
+            var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            if (!Guid.TryParse(state.User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId)) return;
+            _userId = userId;
+            _course = await CourseService.GetByIdAsync(CourseId);
+            var enrollment = await EnrollmentService.GetEnrollmentAsync(userId, CourseId);
+            _isEligible = enrollment?.Completed == true;
+            if (!_isEligible || _course is null)
+            {
+                NavigationManager.NavigateTo("/learner", replace: true);
+                return;
+            }
+            _model.PrintedName = enrollment!.CertificationPrintedName
+                ?? JoinLegacyName(enrollment.CertificationFirstName, enrollment.CertificationLastName);
+            _hasConfirmedPrintedName = enrollment.CertificationNameConfirmed;
+            _model.LicenseNumber = enrollment.CertificationLicenseNumber ?? "";
+            _model.State = enrollment.CertificationState ?? _course.State ?? "";
+            _alreadyIssued = (await EnrollmentService.GetCertificatesForLearnerAsync(userId)).Any(item => item.CourseId == CourseId);
+            if (_course.RequiresCommissionRecord && !_alreadyIssued) await RefreshRecordsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Certificate details could not be loaded for course {CourseId}.", CourseId);
+            _error = "Your certificate details could not be loaded. Refresh the page to try again.";
+        }
+        finally { _loading = false; }
+    }
+
+    private async Task RefreshRecordsAsync()
+    {
+        if (!_userId.HasValue || _course is null) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            _records = (await Roster.GetMineAsync(_userId.Value))
+                .Where(item => item.Status == "Confirmed" && item.EmailVerified
+                    && item.Selection.State == _course.State).ToList();
+            if (!_records.Any(item => item.Id == _selectedRequestId))
+                _selectedRequestId = _records.FirstOrDefault()?.Id ?? Guid.Empty;
+            await ApplySelectedRecordDefaultsAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Certificate license records could not be loaded.");
+            _error = "Your license records could not be loaded. Try Refresh saved records again.";
+        }
+        finally { _busy = false; }
+    }
+
+    private Task ApplySelectedRecordDefaultsAsync()
+    {
+        if (SelectedRecord is not { } selected) return Task.CompletedTask;
+
+        _model.LicenseNumber = selected.Selection.LicenseNumber;
+        _model.State = selected.Selection.State;
+        if (!_hasConfirmedPrintedName
+            && (string.IsNullOrWhiteSpace(_model.PrintedName)
+                || _rosterPrefilledName is null
+                || string.Equals(_model.PrintedName, _rosterPrefilledName, StringComparison.Ordinal)))
+        {
+            _model.PrintedName = selected.Selection.Name;
+            _rosterPrefilledName = selected.Selection.Name;
         }
 
-        var submitted = await EnrollmentService.SubmitCertificationIdentityAsync(
-            _userId.Value, CourseId, _model.FirstName, _model.LastName, _model.LicenseNumber, _model.State, _model.ConfirmPrintedName);
-        _message = submitted
-            ? "Certification details submitted. Your certificate package is pending review."
-            : "Certification details could not be submitted until the course is complete and the printed name is confirmed.";
+        return Task.CompletedTask;
+    }
+
+    private static string JoinLegacyName(string? firstName, string? lastName) =>
+        string.Join(' ', new[] { firstName, lastName }.Where(name => !string.IsNullOrWhiteSpace(name)));
+
+    private async Task SubmitAsync()
+    {
+        if (!_userId.HasValue || _busy || _course is null) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            var submitted = await EnrollmentService.SubmitCertificationIdentityAsync(
+                _userId.Value, CourseId, "", "",
+                _model.LicenseNumber, _model.State, _model.ConfirmPrintedName,
+                SelectedRecord?.Id, _model.PrintedName);
+            if (submitted) _saved = true;
+            else _error = "Complete the course and confirm your printed name before submitting.";
+        }
+        catch (CertificationDetailsException ex)
+        {
+            Logger.LogWarning("Certificate details rejected for course {CourseId}: {Reason}", CourseId, ex.Message);
+            _error = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Certificate details could not be saved for course {CourseId}.", CourseId);
+            _error = "Your certificate details could not be saved. Refresh the page and try again.";
+        }
+        finally { _busy = false; }
     }
 
     private sealed class CertificationModel
     {
-        [System.ComponentModel.DataAnnotations.Required]
-        public string FirstName { get; set; } = string.Empty;
-        [System.ComponentModel.DataAnnotations.Required]
-        public string LastName { get; set; } = string.Empty;
-        [System.ComponentModel.DataAnnotations.Required]
-        public string LicenseNumber { get; set; } = string.Empty;
-        [System.ComponentModel.DataAnnotations.Required]
-        public string State { get; set; } = string.Empty;
+        [Required, StringLength(160)]
+        public string PrintedName { get; set; } = "";
+        public string LicenseNumber { get; set; } = "";
+        public string State { get; set; } = "";
         public bool ConfirmPrintedName { get; set; }
     }
 }

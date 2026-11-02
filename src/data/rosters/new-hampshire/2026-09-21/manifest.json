@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "New Hampshire",
+    "CaptureDate":  "2026-09-21",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\XLXS\\real-estate-verification09212026.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW HAMPSHIRE\\XLXS\\real-estate-verification09212026.xlsx",
+                      "Sha256":  "3E004BE0AD8A9168F7081AFE300FEF686F45E983797123492C19EA6787C54842",
+                      "Bytes":  876547,
+                      "OfficialSourceUrl":  "https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types",
+                      "Coverage":  "Real-estate license verification source data"
+                  }
+              ]
+}

@@ -1,0 +1,73 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Arizona",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Arizona Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ARIZONA\\TXTS\\Arizona Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "236EC8298339D868A8A174740EEC4250BA2F5CC6D9F9F33E4E341DBD51A3FAA4",
+                      "Bytes":  2590,
+                      "OfficialSourceUrl":  "https://services.azre.gov/PdbWeb/List/ViewLists",
+                      "Coverage":  "Development-source selection and scope notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Arizona_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ARIZONA\\XLXS\\Arizona_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "D818C012463DDBFB1148444E206D32399AE358B8A32B5B98BA98B56161B9013B",
+                      "Bytes":  40368,
+                      "OfficialSourceUrl":  "https://services.azre.gov/PdbWeb/List/ViewLists",
+                      "Coverage":  "Active entity development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Arizona_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ARIZONA\\XLXS\\Arizona_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "CC92256758BDF1BC4FBF88B88DD892344B686680E5EAAD548B955ADEC1C524F6",
+                      "Bytes":  12507,
+                      "OfficialSourceUrl":  "https://services.azre.gov/PdbWeb/List/ViewLists",
+                      "Coverage":  "Active individual development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Arizona_Sampled_Individual_Employer_Relationships_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ARIZONA\\XLXS\\Arizona_Sampled_Individual_Employer_Relationships_20261011.csv",
+                      "Sha256":  "D553A4B526625FB4949ABA5A1AB6E29D44F16A77415421BF1BC01F59139906CB",
+                      "Bytes":  7907,
+                      "OfficialSourceUrl":  "https://services.azre.gov/PdbWeb/List/ViewLists",
+                      "Coverage":  "Sampled published employer/license relationships"
+                  },
+                  {
+                      "Path":  "raw\\TXTS\\Arizona ADRE Public Database Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ARIZONA\\TXTS\\Arizona ADRE Public Database Capture.json",
+                      "Sha256":  "D830D8BE813DD9C569D80BF39AA539C9C8C41CC4449C2D390F58514442A163B4",
+                      "Bytes":  4210,
+                      "OfficialSourceUrl":  "https://services.azre.gov/PdbWeb/List/ViewLists",
+                      "Coverage":  "Official public database capture and sample provenance"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Arizona_ADRE_Entity_Licenses_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ARIZONA\\XLXS\\Arizona_ADRE_Entity_Licenses_20261011.csv",
+                      "Sha256":  "9C3870E02CA6742B0AA462892ACDB71C793FA4F49E3397F6EB98DC23193EF556",
+                      "Bytes":  1943890,
+                      "OfficialSourceUrl":  "https://services.azre.gov/PdbWeb/List/ViewLists",
+                      "Coverage":  "Full captured entity-license export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Arizona_ADRE_Individual_Licenses_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ARIZONA\\XLXS\\Arizona_ADRE_Individual_Licenses_20261011.csv",
+                      "Sha256":  "BD83B237A5808187493AE29706297C82912D7AE702EEE990BECE909C5F0F62E1",
+                      "Bytes":  49897181,
+                      "OfficialSourceUrl":  "https://services.azre.gov/PdbWeb/List/ViewLists",
+                      "Coverage":  "Full captured individual-license export; all statuses/types"
+                  }
+              ]
+}

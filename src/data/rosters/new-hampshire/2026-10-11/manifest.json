@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "New Hampshire",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\New Hampshire Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW HAMPSHIRE\\TXTS\\New Hampshire Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "CA57D32F6A2DFCFF613B4D238E9410EBBB68CDCAE446C317755E14C3D826A086",
+                      "Bytes":  2051,
+                      "OfficialSourceUrl":  "https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types",
+                      "Coverage":  "Source and sample scope notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\New_Hampshire_Active_Firm_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW HAMPSHIRE\\XLXS\\New_Hampshire_Active_Firm_Development_Sample_20261011.csv",
+                      "Sha256":  "9515C7C1B25F76D643F47E29B2510BD58FEFBDA773B334D0D8010FAD7BD7E587",
+                      "Bytes":  3380,
+                      "OfficialSourceUrl":  "https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types",
+                      "Coverage":  "Active firm sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\New_Hampshire_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW HAMPSHIRE\\XLXS\\New_Hampshire_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "715FC0AF301B8C72A572E9FEBF98476AE9E8D1E4C4D5D7E09B97975B0295FE39",
+                      "Bytes":  8081,
+                      "OfficialSourceUrl":  "https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types",
+                      "Coverage":  "Active individual sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\New_Hampshire_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW HAMPSHIRE\\XLXS\\New_Hampshire_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "709B295852D5B456F9FCEA0DB7CD9E9AE27F2BAC8A5C4FE6C699FB8555005C5F",
+                      "Bytes":  3545,
+                      "OfficialSourceUrl":  "https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types",
+                      "Coverage":  "Source and sample manifest"
+                  }
+              ]
+}

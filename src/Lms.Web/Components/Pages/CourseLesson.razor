@@ -5,18 +5,37 @@
 @using Microsoft.JSInterop
 @using Lms.Application.Services
 @using Lms.Domain.Entities
-@implements IDisposable
+@using Lms.Web.Components.Shared
+@implements IAsyncDisposable
 @inject ICourseService CourseService
 @inject IEnrollmentService EnrollmentService
 @inject IUnitExamService UnitExamService
 @inject IExamService ExamService
 @inject ILearnerDashboardService LearnerDashboardService
-@inject ICourseActivityService CourseActivityService
+@inject IServiceScopeFactory ScopeFactory
+@inject ILogger<CourseLesson> Logger
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Lesson</PageTitle>
+
+@if (_attendanceError is not null)
+{
+    <p class="auth-error" role="alert">@_attendanceError</p>
+}
+@if (_classroomError is not null)
+{
+    <p class="auth-error" role="alert">@_classroomError</p>
+}
+
+@if (_course?.IsDevelopmentSample == true)
+{
+    <section class="card" role="status">
+        <strong>Development sample - not state-approved or eligible for credit.</strong>
+        <p>Copied content may refer to another state. Completion does not issue a certificate.</p>
+    </section>
+}
 
 @if (_course is null || _currentLesson is null)
 {
@@ -117,14 +136,49 @@ else
 										}
 									</li>
 								}
+							</ul>
+						}
+						@if (HasUnitExam(unit) || GetMenuIntermediateExams(unit).Any())
+						{
+							<ul class="lesson-menu-exam-list">
 								@if (HasUnitExam(unit))
 								{
 									<li>
-										<span class="menu-link-disabled menu-exam-entry" data-testid="menu-unit-exam">Unit Exam@(IsUnitExamPassed(unit) ? " ✓" : string.Empty)</span>
+										@if (GetMenuUnitExam(unit) is { } menuUnitExam && IsCurrentMenuExam(menuUnitExam.Id) && GetLastLessonInUnit(unit) is { } unitExamLesson)
+										{
+											<a class="menu-item-link menu-exam-entry" data-testid="menu-unit-exam" href="@BuildExamMenuUri(unitExamLesson.Id, menuUnitExam.Id)">Unit Exam — @GetExamMenuStatus(menuUnitExam.Id)</a>
+										}
+										else
+										{
+											<span class="menu-link-disabled menu-exam-entry" data-testid="menu-unit-exam">Unit Exam — @(GetMenuUnitExam(unit) is { } configuredExam ? GetExamMenuStatus(configuredExam.Id) : "Not configured")</span>
+										}
+									</li>
+								}
+								@foreach (var intermediateExam in GetMenuIntermediateExams(unit))
+								{
+									<li>
+										@if (IsCurrentMenuExam(intermediateExam.Id) && GetLastLessonInUnit(unit) is { } intermediateExamLesson)
+										{
+											<a class="menu-item-link menu-exam-entry" data-testid="menu-intermediate-exam" href="@BuildExamMenuUri(intermediateExamLesson.Id, intermediateExam.Id)">@intermediateExam.Title — @GetExamMenuStatus(intermediateExam.Id)</a>
+										}
+										else
+										{
+											<span class="menu-link-disabled menu-exam-entry" data-testid="menu-intermediate-exam">@intermediateExam.Title — @GetExamMenuStatus(intermediateExam.Id)</span>
+										}
 									</li>
 								}
 							</ul>
 						}
+					</section>
+				}
+				@if (MenuPracticeExam is { } menuPracticeExam)
+				{
+					<section class="lesson-menu-unit">
+						<ul>
+							<li>
+								<span class="menu-link-disabled menu-exam-entry" data-testid="menu-practice-exam">@menuPracticeExam.Title — @GetExamMenuStatus(menuPracticeExam.Id)</span>
+							</li>
+						</ul>
 					</section>
 				}
 				@if (HasFinalExam)
@@ -132,7 +186,14 @@ else
 					<section class="lesson-menu-unit">
 						<ul>
 							<li>
-								<span class="menu-link-disabled menu-exam-entry" data-testid="menu-final-exam">Final Exam@(IsFinalExamPassed ? " ✓" : string.Empty)</span>
+								@if (_courseMenuExams.FirstOrDefault(exam => exam.Kind == CourseExamKinds.Standard && exam.IsRequired && exam.UnitId is null) is { } menuFinalExam && IsCurrentMenuExam(menuFinalExam.Id) && GetLastCourseLesson() is { } finalExamLesson)
+								{
+									<a class="menu-item-link menu-exam-entry" data-testid="menu-final-exam" href="@BuildExamMenuUri(finalExamLesson.Id, menuFinalExam.Id)">Final Exam — @GetExamMenuStatus(menuFinalExam.Id)</a>
+								}
+								else
+								{
+									<span class="menu-link-disabled menu-exam-entry" data-testid="menu-final-exam">Final Exam — @(IsFinalExamPassed ? "Passed" : "Locked")</span>
+								}
 							</li>
 						</ul>
 					</section>
@@ -184,10 +245,18 @@ else
 				@if (ShowFinalExamAnnouncement)
 				{
 					<section class="final-exam-gate" aria-label="Exam announcement">
-						<h2>@(_activeExamIsUnit ? "Unit Exam" : "Final Exam")</h2>
+						<h2>@ActiveExamLabel</h2>
 						<p>You have reached this exam. It contains @_finalExam!.Questions.Count questions and requires @_finalExam.PassPercent% to pass.</p>
+						@if (IsPracticeActive)
+						{
+							<p class="muted-text">This practice exam mirrors the final exam. It does not count toward your certificate and can be retaken as often as you like.</p>
+						}
 						<div class="timed-start-actions">
-							<button type="button" class="timer-start-button" @onclick="BeginFinalExamAsync">Begin @(_activeExamIsUnit ? "Unit Exam" : "Final Exam")</button>
+							<button type="button" class="timer-start-button" @onclick="BeginFinalExamAsync">Begin @ActiveExamLabel</button>
+							@if (IsPracticeActive)
+							{
+								<button type="button" class="secondary-button" @onclick="ContinueAfterPracticeExamAsync">Skip to Final Exam</button>
+							}
 							<button type="button" class="secondary-button" @onclick="GoPreviousInCourseAsync">Back</button>
 						</div>
 					</section>
@@ -227,12 +296,12 @@ else
 						}
 
 						<div class="unit-exam-actions">
-							@if (!_activeExamIsUnit)
+							@if (!_activeExamIsUnit || _activeExamId.HasValue)
 							{
 								<button type="button" class="secondary-button" @onclick="FillWrongFinalExamAnswersAsync">Fill Wrong Answers (Fail Scenario)</button>
 								<button type="button" class="secondary-button" @onclick="FillCorrectFinalExamAnswersAsync">Fill Correct Answers</button>
 							}
-							<button type="button" class="unit-exam-submit-button" @onclick="SubmitFinalExamAsync">Submit @(_activeExamIsUnit ? "Unit Exam" : "Final Exam")</button>
+							<button type="button" class="unit-exam-submit-button" disabled="@_submittingExam" @onclick="SubmitFinalExamAsync">Submit @ActiveExamLabel</button>
 						</div>
 
 					</section>
@@ -241,8 +310,24 @@ else
 				@if (_showFinalExamResults && _finalExam is not null)
 				{
 					<section class="final-exam-result" aria-label="Final exam result">
-						<h2>@(_activeExamIsUnit ? "Unit Exam Result" : "Final Exam Result")</h2>
-						<p class="@(_finalExamPassed ? null : "exam-failure-text")">@(_finalExamPassed ? "Success" : "Result: Failure")</p>
+						<h2>@ActiveExamLabel Result</h2>
+						@if (_finalExamPassed && !_activeExamIsUnit && !IsPracticeActive)
+						{
+							<div class="exam-pass-summary" role="status">
+								<h3>You passed your final exam</h3>
+								<p>@(_course?.IsPrelicensing == true
+									? "Next, confirm your certificate name. No commission record or license number is needed for this pre-licensing course."
+									: _course?.RequiresCommissionRecord == true
+										? "Next, review your confirmed commission record and confirm the name for your certificate."
+										: "Next, review the details for your course-completion certificate.")</p>
+								<p class="muted-text">Certificate availability also depends on completing the course and any required attendance.</p>
+								<button type="button" class="unit-exam-submit-button" @onclick="GoToCertificationDetails">Review Certificate Details</button>
+							</div>
+						}
+						else
+						{
+							<p class="@(_finalExamPassed ? null : "exam-failure-text")">@(_finalExamPassed ? "Success" : "Result: Failure")</p>
+						}
 						@if (!string.IsNullOrWhiteSpace(_finalExamResultMessage))
 						{
 							<p class="muted-text">@_finalExamResultMessage</p>
@@ -274,7 +359,12 @@ else
 							</section>
 						}
 						<div class="unit-exam-actions">
-							@if (_activeExamIsUnit)
+							@if (IsPracticeActive)
+							{
+								<button type="button" class="unit-exam-submit-button" @onclick="ContinueAfterPracticeExamAsync">Continue to Final Exam</button>
+								<button type="button" class="secondary-button" @onclick="RetakePracticeExamAsync">Retake Practice Exam</button>
+							}
+							else if (_activeExamIsUnit)
 							{
 								@if (_finalExamPassed)
 								{
@@ -282,17 +372,13 @@ else
 								}
 								else if (_finalExamEligibility is null || _finalExamEligibility.HasUnlimitedAttempts || _finalExamEligibility.AttemptsUsed < _finalExamEligibility.AttemptsAllowed)
 								{
-									<button type="button" class="unit-exam-submit-button" @onclick="RetakeUnitExamAsync">Retake Unit Exam</button>
+									<button type="button" class="unit-exam-submit-button" @onclick="RetakeUnitExamAsync">Retake @ActiveExamLabel</button>
 								}
 								<button type="button" class="secondary-button" @onclick="GoToCourseOverview">Back to Course Overview</button>
 							}
 							else
 							{
 								<button type="button" class="unit-exam-submit-button" @onclick="GoToCourseOverview">Back to Course Overview</button>
-								@if (_finalExamPassed)
-								{
-									<button type="button" class="secondary-button" @onclick="GoToLearnerCertificates">View Certificate</button>
-								}
 							}
 						</div>
 					</section>
@@ -333,7 +419,7 @@ else
 							<div class="unit-exam-actions">
 								<button type="button" class="secondary-button" @onclick="AutoFillWrongUnitExamAnswers">Fill Wrong Answers (Fail Scenario)</button>
 								<button type="button" class="secondary-button" @onclick="AutoFillUnitExamAnswers">Fill Correct Answers</button>
-								<button type="button" class="unit-exam-submit-button" @onclick="SubmitUnitExamAsync">Submit</button>
+								<button type="button" class="unit-exam-submit-button" disabled="@_submittingExam" @onclick="SubmitUnitExamAsync">Submit</button>
 							</div>
 
 							@if (!string.IsNullOrWhiteSpace(_unitExamMessage))
@@ -386,7 +472,7 @@ else
 						<p class="muted-text">Untimed section. Continue to the timed section to start your course timer.</p>
 					}
 				}
-				else if (_activeUnitExam is null)
+				else if (_activeUnitExam is null && !_isEnrolled)
 				{
 					<p class="muted-text">Sign in and enroll to track completion as you move through the lessons.</p>
 				}
@@ -401,6 +487,10 @@ else
 				</div>
 				}
 			</section>
+			@if (_isEnrolled && _userId.HasValue)
+			{
+				<ExamAttemptHistoryPanel Attempts="_courseExamHistory" />
+			}
 		</section>
 	</div>
 }
@@ -409,6 +499,7 @@ else
 	[Parameter] public Guid CourseId { get; set; }
 	[Parameter] public Guid LessonId { get; set; }
 	[SupplyParameterFromQuery(Name = "learnerId")] public Guid? LearnerId { get; set; }
+	[SupplyParameterFromQuery(Name = "examId")] public Guid? MenuExamId { get; set; }
 
 	private Course? _course;
 	private Guid? _viewerUserId;
@@ -449,6 +540,23 @@ else
 	private string? _unitExamMessage;
 	private CourseExamView? _finalExam;
 	private Guid? _activeExamUnitId;
+	// Set when the active exam is an Intermediate or Practice exam, which are addressed by id rather than by unit.
+	private Guid? _activeExamId;
+	private DateTime? _activeExamStartedAtUtc;
+	private string _activeExamKind = CourseExamKinds.Standard;
+	private List<SupplementalExamInfo> _supplementalExams = new();
+	private List<CourseExamMenuInfo> _courseMenuExams = new();
+	private List<ExamAttemptHistoryItem> _courseExamHistory = new();
+	private readonly HashSet<Guid> _passedSupplementalExamIds = new();
+	private readonly HashSet<Guid> _attemptedSupplementalExamIds = new();
+	private bool _practiceHandled;
+	private bool IsPracticeActive => _activeExamId.HasValue && _activeExamKind == CourseExamKinds.Practice;
+	private string ActiveExamLabel => _activeExamKind switch
+	{
+		CourseExamKinds.Practice => "Practice Exam",
+		CourseExamKinds.Intermediate => "Intermediate Exam",
+		_ => _activeExamIsUnit ? "Unit Exam" : "Final Exam"
+	};
 	private Guid? _pendingExamNextLessonId;
 	private bool _activeExamIsUnit;
 	private readonly Dictionary<Guid, string> _finalExamSelectedOptions = new();
@@ -468,7 +576,12 @@ else
 	private bool _isTimerStateLoaded;
 	private Timer? _timerRefresh;
 	private Guid? _activityLogSessionId;
-	private Timer? _activityHeartbeat;
+	private readonly CancellationTokenSource _attendanceCancellation = new();
+	private Task? _activityHeartbeat;
+	private string? _attendanceError;
+	private string? _classroomError;
+	private bool _submittingExam;
+	private bool _savingLesson;
 	private bool _showFinalExamAnnouncement;
 	private bool _isFinalExamOpen;
 	private int _highestUnlockedTrackedLessonIndex;
@@ -532,7 +645,7 @@ else
 		}
 
 		BuildOrderedLessons();
-		_unitExamDefinitions = await UnitExamService.GetUnitExamDefinitionsAsync(CourseId);
+		_courseMenuExams = await ExamService.GetCourseMenuExamsAsync(CourseId);
 		ResolveCurrentLesson();
 
 		if (_viewerUserId.HasValue)
@@ -554,7 +667,7 @@ else
 				{
 					await UpdatePaidAccessAsync();
 					await RefreshLessonStateAsync();
-					_passedUnitExamKeys = await UnitExamService.GetPassedUnitExamKeysAsync(_userId.Value, _course.Id);
+					_passedUnitExamKeys.Clear();
 					await RefreshFinalExamStateAsync();
 					await ApplyTestShortcutIfEnabledAsync();
 					if (EnforceExamTerminalOverviewLock())
@@ -620,7 +733,7 @@ else
 		if (_isEnrolled && _userId.HasValue)
 		{
 			await RefreshLessonStateAsync();
-			_passedUnitExamKeys = await UnitExamService.GetPassedUnitExamKeysAsync(_userId.Value, _course.Id);
+			_passedUnitExamKeys.Clear();
 			await RefreshFinalExamStateAsync();
 			await ApplyTestShortcutIfEnabledAsync();
 			if (EnforceExamTerminalOverviewLock())
@@ -644,6 +757,10 @@ else
 			if (_isEnrolled)
 			{
 				await EnforceProgressiveLessonAccessAsync();
+				if (MenuExamId.HasValue)
+				{
+					await EvaluateFlowGatesOnLessonLoadAsync();
+				}
 			}
 			StateHasChanged();
 		}
@@ -1039,6 +1156,7 @@ else
 
 			if (IsTimedSessionRunning && IsAtFinalLessonBoundary())
 			{
+				if (!await PersistCurrentLessonCompletionAsync()) return;
 				if (TryBeginEndOfUnitExam(null))
 				{
 					return;
@@ -1053,6 +1171,8 @@ else
 			await Task.CompletedTask;
 			return;
 		}
+
+		if (!await PersistCurrentLessonCompletionAsync()) return;
 
 		if (_currentLessonIndexInCourse >= _orderedLessons.Count - 1)
 		{
@@ -1089,6 +1209,42 @@ else
 
 		NavigationManager.NavigateTo(BuildLessonUri(nextLesson.Id));
 		await Task.CompletedTask;
+	}
+
+	private async Task<bool> PersistCurrentLessonCompletionAsync()
+	{
+		if (!_userId.HasValue || !_isEnrolled || !_hasPaidAccess || _currentLesson is null
+			|| (!IsTimedSessionRunning && !IsOrientationLesson(_currentLesson))
+			|| (_currentLessonPages.Count > 0 && _currentLessonPageIndex < _currentLessonPages.Count - 1)
+			|| IsLessonCompleted(_currentLesson.Id))
+		{
+			return true;
+		}
+
+		if (_savingLesson) return false;
+		var lessonId = _currentLesson.Id;
+		var courseId = CourseId;
+		var userId = _userId.Value;
+		_savingLesson = true;
+		_classroomError = null;
+		try
+		{
+			await using var scope = ScopeFactory.CreateAsyncScope();
+			var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
+			await enrollmentService.SetLessonCompletionAsync(userId, lessonId, true);
+			var enrollment = await enrollmentService.GetEnrollmentAsync(userId, courseId);
+			if (CourseId != courseId) return false;
+			_lessonCompletion[lessonId] = true;
+			_enrollmentProgressPercent = enrollment?.ProgressPercent ?? 0;
+			return true;
+		}
+		catch (Exception ex)
+		{
+			Logger.LogError(ex, "Lesson completion could not be saved.");
+			_classroomError = "Your lesson progress could not be saved. Please try again before continuing.";
+			return false;
+		}
+		finally { _savingLesson = false; }
 	}
 
 	private bool TryBeginEndOfUnitExam(Guid? nextLessonId)
@@ -1158,19 +1314,16 @@ else
 		}
 
 		var exam = await ExamService.GetCourseExamAsync(_course.Id, currentUnit.Id);
-		if (exam is null)
-		{
-			return false;
-		}
-
-		var eligibility = _userId.HasValue
+		var eligibility = exam is not null && _userId.HasValue
 			? await ExamService.GetEligibilityAsync(_course.Id, _userId.Value, currentUnit.Id)
 			: null;
-		if (eligibility?.HasPassed == true)
+		if (exam is null || eligibility?.HasPassed == true)
 		{
-			return false;
+			// The unit exam is absent or already passed, so this unit's intermediate exams come next.
+			return await TryBeginIntermediateExamAsync(currentUnit, nextLessonId);
 		}
 
+		ClearActiveSupplementalExam();
 		_finalExam = exam;
 		_finalExamEligibility = eligibility;
 		_activeExamUnitId = currentUnit.Id;
@@ -1196,13 +1349,20 @@ else
 			var exam = await ExamService.GetCourseExamAsync(_course.Id, priorUnit.Id);
 			if (exam is null)
 			{
-				continue;
+				var pendingIntermediate = GetIntermediateExams(priorUnit).Any(item => !_passedSupplementalExamIds.Contains(item.Id));
+				if (!pendingIntermediate)
+				{
+					continue;
+				}
 			}
-
-			var eligibility = await ExamService.GetEligibilityAsync(_course.Id, _userId.Value, priorUnit.Id);
-			if (eligibility.HasPassed)
+			else
 			{
-				continue;
+				var eligibility = await ExamService.GetEligibilityAsync(_course.Id, _userId.Value, priorUnit.Id);
+				if (eligibility.HasPassed
+					&& !GetIntermediateExams(priorUnit).Any(item => !_passedSupplementalExamIds.Contains(item.Id)))
+				{
+					continue;
+				}
 			}
 
 			var lastLesson = priorUnit.Lessons.OrderBy(lesson => lesson.OrderIndex).LastOrDefault();
@@ -1227,6 +1387,7 @@ else
 
 		_activeExamIsUnit = false;
 		_activeExamUnitId = null;
+		ClearActiveSupplementalExam();
 		_pendingExamNextLessonId = null;
 		await RefreshFinalExamStateAsync();
 
@@ -1238,6 +1399,13 @@ else
 		if (_finalExam is null)
 		{
 			return false;
+		}
+
+		var practice = PracticeExam;
+		if (practice is not null && !_practiceHandled && !_attemptedSupplementalExamIds.Contains(practice.Id)
+			&& await BeginSupplementalExamAsync(practice, null))
+		{
+			return true;
 		}
 
 		_showFinalExamAnnouncement = true;
@@ -1280,6 +1448,11 @@ else
 				AutoFillUnitExamAnswers();
 				return;
 			}
+		}
+
+		if (_activeUnitExam is null && await TryOpenMenuExamAsync())
+		{
+			return;
 		}
 
 		if (_activeUnitExam is null && TryBeginEndOfUnitExam(null))
@@ -1331,24 +1504,73 @@ else
 
 	private bool HasUnitExam(Unit unit)
 	{
-		var key = Lms.Application.Services.UnitExamService.BuildUnitExamKey(unit.Id);
-		return _unitExamDefinitions.Any(item => string.Equals(item.Key, key, StringComparison.OrdinalIgnoreCase));
+		return _courseMenuExams.Any(exam => exam.Kind == CourseExamKinds.Standard && exam.IsRequired && exam.UnitId == unit.Id);
+	}
+
+	private CourseExamMenuInfo? GetMenuUnitExam(Unit unit)
+	{
+		return _courseMenuExams.FirstOrDefault(exam =>
+			exam.Kind == CourseExamKinds.Standard && exam.IsRequired && exam.UnitId == unit.Id);
 	}
 
 	private bool IsUnitExamPassed(Unit unit)
 	{
-		return _passedUnitExamKeys.Contains(Lms.Application.Services.UnitExamService.BuildUnitExamKey(unit.Id));
+		var exam = GetMenuUnitExam(unit);
+		return exam is not null && _courseExamHistory.Any(attempt =>
+			attempt.ExamId == exam.Id
+			&& attempt.ExamVersion == exam.ContentVersion
+			&& attempt.Passed);
 	}
 
 	private bool HasFinalExam => _finalExam is not null
-		|| _unitExamDefinitions.Any(item => item.IsFinal);
+		|| _courseMenuExams.Any(exam => exam.Kind == CourseExamKinds.Standard && exam.IsRequired && exam.UnitId is null);
 
-	private bool IsFinalExamPassed => _finalExamEligibility?.HasPassed == true
-		|| _passedUnitExamKeys.Contains(Lms.Application.Services.UnitExamService.FinalUnitExamKey);
+	private Guid? CurrentMenuExamId => _course is null
+		? null
+		: CourseExamMenuProgress.GetCurrentRequiredExamId(
+			_course,
+			_courseMenuExams,
+			_courseExamHistory,
+			_lessonCompletion,
+			MenuLinksEnabled);
+
+	private bool IsCurrentMenuExam(Guid examId) => CurrentMenuExamId == examId;
+
+	private string GetExamMenuStatus(Guid examId)
+	{
+		var latestAttempt = _courseExamHistory
+			.Where(attempt => attempt.ExamId == examId)
+			.OrderByDescending(attempt => attempt.SubmittedAt)
+			.FirstOrDefault();
+		var currentVersion = _courseMenuExams.FirstOrDefault(exam => exam.Id == examId)?.ContentVersion ?? 1;
+		if (_courseExamHistory.Any(attempt => attempt.ExamId == examId
+			&& attempt.ExamVersion == currentVersion
+			&& attempt.Passed))
+		{
+			return "Passed";
+		}
+
+		if (latestAttempt is not null)
+		{
+			return IsCurrentMenuExam(examId) ? "Failed · Retake available" : "Failed · Locked";
+		}
+
+		if (_courseMenuExams.FirstOrDefault(exam => exam.Id == examId)?.Kind == CourseExamKinds.Practice)
+		{
+			return "Practice · optional";
+		}
+
+		return IsCurrentMenuExam(examId) ? "Available" : "Locked";
+	}
+
+	private bool IsFinalExamPassed => _courseMenuExams.FirstOrDefault(exam => exam.Kind == CourseExamKinds.Standard && exam.IsRequired && exam.UnitId is null) is { } finalExam
+			&& _courseExamHistory.Any(attempt => attempt.ExamId == finalExam.Id
+				&& attempt.ExamVersion == finalExam.ContentVersion
+				&& attempt.Passed);
 
 	private bool CanTriggerFinalExam()
 	{
-		return _finalExamEligibility?.HasPassed != true;
+		return !IsFinalExamPassed;
 	}
 
 	private void ToggleUnitExamOption(string optionKey, object? value)
@@ -1362,7 +1584,31 @@ else
 		_selectedUnitExamOptionKeys.Remove(optionKey);
 	}
 
-	private async Task SubmitUnitExamAsync()
+	private Task SubmitUnitExamAsync() => SubmitExamAsync(SubmitUnitExamCoreAsync);
+
+	private async Task SubmitExamAsync(Func<Task> submit)
+	{
+		if (_submittingExam) return;
+		_submittingExam = true;
+		_classroomError = null;
+		try
+		{
+			await submit();
+		}
+		catch (InvalidOperationException ex)
+		{
+			Logger.LogWarning(ex, "Exam submission was rejected.");
+			_classroomError = ex.Message;
+		}
+		catch (Exception ex)
+		{
+			Logger.LogError(ex, "Exam submission could not be completed.");
+			_classroomError = "Your exam submission could not be completed. Refresh your exam history before retrying.";
+		}
+		finally { _submittingExam = false; }
+	}
+
+	private async Task SubmitUnitExamCoreAsync()
 	{
 		if (_activeUnitExam is null)
 		{
@@ -1380,7 +1626,9 @@ else
 
 		if (_userId.HasValue)
 		{
-			var submitResult = await UnitExamService.SubmitUnitExamAsync(_userId.Value, CourseId, _activeUnitExam.Key, _selectedUnitExamOptionKeys.ToList());
+			await using var scope = ScopeFactory.CreateAsyncScope();
+			var submitResult = await scope.ServiceProvider.GetRequiredService<IUnitExamService>()
+				.SubmitUnitExamAsync(_userId.Value, CourseId, _activeUnitExam.Key, _selectedUnitExamOptionKeys.ToList());
 			isPassed = submitResult.IsPassed;
 			correctKeys = submitResult.CorrectOptionKeys;
 			resultMessage = submitResult.Message;
@@ -1523,6 +1771,11 @@ else
 			// Keep session in-memory if local storage is temporarily unavailable.
 		}
 
+		if (MenuExamId.HasValue && await TryOpenMenuExamAsync())
+		{
+			return;
+		}
+
 		if (await TryBeginUnitExamAsync(null))
 		{
 			return;
@@ -1536,7 +1789,16 @@ else
 
 	private async Task BeginFinalExamAsync()
 	{
-		if (_activeExamIsUnit)
+		if (!await PersistCurrentLessonCompletionAsync()) return;
+
+		if (_activeExamId.HasValue)
+		{
+			if (_userId.HasValue)
+			{
+				_finalExamEligibility = await ExamService.GetEligibilityForExamAsync(_activeExamId.Value, _userId.Value);
+			}
+		}
+		else if (_activeExamIsUnit)
 		{
 			if (_userId.HasValue && _activeExamUnitId.HasValue)
 			{
@@ -1555,6 +1817,7 @@ else
 
 		_showFinalExamAnnouncement = false;
 		_isFinalExamOpen = true;
+		_activeExamStartedAtUtc = DateTime.UtcNow;
 		_showFinalExamResults = false;
 		_finalExamElapsedText = null;
 		_finalExamCorrectAnswers = 0;
@@ -1581,6 +1844,17 @@ else
 		_showFinalExamResults = false;
 		_finalExamAnswerReview.Clear();
 		_finalExamSelectedOptions.Clear();
+
+		// The current unit may have more intermediate exams to pass before moving on.
+		var currentUnit = _currentLesson is null
+			? null
+			: _orderedUnits.FirstOrDefault(unit => unit.Lessons.Any(lesson => lesson.Id == _currentLesson.Id));
+		if (currentUnit is not null && await TryBeginIntermediateExamAsync(currentUnit, nextLessonId))
+		{
+			return;
+		}
+
+		ClearActiveSupplementalExam();
 
 		if (nextLessonId.HasValue)
 		{
@@ -1610,19 +1884,24 @@ else
 		_finalExamSelectedOptions[questionId] = option;
 	}
 
-	private async Task SubmitFinalExamAsync()
+	private Task SubmitFinalExamAsync() => SubmitExamAsync(SubmitFinalExamCoreAsync);
+
+	private async Task SubmitFinalExamCoreAsync()
 	{
 		if (_finalExam is null)
 		{
 			return;
 		}
 
+		await using var scope = ScopeFactory.CreateAsyncScope();
+		var examService = scope.ServiceProvider.GetRequiredService<IExamService>();
+		var enrollmentService = scope.ServiceProvider.GetRequiredService<IEnrollmentService>();
 		var elapsedText = GetElapsedTimerText();
 		var answers = _finalExamSelectedOptions.ToDictionary(item => item.Key, item => item.Value);
 		var totalQuestions = _finalExam.Questions.Count;
 		var currentAttemptNumber = Math.Max((_finalExamEligibility?.AttemptsUsed ?? 0) + 1, 1);
 		var currentHintLevel = Math.Clamp(currentAttemptNumber, 1, 3);
-		var correctAnswers = await ExamService.GetCorrectAnswerMapAsync(CourseId, _activeExamUnitId);
+		var correctAnswers = await GetActiveCorrectAnswersAsync();
 		_unitExamMessage = null;
 		_finalExamAnswerReview.Clear();
 		var correctCount = 0;
@@ -1653,16 +1932,33 @@ else
 		ExamAttemptSummary? attempt = null;
 		if (_userId.HasValue)
 		{
-			attempt = await ExamService.SubmitAttemptAsync(CourseId, _userId.Value, answers, _activeExamUnitId);
-			_finalExamEligibility = await ExamService.GetEligibilityAsync(CourseId, _userId.Value, _activeExamUnitId);
+			if (_activeExamId.HasValue)
+			{
+				attempt = await examService.SubmitAttemptForExamAsync(_activeExamId.Value, _userId.Value, answers, _activeExamStartedAtUtc);
+				_finalExamEligibility = await examService.GetEligibilityForExamAsync(_activeExamId.Value, _userId.Value);
+				_attemptedSupplementalExamIds.Add(_activeExamId.Value);
+				if (attempt.Passed)
+				{
+					_passedSupplementalExamIds.Add(_activeExamId.Value);
+				}
+			}
+			else
+			{
+				attempt = await examService.SubmitAttemptAsync(CourseId, _userId.Value, answers, _activeExamUnitId, _activeExamStartedAtUtc);
+				_finalExamEligibility = await examService.GetEligibilityAsync(CourseId, _userId.Value, _activeExamUnitId);
+			}
 			// Recalculate from persisted lesson progress so certificate issuance uses the current completion state.
-			await EnrollmentService.ReconcileCompletionAsync(_userId.Value, CourseId);
+			await enrollmentService.ReconcileCompletionAsync(_userId.Value, CourseId);
+			_courseExamHistory = await examService.GetAttemptHistoryForCourseAsync(CourseId, _userId.Value);
 			correctCount = attempt.CorrectAnswers;
 			totalQuestions = attempt.TotalQuestions;
 		}
 
 		var passed = attempt?.Passed == true || (totalQuestions > 0 && correctCount == totalQuestions);
-		await StopTimedCourseAsync();
+		if (!_activeExamIsUnit && !IsPracticeActive)
+		{
+			await StopTimedCourseAsync();
+		}
 
 		_finalExamElapsedText = elapsedText;
 		_finalExamCorrectAnswers = correctCount;
@@ -1677,6 +1973,254 @@ else
 		_isFinalExamOpen = false;
 	}
 
+	private async Task RefreshSupplementalExamsAsync()
+	{
+		if (_course is null)
+		{
+			return;
+		}
+
+		_supplementalExams = await ExamService.GetSupplementalExamsAsync(_course.Id);
+		_passedSupplementalExamIds.Clear();
+		_attemptedSupplementalExamIds.Clear();
+
+		if (!_userId.HasValue)
+		{
+			return;
+		}
+
+		foreach (var exam in _supplementalExams)
+		{
+			var eligibility = await ExamService.GetEligibilityForExamAsync(exam.Id, _userId.Value);
+			if (eligibility.HasPassed)
+			{
+				_passedSupplementalExamIds.Add(exam.Id);
+			}
+
+			if (eligibility.AttemptsUsed > 0)
+			{
+				_attemptedSupplementalExamIds.Add(exam.Id);
+			}
+		}
+	}
+
+	private IEnumerable<SupplementalExamInfo> GetIntermediateExams(Unit unit)
+	{
+		return _supplementalExams.Where(exam => exam.Kind == CourseExamKinds.Intermediate && exam.UnitId == unit.Id);
+	}
+
+	private IEnumerable<CourseExamMenuInfo> GetMenuIntermediateExams(Unit unit)
+	{
+		return _courseMenuExams.Where(exam => exam.Kind == CourseExamKinds.Intermediate && exam.UnitId == unit.Id);
+	}
+
+	private async Task<bool> TryOpenMenuExamAsync()
+	{
+		if (!MenuExamId.HasValue)
+		{
+			return false;
+		}
+
+		var exam = _courseMenuExams.FirstOrDefault(item => item.Id == MenuExamId.Value);
+		if (exam is null)
+		{
+			return false;
+		}
+
+		if (!IsCurrentMenuExam(exam.Id))
+		{
+			_unitExamMessage = "This exam is locked. Use the course menu to open the current available exam.";
+			return true;
+		}
+
+		if (!_isEnrolled || !_hasPaidAccess || !IsTimedSessionRunning)
+		{
+			_unitExamMessage = "Enroll in the course and begin the timed course before opening an exam.";
+			return true;
+		}
+
+		if (exam.UnitId.HasValue)
+		{
+			var unit = _orderedUnits.FirstOrDefault(item => item.Id == exam.UnitId.Value);
+			var unitLessons = unit?.Lessons.OrderBy(lesson => lesson.OrderIndex).ToList();
+			if (unit is null || unitLessons is null || unitLessons.Count == 0
+				|| _currentLesson is null
+				|| unitLessons[^1].Id != _currentLesson.Id
+				|| unitLessons.Any(lesson => !IsLessonCompleted(lesson.Id)))
+			{
+				_unitExamMessage = "Complete this unit's lessons before opening its exam from the course menu.";
+				return true;
+			}
+
+			if (exam.Kind == CourseExamKinds.Intermediate)
+			{
+				var requiredUnitExam = GetMenuUnitExam(unit);
+				if (requiredUnitExam is not null && _userId.HasValue)
+				{
+					var eligibility = await ExamService.GetEligibilityAsync(CourseId, _userId.Value, unit.Id);
+					if (!eligibility.HasPassed)
+					{
+						_unitExamMessage = "Pass this unit's Unit Exam before taking its Intermediate Exam.";
+						return true;
+					}
+				}
+				else if (HasUnitExam(unit) && !IsUnitExamPassed(unit))
+				{
+					_unitExamMessage = "Pass this unit's Unit Exam before taking its Intermediate Exam.";
+					return true;
+				}
+			}
+			else if (exam.Kind != CourseExamKinds.Standard)
+			{
+				return false;
+			}
+		}
+		else if (_currentLesson is null
+			|| GetLastCourseLesson()?.Id != _currentLesson.Id
+			|| _orderedLessons.Any(lesson => !IsLessonCompleted(lesson.Id)))
+		{
+			_unitExamMessage = "Complete the course lessons before opening this exam from the course menu.";
+			return true;
+		}
+
+		if (exam.Kind == CourseExamKinds.Standard)
+		{
+			if (!_userId.HasValue)
+			{
+				_unitExamMessage = "Sign in to your account with an enrollment in this course to take this exam.";
+				return true;
+			}
+
+			var eligibility = await ExamService.GetEligibilityForExamAsync(exam.Id, _userId.Value);
+			if (eligibility.HasPassed)
+			{
+				_unitExamMessage = "This exam has already been passed.";
+				return true;
+			}
+
+			_finalExam = await ExamService.GetExamViewAsync(exam.Id);
+			if (_finalExam is null || _finalExam.Questions.Count == 0)
+			{
+				_unitExamMessage = "This exam is not configured yet. Contact your instructor.";
+				return true;
+			}
+
+			_finalExamEligibility = eligibility;
+			_activeExamUnitId = exam.UnitId;
+			_activeExamId = null;
+			_activeExamKind = CourseExamKinds.Standard;
+			_activeExamIsUnit = exam.UnitId.HasValue;
+			_pendingExamNextLessonId = exam.UnitId.HasValue
+				? GetNextUnitLesson(exam.UnitId.Value)?.Id
+				: null;
+			_showFinalExamAnnouncement = true;
+			_isFinalExamOpen = false;
+			_showFinalExamResults = false;
+			_finalExamSelectedOptions.Clear();
+			return true;
+		}
+
+		var supplementalExam = _supplementalExams.FirstOrDefault(item => item.Id == exam.Id);
+		if (supplementalExam is null)
+		{
+			_unitExamMessage = "This exam is not available right now.";
+			return true;
+		}
+
+		if (await BeginSupplementalExamAsync(supplementalExam, null))
+		{
+			return true;
+		}
+
+		_unitExamMessage = "This exam does not have any questions yet.";
+		return true;
+	}
+
+	private Lesson? GetNextUnitLesson(Guid unitId)
+	{
+		var currentUnitIndex = _orderedUnits.FindIndex(unit => unit.Id == unitId);
+		return currentUnitIndex >= 0 && currentUnitIndex + 1 < _orderedUnits.Count
+			? _orderedUnits[currentUnitIndex + 1].Lessons.OrderBy(lesson => lesson.OrderIndex).FirstOrDefault()
+			: null;
+	}
+
+	private SupplementalExamInfo? PracticeExam => _supplementalExams.FirstOrDefault(exam => exam.Kind == CourseExamKinds.Practice);
+
+	private CourseExamMenuInfo? MenuPracticeExam => _courseMenuExams.FirstOrDefault(exam => exam.Kind == CourseExamKinds.Practice);
+
+	private static Lesson? GetLastLessonInUnit(Unit unit)
+	{
+		return unit.Lessons.OrderBy(lesson => lesson.OrderIndex).LastOrDefault();
+	}
+
+	private Lesson? GetLastCourseLesson()
+	{
+		return _orderedLessons.LastOrDefault();
+	}
+
+	private async Task<bool> TryBeginIntermediateExamAsync(Unit unit, Guid? nextLessonId)
+	{
+		var next = GetIntermediateExams(unit).FirstOrDefault(exam => !_passedSupplementalExamIds.Contains(exam.Id));
+		if (next is null)
+		{
+			return false;
+		}
+
+		return await BeginSupplementalExamAsync(next, nextLessonId);
+	}
+
+	private async Task<bool> BeginSupplementalExamAsync(SupplementalExamInfo info, Guid? nextLessonId)
+	{
+		var view = await ExamService.GetExamViewAsync(info.Id);
+		if (view is null || view.Questions.Count == 0)
+		{
+			return false;
+		}
+
+		_finalExam = view;
+		_finalExamEligibility = _userId.HasValue ? await ExamService.GetEligibilityForExamAsync(info.Id, _userId.Value) : null;
+		_activeExamId = info.Id;
+		_activeExamKind = info.Kind;
+		_activeExamUnitId = null;
+		_pendingExamNextLessonId = nextLessonId;
+		_activeExamIsUnit = info.Kind == CourseExamKinds.Intermediate;
+		_showFinalExamAnnouncement = true;
+		_isFinalExamOpen = false;
+		_showFinalExamResults = false;
+		_finalExamSelectedOptions.Clear();
+		return true;
+	}
+
+	private void ClearActiveSupplementalExam()
+	{
+		_activeExamId = null;
+		_activeExamKind = CourseExamKinds.Standard;
+	}
+
+	private async Task ContinueAfterPracticeExamAsync()
+	{
+		_practiceHandled = true;
+		_showFinalExamResults = false;
+		_finalExamAnswerReview.Clear();
+		_finalExamSelectedOptions.Clear();
+		ClearActiveSupplementalExam();
+		await TryBeginFinalExamAsync(skipUnitExamGate: true);
+	}
+
+	private async Task RetakePracticeExamAsync()
+	{
+		_showFinalExamResults = false;
+		_finalExamAnswerReview.Clear();
+		await BeginFinalExamAsync();
+	}
+
+	private async Task<Dictionary<Guid, string>> GetActiveCorrectAnswersAsync()
+	{
+		return _activeExamId.HasValue
+			? await ExamService.GetCorrectAnswerMapForExamAsync(_activeExamId.Value)
+			: await ExamService.GetCorrectAnswerMapAsync(CourseId, _activeExamUnitId);
+	}
+
 	private async Task RefreshFinalExamStateAsync()
 	{
 		if (_course is null)
@@ -1685,11 +2229,13 @@ else
 		}
 
 		_finalExam = await ExamService.GetCourseExamAsync(_course.Id);
+		await RefreshSupplementalExamsAsync();
 		_passedFinalExamOnFirstAttempt = false;
 		_isFinalExamRetakeLimitReached = false;
 		if (_userId.HasValue)
 		{
 			_finalExamEligibility = await ExamService.GetEligibilityAsync(_course.Id, _userId.Value);
+			_courseExamHistory = await ExamService.GetAttemptHistoryForCourseAsync(_course.Id, _userId.Value);
 			_hasFinalExamRetakeGrantOverride = _finalExamEligibility?.HasRetakeGrantOverride == true;
 			_isFinalExamRetakeLimitReached = _finalExamEligibility is { RequiresExam: true, HasPassed: false } eligibility
 				&& eligibility.AttemptsUsed >= eligibility.AttemptsAllowed;
@@ -1739,7 +2285,7 @@ else
 			return;
 		}
 
-		var correctAnswers = await ExamService.GetCorrectAnswerMapAsync(CourseId);
+		var correctAnswers = await GetActiveCorrectAnswersAsync();
 		foreach (var question in _finalExam.Questions)
 		{
 			if (correctAnswers.TryGetValue(question.Id, out var correctOption))
@@ -1828,9 +2374,9 @@ else
 		NavigationManager.NavigateTo(BuildCourseOverviewUri());
 	}
 
-	private void GoToLearnerCertificates()
+	private void GoToCertificationDetails()
 	{
-		NavigationManager.NavigateTo(BuildLearnerDashboardUri());
+		NavigationManager.NavigateTo($"/certification/{CourseId}");
 	}
 
 	private async Task LoadTimedSessionStateAsync()
@@ -1843,9 +2389,10 @@ else
 		try
 		{
 			var storedUtc = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", BuildTimedSessionStorageKey());
-			if (DateTime.TryParse(storedUtc, out var parsedUtc))
+			if (DateTimeOffset.TryParse(storedUtc, System.Globalization.CultureInfo.InvariantCulture,
+				System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var parsedUtc))
 			{
-				_timedSessionStartedAtUtc = DateTime.SpecifyKind(parsedUtc, DateTimeKind.Utc);
+				_timedSessionStartedAtUtc = parsedUtc.UtcDateTime;
 				var storedUnlockIndex = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", BuildProgressUnlockStorageKey());
 				if (int.TryParse(storedUnlockIndex, out var parsedUnlockIndex))
 				{
@@ -1915,6 +2462,13 @@ else
 		}
 
 		return $"{lessonUri}?learnerId={Uri.EscapeDataString(resolvedLearnerUserId.Value.ToString())}";
+	}
+
+	private string BuildExamMenuUri(Guid lessonId, Guid examId)
+	{
+		var lessonUri = BuildLessonUri(lessonId);
+		var separator = lessonUri.Contains('?') ? '&' : '?';
+		return $"{lessonUri}{separator}examId={Uri.EscapeDataString(examId.ToString("D"))}";
 	}
 
 	private string BuildCourseOverviewUri(string? finalExamResult = null)
@@ -1991,19 +2545,43 @@ else
 
 		try
 		{
-			_activityLogSessionId = await CourseActivityService.StartAsync(_userId.Value, _course.Id);
-			_activityHeartbeat = new Timer(_ =>
-			{
-				if (_activityLogSessionId.HasValue && _userId.HasValue)
-				{
-					_ = CourseActivityService.PulseAsync(_activityLogSessionId.Value, _userId.Value);
-				}
-			}, null, TimeSpan.FromSeconds(60), TimeSpan.FromSeconds(60));
+			await using var scope = ScopeFactory.CreateAsyncScope();
+			_activityLogSessionId = await scope.ServiceProvider.GetRequiredService<ICourseActivityService>()
+				.StartAsync(_userId.Value, _course.Id);
+			_activityHeartbeat = RunAttendanceHeartbeatAsync(_activityLogSessionId.Value, _userId.Value,
+				_attendanceCancellation.Token);
 		}
-		catch (InvalidOperationException)
+		catch (Exception ex)
 		{
-			// No active enrollment (e.g. instructor/admin browsing) — skip attendance tracking.
+			Logger.LogError(ex, "Instructional attendance could not be started.");
+			_attendanceError = "Attendance could not be started. Please refresh before continuing your class.";
 		}
+	}
+
+	private async Task RunAttendanceHeartbeatAsync(Guid sessionId, Guid userId, CancellationToken cancellationToken)
+	{
+		using var timer = new PeriodicTimer(TimeSpan.FromSeconds(60));
+		try
+		{
+			while (await timer.WaitForNextTickAsync(cancellationToken))
+			{
+				try
+				{
+					await using var scope = ScopeFactory.CreateAsyncScope();
+					await scope.ServiceProvider.GetRequiredService<ICourseActivityService>().PulseAsync(sessionId, userId);
+				}
+				catch (Exception ex)
+				{
+					Logger.LogError(ex, "Instructional attendance heartbeat failed.");
+					await InvokeAsync(() =>
+					{
+						_attendanceError = "Attendance could not be saved. Please refresh before continuing your class.";
+						StateHasChanged();
+					});
+				}
+			}
+		}
+		catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { }
 	}
 
 	private void StartTimerRefresh()
@@ -2113,14 +2691,25 @@ else
 		ResolveCurrentLesson();
 	}
 
-	public void Dispose()
+	public async ValueTask DisposeAsync()
 	{
 		_timerRefresh?.Dispose();
-		_activityHeartbeat?.Dispose();
+		_attendanceCancellation.Cancel();
+		if (_activityHeartbeat is not null) await _activityHeartbeat;
 
 		if (_activityLogSessionId.HasValue && _userId.HasValue)
 		{
-			_ = CourseActivityService.EndAsync(_activityLogSessionId.Value, _userId.Value);
+			try
+			{
+				await using var scope = ScopeFactory.CreateAsyncScope();
+				await scope.ServiceProvider.GetRequiredService<ICourseActivityService>()
+					.EndAsync(_activityLogSessionId.Value, _userId.Value);
+			}
+			catch (Exception ex)
+			{
+				Logger.LogError(ex, "Instructional attendance session could not be closed.");
+			}
 		}
+		_attendanceCancellation.Dispose();
 	}
 }

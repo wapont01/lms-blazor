@@ -1,0 +1,127 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Nevada",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\TXTs\\Nevada NRED Active Licensee List Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\TXTs\\Nevada NRED Active Licensee List Capture.json",
+                      "Sha256":  "638D421C443043C6BD8484DA00018E7BFD3EF1F56C3DDA810644BBF683BC7857",
+                      "Bytes":  1873,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active license list capture evidence"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-AMC.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-AMC.xlsx",
+                      "Sha256":  "FCD5A1C2D37D15A0421900B80657916B5634C0761E07D4F4C55CD81691B08989",
+                      "Bytes":  25278,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active appraisal management company roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-APPRAISERS.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-APPRAISERS.xlsx",
+                      "Sha256":  "0AD68CE635271B9A506B73C44E072B120B140EFC1DAF7238BB3685C33B021BB2",
+                      "Bytes":  116175,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active appraiser roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-BROKERS.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-BROKERS.xlsx",
+                      "Sha256":  "51C1DF5E6B1E69885BC192B3D6DFA545CE74FB540F7E8CF78E13C4EF4D6A1007",
+                      "Bytes":  318975,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active broker roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-BROKER-SALESPERSONS.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-BROKER-SALESPERSONS.xlsx",
+                      "Sha256":  "24F7E33B6628FF3F8FAC953E7E963047F5F34370EDF4F426BE3EC9A45556C2A3",
+                      "Bytes":  295754,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Combined active broker and salesperson roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-BUSINESS-BROKERS.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-BUSINESS-BROKERS.xlsx",
+                      "Sha256":  "7CD15D568C6742FA00857506C23CA56FDEA88B52C6A634B48D0188512FC90ADC",
+                      "Bytes":  52407,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active business broker roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-CAM.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-CAM.xlsx",
+                      "Sha256":  "8408AB920EF61961EA6B80832844E09306A882EAED2341D8D62DC2A403209FCD",
+                      "Bytes":  83482,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active community association manager roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-ENERGY-AUDITORS.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-ENERGY-AUDITORS.xlsx",
+                      "Sha256":  "31D2956CB1293D3A6BFCF1DB903DD3D76EB3F39F25277214952863E2BAC916A3",
+                      "Bytes":  16532,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active energy auditor roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-HOA.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-HOA.xlsx",
+                      "Sha256":  "42A9E799FDA4D955AFC60A57E716D5293012123C600563D05E429FBEEA4E19BE",
+                      "Bytes":  344738,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active homeowners association roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-IOS.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-IOS.xlsx",
+                      "Sha256":  "DC2F1C812F152FB38DEEC674127D66BDD71F8024B2E5A91194C77BE357FC8142",
+                      "Bytes":  46581,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active inspector-of-structures roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-PROPERTY-MANAGERS.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-PROPERTY-MANAGERS.xlsx",
+                      "Sha256":  "6E5F0373D546E81E58EF5351E648D4DC38E9F4D7E279F714603A5FD45583C4E0",
+                      "Bytes":  317210,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active property manager roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-SALESPERSONS.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-SALESPERSONS.xlsx",
+                      "Sha256":  "0C0B99C0FE3D8021224E43F88D5CCB9DB8F721E2F45EDD4D43616CC3F3EB164E",
+                      "Bytes":  1795122,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active salesperson roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\NRED-ACTIVE-TIMESHARE-AGENTS.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\NRED-ACTIVE-TIMESHARE-AGENTS.xlsx",
+                      "Sha256":  "0B2833B61AE41F42DD7FD81C7239BD9F551CCC394FB0665CB973A952D89DE4DA",
+                      "Bytes":  141513,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active timeshare agent roster"
+                  }
+              ]
+}

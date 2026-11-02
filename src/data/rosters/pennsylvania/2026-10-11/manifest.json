@@ -1,0 +1,55 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Pennsylvania",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Pennsylvania Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PENNSYLVANIA\\TXTS\\Pennsylvania Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "DD25D42E5D3C740212B0D2A0F85E72BDE8B6719AE07745FD9486527DCF25C29B",
+                      "Bytes":  3008,
+                      "OfficialSourceUrl":  "https://www.pals.pa.gov/#!/page/search",
+                      "Coverage":  "Query pagination and sample limitations"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Pennsylvania_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PENNSYLVANIA\\XLXS\\Pennsylvania_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "B45A3FAFCDA97F6AC7C6E058A64332A5D28F2FE32838CD78074817270EC73380",
+                      "Bytes":  8814,
+                      "OfficialSourceUrl":  "https://www.pals.pa.gov/#!/page/search",
+                      "Coverage":  "Active entity sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Pennsylvania_Active_Personal_Licensee_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PENNSYLVANIA\\XLXS\\Pennsylvania_Active_Personal_Licensee_Development_Sample_20261011.csv",
+                      "Sha256":  "DD60EFAB41DDA246310758C58A272AEB1C04F5BEB20F3B6F696EB37E2BEEE94E",
+                      "Bytes":  8350,
+                      "OfficialSourceUrl":  "https://www.pals.pa.gov/#!/page/search",
+                      "Coverage":  "Active personal licensee samples"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Pennsylvania_Personal_Licensee_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PENNSYLVANIA\\XLXS\\Pennsylvania_Personal_Licensee_Development_Samples_20261011.json",
+                      "Sha256":  "4AF4BB06067CA14AF56DE4040E0F9B59776787C6CCAC88F945C65A506D839EBA",
+                      "Bytes":  3342,
+                      "OfficialSourceUrl":  "https://www.pals.pa.gov/#!/page/search",
+                      "Coverage":  "Personal search counts pagination and sample hashes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Pennsylvania_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PENNSYLVANIA\\XLXS\\Pennsylvania_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "85764ABBEDC0586B328E8E3E7AB3C2F6659C550EF904CF4E90AD0FF11BFE12C7",
+                      "Bytes":  4607,
+                      "OfficialSourceUrl":  "https://www.pals.pa.gov/#!/page/search",
+                      "Coverage":  "Entity and individual sample manifest"
+                  }
+              ]
+}

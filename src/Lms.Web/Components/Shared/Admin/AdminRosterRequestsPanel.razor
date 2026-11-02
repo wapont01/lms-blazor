@@ -1,0 +1,119 @@
+@using System.Security.Claims
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@inject IRosterRegistrationService Roster
+@inject AuthenticationStateProvider Authentication
+@inject EmailJourneyOptions Options
+@inject IWebHostEnvironment Environment
+@inject ILogger<AdminRosterRequestsPanel> Logger
+
+@if (Options.Enabled && Environment.IsDevelopment() && _adminId.HasValue)
+{
+    <section class="card" aria-label="Student license associations">
+        <h2>Student license associations</h2>
+        <p>Students confirm their own commission records with verified email. No routine approval is required. Reject an association only to address a correction or dispute; commission data is unchanged.</p>
+        <div class="form-row">
+            <label>State
+                <select aria-label="Review roster state" @bind="_state" @bind:after="ResetAsync" disabled="@_busy">
+                    <option value="">Select state</option>
+                    @foreach (var state in DevelopmentCourseCatalog.States) { <option value="@state">@state</option> }
+                    <option value="Puerto Rico">Puerto Rico</option>
+                </select>
+            </label>
+            <label>Status
+                <select aria-label="Roster request status" @bind="_status" @bind:after="ResetAsync" disabled="@_busy">
+                    <option value="Confirmed">Confirmed by student</option>
+                    <option value="Pending">Email verification required</option>
+                    <option value="Approved">Previously approved</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="">All statuses</option>
+                </select>
+            </label>
+            <button type="button" @onclick="ResetAsync" disabled="@(_busy || _state.Length == 0)">Refresh requests</button>
+        </div>
+        @if (_message is not null) { <p role="alert">@_message</p> }
+        @if (_state.Length == 0) { <p>Select a state to load requests.</p> }
+        else
+        {
+            <p role="status">@_page.Total matching requests · Page @_page.Page of @Math.Max(1, (_page.Total + 19) / 20)</p>
+            @foreach (var request in _page.Items)
+            {
+                <article class="card" @key="request.Id">
+                    <h3>@request.Selection.Name</h3>
+                    <p>@request.Selection.State · @request.Selection.LicenseNumber · @request.Selection.LicenseStatus</p>
+                    <p>Account: @request.LearnerEmail · Email @(request.EmailVerified ? "verified" : "not verified")</p>
+                    <p>Request: @request.Status · Submitted @request.SubmittedAtUtc.ToString("yyyy-MM-dd HH:mm 'UTC'")</p>
+                    <p>Source: @request.Selection.SourceName · Retrieved @request.Selection.RetrievedAtUtc.ToString("yyyy-MM-dd")</p>
+                    @if (request.Selection.SourceUrl is not null)
+                    {
+                        <a href="@request.Selection.SourceUrl" target="_blank" rel="noopener noreferrer">Open roster source</a>
+                    }
+                    @if (request.Status != "Rejected")
+                    {
+                        <label for="@($"review-note-{request.Id}")">Correction or dispute note</label>
+                        <textarea id="@($"review-note-{request.Id}")" maxlength="1000" rows="2"
+                            value="@_notes.GetValueOrDefault(request.Id)"
+                            @onchange="args => _notes[request.Id] = args.Value?.ToString() ?? string.Empty" disabled="@_busy"></textarea>
+                        <button type="button" class="secondary-button" @onclick="() => ReviewAsync(request.Id, false)" disabled="@_busy">Reject</button>
+                    }
+                    else
+                    {
+                        <p>Review note: @request.ReviewNote</p>
+                    }
+                </article>
+            }
+            <button type="button" @onclick="() => LoadAsync(_page.Page - 1)" disabled="@(_busy || _page.Page <= 1)">Previous</button>
+            <button type="button" @onclick="() => LoadAsync(_page.Page + 1)" disabled="@(_busy || _page.Page * 20 >= _page.Total)">Next</button>
+        }
+    </section>
+}
+
+@code {
+    private Guid? _adminId;
+    private string _state = "", _status = "Confirmed";
+    private string? _message;
+    private bool _busy;
+    private CertificatePage<RosterRequestRow> _page = new([], 0, 1, 20);
+    private readonly Dictionary<Guid, string> _notes = [];
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        if (user.IsInRole("Admin") && Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var id)) _adminId = id;
+    }
+    private async Task ResetAsync()
+    {
+        _page = new([], 0, 1, 20);
+        _notes.Clear();
+        await LoadAsync(1);
+    }
+    private async Task LoadAsync(int page)
+    {
+        if (!_adminId.HasValue) return;
+        _busy = true; _message = null;
+        try { _page = await Roster.GetReviewPageAsync(_adminId.Value, _state, _status, page); }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Roster account review list failed.");
+            _message = "Requests could not be loaded. Please try again.";
+        }
+        finally { _busy = false; }
+    }
+    private async Task ReviewAsync(Guid id, bool approve)
+    {
+        _busy = true; _message = null;
+        try
+        {
+            await Roster.ReviewAsync(_adminId!.Value, id, approve, _notes.GetValueOrDefault(id) ?? "");
+            await LoadAsync(_page.Page);
+            _message = "Association rejected. Commission record unchanged.";
+            _notes.Remove(id);
+        }
+        catch (RosterRequestException ex) { _message = ex.Message; }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Roster account review failed.");
+            _message = "The review could not be saved. Please refresh and try again.";
+        }
+        finally { _busy = false; }
+    }
+}

@@ -1,0 +1,313 @@
+@implements IAsyncDisposable
+@using System.Text.Json
+@using Lms.Web.Services
+@inject IRegulatoryCollectionClient Collection
+@inject ILogger<AdminCollectionProgress> Logger
+@inject RegulatoryCollectionOptions CollectionOptions
+
+<section class="card collection-progress" aria-label="Live collection progress">
+    @if (_data is null || !Collection.IsConfigured(State))
+    {
+        <h2>Live collection progress</h2>
+    }
+    @if (!Collection.IsConfigured(State))
+    {
+        <p>No live collection feed is configured for @State. Database comparisons remain available below.</p>
+    }
+    else
+    {
+        @if (_data is null)
+        {
+            <p class="muted-text">Updates every 5 seconds from the local collector, without contacting the regulator or restarting collection.</p>
+        }
+        @if (_error is not null)
+        {
+            <p role="alert" class="auth-error">@_error</p>
+        }
+        @if (_data is { } data)
+        {
+            var status = data.Status;
+            var partitions = FilterPartitions(status).ToList();
+            var professions = status.Professionals.Where(row => (string.IsNullOrEmpty(_licenseType) || row.CategoryCode == _licenseType)
+                && (SelectedQualification is null || row.Profession == SelectedQualification.Profession)).ToList();
+            @if (State == "Florida")
+            {
+                <fieldset class="dbpr-filters" disabled="@(!_interactive)">
+                    <legend>License information</legend>
+                    <label>License category
+                        <select aria-label="Florida license category" disabled><option>Real Estate</option></select>
+                    </label>
+                    <label>License type
+                        <select aria-label="Florida license type" @bind="_licenseType" @bind:after="ResetQualification">
+                            <option value="">All collected types</option>
+                            @foreach (var type in FloridaCollectionFilters.LicenseTypes)
+                            {
+                                <option value="@type.Code" disabled="@(!CollectionOptions.EnabledFloridaLicenseTypes.Contains(type.Code))">@type.Name@(!CollectionOptions.EnabledFloridaLicenseTypes.Contains(type.Code) ? " (not enabled)" : "")</option>
+                            }
+                        </select>
+                    </label>
+                    <label>City <input aria-label="Florida city" aria-describedby="florida-city-help" placeholder="Search sample address text" maxlength="50" @bind="_city" @bind:event="oninput" /></label>
+                    <label>County
+                        <select aria-label="Florida county" @bind="_county">
+                            <option value="">All collected counties</option>
+                            @foreach (var county in status.Partitions.Select(row => row.County).Distinct().OrderBy(county => county))
+                            {
+                                <option value="@county">@county</option>
+                            }
+                            @foreach (var excluded in status.ExcludedGeographies)
+                            {
+                                <option disabled>@excluded (not collected)</option>
+                            }
+                        </select>
+                    </label>
+                    <label>State
+                        <select aria-label="Florida address state" disabled><option>Florida</option><option disabled>Out of State (not collected)</option></select>
+                    </label>
+                </fieldset>
+                <fieldset class="dbpr-filters" disabled="@(!_interactive)">
+                    <legend>Additional search criteria</legend>
+                    <label>Special Qualification
+                        <select aria-label="Florida special qualification" disabled="@(_licenseType != "2501")" @bind="_qualification">
+                            <option value="">All special qualifications</option>
+                            @foreach (var qualification in FloridaCollectionFilters.SpecialQualifications)
+                            {
+                                <option value="@qualification.Code">@qualification.Name</option>
+                            }
+                        </select>
+                    </label>
+                    <label><input type="checkbox" disabled /> Include Historic Licenses (not separately identified in current feed)</label>
+                </fieldset>
+                <p class="muted-text">Type/county filters apply to saved county coverage and the latest-license sample, not the running scrape, full exports, state counters or database comparison below. Profession counts filter by license type and special qualification across all collected counties. Special qualification also filters the sample; coverage remains combined Broker or Sales because separate qualification totals are not supplied by the feed.</p>
+                <p id="florida-city-help" class="muted-text">City searches address text in the latest sample only, ignoring case. The feed has no separate city field, so street/address text can also match. Coverage and counts are not city-filtered.</p>
+            }
+            <h2>Live collection progress</h2>
+            <p class="muted-text">Updates every 5 seconds from the local collector, without contacting the regulator or restarting collection.</p>
+            <p class="activity"><strong>@status.State.ToUpperInvariant()</strong> - @status.County · @status.Category · page @(status.Page ?? 1)</p>
+            <div class="collection-bars">
+                @if (State == "Florida" && status.CurrentSearch is { } search)
+                {
+                    <div class="progress-label">
+                        <label for="current-search-progress">Current search: @search.County · @search.Category</label>
+                        <strong>@Percent(search.DbprEntriesSaved, search.TotalEntries, search.Complete)</strong>
+                    </div>
+                    <progress id="current-search-progress" aria-label="Current search progress" max="@Math.Max(1, search.TotalEntries)"
+                              value="@(search.TotalEntries == 0 && search.Complete ? 1 : search.DbprEntriesSaved)"></progress>
+                    <p class="muted-text">@Number(search.DbprEntriesSaved) / @Number(search.TotalEntries) DBPR search entries saved · page @search.Page / @search.Pages</p>
+                }
+                else if (State == "Florida")
+                {
+                    <p class="muted-text">Current search total is not available until its first page has been saved.</p>
+                }
+                <details open>
+                    <summary>County coverage</summary>
+                    <div class="table-wrap coverage-table">
+                        <table aria-label="Live county coverage">
+                            <thead><tr><th>County</th><th>Category</th><th>Page</th><th>Search entries expected</th><th>Coverage</th></tr></thead>
+                            <tbody>
+                                @foreach (var row in partitions)
+                                {
+                                    <tr>
+                                        <th scope="row">@row.County</th><td>@row.Category</td><td>@row.Page / @row.Pages</td><td>@Number(row.TotalEntries)</td>
+                                        <td class="coverage-progress">
+                                            @if (State == "Florida")
+                                            {
+                                                <span>@Percent(row.DbprEntriesSaved, row.TotalEntries, row.Complete) · @(row.Complete ? "Complete" : "Incomplete")</span>
+                                                <progress aria-label="@($"{row.County} - {row.Category} coverage")" max="@Math.Max(1, row.TotalEntries)"
+                                                          value="@(row.TotalEntries == 0 && row.Complete ? 1 : row.DbprEntriesSaved)"></progress>
+                                                <small>@Number(row.DbprEntriesSaved) / @Number(row.TotalEntries) entries saved</small>
+                                            }
+                                            else
+                                            {
+                                                <span>@Percent(row.Page, row.Pages, row.Complete) · @(row.Complete ? "Complete" : "Incomplete")</span>
+                                                <progress aria-label="@($"{row.County} - {row.Category} coverage")" max="@Math.Max(1, row.Pages)"
+                                                          value="@(row.Pages == 0 && row.Complete ? 1 : row.Page)"></progress>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                                @if (partitions.Count == 0)
+                                {
+                                    <tr><td colspan="5">No collected county searches match these filters.</td></tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="muted-text">Only started county/type searches are listed; unstarted searches are included in the total above. Coverage bars measure saved search entries, not unique licensees. Empty, verified searches are complete.</p>
+                </details>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(status.Error))
+            {
+                <p role="alert" class="collector-error">@status.Error</p>
+            }
+            @if (DateTimeOffset.UtcNow - status.Updated > TimeSpan.FromMinutes(1))
+            {
+                <p role="status"><strong>Collector status is stale.</strong> Last reported @Utc(status.Updated); the saved activity is not proof the worker is still running.</p>
+            }
+            @if (SnapshotId != status.SnapshotId)
+            {
+                <p role="status"><strong>Different snapshot.</strong> This live feed belongs to snapshot @status.SnapshotId, not the selected database comparison.</p>
+            }
+            <p><strong>@(status.State == "completed" ? "Collection reports complete; review still required." : "Not a complete statewide roster yet.")</strong>
+                LMS stage status: @status.StageStatus. Numbered licenses are staged; aliases and applications without numbers remain in raw exports.</p>
+            <p>Scope: @status.Scope.
+                @if (status.ExcludedGeographies.Length > 0) { <span>Excluded geographies: @string.Join(", ", status.ExcludedGeographies).</span> }
+            </p>
+            <div class="collection-metrics" aria-label="Collection counters">
+                <div><span>Pages saved</span><strong>@Number(status.PagesSaved)</strong></div>
+                <div><span>Raw entries collected</span><strong>@Number(status.RawSearchEntries)</strong></div>
+                <div><span>Distinct search entries</span><strong>@Number(status.DistinctEntries)</strong></div>
+                <div><span>Distinct numbered licenses</span><strong>@Number(status.DistinctNumberedLicenses)</strong></div>
+                <div><span>Staged in LMS</span><strong>@Number(status.StagedLicenses)</strong></div>
+                <div><span>Completed county/type searches</span><strong>@Number(status.PartitionsComplete) / @Number(status.PartitionsTotal)</strong></div>
+            </div>
+            <p class="muted-text">Snapshot: @status.SnapshotId · Started: @Utc(status.Started) · Updated: @Utc(status.Updated) · Last export/stage: @(status.LastExportAt is { } exported ? Utc(exported) : "Not yet")</p>
+
+            <h3>Breakdown by profession</h3>
+            <p class="muted-text">Collected numbered licenses, not unique people or statewide totals. Broker associates are reported as "Broker Sales". Applications without license numbers are excluded.</p>
+            <div class="table-wrap">
+                <table aria-label="Live professional breakdown">
+                    <thead><tr><th>Profession</th><th>Collected licenses</th><th>Active</th><th>Inactive</th><th>Other / unknown statuses</th><th>County coverage</th></tr></thead>
+                    <tbody>
+                        @foreach (var row in professions)
+                        {
+                            <tr><th scope="row">@row.Profession</th><td>@Number(row.Licenses)</td><td>@Number(row.CurrentActive)</td><td>@Number(row.CurrentInactive)</td><td>@Number(row.OtherStatuses)</td>
+                                <td>@if (row.CategoryCode is not null) { <span>@row.CountiesComplete@(status.CountyTotal is { } counties ? $" / {counties}" : "") counties - </span> }@row.Coverage</td></tr>
+                        }
+                    </tbody>
+                    <tfoot><tr><th>Selected types, all collected counties</th><td>@Number(professions.Sum(row => row.Licenses))</td><td colspan="4">Deduplicated by category and license number, not by person.</td></tr></tfoot>
+                </table>
+            </div>
+            <details>
+                <summary>Detailed license statuses by profession</summary>
+                <div class="table-wrap">
+                    <table aria-label="Live detailed license statuses">
+                        <thead><tr><th>Profession</th><th>Published status</th><th>Licenses</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in professions)
+                            {
+                                @foreach (var entry in row.Statuses.OrderBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase))
+                                {
+                                    <tr><td>@row.Profession</td><th scope="row">@RegulatoryStatusDisplay.Format(State, entry.Key)</th><td>@Number(entry.Value)</td></tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+            <nav class="exports" aria-label="Collection exports">
+                <a href="@Export("licenses.csv")">License CSV</a>
+                <a href="@Export("licenses.json")">License JSON</a>
+                <a href="@Export("entries.json")">All search entries JSON</a>
+                @if (State == "Florida")
+                {
+                    <a href="https://www.myfloridalicense.com/wl11.asp?mode=0&amp;SID=" target="_blank" rel="noopener noreferrer">Official DBPR lookup</a>
+                }
+            </nav>
+            <p class="muted-text">Downloads reflect the last export batch and can lag the live counts. The comparison below updates when you click Refresh statistics.</p>
+            <details open>
+                <summary>Latest collected licenses (sample)</summary>
+                <div class="table-wrap">
+                    <table aria-label="Latest collected licenses">
+                        <thead><tr><th>Name</th><th>License</th><th>Rank</th><th>Status</th><th>Expires</th><th>County</th><th>Source</th></tr></thead>
+                        <tbody>
+                            @foreach (var row in FilterSample(data.Sample))
+                            {
+                                <tr><td>@row.Name</td><th scope="row">@row.LicenseNumber</th><td>@row.Rank</td><td>@RegulatoryStatusDisplay.Format(State, row.Status)</td><td>@row.Expires</td><td>@row.County</td>
+                                    <td>@if (SafeUrl(row.SourceUrl) is { } url) { <a href="@url" target="_blank" rel="noopener noreferrer">Source</a> }</td></tr>
+                            }
+                            @if (!FilterSample(data.Sample).Any()) { <tr><td colspan="7">No records in the latest sample match these filters. This does not mean the full collection has no matches.</td></tr> }
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        }
+        else if (_error is null)
+        {
+            <p>Loading collector progress...</p>
+        }
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public string State { get; set; } = "";
+    [Parameter] public Guid? SnapshotId { get; set; }
+    private readonly CancellationTokenSource _stop = new();
+    private RegulatoryCollectionData? _data;
+    private string? _error;
+    private Task? _polling;
+    private bool _interactive;
+    private string _licenseType = "";
+    private string _county = "";
+    private string _city = "";
+    private string _qualification = "";
+    private void ResetQualification() => _qualification = "";
+    private FloridaSpecialQualification? SelectedQualification => _licenseType == "2501"
+        ? FloridaCollectionFilters.SpecialQualifications.FirstOrDefault(item => item.Code == _qualification) : null;
+    private string? SelectedCategory => FloridaCollectionFilters.LicenseTypes.FirstOrDefault(type => type.Code == _licenseType)?.Name;
+    private IEnumerable<CollectionPartition> FilterPartitions(RegulatoryCollectionStatus status) => status.Partitions
+        .Where(row => (string.IsNullOrEmpty(_county) || row.County == _county)
+            && (SelectedCategory is null || row.Category == SelectedCategory));
+    private IEnumerable<CollectedLicenseSample> FilterSample(IEnumerable<CollectedLicenseSample> sample) => sample
+        .Where(row => (string.IsNullOrEmpty(_county) || row.County == _county)
+            && (SelectedCategory is null || FloridaCollectionFilters.CategoryFor(row) == SelectedCategory)
+            && (SelectedQualification is null || row.Rank == SelectedQualification.Rank)
+            && FloridaCollectionFilters.MatchesCity(row, _city));
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Collection.IsConfigured(State))
+            await RefreshAsync();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) { _interactive = true; StateHasChanged(); }
+        if (firstRender && Collection.IsConfigured(State))
+            _polling = PollAsync();
+    }
+
+    private async Task PollAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(_stop.Token))
+            {
+                await InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); });
+            }
+        }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            _data = await Collection.GetAsync(State, _stop.Token);
+            _error = null;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException
+            || exception is OperationCanceledException && !_stop.IsCancellationRequested)
+        {
+            if (_error is null)
+                Logger.LogWarning(exception, "Could not read live collection progress for {State}", State);
+            _error = "Live collection progress is unavailable. Any displayed collector values are last-known, not current. Database comparisons remain available. Retrying every 5 seconds.";
+        }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
+    }
+
+    private string Export(string resource) => $"/admin/regulatory-statistics/exports/{Uri.EscapeDataString(State)}/{resource}";
+    private static string Number(long value) => value.ToString("N0");
+    private static string Percent(long value, long total, bool complete = false) =>
+        (total > 0 ? 100m * value / total : complete ? 100m : 0m).ToString("N1") + "%";
+    private static string Utc(DateTimeOffset value) => value.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss 'UTC'");
+    private static string? SafeUrl(string value) => Uri.TryCreate(value, UriKind.Absolute, out var uri)
+        && (uri.Scheme == "https" || uri.Scheme == "http") ? uri.AbsoluteUri : null;
+
+    public async ValueTask DisposeAsync()
+    {
+        await _stop.CancelAsync();
+        if (_polling is not null) await _polling;
+        _stop.Dispose();
+    }
+}

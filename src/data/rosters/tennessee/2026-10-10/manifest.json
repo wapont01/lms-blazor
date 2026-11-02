@@ -1,0 +1,55 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Tennessee",
+    "CaptureDate":  "2026-10-10",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Tennessee Real Estate License Lookup Notes 20261010.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "TENNESSEE\\TXTS\\Tennessee Real Estate License Lookup Notes 20261010.txt",
+                      "Sha256":  "EE0787793926C5DF648613CF3275171F18F5AACCC58260A7AD8CD2D03E8757F7",
+                      "Bytes":  4496,
+                      "OfficialSourceUrl":  "https://search.cloud.commerce.tn.gov/",
+                      "Coverage":  "Search scope and capture notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Tennessee_Nashville_Active_Firm_Campaign_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "TENNESSEE\\XLXS\\Tennessee_Nashville_Active_Firm_Campaign_20261010.csv",
+                      "Sha256":  "57C0B8B027FB6E167BAC8D5CF4891EEAD1FA543156CFE32E951283430994A76A",
+                      "Bytes":  8536,
+                      "OfficialSourceUrl":  "https://search.cloud.commerce.tn.gov/",
+                      "Coverage":  "Nashville active firm campaign sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Tennessee_Nashville_Active_Individual_Licensees_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "TENNESSEE\\XLXS\\Tennessee_Nashville_Active_Individual_Licensees_20261010.csv",
+                      "Sha256":  "CA9C75A055D071AC0D2A7A7E1FD64271AC0EA670856561F4564DF424B8DC1A16",
+                      "Bytes":  2249,
+                      "OfficialSourceUrl":  "https://search.cloud.commerce.tn.gov/",
+                      "Coverage":  "Nashville active individual query results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Tennessee_Nashville_Active_Real_Estate_Brokers_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "TENNESSEE\\XLXS\\Tennessee_Nashville_Active_Real_Estate_Brokers_20261010.csv",
+                      "Sha256":  "063A38A0BEEB87EBCF8273AE9B9B8A354ECE1A9D4DDB7480F7B98E382888D603",
+                      "Bytes":  2392,
+                      "OfficialSourceUrl":  "https://search.cloud.commerce.tn.gov/",
+                      "Coverage":  "Nashville active broker query results"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Tennessee_Real_Estate_Capture_20261010.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "TENNESSEE\\XLXS\\Tennessee_Real_Estate_Capture_20261010.json",
+                      "Sha256":  "07E296419A13D56494243CFEB337533324AE3FEA8B4B0022491BDC3375B2353F",
+                      "Bytes":  4224,
+                      "OfficialSourceUrl":  "https://search.cloud.commerce.tn.gov/",
+                      "Coverage":  "Search capture metadata"
+                  }
+              ]
+}

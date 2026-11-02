@@ -1,0 +1,100 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Wyoming",
+    "CaptureDate":  "2026-10-12",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Wyoming Real Estate Development Data Notes 20261012.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WYOMING\\TXTS\\Wyoming Real Estate Development Data Notes 20261012.txt",
+                      "Sha256":  "EEFA85FAE6EB6EC1ABE4D6DD0FFD1FC977EF1DD7D79F28FF03C95933FF30540A",
+                      "Bytes":  7879,
+                      "OfficialSourceUrl":  "https://online.wyrec.org/#/verifylicense",
+                      "Coverage":  "Capture coverage and relationship notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Wyoming_Active_Entity_Development_Sample_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WYOMING\\XLXS\\Wyoming_Active_Entity_Development_Sample_20261012.csv",
+                      "Sha256":  "B52DCCE46D6F85F2BC96FD31AFA18583AA8C028FE76EBE811A249C71074503D8",
+                      "Bytes":  5632,
+                      "OfficialSourceUrl":  "https://online.wyrec.org/#/verifylicense",
+                      "Coverage":  "Active entity sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Wyoming_Development_Data_20261012.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WYOMING\\XLXS\\Wyoming_Development_Data_20261012.json",
+                      "Sha256":  "E4A3D53C525FEF1829304EA89D9EB409965FC15352A6801566E9A82B41A02258",
+                      "Bytes":  2311,
+                      "OfficialSourceUrl":  "https://online.wyrec.org/#/verifylicense",
+                      "Coverage":  "Record counts source hashes and capture provenance"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Wyoming_Exact_Active_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WYOMING\\XLXS\\Wyoming_Exact_Active_Entities_20261012.csv",
+                      "Sha256":  "705B328DF00535B8246C0B1AE6092BB3AEE0DEA60303B24A890307F8C5195075",
+                      "Bytes":  198154,
+                      "OfficialSourceUrl":  "https://online.wyrec.org/#/verifylicense",
+                      "Coverage":  "Exact active entity subset"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Wyoming_Full_Captured_Business_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WYOMING\\XLXS\\Wyoming_Full_Captured_Business_Entities_20261012.csv",
+                      "Sha256":  "291E204C94E493F96F14D3231319F735510A7ACD61E8F35428D07E31405BCE18",
+                      "Bytes":  213827,
+                      "OfficialSourceUrl":  "https://online.wyrec.org/#/verifylicense",
+                      "Coverage":  "Full business entity capture"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Wyoming_Full_Captured_Licensees_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WYOMING\\XLXS\\Wyoming_Full_Captured_Licensees_20261012.csv",
+                      "Sha256":  "7AE880AA4F087C8F3F72D663C2334B4DB06AE65E88B6883E7E433B9763C4FE55",
+                      "Bytes":  1156313,
+                      "OfficialSourceUrl":  "https://online.wyrec.org/#/verifylicense",
+                      "Coverage":  "Full individual licensee capture"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Wyoming_Published_Broker_Relationships_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WYOMING\\XLXS\\Wyoming_Published_Broker_Relationships_20261012.csv",
+                      "Sha256":  "5F96442029108F0B3A2DA04843AB7C41E7C397BE1193A26F77CE1AA124A532EC",
+                      "Bytes":  593941,
+                      "OfficialSourceUrl":  "https://online.wyrec.org/#/verifylicense",
+                      "Coverage":  "Published broker relationship edges"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Wyoming_AMC_Search_Raw_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WYOMING\\XLXS\\Wyoming_AMC_Search_Raw_20261012.json",
+                      "Sha256":  "E13256928BEB7B901490E00037D2ED7ABF9808E964583F3CF546153C106532BE",
+                      "Bytes":  4453285,
+                      "OfficialSourceUrl":  "https://online.wyrec.org/#/verifylicense",
+                      "Coverage":  "Raw appraisal management company search responses"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Wyoming_Firms_Search_Raw_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WYOMING\\XLXS\\Wyoming_Firms_Search_Raw_20261012.json",
+                      "Sha256":  "23AF5E6B0D48D0ACA74DDCAFEA62AEC8AE11552C594FCB287447E93297DA1079",
+                      "Bytes":  9761262,
+                      "OfficialSourceUrl":  "https://online.wyrec.org/#/verifylicense",
+                      "Coverage":  "Raw firm search response records"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Wyoming_Individuals_Search_Raw_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WYOMING\\XLXS\\Wyoming_Individuals_Search_Raw_20261012.json",
+                      "Sha256":  "A673F3E479E1E131157A8D0B7C50552E7F6D6ED1F32A872ACA5565676F9E6078",
+                      "Bytes":  18007255,
+                      "OfficialSourceUrl":  "https://online.wyrec.org/#/verifylicense",
+                      "Coverage":  "Full raw individual search response records"
+                  }
+              ]
+}

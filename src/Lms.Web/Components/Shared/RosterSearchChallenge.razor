@@ -1,0 +1,60 @@
+@using Microsoft.JSInterop
+@using Lms.Application.Services
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+@inject TurnstileOptions Options
+@inject ILogger<RosterSearchChallenge> Logger
+
+<div aria-label="Search security verification" @ref="_element"></div>
+@if (_error is not null)
+{
+    <p class="auth-error" role="alert">@_error</p>
+    <button type="button" class="secondary-button" @onclick="Retry">Retry security check</button>
+}
+
+@code {
+    private ElementReference _element;
+    private IJSObjectReference? _module;
+    private string? _error;
+    private bool _rendered;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_rendered) return;
+        _rendered = true;
+        try
+        {
+            _module ??= await JS.InvokeAsync<IJSObjectReference>("import", "./js/roster-turnstile.js");
+            await _module.InvokeVoidAsync("render", _element, Options.SiteKey);
+        }
+        catch (JSException ex)
+        {
+            Logger.LogError(ex, "Roster CAPTCHA widget could not be loaded.");
+            _error = "Security verification could not be loaded. Please retry the security check.";
+            StateHasChanged();
+        }
+    }
+
+    private void Retry()
+    {
+        _error = null;
+        _rendered = false;
+    }
+
+    public async Task<string> TakeTokenAsync() => _module is null
+        ? "" : await _module.InvokeAsync<string>("takeToken", _element);
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is null) return;
+        try
+        {
+            await _module.InvokeVoidAsync("remove", _element);
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // The disconnected browser owns the remaining widget resources.
+        }
+    }
+}

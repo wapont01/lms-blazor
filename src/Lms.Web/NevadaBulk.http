@@ -1,0 +1,14 @@
+@baseUrl = http://localhost:5000
+# Administrator session required. Only completed archives are downloadable.
+
+### Original NRED active salesperson workbook
+GET {{baseUrl}}/admin/nevada-bulk/exports/NRED-ACTIVE-SALESPERSONS.xlsx
+
+### Original NRED HOA source evidence (not individual licenses)
+GET {{baseUrl}}/admin/nevada-bulk/exports/NRED-ACTIVE-HOA.xlsx
+
+### All 12 hashes, acquisition timestamps and row counts
+GET {{baseUrl}}/admin/nevada-bulk/exports/manifest.json
+
+### Unsupported historical source: 404
+GET {{baseUrl}}/admin/nevada-bulk/exports/NRED%20RESERVE%20STUDY%20092023.xlsx

@@ -1,0 +1,127 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Michigan",
+    "CaptureDate":  "2026-10-12",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Michigan Real Estate Development Data Notes 20261012.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MICHIGAN\\TXTS\\Michigan Real Estate Development Data Notes 20261012.txt",
+                      "Sha256":  "06E130958D3F131C080D8AF19334C869ADAB68F819B06CA84DF4A4E19CD539C7",
+                      "Bytes":  5346,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Source report scope and date conversion notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Michigan_Development_Data_20261012.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Development_Data_20261012.json",
+                      "Sha256":  "90C42A8913D8F380D8A4BF7A4AE6338925BD63AA17DDF92A44386F3652EDA6EB",
+                      "Bytes":  5773,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Counts scope and source integrity manifest"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Michigan_Exact_Active_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Exact_Active_Entities_20261012.csv",
+                      "Sha256":  "48AAB95B6CDDB9C90C4D9910330411F8BEF2C52901EA69449988D097EBAB6B36",
+                      "Bytes":  9404389,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Exact active business subset"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Michigan_Full_Captured_Development_Campaign_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Full_Captured_Development_Campaign_20261012.csv",
+                      "Sha256":  "6652ACC0A14A0451077FD2C9D4276079E0C8819358D06096DAA07A9D5BB1E274",
+                      "Bytes":  77099828,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Combined full captured campaign dataset"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Michigan_Full_Captured_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Full_Captured_Entities_20261012.csv",
+                      "Sha256":  "044A71066CBFB5CBB2D83630842B3A286166383B85D8F24EF428C94448068589",
+                      "Bytes":  9408129,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Full captured business credentials"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Michigan_Full_Captured_Individuals_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Full_Captured_Individuals_20261012.csv",
+                      "Sha256":  "AD2E5C2108B245B6C05F4058A3AEFE8CB1FD075AE631EEEE9ADEFEF6E9EA7F3C",
+                      "Bytes":  67692033,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Full captured individual credentials"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Michigan_Published_Broker_Relationships_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Published_Broker_Relationships_20261012.csv",
+                      "Sha256":  "CB271E624A33F0F873E8D1E6BC950A0FB9EBD1A19196A214C82E5265C339C541",
+                      "Bytes":  54085951,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Published broker relationship records"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Michigan_Unlinked_Employer_Rows_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Unlinked_Employer_Rows_20261012.csv",
+                      "Sha256":  "0ACA87DB79D4225E7A607F5644AEBAC0CB4134A66CFEC66F1003D017062C89CA",
+                      "Bytes":  50629,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Employer rows not linked to source license records"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Michigan_Real_Estate_Active_Licenses_20261012.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Real_Estate_Active_Licenses_20261012.xlsx",
+                      "Sha256":  "ECC4B66D220A934AC34138ED2C9B3442042D4F1AD371CA301BE54D7367A54743",
+                      "Bytes":  8382216,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Original active license report workbook"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Michigan_Real_Estate_Active_Licenses_Raw_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Real_Estate_Active_Licenses_Raw_20261012.csv",
+                      "Sha256":  "B1A63950410184591BBF6146236758CC4A94384113113434CDB6D813FAF0122C",
+                      "Bytes":  12669686,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "State report source license rows"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Michigan_Real_Estate_Employer_Info_Active_20261012.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Real_Estate_Employer_Info_Active_20261012.xlsx",
+                      "Sha256":  "1A1E219D4730EFAD74C77599A8BD57D6102C028A43F2C922F725128FA0EF7264",
+                      "Bytes":  6875823,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Original employer information report workbook"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Michigan_Real_Estate_Employer_Info_Raw_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Real_Estate_Employer_Info_Raw_20261012.csv",
+                      "Sha256":  "31433364FD255CF94FDDBB7F0A78C635B80BCE0351A22A2EE8403772DD05AAB3",
+                      "Bytes":  11773243,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "State report employer information source rows"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Michigan_Report_Query_Observations_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MICHIGAN\\XLXS\\Michigan_Report_Query_Observations_20261012.json",
+                      "Sha256":  "FCA890AD014BE48D30091FCD831A10EBC8F1074AC7ECA151728F6DB2D1DD84CC",
+                      "Bytes":  2016,
+                      "OfficialSourceUrl":  "https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports",
+                      "Coverage":  "Source report query and capture observations"
+                  }
+              ]
+}

@@ -1,0 +1,186 @@
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@inject IExamService ExamService
+
+<section class="card exam-attempt-audit" aria-label="Exam attempt audit">
+    <h2>Exam Attempt Audit</h2>
+    <p class="muted-text">Review student results, attempt number, submission time, and time spent. Records are read-only.</p>
+
+    <div class="form-row">
+        @if (IsAdmin)
+        {
+            <div class="form-field">
+                <label>Course</label>
+                <select value="@(_selectedCourseId?.ToString() ?? string.Empty)" @onchange="OnCourseChangedAsync">
+                    <option value="">All courses</option>
+                    @foreach (var course in Courses.OrderBy(course => course.Title))
+                    {
+                        <option value="@course.Id">@course.Title</option>
+                    }
+                </select>
+            </div>
+        }
+        <div class="form-field">
+            <label>Result</label>
+            <select @bind="_resultFilter">
+                <option value="all">All results</option>
+                <option value="passed">Passed</option>
+                <option value="failed">Failed</option>
+            </select>
+        </div>
+        <div class="form-field">
+            <label>From date</label>
+            <input type="date" @bind="_fromDate" />
+        </div>
+        <div class="form-field">
+            <label>To date</label>
+            <input type="date" @bind="_toDate" />
+        </div>
+    </div>
+    <div class="course-actions">
+        <button type="button" @onclick="LoadAttemptsAsync">Apply filters</button>
+        <button type="button" class="secondary-button" @onclick="ClearFiltersAsync">Clear filters</button>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(_error))
+    {
+        <p class="auth-error">@_error</p>
+    }
+    else if (_isLoading)
+    {
+        <p class="muted-text">Loading exam attempts…</p>
+    }
+    else if (FilteredAttempts.Count == 0)
+    {
+        <p class="muted-text">No exam attempts match the selected filters.</p>
+    }
+    else
+    {
+        <div class="table-scroll">
+            <table class="simple-table">
+                <thead>
+                    <tr>
+                        @if (IsAdmin)
+                        {
+                            <th>Course</th>
+                        }
+                        <th>Student</th>
+                        <th>Exam</th>
+                        <th>Attempt</th>
+                        <th>Started (local)</th>
+                        <th>Submitted (local)</th>
+                        <th>Duration</th>
+                        <th>Score</th>
+                        <th>Exam version</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var attempt in FilteredAttempts)
+                    {
+                        <tr>
+                            @if (IsAdmin)
+                            {
+                                <td>@attempt.CourseTitle</td>
+                            }
+                            <td>@attempt.LearnerName <span class="muted-text">(@attempt.LearnerEmail)</span></td>
+                            <td>@attempt.ExamTitle@if (!string.IsNullOrWhiteSpace(attempt.UnitTitle)) { <span class="muted-text"> · @attempt.UnitTitle</span> }</td>
+                            <td>@attempt.AttemptNumber</td>
+                            <td>@attempt.StartedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@attempt.SubmittedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@FormatDuration(attempt.Duration)</td>
+                            <td>@attempt.ScorePercent.ToString("0.##")% (@attempt.CorrectAnswers/@attempt.TotalQuestions)</td>
+                            <td>@attempt.ExamVersion</td>
+                            <td class="@(attempt.Passed ? "status-completed" : "exam-failure-text")">@(attempt.Passed ? "Passed" : "Failed")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<Course> Courses { get; set; } = Array.Empty<Course>();
+
+    [Parameter]
+    public bool IsAdmin { get; set; }
+
+    [Parameter]
+    public Guid? InitialCourseId { get; set; }
+
+    private List<ExamAttemptAuditRecord> _attempts = new();
+    private Guid? _selectedCourseId;
+    private string _resultFilter = "all";
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+    private string? _error;
+    private bool _isLoading;
+    private Guid? _loadedCourseId;
+    private bool _hasLoaded;
+
+    private List<ExamAttemptAuditRecord> FilteredAttempts => _attempts
+        .Where(attempt => _resultFilter == "all"
+            || (_resultFilter == "passed" && attempt.Passed)
+            || (_resultFilter == "failed" && !attempt.Passed))
+        .Where(attempt => !_fromDate.HasValue || attempt.SubmittedAt.Date >= _fromDate.Value.Date)
+        .Where(attempt => !_toDate.HasValue || attempt.SubmittedAt.Date <= _toDate.Value.Date)
+        .ToList();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var selectedCourseId = IsAdmin ? null : InitialCourseId;
+        if (!_hasLoaded || _loadedCourseId != selectedCourseId)
+        {
+            _selectedCourseId = selectedCourseId;
+            await LoadAttemptsAsync();
+        }
+    }
+
+    private async Task OnCourseChangedAsync(ChangeEventArgs args)
+    {
+        _selectedCourseId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : null;
+        await LoadAttemptsAsync();
+    }
+
+    private async Task LoadAttemptsAsync()
+    {
+        _isLoading = true;
+        _error = null;
+        try
+        {
+            _attempts = await ExamService.GetAttemptAuditAsync(_selectedCourseId);
+            _loadedCourseId = _selectedCourseId;
+            _hasLoaded = true;
+        }
+        catch (InvalidOperationException exception)
+        {
+            _attempts = new();
+            _error = exception.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        _resultFilter = "all";
+        _fromDate = null;
+        _toDate = null;
+        if (IsAdmin)
+        {
+            _selectedCourseId = null;
+            await LoadAttemptsAsync();
+        }
+    }
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        return duration.TotalHours >= 1
+            ? $"{(int)duration.TotalHours}h {duration.Minutes}m"
+            : $"{Math.Max((int)duration.TotalMinutes, 0)}m {duration.Seconds}s";
+    }
+}

@@ -1,0 +1,76 @@
+@page "/state-licensing"
+@attribute [AllowAnonymous]
+@using Lms.Application.Services
+@inject NavigationManager Navigation
+@inject StateLicensingEditorService Editor
+
+<PageTitle>State Real Estate Licensing Q&amp;A</PageTitle>
+
+<main class="licensing-page">
+    <header class="mb-4">
+        <h1 class="mb-2">Real estate licensing by state</h1>
+        <p class="lead mb-0">Explore licensing, education, exams, and renewal requirements.</p>
+    </header>
+
+    <section aria-label="State selection" class="card licensing-state-selector">
+        <select id="licensing-state" aria-label="Select a state"
+                value="@(SelectedState?.Name ?? string.Empty)" @onchange="SelectState">
+            <option value="">Select a state</option>
+            @foreach (var state in _states)
+            {
+                <option value="@state.Name">@state.Name</option>
+            }
+        </select>
+    </section>
+
+    <AuthorizeView Roles="Admin">
+        <a href="/admin/licensing-qa">Manage Q&amp;A and sources</a>
+    </AuthorizeView>
+
+    @if (SelectedState is not null)
+    {
+        <section aria-labelledby="selected-state-heading">
+            <h2 id="selected-state-heading">@SelectedState.Name Q&amp;A</h2>
+            <div class="card">
+                @foreach (var item in _questions)
+                {
+                    <article @key="item.Id">
+                        <h3>@item.Question</h3>
+                        <p class="licensing-answer">@item.Answer</p>
+                    </article>
+                }
+                @if (_questions.Count == 0)
+                {
+                    <p>No published questions are available for this state yet.</p>
+                }
+            </div>
+        </section>
+    }
+    else
+    {
+        <p>Select a state to see its licensing questions.</p>
+    }
+</main>
+
+@code {
+    private readonly IReadOnlyList<StateLicensingState> _states = StateLicensingReferenceService.GetStates();
+    private List<PublishedStateQuestion> _questions = [];
+
+    [SupplyParameterFromQuery(Name = "state")]
+    public string? StateQuery { get; set; }
+
+    private StateLicensingState? SelectedState { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        SelectedState = StateLicensingReferenceService.FindState(StateQuery);
+        _questions = SelectedState is null ? [] : await Editor.GetPublishedAsync(SelectedState.Name);
+    }
+
+    private void SelectState(ChangeEventArgs args)
+    {
+        var state = StateLicensingReferenceService.FindState(args.Value?.ToString());
+        Navigation.NavigateTo(state is null ? "/state-licensing"
+            : $"/state-licensing?state={Uri.EscapeDataString(state.Name)}");
+    }
+}

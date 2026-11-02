@@ -93,6 +93,43 @@ public static class AdditionalCourseSeed
             }
 
             await EnsureCourseAsync(dbContext, definition, units);
+            await NormalizeLegacyExamTitlesAsync(dbContext, definition);
+        }
+    }
+
+    private static async Task NormalizeLegacyExamTitlesAsync(
+        ApplicationDbContext dbContext,
+        CourseDefinition definition)
+    {
+        var legacyTitle = $"O/L - {definition.FinalExamTitle}";
+        var alternateLegacyTitle = $"O/L {definition.FinalExamTitle}";
+        var previousHistoricalTitle = $"{definition.FinalExamTitle} (Historical attempt)";
+        var sampleSlugPrefix = $"{DevelopmentCourseCatalog.SlugPrefix}{definition.Id:N}-";
+        var legacyExams = await dbContext.CourseExams
+            .Where(exam => (exam.CourseId == definition.Id
+                    || (exam.Course != null && exam.Course.Slug.StartsWith(sampleSlugPrefix)))
+                && exam.UnitId == null
+                && exam.Kind == CourseExamKinds.Standard
+                && (exam.Title == legacyTitle || exam.Title == alternateLegacyTitle || exam.Title == previousHistoricalTitle))
+            .ToListAsync();
+
+        foreach (var exam in legacyExams)
+        {
+            exam.Title = definition.FinalExamTitle;
+            exam.IsRequired = false;
+
+            await dbContext.ExamAttempts
+                .Where(attempt => attempt.CourseExamId == exam.Id
+                    && (attempt.ExamTitleSnapshot == legacyTitle
+                        || attempt.ExamTitleSnapshot == alternateLegacyTitle
+                        || attempt.ExamTitleSnapshot == previousHistoricalTitle))
+                .ExecuteUpdateAsync(update => update
+                    .SetProperty(attempt => attempt.ExamTitleSnapshot, exam.Title));
+        }
+
+        if (legacyExams.Count > 0)
+        {
+            await dbContext.SaveChangesAsync();
         }
     }
 

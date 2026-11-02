@@ -1,0 +1,37 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Texas",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\TX TREC Active Broker Sales Agent Roster Strategy Sample 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "TEXAS\\LICENSING\\TXTs\\TX TREC Active Broker Sales Agent Roster Strategy Sample 01.json",
+                      "Sha256":  "EF01D85F27083D34C5880A71A9B9FB8C3365E9094EC85960B7BFD8A5E91F91DA",
+                      "Bytes":  8734,
+                      "OfficialSourceUrl":  "https://www.trec.texas.gov/license-search/",
+                      "Coverage":  "Active broker/sales-agent roster retrieval evidence"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\TX TREC Active Business Broker Entity Sample 02.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "TEXAS\\LICENSING\\TXTs\\TX TREC Active Business Broker Entity Sample 02.json",
+                      "Sha256":  "59DA66B115772443E7624A5DA90442B57918DC4C0C1198EEB781DEA402132C11",
+                      "Bytes":  1779,
+                      "OfficialSourceUrl":  "https://www.trec.texas.gov/license-search/",
+                      "Coverage":  "Business broker entity search evidence"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\TX TREC Active Business Broker Entity Sample 03 Details.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "TEXAS\\LICENSING\\TXTs\\TX TREC Active Business Broker Entity Sample 03 Details.json",
+                      "Sha256":  "E0F55E8B88064AF53E2D7BFDAA57D205A7FAED9708B4B24DA73F85AFCE863088",
+                      "Bytes":  2432,
+                      "OfficialSourceUrl":  "https://www.trec.texas.gov/license-search/",
+                      "Coverage":  "Business broker entity profile evidence"
+                  }
+              ]
+}

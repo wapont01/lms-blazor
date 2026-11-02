@@ -1,0 +1,109 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Maine",
+    "CaptureDate":  "2026-10-12",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Maine Real Estate Development Data Notes 20261012.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MAINE\\TXTS\\Maine Real Estate Development Data Notes 20261012.txt",
+                      "Sha256":  "5A60C6B859F13DCF7125FF3C235412CEEA9171BB4370950502DCCDFDD201B2D3",
+                      "Bytes":  4542,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060",
+                      "Coverage":  "Source counts and completeness caveats"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maine_Development_Data_20261012.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MAINE\\XLXS\\Maine_Development_Data_20261012.json",
+                      "Sha256":  "604BAB4C6DBAC6CE345DB76BB242AD1611F43A6630F8B249FD19642229E27452",
+                      "Bytes":  4561,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060",
+                      "Coverage":  "Manifest with counts scope caveats and file hashes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maine_Full_Active_Development_Campaign_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MAINE\\XLXS\\Maine_Full_Active_Development_Campaign_20261012.csv",
+                      "Sha256":  "640B2E3112288DA26AE4B14AAC828273C15108AB262874C0335C5B02145BC567",
+                      "Bytes":  14596611,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060",
+                      "Coverage":  "Combined full active development dataset"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maine_Full_Active_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MAINE\\XLXS\\Maine_Full_Active_Entities_20261012.csv",
+                      "Sha256":  "E6D25684C78182D2FD87EE74F146518B06758D274474F5F8450789F39D4BC2B1",
+                      "Bytes":  2881215,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060",
+                      "Coverage":  "Full active business and branch roster"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maine_Full_Active_Individuals_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MAINE\\XLXS\\Maine_Full_Active_Individuals_20261012.csv",
+                      "Sha256":  "B59EB8E46D974CFF536F415CE77AE6931A2C4F815DC47432FD91AD2DCF6DD1D4",
+                      "Bytes":  11715805,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060",
+                      "Coverage":  "Full active individual prepared roster"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Maine_Published_Relationships_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MAINE\\XLXS\\Maine_Published_Relationships_20261012.csv",
+                      "Sha256":  "139E7D162BFFE13CBEF93AC4D358D32C0DF9E5EB6E133393B9D777C67CBBAC92",
+                      "Bytes":  250856,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060",
+                      "Coverage":  "Published person-business relationships"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Maine_Active_Companies_All_Locations_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MAINE\\XLXS\\Maine_Active_Companies_All_Locations_20261012.csv",
+                      "Sha256":  "37A215BFF3EA7F6594927B9407A6923852FA3BCB0B25A5BC6B502E1D9B25B5E1",
+                      "Bytes":  764887,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060",
+                      "Coverage":  "All-location active company query export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Maine_Active_Individuals_All_Locations_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MAINE\\XLXS\\Maine_Active_Individuals_All_Locations_20261012.csv",
+                      "Sha256":  "9728C528FF7FEAC937D87EC6F52DF06711A38DCFC4AF0E311CEDEF6664BB6E30",
+                      "Bytes":  2493468,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060",
+                      "Coverage":  "All-location active individual query export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Maine_Branch_Profile_AB90603149_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MAINE\\XLXS\\Maine_Branch_Profile_AB90603149_20261012.json",
+                      "Sha256":  "24E39A68644AF56EAF754925CEA7F7C8FF8686A46E3648FF92BBE1C98CF33974",
+                      "Bytes":  2588,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/ALMSOnline/ALMSQuery/ShowDetail.aspx?DetailToken=55052A19EBEA97ABC0AA7C8788324055CC48D9A85230678E7AA18A828BD00EAF",
+                      "Coverage":  "Branch profile capture"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Maine_Company_Profile_AL90603691_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MAINE\\XLXS\\Maine_Company_Profile_AL90603691_20261012.json",
+                      "Sha256":  "33D0008316C92998C575B3B4943217CC70B73E1D2F2B03D995AEC75F33B1AFB8",
+                      "Bytes":  1610,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/ALMSOnline/ALMSQuery/ShowDetail.aspx?DetailToken=55052A19EBEA97ABC0AA7C8788324055CC48D9A85230678E7AA18A828BD00EAF",
+                      "Coverage":  "Company profile capture"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Maine_Query_Observations_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MAINE\\XLXS\\Maine_Query_Observations_20261012.json",
+                      "Sha256":  "E37F97E4CDA36C7C80F7B23472AF7048B388AFF04CE64A6950B19CB945E1337B",
+                      "Bytes":  1703,
+                      "OfficialSourceUrl":  "https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060",
+                      "Coverage":  "Portal query observations"
+                  }
+              ]
+}

@@ -1,0 +1,132 @@
+@page "/instructor/records"
+@attribute [Authorize(Roles = "Admin,Instructor")]
+@using Lms.Application.Services
+@inject InstructorRecordService Records
+@inject ILogger<InstructorRecords> Logger
+
+<PageTitle>Instructor Records</PageTitle>
+<section class="instructor-records">
+    <header>
+        <h1>Instructor Records</h1>
+        <p>@(_records?.IsAdmin == true ? "All instructor profiles, licenses, and compliance dates." : "Your profile, licenses, and compliance dates.")</p>
+    </header>
+    @if (_error is not null) { <p role="alert">@_error</p> }
+    @if (_notice is not null) { <p role="status">@_notice</p> }
+    @if (_records is null)
+    {
+        @if (_busy) { <p>Loading records...</p> }
+        else { <button @onclick="LoadAsync">Retry</button> }
+    }
+    else
+    {
+        @if (!_records.IsAdmin)
+        {
+            <p><a href="/roster-registration">Look up and confirm my license</a> · <a href="/account">View my confirmed license records</a></p>
+        }
+        @foreach (var account in _records.Accounts)
+        {
+            <article class="card">
+                <h2>@account.Name</h2>
+                <dl>
+                    <dt>Legal name</dt><dd>@Display(account.LegalName)</dd>
+                    <dt>Email</dt><dd>@account.Email</dd>
+                    <dt>Phone</dt><dd>@Display(account.Phone)</dd>
+                    <dt>Account</dt><dd>@(account.IsActive ? "Active" : "Inactive")</dd>
+                    <dt>State</dt><dd>@Display(account.State)</dd>
+                    <dt>License number</dt><dd>@Display(account.LicenseNumber)</dd>
+                    <dt>License type</dt><dd>@Display(account.LicenseType)</dd>
+                    <dt>License status</dt><dd>@Display(account.LicenseStatus)</dd>
+                    <dt>Initial licensure</dt><dd>@Date(account.InitialLicensureDate)</dd>
+                    <dt>Continuing education due</dt><dd>@Date(account.ContinuingEducationDueDate)</dd>
+                    <dt>License renewal due</dt><dd>@Date(account.LicenseRenewalDueDate)</dd>
+                </dl>
+                @foreach (var license in account.LicenseRecords)
+                {
+                    <h3>@license.State license @license.LicenseNumber</h3>
+                    <dl>
+                        <dt>License type</dt><dd>@Display(license.LicenseType)</dd>
+                        <dt>Commission status</dt><dd>@Display(license.LicenseStatus)</dd>
+                        <dt>Association</dt><dd>@license.AssociationStatus</dd>
+                    </dl>
+                }
+            </article>
+        }
+        @if (_records.Accounts.Count == 0) { <p>No instructor account profiles are available.</p> }
+        <h2>Faculty license and compliance records</h2>
+        @if (_records.Faculty.Count == 0)
+        {
+            <p>No faculty records are linked to your account. An administrator must assign ownership before you can view them.</p>
+        }
+        @foreach (var faculty in _records.Faculty)
+        {
+            <article class="card">
+                <h3>@faculty.Name - @faculty.State</h3>
+                <dl>
+                    <dt>Title</dt><dd>@Display(faculty.Title)</dd>
+                    <dt>Email</dt><dd>@Display(faculty.Email)</dd>
+                    <dt>Phone</dt><dd>@Display(faculty.Phone)</dd>
+                    <dt>License number</dt><dd>@Display(faculty.LicenseNumber)</dd>
+                    <dt>Hire reported to commission (UTC)</dt><dd>@Date(faculty.HireReportedToCommissionAtUtc)</dd>
+                    <dt>Last observation (UTC)</dt><dd>@Date(faculty.LastObservationAtUtc)</dd>
+                </dl>
+                @if (_records.IsAdmin)
+                {
+                    <label for="@($"owner-{faculty.Id}")">LMS account owner</label>
+                    <select id="@($"owner-{faculty.Id}")" @bind="_owners[faculty.Id]" disabled="@(!_interactive || _busy)">
+                        <option value="">Unassigned - admin only</option>
+                        @foreach (var account in _records.Accounts)
+                        {
+                            <option value="@account.Id.ToString()">@account.Name (@account.Email)</option>
+                        }
+                    </select>
+                    <button disabled="@(!_interactive || _busy)" @onclick="() => AssignAsync(faculty.Id)">Save owner</button>
+                }
+            </article>
+        }
+    }
+</section>
+
+@code {
+    private Lms.Application.Services.InstructorRecords? _records;
+    private readonly Dictionary<Guid, string> _owners = [];
+    private string? _error, _notice;
+    private bool _busy, _interactive;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) { _interactive = true; StateHasChanged(); }
+    }
+    private static string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "Not recorded" : value;
+    private static string Date(DateTime? value) => value?.ToString("MMM d, yyyy") ?? "Not recorded";
+    private Task LoadAsync() => RunAsync(ReloadAsync);
+    private async Task ReloadAsync()
+    {
+        _records = await Records.GetAsync();
+        _owners.Clear();
+        foreach (var faculty in _records.Faculty)
+            _owners[faculty.Id] = faculty.UserAccountId?.ToString() ?? "";
+    }
+    private Task AssignAsync(Guid id) => RunAsync(async () =>
+    {
+        var value = _owners[id];
+        if (value.Length > 0 && !Guid.TryParse(value, out _))
+            throw new InvalidOperationException("Select a valid instructor account.");
+        await Records.LinkFacultyAsync(id, value.Length == 0 ? null : Guid.Parse(value));
+        await ReloadAsync();
+        _notice = "Instructor record ownership saved.";
+    });
+    private async Task RunAsync(Func<Task> action)
+    {
+        if (_busy) return;
+        _busy = true; _error = _notice = null;
+        try { await action(); }
+        catch (Exception ex) when (ex is UnauthorizedAccessException or InvalidOperationException or Microsoft.EntityFrameworkCore.DbUpdateException)
+        {
+            _records = null;
+            Logger.LogError(ex, "Instructor records operation failed");
+            _error = ex is Microsoft.EntityFrameworkCore.DbUpdateException ? "Could not save instructor record ownership. Retry or contact an administrator." : ex.Message;
+        }
+        finally { _busy = false; }
+    }
+}

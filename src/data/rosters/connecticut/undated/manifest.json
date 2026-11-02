@@ -1,0 +1,55 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Connecticut",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\CT eLicense Hartford Broker Capture 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "CONNECTICUT\\LICENSING\\TXTs\\CT eLicense Hartford Broker Capture 01.json",
+                      "Sha256":  "8097E131605DCE6F5F8F63D362C70713F48E07C1B5424DB10443BD9C41857F9D",
+                      "Bytes":  2286,
+                      "OfficialSourceUrl":  "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+                      "Coverage":  "Hartford broker search capture; includes qualified records"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\CT eLicense Hartford Broker+Salesperson Capture 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "CONNECTICUT\\LICENSING\\TXTs\\CT eLicense Hartford Broker+Salesperson Capture 01.json",
+                      "Sha256":  "E2150E5ECC661D40C06ED17A6FDF1EAED241A37ACE459EC6248455AB0120E6FD",
+                      "Bytes":  4610,
+                      "OfficialSourceUrl":  "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+                      "Coverage":  "Hartford broker and salesperson search capture; bounded pages"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\CT Hartford Firm Profiles Batch 02.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "CONNECTICUT\\LICENSING\\TXTs\\CT Hartford Firm Profiles Batch 02.json",
+                      "Sha256":  "8045A0C13C25B5B4621EDD3B8B8F08F1A3EC0536279FDEAAF356807D2725FC6B",
+                      "Bytes":  3567,
+                      "OfficialSourceUrl":  "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+                      "Coverage":  "Hartford firm profile capture batch"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\CT Hartford Firm Profiles Batch 03.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "CONNECTICUT\\LICENSING\\TXTs\\CT Hartford Firm Profiles Batch 03.json",
+                      "Sha256":  "4233964EAB21A2A6C4FA9E80BB0E0A7BDFF7C239F56F7AB05BF8FADE08325BD2",
+                      "Bytes":  1505,
+                      "OfficialSourceUrl":  "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+                      "Coverage":  "Hartford firm profile capture batch"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\CT Hartford Firm Profiles Batch 04.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "CONNECTICUT\\LICENSING\\TXTs\\CT Hartford Firm Profiles Batch 04.json",
+                      "Sha256":  "8A0E027617DFEA9709FC9F97C4461BAE5987A7D7FFE743F5A48526D983B758A0",
+                      "Bytes":  1072,
+                      "OfficialSourceUrl":  "https://www.elicense.ct.gov/lookup/licenselookup.aspx",
+                      "Coverage":  "Hartford firm profile capture batch"
+                  }
+              ]
+}

@@ -1,0 +1,60 @@
+@baseUrl = http://127.0.0.1:5000
+@antiforgeryToken = REPLACE_FROM_EMAIL_TEST_FORM
+@testEmail = REPLACE_WITH_ALLOWLISTED_SYNTHETIC_INBOX
+@testPassword = REPLACE_WITH_LOCAL_TEST_PASSWORD
+@challengeId = 00000000-0000-0000-0000-000000000000
+@verificationToken = REPLACE_FROM_VERIFICATION_EMAIL
+@loginCode = REPLACE_FROM_LOGIN_EMAIL
+
+### Open the browser form first. Retain its antiforgery cookie and copy the form token.
+GET {{baseUrl}}/email-test
+
+### Register synthetic learner. An unallowlisted address is rejected.
+POST {{baseUrl}}/auth/email-test/register
+Content-Type: application/x-www-form-urlencoded
+
+email={{testEmail}}&password={{testPassword}}&confirmPassword={{testPassword}}&__RequestVerificationToken={{antiforgeryToken}}
+
+### Confirm a verification link. Reused, expired, and invalid tokens are rejected.
+POST {{baseUrl}}/auth/email-test/verify
+Content-Type: application/x-www-form-urlencoded
+
+id={{challengeId}}&token={{verificationToken}}&__RequestVerificationToken={{antiforgeryToken}}
+
+### Password step creates a pending cookie, not an authentication cookie.
+POST {{baseUrl}}/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email={{testEmail}}&password={{testPassword}}&returnUrl=%2Femail-test
+
+### Retain the pending cookie and refresh the antiforgery token from the code form.
+POST {{baseUrl}}/auth/email-test/code
+Content-Type: application/x-www-form-urlencoded
+
+code={{loginCode}}&__RequestVerificationToken={{antiforgeryToken}}
+
+### Requires test-learner authentication and a current form antiforgery token.
+POST {{baseUrl}}/auth/email-test/certificate
+Content-Type: application/x-www-form-urlencoded
+
+__RequestVerificationToken={{antiforgeryToken}}
+
+### Anonymous requests redirect to login; other users cannot download this sample.
+GET {{baseUrl}}/auth/email-test/certificate
+
+### Open state-first roster selection in the browser.
+GET {{baseUrl}}/roster-registration
+
+### Register a new allowlisted test inbox with a local pending roster association.
+### Replace the record ID with a selection from the latest approved snapshot.
+@licenseeId = 00000000-0000-0000-0000-000000000000
+POST {{baseUrl}}/auth/email-test/roster-register
+Content-Type: application/x-www-form-urlencoded
+
+licenseeId={{licenseeId}}&email={{testEmail}}&password={{testPassword}}&confirmPassword={{testPassword}}&__RequestVerificationToken={{antiforgeryToken}}
+
+### Existing test learner: requires signed-in, verified email and a current form token.
+POST {{baseUrl}}/auth/email-test/roster-submit
+Content-Type: application/x-www-form-urlencoded
+
+licenseeId={{licenseeId}}&__RequestVerificationToken={{antiforgeryToken}}

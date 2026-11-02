@@ -1,0 +1,100 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Minnesota",
+    "CaptureDate":  "2026-10-10",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Minnesota Real Estate License Lookup Notes 20261010.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MINNESOTA\\TXTS\\Minnesota Real Estate License Lookup Notes 20261010.txt",
+                      "Sha256":  "EE99566D8768E46B45EDA1045F33B462D4D859E81DB99541DAD7F5A7670F9681",
+                      "Bytes":  12084,
+                      "OfficialSourceUrl":  "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit\u0026criteriaNextAction=producerInformationSimple\u0026moduleCode=PRDCR_LIC\u0026serviceCode=RQST_CNSMR\u0026accessCode=MN\u0026functionCode=RE",
+                      "Coverage":  "Lookup coverage and capture notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Minnesota_Saint_Paul_Pulse_Salesperson_Detail_Samples_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MINNESOTA\\XLXS\\Minnesota_Saint_Paul_Pulse_Salesperson_Detail_Samples_20261010.csv",
+                      "Sha256":  "DA4F7103F91893ED97BFBDC035E797C88E9705CCD1159A1D2DAEE3D010D3C769",
+                      "Bytes":  2198,
+                      "OfficialSourceUrl":  "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit\u0026criteriaNextAction=producerInformationSimple\u0026moduleCode=PRDCR_LIC\u0026serviceCode=RQST_CNSMR\u0026accessCode=MN\u0026functionCode=RE",
+                      "Coverage":  "Salesperson detail sample"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Minnesota_Minneapolis_Pulse_Additional_Active_Individual_Proprietors_20261010.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MINNESOTA\\XLXS\\Minnesota_Minneapolis_Pulse_Additional_Active_Individual_Proprietors_20261010.csv",
+                      "Sha256":  "D8EB88C099FAD429A405294713AD2C12CD62E6D6FE2D31ADD32D3A6CA3B5A6B7",
+                      "Bytes":  8342,
+                      "OfficialSourceUrl":  "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit\u0026criteriaNextAction=producerInformationSimple\u0026moduleCode=PRDCR_LIC\u0026serviceCode=RQST_CNSMR\u0026accessCode=MN\u0026functionCode=RE",
+                      "Coverage":  "Additional individual proprietor capture"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Minnesota_Minneapolis_Pulse_Additional_Closing_Agent_20261010.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MINNESOTA\\XLXS\\Minnesota_Minneapolis_Pulse_Additional_Closing_Agent_20261010.csv",
+                      "Sha256":  "51C6742B0A0463D57F904A9B33558E40A10DB2010935E476DB4E62FADB5B6B51",
+                      "Bytes":  680,
+                      "OfficialSourceUrl":  "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit\u0026criteriaNextAction=producerInformationSimple\u0026moduleCode=PRDCR_LIC\u0026serviceCode=RQST_CNSMR\u0026accessCode=MN\u0026functionCode=RE",
+                      "Coverage":  "Additional closing-agent records"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Minnesota_Minneapolis_Pulse_Additional_Licensee_Details_20261010.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MINNESOTA\\XLXS\\Minnesota_Minneapolis_Pulse_Additional_Licensee_Details_20261010.csv",
+                      "Sha256":  "0DF93B641B2E4D1A1948B5A6DD65F635704E29CD3D9BFAC0DB463D45D3767454",
+                      "Bytes":  3359,
+                      "OfficialSourceUrl":  "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit\u0026criteriaNextAction=producerInformationSimple\u0026moduleCode=PRDCR_LIC\u0026serviceCode=RQST_CNSMR\u0026accessCode=MN\u0026functionCode=RE",
+                      "Coverage":  "Additional Minneapolis licensee detail captures"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Minnesota_Minneapolis_Pulse_Additional_Limited_Brokers_20261010.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MINNESOTA\\XLXS\\Minnesota_Minneapolis_Pulse_Additional_Limited_Brokers_20261010.csv",
+                      "Sha256":  "7455337C04F01EDBAC896FA166026810AFC9E9F9533A32A46532843284145651",
+                      "Bytes":  5783,
+                      "OfficialSourceUrl":  "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit\u0026criteriaNextAction=producerInformationSimple\u0026moduleCode=PRDCR_LIC\u0026serviceCode=RQST_CNSMR\u0026accessCode=MN\u0026functionCode=RE",
+                      "Coverage":  "Additional limited broker capture"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Minnesota_Minneapolis_Sircon_Additional_Abstracters_20261010.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MINNESOTA\\XLXS\\Minnesota_Minneapolis_Sircon_Additional_Abstracters_20261010.csv",
+                      "Sha256":  "5ECE4B595651ECC7C2FA7F038B98821FCBBCA69622E5618247E47054DFB95D52",
+                      "Bytes":  2000,
+                      "OfficialSourceUrl":  "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit\u0026criteriaNextAction=producerInformationSimple\u0026moduleCode=PRDCR_LIC\u0026serviceCode=RQST_CNSMR\u0026accessCode=MN\u0026functionCode=RE",
+                      "Coverage":  "Additional abstracter records"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Minnesota_Saint_Paul_Pulse_Real_Estate_Firms_20261010.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MINNESOTA\\XLXS\\Minnesota_Saint_Paul_Pulse_Real_Estate_Firms_20261010.csv",
+                      "Sha256":  "D34A79E31C2C1E6B9377B3AEF2E614330C867786274B8286CF6243A63A77FE1B",
+                      "Bytes":  1046,
+                      "OfficialSourceUrl":  "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit\u0026criteriaNextAction=producerInformationSimple\u0026moduleCode=PRDCR_LIC\u0026serviceCode=RQST_CNSMR\u0026accessCode=MN\u0026functionCode=RE",
+                      "Coverage":  "Saint Paul firm query capture"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Minnesota_Saint_Paul_Pulse_Real_Estate_Licensees_20261010.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MINNESOTA\\XLXS\\Minnesota_Saint_Paul_Pulse_Real_Estate_Licensees_20261010.csv",
+                      "Sha256":  "0E7A4170E9E7226D11BBC8A663634D289A990E49906C5930E8FD9CBAA0787D4B",
+                      "Bytes":  1486,
+                      "OfficialSourceUrl":  "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit\u0026criteriaNextAction=producerInformationSimple\u0026moduleCode=PRDCR_LIC\u0026serviceCode=RQST_CNSMR\u0026accessCode=MN\u0026functionCode=RE",
+                      "Coverage":  "Saint Paul real-estate licensee query capture"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Minnesota_Saint_Paul_Pulse_Roster_Capture_20261010.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MINNESOTA\\XLXS\\Minnesota_Saint_Paul_Pulse_Roster_Capture_20261010.json",
+                      "Sha256":  "9E427AA581810F04E345A83108BF165084C3605B8F2EC9A738E2A5551E02E839",
+                      "Bytes":  5526,
+                      "OfficialSourceUrl":  "https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit\u0026criteriaNextAction=producerInformationSimple\u0026moduleCode=PRDCR_LIC\u0026serviceCode=RQST_CNSMR\u0026accessCode=MN\u0026functionCode=RE",
+                      "Coverage":  "Portal capture manifest and retrieval metadata"
+                  }
+              ]
+}

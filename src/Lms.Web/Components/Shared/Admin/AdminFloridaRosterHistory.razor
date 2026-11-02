@@ -1,0 +1,161 @@
+@using System.Security.Claims
+@using System.Data.Common
+@using Lms.Application.Services
+@inject IRegulatoryDirectoryService Directory
+@inject AuthenticationStateProvider Authentication
+@inject ILogger<AdminFloridaRosterHistory> Logger
+
+<section class="card" aria-label="@($"{State} roster history")">
+    <h2>@State roster history and recovery</h2>
+    <p class="muted-text">Restore a validated version without deleting history or changing account links. The next successful synchronization becomes current. Source downloads still show the last collected archive, not the restored version.</p>
+    @if (_error is not null) { <p role="alert" class="auth-error">@_error</p> }
+    @if (_message is not null) { <p role="status">@_message</p> }
+    <button type="button" class="secondary-btn" @onclick="LoadAsync" disabled="@Disabled">Refresh roster history</button>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Version / source acquired UTC</th><th>Last activated UTC</th><th>Records</th><th>Roster</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var row in _rows.Take(20))
+                {
+                    <tr>
+                        <td><span>@row.SnapshotId</span><div>@row.RetrievedAtUtc.ToString("yyyy-MM-dd HH:mm:ss")</div></td>
+                        <td>@row.ActivatedAtUtc?.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                        <td>@row.LicenseeCount.ToString("N0") licensees, @row.FirmCount.ToString("N0") firms</td>
+                        <td>@(row.SnapshotId == _currentId ? "Current roster" : "Historical roster")</td>
+                        <td>
+                            <button type="button" class="secondary-btn" @onclick="() => SelectAsync(row)" disabled="@Disabled">View version @row.SnapshotId</button>
+                            @if (row.SnapshotId != _currentId)
+                            {
+                                <button type="button" class="secondary-btn" @onclick="() => SelectAsync(row)" disabled="@Disabled">Restore version @row.SnapshotId</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (_rows.Count == 0 && !_busy) { <p>No synchronized @State bulk versions are available.</p> }
+    <div class="course-actions">
+        <button type="button" class="secondary-btn" @onclick="PreviousAsync" disabled="@(Disabled || _page == 1)">Previous history page</button>
+        <span>Page @_page</span>
+        <button type="button" class="secondary-btn" @onclick="NextAsync" disabled="@(Disabled || _rows.Count <= 20)">Next history page</button>
+    </div>
+    @if (_selected is { } selected)
+    {
+        <div role="group" aria-label="Confirm roster restore">
+            <p>@selected.SourceName - @selected.SnapshotId. Source acquired @selected.RetrievedAtUtc.ToString("yyyy-MM-dd HH:mm:ss 'UTC'").</p>
+            <div class="table-wrap">
+                <table aria-label="Historical roster licensees">
+                    <thead><tr><th>Name</th><th>License</th><th>Type</th><th>Source status</th></tr></thead>
+                    <tbody>@foreach (var record in _records.Take(25)) { <tr><td>@record.Name</td><td>@record.LicenseNumber</td><td>@record.LicenseType</td><td>@record.LicenseStatus</td></tr> }</tbody>
+                </table>
+            </div>
+            <div class="course-actions">
+                <button type="button" class="secondary-btn" @onclick="PreviousRecordsAsync" disabled="@(Disabled || _recordPage == 1)">Previous version records</button>
+                <span>Records page @_recordPage</span>
+                <button type="button" class="secondary-btn" @onclick="NextRecordsAsync" disabled="@(Disabled || _records.Count <= 25)">Next version records</button>
+            </div>
+            @if (selected.SnapshotId != _currentId)
+            {
+            <p>Restore this version with @selected.LicenseeCount.ToString("N0") licensees and @selected.FirmCount.ToString("N0") firms?</p>
+            <label>Restore reason <input aria-label="Restore reason" maxlength="1000" @bind="_reason" disabled="@Disabled" /></label>
+            <label><input type="checkbox" @bind="_confirmed" disabled="@Disabled" /> I confirm this version should replace the current roster.</label>
+            <div class="course-actions">
+                <button type="button" class="secondary-btn" @onclick="RestoreAsync" disabled="@(Disabled || !_confirmed || string.IsNullOrWhiteSpace(_reason))">Confirm restore</button>
+                <button type="button" class="secondary-btn" @onclick="Cancel" disabled="@Disabled">Cancel restore</button>
+            </div>
+            }
+            else
+            {
+                <button type="button" class="secondary-btn" @onclick="Cancel" disabled="@Disabled">Close version</button>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter] public string State { get; set; } = "Florida";
+    [Parameter] public EventCallback RosterRestored { get; set; }
+    private List<RegulatorySnapshotSummary> _rows = [];
+    private List<RosterSelection> _records = [];
+    private int _recordPage = 1;
+    private Guid _currentId;
+    private RegulatorySnapshotSummary? _selected;
+    private int _page = 1;
+    private bool _busy;
+    private bool _interactive;
+    private bool Disabled => _busy || !_interactive;
+    private bool _confirmed;
+    private string _reason = "";
+    private string? _error;
+    private string? _message;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) { _interactive = true; StateHasChanged(); }
+    }
+    private async Task SelectAsync(RegulatorySnapshotSummary row)
+    {
+        _selected = row; _confirmed = false; _reason = ""; _message = null; _recordPage = 1;
+        await LoadRecordsAsync();
+    }
+    private async Task PreviousRecordsAsync() { _recordPage--; await LoadRecordsAsync(); }
+    private async Task NextRecordsAsync() { _recordPage++; await LoadRecordsAsync(); }
+    private async Task LoadRecordsAsync()
+    {
+        _busy = true;
+        _error = null;
+        _records = [];
+        try { _records = await Directory.GetFloridaRosterRecordsAsync(_selected!.SnapshotId, _recordPage, State); }
+        catch (Exception exception) when (exception is DbException or InvalidOperationException)
+        {
+            Logger.LogError(exception, "Could not load Florida roster version records");
+            _error = "Version records could not be loaded. Select the version again to retry.";
+        }
+        finally { _busy = false; }
+    }
+    private void Cancel() { _selected = null; _confirmed = false; _reason = ""; }
+    private async Task PreviousAsync() { _page--; await LoadAsync(); }
+    private async Task NextAsync() { _page++; await LoadAsync(); }
+    private async Task LoadAsync()
+    {
+        _busy = true;
+        _error = null;
+        Cancel();
+        try
+        {
+            _currentId = (await Directory.GetLatestApprovedSnapshotAsync(State))?.Id ?? Guid.Empty;
+            _rows = await Directory.GetFloridaRosterHistoryAsync(_page, State);
+        }
+        catch (Exception exception) when (exception is DbException or InvalidOperationException)
+        {
+            Logger.LogError(exception, "Could not load Florida roster history");
+            _error = "Roster history could not be loaded. Refresh to try again.";
+        }
+        finally { _busy = false; }
+    }
+    private async Task RestoreAsync()
+    {
+        if (_selected is null || !_confirmed || _busy) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            var auth = await Authentication.GetAuthenticationStateAsync();
+            if (!Guid.TryParse(auth.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var actorId))
+                throw new InvalidOperationException("Your session is out of date. Sign in again.");
+            await Directory.RestoreFloridaRosterAsync(_selected.SnapshotId, _currentId, actorId, _reason, State);
+            _page = 1;
+            await LoadAsync();
+            _message = "Roster restored. Weekly synchronization remains enabled according to the host configuration.";
+            await RosterRestored.InvokeAsync();
+        }
+        catch (Exception exception) when (exception is DbException or InvalidOperationException or ArgumentException)
+        {
+            Logger.LogError(exception, "Could not restore Florida roster");
+            _error = exception is DbException ? "Restore failed. Refresh history and try again." : exception.Message;
+        }
+        finally { _busy = false; }
+    }
+}

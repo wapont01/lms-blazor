@@ -12,6 +12,11 @@
 
 <div class="courses-container">
     <h1>Enroll in Courses</h1>
+    <p><a href="@($"/state-licensing?state={Uri.EscapeDataString(_stateFilter == "All" ? "North Carolina" : _stateFilter)}")">Real estate licensing Q&amp;A by state</a></p>
+    @if (_courses?.Any(course => course.IsDevelopmentSample) == true)
+    {
+        <p class="compliance-configuration-warning" role="status">Development catalog: sample courses are available for testing all 50 states. Copied content and hours are not state-approved, do not provide credit, and do not issue certificates.</p>
+    }
     <div class="industry-category-filter" role="group" aria-label="Filter by industry">
         @foreach (var industry in CourseIndustries.All)
         {
@@ -35,6 +40,10 @@
         }
 
         <div class="courses-header">
+            <div class="course-filter">
+                <label for="course-search">Search courses</label>
+                <input id="course-search" type="search" @bind="_searchText" @bind:event="oninput" @bind:after="ApplyFilters" placeholder="Course title or description" />
+            </div>
             <div class="course-filter">
                 <label for="state-filter">State</label>
                 <select id="state-filter" value="@_stateFilter" @onchange="FilterByState">
@@ -77,6 +86,10 @@
                 <div class="course-card">
                     <div class="card-header">
                         <h3>@course.Title</h3>
+                        @if (course.IsDevelopmentSample)
+                        {
+                            <strong>Development sample - not for credit</strong>
+                        }
                     </div>
                     <div class="course-tags">
                         <span class="course-industry">@GetIndustryLabel(course.Industry)</span>
@@ -89,8 +102,8 @@
                     </div>
                     <p class="description">@course.Description</p>
                     <div class="course-details">
-                        <span class="duration">⏱️ @course.DurationHours hours</span>
-                        @if (course.CreditHours > 0)
+                        <span class="duration">⏱️ @course.DurationHours hours @(course.IsDevelopmentSample ? "(copied template estimate)" : string.Empty)</span>
+                        @if (course.CreditHours > 0 && !course.IsDevelopmentSample)
                         {
                             <span class="credits">📚 @course.CreditHours credits</span>
                         }
@@ -119,7 +132,7 @@
                             }
                             else if (_canEnroll && course.Price == 0)
                             {
-                                <button type="button" class="btn-primary" @onclick="() => EnrollAsync(course.Id)">Enroll Free</button>
+                                <button type="button" class="btn-primary" @onclick="() => EnrollAsync(course.Id)">@(course.IsDevelopmentSample ? "Try sample" : "Enroll Free")</button>
                                 <a href="/courses/@course.Id" class="btn-secondary">Open Course</a>
                             }
                             else
@@ -174,9 +187,26 @@
     private string _courseTypeFilter = "All";
     private string _tierFilter = "All";
     private string? _industryFilter;
+    private string _searchText = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "state")]
+    public string? SelectedState { get; set; }
 
     [SupplyParameterFromQuery(Name = "addToCart")]
     public Guid? AddToCartCourseId { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrWhiteSpace(SelectedState))
+        {
+            _stateFilter = StateOptions.FirstOrDefault(state =>
+                string.Equals(state.Value, SelectedState, StringComparison.OrdinalIgnoreCase)).Value ?? "All";
+        }
+        if (_courses is not null)
+        {
+            ApplyFilters();
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -279,6 +309,9 @@
     private void ApplyFilters()
     {
         _filteredCourses = _courses
+            .Where(course => string.IsNullOrWhiteSpace(_searchText)
+                || course.Title.Contains(_searchText.Trim(), StringComparison.OrdinalIgnoreCase)
+                || (course.Description?.Contains(_searchText.Trim(), StringComparison.OrdinalIgnoreCase) ?? false))
             .Where(course => _stateFilter == "All"
                 || string.Equals(course.State, _stateFilter, StringComparison.OrdinalIgnoreCase))
             .Where(course => _courseTypeFilter == "All"
@@ -296,6 +329,7 @@
         _courseTypeFilter = "All";
         _tierFilter = "All";
         _industryFilter = null;
+        _searchText = string.Empty;
         ApplyFilters();
     }
 

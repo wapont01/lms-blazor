@@ -1,0 +1,48 @@
+name: California bulk browser UI
+
+on:
+  push:
+    paths:
+      - ".github/workflows/california-bulk-browser-ui.yml"
+      - "src/Lms.Web/**"
+      - "src/Lms.Web.UITests/**"
+      - "src/Lms.Application/**"
+      - "src/Lms.Application.Tests/Services/CaliforniaArchive.cs"
+      - "src/Lms.Domain/**"
+  pull_request:
+    paths:
+      - ".github/workflows/california-bulk-browser-ui.yml"
+      - "src/Lms.Web/**"
+      - "src/Lms.Web.UITests/**"
+      - "src/Lms.Application/**"
+      - "src/Lms.Application.Tests/Services/CaliforniaArchive.cs"
+      - "src/Lms.Domain/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  california-bulk-browser-ui:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build UI tests
+        run: dotnet build src\Lms.Web.UITests\Lms.Web.UITests.csproj --configuration Debug
+
+      - name: Install Playwright Chromium
+        run: pwsh src\Lms.Web.UITests\bin\Debug\net8.0\playwright.ps1 install chromium
+
+      - name: Run California browser and regulatory statistics UI tests
+        shell: pwsh
+        run: |
+          $env:RUN_UI_TESTS = "1"
+          dotnet test src\Lms.Web.UITests\Lms.Web.UITests.csproj --configuration Debug --no-build --filter "FullyQualifiedName~CaliforniaBulkBrowseUiTests"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet test src\Lms.Web.UITests\Lms.Web.UITests.csproj --configuration Debug --no-build --filter "FullyQualifiedName~AdminRegulatoryStatisticsUiTests"

@@ -11,7 +11,10 @@ out/
 
 # IDE folders
 .vs/
-.vscode/
+.vscode/*
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
 
 # Logs and diagnostics
 *.log
@@ -35,7 +38,16 @@ Lms.Web/App_Data/*.db
 Lms.Web/App_Data/*.db-*
 src/Lms.Web/App_Data/*.db
 src/Lms.Web/App_Data/*.db-*
+src/Lms.Web/App_Data/development-certificates/
+src/Lms.Web/App_Data/florida-bulk/
+src/Lms.Web/App_Data/*-bulk/
+src/Lms.Web/App_Data/bulk-collection-schedules.json
+Lms.Web/App_Data/bulk-collection-schedules.json
 src/App_Data/
+
+# Local commission roster payloads (catalogs and provenance stay versionable)
+src/data/rosters/**/raw/
+src/data/rosters/**/prepared/
 
 # NCREC crawler page cache
 src/tools/.ncrec-cache/

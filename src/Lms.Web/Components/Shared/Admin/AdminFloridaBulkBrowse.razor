@@ -1,0 +1,120 @@
+@implements IAsyncDisposable
+@using Lms.Web.Services
+@inject FloridaBulkBrowseService Browser
+@inject ILogger<AdminFloridaBulkBrowse> Logger
+
+<section class="card bulk-browse" aria-label="Florida bulk license browser">
+    <h2>Browse bulk licenses</h2>
+    <fieldset disabled="@(_loading || !_interactive)">
+        <legend class="muted-text">Filters apply to the full completed bulk archive.</legend>
+        <label>License type
+            <select aria-label="Bulk license type" @bind="_category" @bind:after="ResetQualification">
+                <option value="">All imported license types</option>
+                <option value="2501">Broker or sales</option>
+                <option value="2505">Instructor</option>
+                <option value="2502">Corporation</option>
+                <option value="2503">Partnership</option>
+                <option value="2504">Branch office</option>
+                <option value="appraisal">Appraisal</option>
+            </select>
+        </label>
+        <label>Special qualification
+            <select aria-label="Bulk special qualification" @bind="_qualification" disabled="@(_category != "2501")">
+                <option value="">All qualifications</option>
+                <option value="BK">Broker</option>
+                <option value="BL">Broker sales associate</option>
+                <option value="SL">Sales associate</option>
+            </select>
+        </label>
+        <label>County <input aria-label="Bulk county" @bind="_county" maxlength="50" placeholder="Exact county name or appraisal code" /></label>
+        <label>City <input aria-label="Bulk city" @bind="_city" maxlength="50" placeholder="Exact mailing city" /></label>
+        <label>Name or license <input aria-label="Bulk name or license" @bind="_name" maxlength="100" /></label>
+        <label>Published status <input aria-label="Bulk published status" @bind="_status" maxlength="40" placeholder="Status text or appraisal code" /></label>
+    </fieldset>
+    <div class="actions">
+        <button type="button" class="secondary-btn" @onclick="SearchAsync" disabled="@(_loading || !_interactive)">@(_loading ? "Searching..." : "Search bulk licenses")</button>
+    </div>
+    @if (_error is not null)
+    {
+        <p class="auth-error" role="alert">@_error</p>
+    }
+    @if (_searched && !_loading && _result is null && _error is null)
+    {
+        <p>No completed bulk collection is available. Collect or import an archive first.</p>
+    }
+    @if (_result is { } result)
+    {
+        <p role="status">@result.Total.ToString("N0") matching licenses · snapshot @result.SnapshotId</p>
+        <div class="table-wrap">
+            <table aria-label="Filtered Florida bulk licenses">
+                <thead><tr><th>Name</th><th>License</th><th>Rank</th><th>Published status</th><th>Expires</th><th>City</th><th>County</th><th>Address state</th></tr></thead>
+                <tbody>
+                    @foreach (var row in result.Records)
+                    {
+                        <tr><td>@row.Name</td><th scope="row">@row.LicenseNumber</th><td>@row.Rank</td><td>@row.Status</td><td>@row.Expiration</td><td>@row.City</td><td>@row.County</td><td>@row.AddressState</td></tr>
+                    }
+                    @if (result.Records.Count == 0)
+                    {
+                        <tr><td colspan="8">No licenses match these full-archive filters.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <nav class="actions" aria-label="Bulk license pages">
+            <button type="button" class="secondary-btn" @onclick="PreviousAsync" disabled="@(_loading || result.Page == 0)">Previous bulk records</button>
+            <span>Page @(result.Page + 1) of @Math.Max(1, (result.Total + FloridaBulkBrowseService.PageSize - 1) / FloridaBulkBrowseService.PageSize)</span>
+            <button type="button" class="secondary-btn" @onclick="NextAsync" disabled="@(_loading || ((long)result.Page + 1) * FloridaBulkBrowseService.PageSize >= result.Total)">Next bulk records</button>
+        </nav>
+    }
+    <p class="muted-text">City and county match exact values, ignoring case. Name/license and status use contains matching. Appraisal preserves published DBPR status/county codes. Out-of-state mailing addresses are included. Missing historical licenses are not inferred removals.</p>
+</section>
+
+@code {
+    private readonly CancellationTokenSource _stop = new();
+    private FloridaBulkBrowseResult? _result;
+    private FloridaBulkBrowseQuery? _applied;
+    private string _category = "", _qualification = "", _county = "", _city = "", _name = "", _status = "";
+    private bool _loading, _interactive, _searched;
+    private string? _error;
+    private Task? _search;
+    private void ResetQualification() => _qualification = "";
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) { _interactive = true; StateHasChanged(); }
+    }
+
+    private Task SearchAsync() => LoadAsync(new(_category, _qualification, _county, _city, _name, _status));
+    private Task PreviousAsync() => _applied is null ? Task.CompletedTask : LoadAsync(_applied with { Page = Math.Max(0, _applied.Page - 1) });
+    private Task NextAsync() => _applied is null ? Task.CompletedTask : LoadAsync(_applied with { Page = _applied.Page + 1 });
+
+    private Task LoadAsync(FloridaBulkBrowseQuery query) => _search = SearchCoreAsync(query);
+
+    private async Task SearchCoreAsync(FloridaBulkBrowseQuery query)
+    {
+        if (_loading) return;
+        _loading = true;
+        _error = null;
+        _result = null;
+        _searched = true;
+        try
+        {
+            _result = await Browser.GetAsync(query, _stop.Token);
+            _applied = query;
+        }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is IOException or InvalidOperationException or FormatException or ArgumentException)
+        {
+            Logger.LogError(exception, "Could not browse Florida bulk licenses");
+            _error = "Bulk licenses could not be searched: " + exception.Message;
+        }
+        finally { _loading = false; }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await _stop.CancelAsync();
+        if (_search is not null) await _search;
+        _stop.Dispose();
+    }
+}

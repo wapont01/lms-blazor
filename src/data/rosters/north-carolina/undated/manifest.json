@@ -1,0 +1,64 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "North Carolina",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TEXTs\\BROKER ROSTER\\Charlotte - Additional 5 to 10 Broker Firms - NCREC Capture.md",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\TEXTs\\BROKER ROSTER\\Charlotte - Additional 5 to 10 Broker Firms - NCREC Capture.md",
+                      "Sha256":  "53CEDF879DE5B953FE2641D644577EB8CAE14A4E8E7A2A8B007ED4B4C5798F1E",
+                      "Bytes":  4965,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "Additional Charlotte firm results capture"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TEXTs\\BROKER ROSTER\\Charlotte - BIC Supervised Licensee Compliance Data.md",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\TEXTs\\BROKER ROSTER\\Charlotte - BIC Supervised Licensee Compliance Data.md",
+                      "Sha256":  "4D05CCD0AAC9565402AFEB0980A46C3D2C1802B1273D0DCA8BA82ED5226EE1F1",
+                      "Bytes":  6994,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "Broker-in-charge supervised licensee details"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TEXTs\\BROKER ROSTER\\Charlotte - First 10 Firms - NCREC Firm and Broker Roster.md",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\TEXTs\\BROKER ROSTER\\Charlotte - First 10 Firms - NCREC Firm and Broker Roster.md",
+                      "Sha256":  "6897E82709FD280774FDA9902B77CD95743DF1FD3EE1B4182EDFB6C1B08B6D3E",
+                      "Bytes":  10281,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "Charlotte firm and broker roster capture"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TEXTs\\BROKER ROSTER\\NCREC New Licenses From 368498 Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\TEXTs\\BROKER ROSTER\\NCREC New Licenses From 368498 Capture.json",
+                      "Sha256":  "518B9F432598C022CC6BF17DC7324E5A19805A252654F6E91532914D1C5220FC",
+                      "Bytes":  15373,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "New-license result capture"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TEXTs\\BROKER ROSTER\\NCREC New Licenses From 368544 Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\TEXTs\\BROKER ROSTER\\NCREC New Licenses From 368544 Capture.json",
+                      "Sha256":  "393E9361F0B1EA395F37913E7FBCBDD7631CD7082A9779CEC8A6F65B3D0E9F0B",
+                      "Bytes":  17499,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "New-license result capture"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TEXTs\\BROKER ROSTER\\WILLIAMS LAND REALTY LLC - NCREC Firm and Broker Roster.md",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\TEXTs\\BROKER ROSTER\\WILLIAMS LAND REALTY LLC - NCREC Firm and Broker Roster.md",
+                      "Sha256":  "8E3E8FC92D51E40AD018118ADEA5CFBBFF6508AFBC500941F972019D66C5D75B",
+                      "Bytes":  1796,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "Firm and broker roster profile capture"
+                  }
+              ]
+}

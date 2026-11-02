@@ -18,6 +18,57 @@ public sealed class ExamOutcomesUiTests : IClassFixture<WebHostFixture>
     }
 
     [UiFact]
+    public async Task PasswordRecovery_LinkLoadsFreshDocument_AndRejectsUnprotectedRequests()
+    {
+        await using var context = await _fixture.CreateBrowserContextAsync();
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"{_fixture.BaseUrl}/login");
+        await page.GetByRole(AriaRole.Link, new() { Name = "Forgot password?", Exact = true }).ClickAsync();
+        await Assertions.Expect(page).ToHaveURLAsync($"{_fixture.BaseUrl}/forgot-password");
+        await Assertions.Expect(page.GetByRole(AriaRole.Alert)).ToContainTextAsync("currently unavailable");
+        var response = await context.APIRequest.PostAsync($"{_fixture.BaseUrl}/auth/password/forgot",
+            new APIRequestContextOptions
+            {
+                Data = "email=nobody%40example.invalid",
+                Headers = new Dictionary<string, string> { ["Content-Type"] = "application/x-www-form-urlencoded" }
+            });
+        Assert.Equal(400, response.Status);
+        await page.GotoAsync($"{_fixture.BaseUrl}/reset-password");
+        await Assertions.Expect(page.GetByRole(AriaRole.Alert)).ToContainTextAsync("invalid or has expired");
+    }
+
+    [UiFact]
+    public async Task GuestSignup_FromLogin_CreatesAccountAndPreservesDestination()
+    {
+        await using var context = await _fixture.CreateBrowserContextAsync();
+        var page = await context.NewPageAsync();
+        await page.GotoAsync($"{_fixture.BaseUrl}/login?returnUrl=%2Flearner");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Show password", Exact = true }).ClickAsync();
+        await Assertions.Expect(page.Locator("#login-password")).ToHaveAttributeAsync("type", "text");
+        await Assertions.Expect(page.Locator("#login-password")).ToHaveValueAsync("Learner123!");
+        await page.Locator("#login-password").FillAsync("a typed password");
+        await page.GetByRole(AriaRole.Button, new() { Name = "Hide password", Exact = true }).ClickAsync();
+        await Assertions.Expect(page.Locator("#login-password")).ToHaveAttributeAsync("type", "password");
+        await Assertions.Expect(page.Locator("#login-password")).ToHaveValueAsync("a typed password");
+        await page.GetByRole(AriaRole.Group, new() { Name = "Create an Account", Exact = true })
+            .GetByRole(AriaRole.Link, new() { Name = "For Guests", Exact = true }).ClickAsync();
+        await Assertions.Expect(page.Locator("input[name='__RequestVerificationToken']")).ToHaveCountAsync(1);
+
+        await page.Locator("input[name='email']").FillAsync($"guest-signup-{Guid.NewGuid():N}@example.com");
+        await page.Locator("input[name='password']").FillAsync("abcdefgh");
+        await page.Locator("input[name='confirmPassword']").FillAsync("abcdefgh");
+        await page.Locator("input[name='marketingEmails']").UncheckAsync();
+        var invalidFields = await page.Locator("form.auth-form input:invalid").EvaluateAllAsync<string[]>(
+            "inputs => inputs.map(input => input.name + ': ' + input.validationMessage)");
+        Assert.True(invalidFields.Length == 0, string.Join("; ", invalidFields));
+        await page.GetByRole(AriaRole.Button, new() { Name = "Create a Guest account", Exact = true }).ClickAsync();
+
+        await Assertions.Expect(page).ToHaveURLAsync($"{_fixture.BaseUrl}/learner");
+        await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "My Courses", Exact = true })).ToBeVisibleAsync();
+        await Assertions.Expect(page.Locator(".auth-status")).ToHaveTextAsync("Guest");
+    }
+
+    [UiFact]
     public async Task Admin_SidebarLinks_NavigateToHomeAndRegulatoryDirectory()
     {
         await using var context = await _fixture.CreateBrowserContextAsync();
@@ -53,7 +104,7 @@ public sealed class ExamOutcomesUiTests : IClassFixture<WebHostFixture>
         var grantLearnerSelect = editor.Locator("h3:has-text('Grant Retake Attempts') + .form-row select").First;
 
         var learnerOptionValue = await editor
-            .Locator("h3:has-text('Grant Retake Attempts') + .form-row select option", new() { HasTextString = "william.learner@wlr.com" })
+            .Locator("h3:has-text('Grant Retake Attempts') + .form-row select option", new() { HasTextString = "william.guest@wlr.com" })
             .First
             .GetAttributeAsync("value");
 
@@ -123,7 +174,7 @@ public sealed class ExamOutcomesUiTests : IClassFixture<WebHostFixture>
         await Assertions.Expect(page.Locator("form[action='/auth/logout']")).ToBeVisibleAsync(new() { Timeout = 10000 });
         await Assertions.Expect(page.GetByRole(AriaRole.Link, new() { Name = "Account", Exact = true })).ToBeVisibleAsync(new() { Timeout = 10000 });
 
-        var userExists = await HasUserAsync(_fixture.DatabasePath, "sso-william.learner@wlr.com", "Learner");
+        var userExists = await HasUserAsync(_fixture.DatabasePath, "sso-william.guest@wlr.com", "Learner");
         Assert.True(userExists, "Expected SSO test user to be created in local user store with Learner role.");
     }
 
@@ -146,7 +197,7 @@ public sealed class ExamOutcomesUiTests : IClassFixture<WebHostFixture>
         Assert.True(learnerOptionCount >= 2, "Expected at least two learners to validate learner-switch behavior.");
 
         var learnerOwnedCard = page.Locator("section.card.support-ownership-card")
-            .Filter(new LocatorFilterOptions { HasTextString = "Learner enrolled courses" });
+            .Filter(new LocatorFilterOptions { HasTextString = "Student enrolled courses" });
         await Assertions.Expect(learnerOwnedCard).ToBeVisibleAsync(new() { Timeout = 10000 });
         var initialSelectedText = (await learnerSelect.Locator("option:checked").InnerTextAsync()).Trim();
         await Assertions.Expect(learnerOwnedCard).ToContainTextAsync(initialSelectedText, new() { Timeout = 10000 });
@@ -242,7 +293,7 @@ public sealed class ExamOutcomesUiTests : IClassFixture<WebHostFixture>
         await using var context = await _fixture.CreateBrowserContextAsync();
         var page = await context.NewPageAsync();
 
-        await LoginAsync(page, "william.learner@wlr.com", "Learner123!");
+        await LoginAsync(page, "william.guest@wlr.com", "Learner123!");
         await page.GotoAsync($"{_fixture.BaseUrl}/courses");
 
         var firstCourseLink = page.GetByRole(AriaRole.Link, new() { Name = "Open" }).First;
@@ -332,8 +383,8 @@ public sealed class ExamOutcomesUiTests : IClassFixture<WebHostFixture>
         await using var context = await _fixture.CreateBrowserContextAsync();
         var page = await context.NewPageAsync();
 
-        await LoginAsync(page, "william.learner@wlr.com", "Learner123!");
-        var trackedPaths = await ResolveTrackedLessonPathsFromDatabaseAsync(_fixture.DatabasePath, "william.learner@wlr.com");
+        await LoginAsync(page, "william.guest@wlr.com", "Learner123!");
+        var trackedPaths = await ResolveTrackedLessonPathsFromDatabaseAsync(_fixture.DatabasePath, "william.guest@wlr.com");
         var allowedPath = trackedPaths[0];
 
         await page.GotoAsync($"{_fixture.BaseUrl}{allowedPath}");
@@ -424,7 +475,7 @@ public sealed class ExamOutcomesUiTests : IClassFixture<WebHostFixture>
         var page = await context.NewPageAsync();
 
         await LoginAsync(page, "admin@wlr.com", "Admin123!");
-        var emptyLearnerId = await InsertLearnerWithoutEnrollmentAsync(_fixture.DatabasePath, "ui-empty-william.learner@wlr.com", "UI Empty Learner");
+        var emptyLearnerId = await InsertLearnerWithoutEnrollmentAsync(_fixture.DatabasePath, "ui-empty-william.guest@wlr.com", "UI Empty Learner");
 
         await page.GotoAsync($"{_fixture.BaseUrl}/learner?learnerId={emptyLearnerId}");
 
@@ -443,10 +494,10 @@ public sealed class ExamOutcomesUiTests : IClassFixture<WebHostFixture>
 
         await LoginAsync(page, "admin@wlr.com", "Admin123!");
 
-        var activeLearnerId = await ResolveUserIdFromDatabaseAsync(_fixture.DatabasePath, "william.learner@wlr.com");
+        var activeLearnerId = await ResolveUserIdFromDatabaseAsync(_fixture.DatabasePath, "william.guest@wlr.com");
         Assert.False(string.IsNullOrWhiteSpace(activeLearnerId));
 
-        var trackedPaths = await ResolveTrackedLessonPathsFromDatabaseAsync(_fixture.DatabasePath, "william.learner@wlr.com");
+        var trackedPaths = await ResolveTrackedLessonPathsFromDatabaseAsync(_fixture.DatabasePath, "william.guest@wlr.com");
         var trackedCourseId = trackedPaths[0].Split('/', StringSplitOptions.RemoveEmptyEntries)[1];
 
         await page.GotoAsync($"{_fixture.BaseUrl}/courses/{trackedCourseId}?learnerId={activeLearnerId}");
@@ -577,13 +628,13 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
     [UiFact]
     public async Task Learner_UnitExams_AppearInOrder_BeforeFinalExam()
     {
-        var expectation = await ResolveUnitExamFlowExpectationAsync(_fixture.DatabasePath, "william.learner@wlr.com");
-        await ResetLearnerUnitExamAndExamStateAsync(_fixture.DatabasePath, "william.learner@wlr.com", expectation.CourseId);
+        var expectation = await ResolveUnitExamFlowExpectationAsync(_fixture.DatabasePath, "william.guest@wlr.com");
+        await ResetLearnerUnitExamAndExamStateAsync(_fixture.DatabasePath, "william.guest@wlr.com", expectation.CourseId);
 
         await using var context = await _fixture.CreateBrowserContextAsync();
         var page = await context.NewPageAsync();
 
-        await LoginAsync(page, "william.learner@wlr.com", "Learner123!");
+        await LoginAsync(page, "william.guest@wlr.com", "Learner123!");
         await page.GotoAsync($"{_fixture.BaseUrl}{expectation.StartLessonPath}");
 
         var observedUnitExamUnits = new List<string>();
@@ -637,15 +688,15 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
     [UiFact]
     public async Task Learner_RetakeGrant_UnlocksCourseAccess_AndOverviewShowsAttemptTotals()
     {
-        var (courseId, lessonPath) = await ResolveLearnerCourseAndLessonPathAsync(_fixture.DatabasePath, "william.learner@wlr.com");
+        var (courseId, lessonPath) = await ResolveLearnerCourseAndLessonPathAsync(_fixture.DatabasePath, "william.guest@wlr.com");
         // Clear grants left by other tests so the seeded failures actually block access.
-        await ClearRetakeGrantsAsync(_fixture.DatabasePath, "william.learner@wlr.com", courseId);
-        await SeedFailedExamAttemptsAsync(_fixture.DatabasePath, "william.learner@wlr.com", courseId, attempts: 2);
+        await ClearRetakeGrantsAsync(_fixture.DatabasePath, "william.guest@wlr.com", courseId);
+        await SeedFailedExamAttemptsAsync(_fixture.DatabasePath, "william.guest@wlr.com", courseId, attempts: 2);
 
         await using var learnerContext = await _fixture.CreateBrowserContextAsync();
         var learnerPage = await learnerContext.NewPageAsync();
 
-        await LoginAsync(learnerPage, "william.learner@wlr.com", "Learner123!");
+        await LoginAsync(learnerPage, "william.guest@wlr.com", "Learner123!");
 
         await learnerPage.GotoAsync($"{_fixture.BaseUrl}{lessonPath}");
         // The blocked-learner redirect is issued by the circuit after load; wait for it and retry once if hydration failed.
@@ -666,7 +717,7 @@ VALUES ($id, $brokerUserId, $learnerUserId, $assignedByUserId, $assignedAt)";
         await ExpectTextAsync(learnerPage, "Attempts used: 2 of 2");
         await ExpectTextAsync(learnerPage, "You have no attempts remaining");
 
-        await GrantRetakeAttemptsAsync(_fixture.DatabasePath, "william.learner@wlr.com", "admin@wlr.com", courseId, grantedAttempts: 1);
+        await GrantRetakeAttemptsAsync(_fixture.DatabasePath, "william.guest@wlr.com", "admin@wlr.com", courseId, grantedAttempts: 1);
 
         await learnerPage.GotoAsync($"{_fixture.BaseUrl}/courses/{courseId}");
         var failureOverview = learnerPage.Locator("section.exam-failure-banner p");
@@ -1217,7 +1268,7 @@ VALUES (
         string passwordHash;
         await using (var passwordHashCommand = connection.CreateCommand())
         {
-            passwordHashCommand.CommandText = "SELECT PasswordHash FROM UserAccounts WHERE Email = 'william.learner@wlr.com' LIMIT 1";
+            passwordHashCommand.CommandText = "SELECT PasswordHash FROM UserAccounts WHERE Email = 'william.guest@wlr.com' LIMIT 1";
             passwordHash = (await passwordHashCommand.ExecuteScalarAsync())?.ToString() ?? string.Empty;
         }
 
@@ -1250,7 +1301,7 @@ VALUES ($id, $email, $displayName, $passwordHash, 'Learner', 1, $createdAt, $cre
         string passwordHash;
         await using (var passwordHashCommand = connection.CreateCommand())
         {
-            passwordHashCommand.CommandText = "SELECT PasswordHash FROM UserAccounts WHERE Email = 'william.learner@wlr.com' LIMIT 1";
+            passwordHashCommand.CommandText = "SELECT PasswordHash FROM UserAccounts WHERE Email = 'william.guest@wlr.com' LIMIT 1";
             passwordHash = (await passwordHashCommand.ExecuteScalarAsync())?.ToString() ?? string.Empty;
         }
 
@@ -1310,7 +1361,7 @@ SELECT EXISTS (
 SELECT CourseId, EnrolledAt
 FROM Enrollments E
 INNER JOIN UserAccounts U ON U.Id = E.UserAccountId
-WHERE U.Email = 'william.learner@wlr.com'
+WHERE U.Email = 'william.guest@wlr.com'
 ORDER BY E.EnrolledAt DESC
 LIMIT 1";
 
@@ -1518,9 +1569,24 @@ public sealed class WebHostFixture : IAsyncLifetime
     private readonly string _startupProjectPath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Lms.Web", "Lms.Web.csproj"));
     private readonly string _startupProjectDirectory;
     private string _databasePath;
+    private string? _californiaArchiveToImport;
 
     public string BaseUrl { get; private set; } = "http://127.0.0.1:5000";
     public string DatabasePath => _databasePath;
+    public string CaliforniaArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-california-bulk");
+    private string NevadaArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-nevada-bulk");
+
+    internal void ImportCaliforniaArchiveBeforeStartup(string archivePath)
+    {
+        if (_process is not null)
+        {
+            throw new InvalidOperationException("The California archive must be configured before the web host starts.");
+        }
+
+        _californiaArchiveToImport = Path.GetFullPath(archivePath);
+    }
 
     public WebHostFixture()
     {
@@ -1540,6 +1606,10 @@ public sealed class WebHostFixture : IAsyncLifetime
         var isolatedDbRoot = Path.Combine(Path.GetTempPath(), "lms-web-uitests-db");
         Directory.CreateDirectory(isolatedDbRoot);
         _databasePath = Path.Combine(isolatedDbRoot, $"lms-{Guid.NewGuid():N}.db");
+        if (_californiaArchiveToImport is { } archivePath)
+        {
+            await ImportCaliforniaArchiveAsync(archivePath);
+        }
         _process = StartWebHostProcess();
         await WaitUntilReachableAsync();
         _playwright = await Playwright.CreateAsync();
@@ -1587,7 +1657,21 @@ public sealed class WebHostFixture : IAsyncLifetime
         return await _browser.NewContextAsync();
     }
 
-    private Process StartWebHostProcess()
+    private async Task ImportCaliforniaArchiveAsync(string archivePath)
+    {
+        _process = StartWebHostProcess($"--california-bulk-import-archive \"{archivePath}\"");
+        await _process.WaitForExitAsync();
+        _process.WaitForExit();
+        var exitCode = _process.ExitCode;
+        _process.Dispose();
+        _process = null;
+        if (exitCode != 0)
+        {
+            throw new InvalidOperationException($"Unable to prepare California archive for UI test. Exit code: {exitCode}. Output: {GetRecentHostOutput()}");
+        }
+    }
+
+    private Process StartWebHostProcess(string? applicationArguments = null)
     {
         var dotnetPath = @"C:\Program Files\dotnet\dotnet.exe";
         var isolatedBuildRoot = Path.Combine(Path.GetTempPath(), "lms-web-uitests-host");
@@ -1604,7 +1688,8 @@ public sealed class WebHostFixture : IAsyncLifetime
             StartInfo = new ProcessStartInfo
             {
                 FileName = dotnetPath,
-                Arguments = $"run --no-launch-profile --project \"{_startupProjectPath}\" -p:OutputPath=\"{isolatedOutputPathMsBuild}\" -p:IntermediateOutputPath=\"{isolatedIntermediatePathMsBuild}\"",
+                Arguments = $"run --no-launch-profile --project \"{_startupProjectPath}\" -p:OutputPath=\"{isolatedOutputPathMsBuild}\" -p:IntermediateOutputPath=\"{isolatedIntermediatePathMsBuild}\""
+                    + (applicationArguments is null ? "" : $" -- {applicationArguments}"),
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
@@ -1616,6 +1701,18 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["ASPNETCORE_ENVIRONMENT"] = "Testing";
         process.StartInfo.Environment["LMS_DATABASE_PATH"] = DatabasePath;
         process.StartInfo.Environment["LMS_TEST_SHORTCUT"] = "1";
+        process.StartInfo.Environment["FloridaBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["TexasBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["CaliforniaBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["NevadaBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["NevadaBulk__ArchiveDirectory"] = NevadaArchiveDirectory;
+        process.StartInfo.Environment["BulkCollectionSchedules__FilePath"] = Path.Combine(
+            Path.GetDirectoryName(DatabasePath)!, Path.GetFileNameWithoutExtension(DatabasePath) + "-schedules.json");
+        process.StartInfo.Environment["CaliforniaBulk__ArchiveDirectory"] = CaliforniaArchiveDirectory;
+        process.StartInfo.Environment["TexasBulk__ArchiveDirectory"] = Path.Combine(
+            Path.GetDirectoryName(DatabasePath)!, Path.GetFileNameWithoutExtension(DatabasePath) + "-texas-bulk");
+        process.StartInfo.Environment["FloridaBulk__ArchiveDirectory"] = Path.Combine(
+            Path.GetDirectoryName(DatabasePath)!, Path.GetFileNameWithoutExtension(DatabasePath) + "-bulk");
         if (_ssoUiModeEnabled)
         {
             process.StartInfo.Environment["Authentication__Sso__Enabled"] = "true";
@@ -1623,7 +1720,7 @@ public sealed class WebHostFixture : IAsyncLifetime
             process.StartInfo.Environment["Authentication__Sso__ClientId"] = "ui-test-client";
             process.StartInfo.Environment["Authentication__Sso__ClientSecret"] = "ui-test-secret";
             process.StartInfo.Environment["Authentication__Sso__TestModeEnabled"] = "true";
-            process.StartInfo.Environment["Authentication__Sso__TestUserEmail"] = "sso-william.learner@wlr.com";
+            process.StartInfo.Environment["Authentication__Sso__TestUserEmail"] = "sso-william.guest@wlr.com";
             process.StartInfo.Environment["Authentication__Sso__TestUserName"] = "SSO Learner";
         }
         process.OutputDataReceived += (_, args) => CaptureHostOutput(args.Data);
@@ -1705,6 +1802,16 @@ public sealed class WebHostFixture : IAsyncLifetime
             return;
         }
 
+        var californiaArchiveDirectory = CaliforniaArchiveDirectory;
+        try
+        {
+            if (Directory.Exists(NevadaArchiveDirectory))
+                Directory.Delete(NevadaArchiveDirectory, recursive: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Could not clean up Nevada test archive {NevadaArchiveDirectory}: {exception.Message}");
+        }
         var candidates = new[] { _databasePath, _databasePath + "-wal", _databasePath + "-shm" };
         foreach (var path in candidates)
         {
@@ -1720,6 +1827,18 @@ public sealed class WebHostFixture : IAsyncLifetime
                 // Ignore cleanup errors to avoid masking test results.
             }
         }
+
+        try
+        {
+            if (Directory.Exists(californiaArchiveDirectory))
+            {
+                Directory.Delete(californiaArchiveDirectory, recursive: true);
+            }
+        }
+        catch
+        {
+            // Ignore cleanup errors to avoid masking test results.
+        }
     }
 
     private string GetRecentHostOutput()
@@ -1730,4 +1849,3 @@ public sealed class WebHostFixture : IAsyncLifetime
         }
     }
 }
-

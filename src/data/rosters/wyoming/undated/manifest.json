@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Wyoming",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\XLXS\\Certified Real Estate Appraiser Board Discipline.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WYOMING\\XLXS\\Certified Real Estate Appraiser Board Discipline.xlsx",
+                      "Sha256":  "E7036F6BA52A983A247051E5D4BBC5954CA1A84D920A1B8A347D407E36E33279",
+                      "Bytes":  15632,
+                      "OfficialSourceUrl":  "",
+                      "Coverage":  "Real-estate appraisal discipline source data; separate board/source"
+                  }
+              ]
+}

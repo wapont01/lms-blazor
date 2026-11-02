@@ -151,6 +151,7 @@ public sealed class ComplianceReportingService : IComplianceReportingService
             .Include(enrollment => enrollment.UserAccount)
             .Include(enrollment => enrollment.Course)
             .Where(enrollment => enrollment.Completed
+                && !enrollment.Course!.Slug.StartsWith(DevelopmentCourseCatalog.SlugPrefix)
                 && enrollment.CompletedAtUtc != null
                 && enrollment.CompletionReportSubmittedAtUtc == null)
             .OrderBy(enrollment => enrollment.CompletedAtUtc)
@@ -221,12 +222,14 @@ public sealed class ComplianceReportingService : IComplianceReportingService
         var enrollmentsInPeriod = await _dbContext.Enrollments
             .AsNoTracking()
             .Include(enrollment => enrollment.Course)
-            .Where(enrollment => enrollment.EnrolledAt >= periodStartUtc && enrollment.EnrolledAt < periodEndUtc)
+            .Where(enrollment => enrollment.EnrolledAt >= periodStartUtc && enrollment.EnrolledAt < periodEndUtc
+                && !enrollment.Course!.Slug.StartsWith(DevelopmentCourseCatalog.SlugPrefix))
             .ToListAsync();
 
         var completionsInPeriod = await _dbContext.Enrollments
             .AsNoTracking()
             .Where(enrollment => enrollment.CompletedAtUtc != null
+                && !enrollment.Course!.Slug.StartsWith(DevelopmentCourseCatalog.SlugPrefix)
                 && enrollment.CompletedAtUtc >= periodStartUtc
                 && enrollment.CompletedAtUtc < periodEndUtc)
             .GroupBy(enrollment => enrollment.CourseId)
@@ -237,6 +240,7 @@ public sealed class ComplianceReportingService : IComplianceReportingService
             .AsNoTracking()
             .Include(attempt => attempt.CourseExam)
             .Where(attempt => !attempt.Passed
+                && !attempt.CourseExam!.Course!.Slug.StartsWith(DevelopmentCourseCatalog.SlugPrefix)
                 && attempt.SubmittedAt >= periodStartUtc
                 && attempt.SubmittedAt < periodEndUtc)
             .GroupBy(attempt => attempt.CourseExam!.CourseId)
@@ -277,7 +281,8 @@ public sealed class ComplianceReportingService : IComplianceReportingService
             .AsNoTracking()
             .Include(session => session.UserAccount)
             .Include(session => session.Course)
-            .Where(session => session.SecurityIncidentReported && session.CommissionReportedAtUtc == null)
+            .Where(session => session.SecurityIncidentReported && session.CommissionReportedAtUtc == null
+                && !session.Course!.Slug.StartsWith(DevelopmentCourseCatalog.SlugPrefix))
             .OrderBy(session => session.ExpiresAtUtc)
             .ToListAsync();
 

@@ -1,0 +1,16 @@
+@baseUrl = http://127.0.0.1:5000
+@learnerId = 00000000-0000-0000-0000-000000000000
+
+### Sign in locally first; supply the development learner or admin authentication cookie.
+@authCookie = replace-with-local-Lms.Web.Auth-cookie
+
+### Owner or admin receives application/pdf with attachment disposition (200).
+GET {{baseUrl}}/dev/certificates/{{learnerId}}/download
+Cookie: Lms.Web.Auth={{authCookie}}
+
+### A nonexistent or another learner's specimen returns 404.
+GET {{baseUrl}}/dev/certificates/00000000-0000-0000-0000-000000000000/download
+Cookie: Lms.Web.Auth={{authCookie}}
+
+### Anonymous requests redirect to sign-in; when the feature is disabled the route is absent.
+GET {{baseUrl}}/dev/certificates/{{learnerId}}/download

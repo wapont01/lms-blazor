@@ -1,0 +1,82 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Oklahoma",
+    "CaptureDate":  "2026-10-12",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Oklahoma Real Estate Development Data Notes 20261012.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OKLAHOMA\\TXTS\\Oklahoma Real Estate Development Data Notes 20261012.txt",
+                      "Sha256":  "72A5A4EB3949C1B4BE151BF42E638C3CD15AD0CB226E5324D2F03FA95239D9A4",
+                      "Bytes":  5964,
+                      "OfficialSourceUrl":  "https://orec.us.thentiacloud.net/webs/orec/register/#",
+                      "Coverage":  "Full capture counts and source notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Oklahoma_Active_Entity_Development_Sample_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OKLAHOMA\\XLXS\\Oklahoma_Active_Entity_Development_Sample_20261012.csv",
+                      "Sha256":  "26A6A5085FA93497D1FDCE7F605B89305E203CAABF22EA4818213F08E313EED2",
+                      "Bytes":  14597,
+                      "OfficialSourceUrl":  "https://orec.us.thentiacloud.net/webs/orec/register/#",
+                      "Coverage":  "Active entity sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Oklahoma_Development_Data_20261012.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OKLAHOMA\\XLXS\\Oklahoma_Development_Data_20261012.json",
+                      "Sha256":  "073E588274A7B0EC8AEA7E169D5C4144F27EE58C4A0E07A3352F5A125BADD356",
+                      "Bytes":  4334,
+                      "OfficialSourceUrl":  "https://orec.us.thentiacloud.net/webs/orec/register/#",
+                      "Coverage":  "Counts scope and source provenance manifest"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Oklahoma_Exact_Active_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OKLAHOMA\\XLXS\\Oklahoma_Exact_Active_Entities_20261012.csv",
+                      "Sha256":  "7AD7E0AC0C68195C336A7B0A545D7FF67D895B17CFD9A7293AB002BED208DA09",
+                      "Bytes":  2346013,
+                      "OfficialSourceUrl":  "https://orec.us.thentiacloud.net/webs/orec/register/#",
+                      "Coverage":  "Exact-active entity subset"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Oklahoma_Full_Captured_Business_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OKLAHOMA\\XLXS\\Oklahoma_Full_Captured_Business_Entities_20261012.csv",
+                      "Sha256":  "80AC9FEC909BC62B887ECE7087F6AD4325C0660B8119769DD794D3C1CAFBAAF3",
+                      "Bytes":  6053775,
+                      "OfficialSourceUrl":  "https://orec.us.thentiacloud.net/webs/orec/register/#",
+                      "Coverage":  "Full captured entity records"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Oklahoma_Full_Captured_Licensees_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OKLAHOMA\\XLXS\\Oklahoma_Full_Captured_Licensees_20261012.csv",
+                      "Sha256":  "BA97A6974BA718FD5F4942FBA6F738B0A3FEE1E16420879370F8BFFED371F6D2",
+                      "Bytes":  43554114,
+                      "OfficialSourceUrl":  "https://orec.us.thentiacloud.net/webs/orec/register/#",
+                      "Coverage":  "Full captured individual licensee records"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Oklahoma_Real_Estate_Business_Entities_Raw_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OKLAHOMA\\XLXS\\Oklahoma_Real_Estate_Business_Entities_Raw_20261012.csv",
+                      "Sha256":  "C2FAF4193805600E69B71DB23745F1CE82A3499B0228DE93BC20DD2907F38B09",
+                      "Bytes":  382528,
+                      "OfficialSourceUrl":  "https://orec.us.thentiacloud.net/webs/orec/register/#",
+                      "Coverage":  "Raw statewide business entity data"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Oklahoma_Real_Estate_Licensees_Raw_20261012.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OKLAHOMA\\XLXS\\Oklahoma_Real_Estate_Licensees_Raw_20261012.csv",
+                      "Sha256":  "D231F00DE10D46915181893856F7E6F6DECACE140C6158D955335C6FD0ECB458",
+                      "Bytes":  4679884,
+                      "OfficialSourceUrl":  "https://orec.us.thentiacloud.net/webs/orec/register/#",
+                      "Coverage":  "Raw statewide licensee data"
+                  }
+              ]
+}

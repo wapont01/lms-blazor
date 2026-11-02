@@ -1,0 +1,21 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "LMS (canonical app)",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "build-lms",
+			"program": "${workspaceFolder}\\src\\Lms.Web\\bin\\Debug\\net8.0\\Lms.Web.dll",
+			"cwd": "${workspaceFolder}\\src\\Lms.Web",
+			"args": ["--urls", "http://127.0.0.1:5000"],
+			"env": {
+				"ASPNETCORE_ENVIRONMENT": "Development"
+			},
+			"serverReadyAction": {
+				"action": "openExternally",
+				"pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+			}
+		}
+	]
+}

@@ -1,0 +1,127 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Kentucky",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Kentucky Real Estate Development Data Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "KENTUCKY\\TXTS\\Kentucky Real Estate Development Data Notes 20261011.txt",
+                      "Sha256":  "C661C0196B371C617F7653F60316FD5A6D9E64803EE3E716C6CF7CC957DBA966",
+                      "Bytes":  5321,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Directory capture and status caveats"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Kentucky_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "54D9C7CD569884B4CBDBAB122F2DD6FA862A5AD8DFBE415C1901AF0DDF2B9B65",
+                      "Bytes":  16333,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Active entity development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Kentucky_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "E5E76F8BEB1DAE6FD4AC4E426C49C8F1D8D10547C09049E592B8DD6D9D2B1B35",
+                      "Bytes":  29965,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Active individual development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Kentucky_Development_Data_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Development_Data_20261011.json",
+                      "Sha256":  "FCC675855F88149220318DE684A212D7960A5FF757FBC754DC4C89C8D5159A4A",
+                      "Bytes":  5847,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Counts scope status caveats and hashes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Kentucky_Full_Directory_Development_Campaign_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Full_Directory_Development_Campaign_20261011.csv",
+                      "Sha256":  "2F67379D9594BCA1A31391FD7CB2F84AEFEEDE359FA6B7FF1696D964236C96AF",
+                      "Bytes":  8747153,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Full saved active directory development dataset"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Kentucky_Active_Broker_All_Regions_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Active_Broker_All_Regions_20261011.csv",
+                      "Sha256":  "C3357A38A9D1B34BCCEEB71823015AF875CA55A251A8F4DB1B7F02463F7AA9C4",
+                      "Bytes":  254187,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Active statewide-region broker directory export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Kentucky_Active_Broker_All_Regions_20261011.xls",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Active_Broker_All_Regions_20261011.xls",
+                      "Sha256":  "7CA01E24B2A0F68E3F0D83CD14E89FC5BF9F3A4290CB5902236F4D00D8D109F2",
+                      "Bytes":  380054,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Original broker directory workbook"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Kentucky_Active_Registered_Firm_Branch_All_Regions_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Active_Registered_Firm_Branch_All_Regions_20261011.csv",
+                      "Sha256":  "F314A00751E7B986FC4A1C42F65CCBB26572FDF303D94A0D4CC1442CD00C39E9",
+                      "Bytes":  673136,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Active registered firm and branch export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Kentucky_Active_Registered_Firm_Branch_All_Regions_20261011.xls",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Active_Registered_Firm_Branch_All_Regions_20261011.xls",
+                      "Sha256":  "E047DF0232FEAFEC9F6016E94F99304AB6650A953DC88FBD4C57953C21EF618B",
+                      "Bytes":  1016470,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Original firm and branch workbook"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Kentucky_Active_Sales_Associate_All_Regions_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Active_Sales_Associate_All_Regions_20261011.csv",
+                      "Sha256":  "7C5DC96CF433953759E3413D16A007B0D3E71B94F7BE91EFCC7944F39B86F660",
+                      "Bytes":  1542826,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Active statewide-region sales associate export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Kentucky_Active_Sales_Associate_All_Regions_20261011.xls",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Active_Sales_Associate_All_Regions_20261011.xls",
+                      "Sha256":  "A8294B01E58E21CBC9E9BD7D919686345F1790E67BF28CC2A11F75235B15513B",
+                      "Bytes":  2281618,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Original sales associate workbook"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Kentucky_Directory_Query_Observations_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Directory_Query_Observations_20261011.json",
+                      "Sha256":  "242C878A55B442D7AE8B5775EAE1800BAAD9FF44D5BDA0DD4ED3CC0AE2014242",
+                      "Bytes":  1342,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/active_lic_dir.aspx",
+                      "Coverage":  "Query capture observations"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Kentucky_Firm_Profile_251286_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KENTUCKY\\XLXS\\Kentucky_Firm_Profile_251286_20261011.json",
+                      "Sha256":  "DF9B9BF463D4E390D4999E0B95D871DED6831B3F20D4FABABEC4B403A5DB93A9",
+                      "Bytes":  1305,
+                      "OfficialSourceUrl":  "https://oop.ky.gov/Lics_Details.aspx?id=251286",
+                      "Coverage":  "Official firm profile evidence for one principal-broker relationship"
+                  }
+              ]
+}

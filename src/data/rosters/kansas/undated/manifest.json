@@ -1,0 +1,37 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Kansas",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\TXTs\\Kansas KREC Licensee Data Report Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KANSAS\\TXTs\\Kansas KREC Licensee Data Report Capture.json",
+                      "Sha256":  "E8F637D38043D370A32B9CD817CB381002B21677E828A48290B84F2DF48022A3",
+                      "Bytes":  2424,
+                      "OfficialSourceUrl":  "https://krec.ks.gov/",
+                      "Coverage":  "Statewide report capture and retrieval evidence"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Licensee Data.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KANSAS\\XLXS\\Licensee Data.csv",
+                      "Sha256":  "486BE409AAFC58015B3FEA610FCC6C4B50B49AA611355CE4DB5331CC1B09E116",
+                      "Bytes":  8873183,
+                      "OfficialSourceUrl":  "https://krec.ks.gov/",
+                      "Coverage":  "Downloaded licensee data source export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\LicenseHistoryCertification Links.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "KANSAS\\XLXS\\LicenseHistoryCertification Links.xlsx",
+                      "Sha256":  "A349312EE3858DF4B441E2FC3755AD0E994B2260063EF211BC76D581CD72DFB7",
+                      "Bytes":  31202,
+                      "OfficialSourceUrl":  "https://krec.ks.gov/",
+                      "Coverage":  "License history and certification source links"
+                  }
+              ]
+}

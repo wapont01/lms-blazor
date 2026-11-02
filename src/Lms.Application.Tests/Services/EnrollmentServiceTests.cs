@@ -3,6 +3,7 @@ using Lms.Application.Services;
 using Lms.Domain.Entities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Text;
 using Xunit;
 
@@ -11,10 +12,264 @@ namespace Lms.Application.Tests.Services;
 public class EnrollmentServiceTests
 {
     [Fact]
+    public async Task ConcurrentStudents_KeepIndependentCompletionStateInSameCourse()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"lms-students-{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var fixture = await TestFixture.CreateAsync(path);
+            var initialUser = await fixture.DbContext.UserAccounts.SingleAsync(x => x.Email == "william.guest@wlr.com");
+            var graph = await fixture.CreateCourseGraphWithEnrollmentAsync(initialUser.Id, "Shared classroom");
+            var students = Enumerable.Range(0, 8).Select(index => new UserAccount
+            {
+                Email = $"classroom-{index}@example.invalid", DisplayName = $"Synthetic Student {index}"
+            }).ToArray();
+            fixture.DbContext.UserAccounts.AddRange(students);
+            fixture.DbContext.Enrollments.AddRange(students.Select(student => new Enrollment
+            {
+                UserAccountId = student.Id, CourseId = graph.CourseId
+            }));
+            await fixture.DbContext.SaveChangesAsync();
+            var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var work = students.Select(student => Task.Run(async () =>
+            {
+                await start.Task;
+                await using var db = OpenIndependentContext(path);
+                var audit = new AuditLogService(db);
+                var service = new EnrollmentService(db, audit, new ExamService(db, audit), new SchoolProfileService(db, audit));
+                foreach (var lessonId in graph.RequiredLessonIds)
+                    await service.SetLessonCompletionAsync(student.Id, lessonId, true);
+            })).ToArray();
+            start.SetResult();
+            await Task.WhenAll(work);
+            await using var verification = OpenIndependentContext(path);
+            foreach (var student in students)
+            {
+                var enrollment = await verification.Enrollments.SingleAsync(x =>
+                    x.UserAccountId == student.Id && x.CourseId == graph.CourseId);
+                Assert.Equal(100m, enrollment.ProgressPercent);
+                Assert.True(enrollment.Completed);
+                Assert.Equal(graph.RequiredLessonIds.Count,
+                    await verification.LessonProgresses.CountAsync(x => x.UserAccountId == student.Id && x.Completed));
+            }
+            Assert.Equal(0m, (await verification.Enrollments.SingleAsync(x => x.Id == graph.EnrollmentId)).ProgressPercent);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public async Task ConcurrentLessonCompletion_PreservesBothLessonsAndAggregateProgress()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"lms-progress-{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var fixture = await TestFixture.CreateAsync(path);
+            var user = await fixture.DbContext.UserAccounts.SingleAsync(x => x.Email == "william.guest@wlr.com");
+            var graph = await fixture.CreateCourseGraphWithEnrollmentAsync(user.Id, "Concurrent progress");
+            var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var work = graph.RequiredLessonIds.Select(lessonId => Task.Run(async () =>
+            {
+                await start.Task;
+                await using var db = OpenIndependentContext(path);
+                var audit = new AuditLogService(db);
+                var service = new EnrollmentService(db, audit, new ExamService(db, audit),
+                    new SchoolProfileService(db, audit), new CourseActivityService(db));
+                await service.SetLessonCompletionAsync(user.Id, lessonId, true);
+            })).ToArray();
+            start.SetResult();
+            await Task.WhenAll(work);
+            await using var verification = OpenIndependentContext(path);
+            var enrollment = await verification.Enrollments.SingleAsync(x => x.Id == graph.EnrollmentId);
+            Assert.Equal(100m, enrollment.ProgressPercent);
+            Assert.True(enrollment.Completed);
+            Assert.Equal(graph.RequiredLessonIds.Count,
+                await verification.LessonProgresses.CountAsync(x => x.UserAccountId == user.Id && x.Completed));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public async Task ConcurrentAttendance_StartReusesOneSessionAndPulsesDoNotDoubleCredit()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"lms-attendance-{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var fixture = await TestFixture.CreateAsync(path);
+            var user = await fixture.DbContext.UserAccounts.SingleAsync(x => x.Email == "william.guest@wlr.com");
+            var graph = await fixture.CreateCourseGraphWithEnrollmentAsync(user.Id, "Concurrent attendance");
+            var sessionIds = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Task.Run(async () =>
+            {
+                await using var db = OpenIndependentContext(path);
+                return await new CourseActivityService(db).StartAsync(user.Id, graph.CourseId);
+            })));
+            Assert.Single(sessionIds.Distinct());
+            var sessionId = sessionIds[0];
+            var session = await fixture.DbContext.CourseActivitySessions.SingleAsync(x => x.Id == sessionId);
+            session.LastActivityAtUtc = DateTime.UtcNow.AddSeconds(-65);
+            await fixture.DbContext.SaveChangesAsync();
+
+            await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Task.Run(async () =>
+            {
+                await using var db = OpenIndependentContext(path);
+                await new CourseActivityService(db).PulseAsync(sessionId, user.Id);
+            })));
+            await fixture.CourseActivityService.PulseAsync(sessionId, user.Id);
+            Assert.Equal(1, session.CreditedMinutes);
+            Assert.Equal(1, await fixture.DbContext.CourseActivitySessions.CountAsync());
+            await fixture.CourseActivityService.EndAsync(sessionId, user.Id);
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                fixture.CourseActivityService.PulseAsync(sessionId, user.Id));
+        }
+        finally { File.Delete(path); }
+    }
+
+    private static ApplicationDbContext OpenIndependentContext(string path) => new(
+        new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlite($"Data Source={path};Pooling=False;Default Timeout=5").Options);
+
+    [Fact]
+    public async Task ConcurrentUnitExamPass_PreservesOneProgressRow()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"lms-unit-exam-{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var fixture = await TestFixture.CreateAsync(path);
+            var user = await fixture.DbContext.UserAccounts.SingleAsync(x => x.Email == "william.guest@wlr.com");
+            var graph = await fixture.CreateCourseGraphWithEnrollmentAsync(user.Id, "Concurrent unit exam");
+            var definition = (await new UnitExamService(fixture.DbContext).GetUnitExamDefinitionsAsync(graph.CourseId))
+                .First(x => !x.IsFinal);
+            var answers = definition.Options.Where(x => x.IsCorrect).Select(x => x.Key).ToArray();
+            var results = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => Task.Run(async () =>
+            {
+                await using var db = OpenIndependentContext(path);
+                return await new UnitExamService(db).SubmitUnitExamAsync(user.Id, graph.CourseId, definition.Key, answers);
+            })));
+            Assert.All(results, result => Assert.True(result.IsPassed));
+            Assert.Equal(1, await fixture.DbContext.UnitExamProgresses.CountAsync(x =>
+                x.UserAccountId == user.Id && x.CourseId == graph.CourseId && x.UnitExamKey == definition.Key && x.Passed));
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public async Task LessonCompletion_AuditFailureRollsBackProgressAndAggregate()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"lms-rollback-{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var fixture = await TestFixture.CreateAsync(path);
+            var user = await fixture.DbContext.UserAccounts.SingleAsync(x => x.Email == "william.guest@wlr.com");
+            var graph = await fixture.CreateCourseGraphWithEnrollmentAsync(user.Id, "Rollback progress");
+            await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseSqlite($"Data Source={path};Pooling=False")
+                .AddInterceptors(new RejectAuditSave()).Options);
+            var audit = new AuditLogService(db);
+            var service = new EnrollmentService(db, audit, new ExamService(db, audit), new SchoolProfileService(db, audit));
+            await Assert.ThrowsAsync<IOException>(() => service.SetLessonCompletionAsync(user.Id, graph.RequiredLessonIds[0], true));
+            await using var verification = OpenIndependentContext(path);
+            Assert.Equal(0, await verification.LessonProgresses.CountAsync(x => x.UserAccountId == user.Id));
+            Assert.Equal(0m, (await verification.Enrollments.SingleAsync(x => x.Id == graph.EnrollmentId)).ProgressPercent);
+        }
+        finally { File.Delete(path); }
+    }
+
+    private sealed class RejectAuditSave : SaveChangesInterceptor
+    {
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData, InterceptionResult<int> result, CancellationToken cancellationToken = default)
+        {
+            if (eventData.Context!.ChangeTracker.Entries<AuditLog>().Any(x => x.State == EntityState.Added))
+                throw new IOException("Synthetic audit storage failure.");
+            return base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+    }
+
+    [Fact]
+    public async Task GetLearnerLogsAsync_UsesExamEntitiesAndTerminology()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var admin = await fixture.DbContext.UserAccounts.FirstAsync(user => user.Role == "Admin");
+        var graph = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Exam log course");
+        var exam = await fixture.DbContext.CourseExams.FirstAsync(candidate => candidate.CourseId == graph.CourseId);
+        fixture.DbContext.ExamAttempts.Add(new ExamAttempt
+        {
+            CourseExamId = exam.Id,
+            UserAccountId = learner.Id,
+            ScorePercent = 60,
+            Passed = false
+        });
+        fixture.DbContext.RetakeGrants.Add(new RetakeGrant
+        {
+            CourseExamId = exam.Id,
+            UserAccountId = learner.Id,
+            GrantedByAdminId = admin.Id
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var logs = await fixture.EnrollmentService.GetLearnerLogsAsync(learner.Id);
+
+        var attempt = Assert.Single(logs, item => item.Type == "exam");
+        Assert.Equal("Exam attempt: Exam log course", attempt.Title);
+        Assert.Contains("Score=60", attempt.Details);
+        Assert.Contains(logs, item => item.Type == "retake" && item.Title == "Retake granted: Exam log course");
+        Assert.DoesNotContain(logs, item => item.Type == "assessment" || item.Title.Contains("Assessment", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task DevelopmentSamples_RequireExplicitOptInAndAllowTestingOtherStates()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        learner.State = "North Carolina";
+        var sample = new Course
+        {
+            Title = "Sample", Slug = DevelopmentCourseCatalog.SlugPrefix + "test",
+            State = "Alaska", IsPublished = false, Price = 0
+        };
+        fixture.DbContext.Courses.Add(sample);
+        await fixture.DbContext.SaveChangesAsync();
+        Assert.DoesNotContain(await fixture.EnrollmentService.GetAvailableCoursesForLearnerAsync(learner.Id), c => c.Id == sample.Id);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => fixture.EnrollmentService.EnrollAsync(learner.Id, sample.Id));
+        var enabledService = new EnrollmentService(fixture.DbContext, new AuditLogService(fixture.DbContext),
+            fixture.ExamService, developmentCatalog: new DevelopmentCatalogOptions { Enabled = true });
+        Assert.Contains(await enabledService.GetAvailableCoursesForLearnerAsync(learner.Id), c => c.Id == sample.Id);
+        await enabledService.EnrollAsync(learner.Id, sample.Id);
+        Assert.True(await enabledService.IsEnrolledAsync(learner.Id, sample.Id));
+    }
+
+    [Fact]
+    public async Task DevelopmentSampleCompletion_DoesNotIssueCertificate()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var graph = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Sample");
+        var course = await fixture.DbContext.Courses.SingleAsync(c => c.Id == graph.CourseId);
+        course.Slug = DevelopmentCourseCatalog.SlugPrefix + "certificate-test";
+        var enrollment = await fixture.DbContext.Enrollments.SingleAsync(e => e.Id == graph.EnrollmentId);
+        enrollment.CertificationFirstName = "Test";
+        enrollment.CertificationLastName = "Learner";
+        enrollment.CertificationLicenseNumber = "TEST-123";
+        enrollment.CertificationState = "North Carolina";
+        enrollment.CertificationNameConfirmed = true;
+        await fixture.DbContext.SaveChangesAsync();
+        await fixture.PassExamAsync(graph.CourseId, learner.Id);
+        await fixture.CompleteAllRequiredLessonsAsync(learner.Id, graph.RequiredLessonIds);
+        await fixture.EnrollmentService.ReconcileCompletionAsync(learner.Id, graph.CourseId);
+        Assert.True((await fixture.DbContext.Enrollments.SingleAsync(e => e.Id == graph.EnrollmentId)).Completed);
+        Assert.Empty(await fixture.DbContext.CompletionCertificates.Where(c => c.CourseId == graph.CourseId).ToListAsync());
+        var audit = new AuditLogService(fixture.DbContext);
+        var reporting = new ComplianceReportingService(fixture.DbContext, audit, new SchoolProfileService(fixture.DbContext, audit));
+        Assert.DoesNotContain(await reporting.GetPendingCourseCompletionReportsAsync(), row => row.EnrollmentId == graph.EnrollmentId);
+        var now = DateTime.UtcNow;
+        Assert.DoesNotContain(await reporting.GetMonthlySummaryReportAsync(now.Year, now.Month), row => row.CourseId == graph.CourseId);
+    }
+
+    [Fact]
     public async Task GetAvailableCoursesForLearnerAsync_ReturnsOnlyMatchingStateAndGeneralCourses()
     {
         await using var fixture = await TestFixture.CreateAsync();
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         learner.State = "North Carolina";
 
         var northCarolinaCourse = CreatePublishedCourse("North Carolina Offering", "North Carolina");
@@ -34,7 +289,7 @@ public class EnrollmentServiceTests
     public async Task EnrollAsync_RejectsCourseOutsideLearnerState()
     {
         await using var fixture = await TestFixture.CreateAsync();
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         learner.State = "North Carolina";
 
         var floridaCourse = CreatePublishedCourse("Florida Offering", "Florida");
@@ -55,7 +310,7 @@ public class EnrollmentServiceTests
 
         var brokerOne = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
         var brokerTwo = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "clara.broker@wlr.com");
-        var learnerOne = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learnerOne = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var learnerTwo = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "maya.thompson@wlr.com");
 
         var courseA = await fixture.CreateCourseGraphWithEnrollmentAsync(learnerOne.Id, "Broker One Course");
@@ -77,17 +332,17 @@ public class EnrollmentServiceTests
         var brokerOneRows = await fixture.EnrollmentService.GetBrokerLearnerRowsAsync(brokerOne.Id);
         var brokerTwoRows = await fixture.EnrollmentService.GetBrokerLearnerRowsAsync(brokerTwo.Id);
 
-        Assert.Contains(brokerOneRows, row => row.LearnerEmail == "william.learner@wlr.com");
+        Assert.Contains(brokerOneRows, row => row.LearnerEmail == "william.guest@wlr.com");
         Assert.Contains(brokerOneRows, row => row.LearnerEmail == "maya.thompson@wlr.com");
-        Assert.Contains(brokerTwoRows, row => row.LearnerEmail == "william.learner@wlr.com");
+        Assert.Contains(brokerTwoRows, row => row.LearnerEmail == "william.guest@wlr.com");
         Assert.Contains(brokerTwoRows, row => row.LearnerEmail == "maya.thompson@wlr.com");
 
         var brokerOneCertificates = await fixture.EnrollmentService.GetCertificateComplianceRowsAsync(brokerOne.Id);
         var brokerTwoCertificates = await fixture.EnrollmentService.GetCertificateComplianceRowsAsync(brokerTwo.Id);
 
-        Assert.Contains(brokerOneCertificates, row => row.LearnerEmail == "william.learner@wlr.com");
+        Assert.Contains(brokerOneCertificates, row => row.LearnerEmail == "william.guest@wlr.com");
         Assert.Contains(brokerOneCertificates, row => row.LearnerEmail == "maya.thompson@wlr.com");
-        Assert.Contains(brokerTwoCertificates, row => row.LearnerEmail == "william.learner@wlr.com");
+        Assert.Contains(brokerTwoCertificates, row => row.LearnerEmail == "william.guest@wlr.com");
         Assert.Contains(brokerTwoCertificates, row => row.LearnerEmail == "maya.thompson@wlr.com");
     }
 
@@ -96,7 +351,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
         var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         await fixture.EnrollmentService.AssignLearnerToBrokerAsync(broker.Id, learner.Id, broker.Id, broker.Email);
 
@@ -149,7 +404,7 @@ public class EnrollmentServiceTests
 
         var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         await fixture.EnrollmentService.AssignLearnerToBrokerAsync(broker.Id, learner.Id, broker.Id, broker.Email);
 
@@ -194,7 +449,7 @@ public class EnrollmentServiceTests
             broker.Email);
 
         Assert.False(brokerResult.Succeeded);
-        Assert.Contains("learner-owned", brokerResult.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("student-owned", brokerResult.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -203,7 +458,7 @@ public class EnrollmentServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         var assignment = await fixture.DbContext.BrokerLearnerAssignments
             .FirstOrDefaultAsync(existing => existing.BrokerUserId == broker.Id && existing.LearnerUserId == learner.Id);
@@ -277,7 +532,7 @@ public class EnrollmentServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         await fixture.EnrollmentService.AssignLearnerToBrokerAsync(broker.Id, learner.Id, broker.Id, broker.Email);
 
@@ -360,7 +615,7 @@ public class EnrollmentServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         await fixture.EnrollmentService.AssignLearnerToBrokerAsync(broker.Id, learner.Id, broker.Id, broker.Email);
 
@@ -401,7 +656,7 @@ public class EnrollmentServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         await fixture.EnrollmentService.AssignLearnerToBrokerAsync(broker.Id, learner.Id, broker.Id, broker.Email);
 
@@ -425,7 +680,7 @@ public class EnrollmentServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         var course = new Course
         {
@@ -462,7 +717,7 @@ public class EnrollmentServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         var sourceCourse = new Course
         {
@@ -516,7 +771,7 @@ public class EnrollmentServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         await fixture.EnrollmentService.AssignLearnerToBrokerAsync(broker.Id, learner.Id, broker.Id, broker.Email);
 
@@ -573,7 +828,7 @@ public class EnrollmentServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var broker = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.broker@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         await fixture.EnrollmentService.AssignLearnerToBrokerAsync(broker.Id, learner.Id, broker.Id, broker.Email);
 
@@ -608,7 +863,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Compliance Basics");
 
         await fixture.PassExamAsync(seed.CourseId, learner.Id);
@@ -646,7 +901,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         var activeSeed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Active Certificate Course");
         await fixture.PassExamAsync(activeSeed.CourseId, learner.Id);
@@ -693,7 +948,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Renewal Course");
 
@@ -725,7 +980,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var instructor = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "jordan.lee@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "PDF Access Course");
 
@@ -747,7 +1002,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var instructor = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "jordan.lee@wlr.com");
         learner.LegalName = "Learner Legal Name";
         instructor.LegalName = "Instructor Legal Name";
@@ -795,7 +1050,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Exam Gate Course");
 
         await fixture.EnrollmentService.SetLessonCompletionAsync(learner.Id, seed.RequiredLessonIds[0], true);
@@ -829,7 +1084,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         var course = new Course
         {
@@ -892,7 +1147,7 @@ public class EnrollmentServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Reconciled Completion Course");
 
         await fixture.CompleteAllRequiredLessonsAsync(learner.Id, seed.RequiredLessonIds);
@@ -934,6 +1189,145 @@ public class EnrollmentServiceTests
             .ToListAsync());
     }
 
+    [Fact]
+    public async Task Certification_PrelicensingIssuesWithoutLicenseOrCommissionRecord_OnlyAfterNameConfirmation()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Prelicensing identity");
+        var course = await fixture.DbContext.Courses.FindAsync(seed.CourseId);
+        course!.ComplianceType = CourseComplianceTypes.Prelicensing;
+        course.State = "Florida";
+        await fixture.DbContext.SaveChangesAsync();
+        await fixture.CompleteAllRequiredLessonsAsync(learner.Id, seed.RequiredLessonIds);
+        await fixture.PassExamAsync(seed.CourseId, learner.Id);
+        await fixture.EnrollmentService.ReconcileCompletionAsync(learner.Id, seed.CourseId);
+        Assert.Empty(await fixture.DbContext.CompletionCertificates.ToListAsync());
+        Assert.False(await fixture.EnrollmentService.SubmitCertificationIdentityAsync(
+            learner.Id, seed.CourseId, "Taylor", "Student", "", "", false));
+        Assert.True(await fixture.EnrollmentService.SubmitCertificationIdentityAsync(
+            learner.Id, seed.CourseId, " Taylor Middle ", " Student ", "UNUSED-LICENSE", "Wrong state", true));
+        fixture.DbContext.ChangeTracker.Clear();
+        var snapshot = await fixture.DbContext.Enrollments.SingleAsync(item => item.Id == seed.EnrollmentId);
+        var certificate = await fixture.DbContext.CompletionCertificates.SingleAsync();
+        Assert.Equal("Taylor Middle", certificate.CertificationFirstName);
+        Assert.Equal("Florida", certificate.CertificationState);
+        Assert.Equal("", certificate.CertificationLicenseNumber);
+        Assert.Equal("PrelicensingStudent", certificate.CertificationIdentitySource);
+        Assert.Equal("", snapshot.CertificationLicenseNumber);
+        Assert.Empty(await fixture.DbContext.UserRegulatoryLicenseLinks.ToListAsync());
+        await Assert.ThrowsAsync<CertificationDetailsException>(() => fixture.EnrollmentService.SubmitCertificationIdentityAsync(
+            learner.Id, seed.CourseId, "Changed", "Name", "", "", true));
+        Assert.Equal("Taylor Middle", (await fixture.DbContext.CompletionCertificates.SingleAsync()).CertificationFirstName);
+    }
+
+    [Fact]
+    public async Task Certification_StaleCompletionFlag_DoesNotSaveIdentityOrIssueCertificate()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Incomplete certificate");
+        var course = await fixture.DbContext.Courses.FindAsync(seed.CourseId);
+        course!.ComplianceType = CourseComplianceTypes.Prelicensing;
+        course.State = "Florida";
+        var enrollment = await fixture.DbContext.Enrollments.FindAsync(seed.EnrollmentId);
+        enrollment!.Completed = true;
+        await fixture.DbContext.SaveChangesAsync();
+        await fixture.PassExamAsync(seed.CourseId, learner.Id);
+
+        await Assert.ThrowsAsync<CertificationDetailsException>(() => fixture.EnrollmentService.SubmitCertificationIdentityAsync(
+            learner.Id, seed.CourseId, "Taylor", "Student", "", "", true));
+
+        fixture.DbContext.ChangeTracker.Clear();
+        var saved = await fixture.DbContext.Enrollments.FindAsync(seed.EnrollmentId);
+        Assert.False(saved!.CertificationNameConfirmed);
+        Assert.Null(saved.CertificationFirstName);
+        Assert.Empty(await fixture.DbContext.CompletionCertificates.ToListAsync());
+    }
+
+    [Theory]
+    [InlineData(CourseComplianceTypes.ContinuingEducation)]
+    [InlineData(CourseComplianceTypes.Postlicensing)]
+    public async Task Certification_LicenseesRequireOwnedConfirmedRecord_AndUseServerLicenseDetails(string complianceType)
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        learner.EmailVerifiedAtUtc = DateTime.UtcNow;
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Licensee certificate");
+        var course = await fixture.DbContext.Courses.FindAsync(seed.CourseId);
+        course!.ComplianceType = complianceType;
+        course.State = "Florida";
+        var snapshot = new RegulatoryDataSnapshot { State = "Florida", Status = RegulatorySnapshotStatuses.Approved };
+        var license = new RegulatoryLicensee
+        {
+            SnapshotId = snapshot.Id, State = "Florida", Name = "Synthetic Licensee",
+            LicenseNumber = "SYNTHETIC-123", LicenseType = "Broker"
+        };
+        var request = new RosterAccountRequest
+        {
+            UserAccountId = learner.Id, RegulatoryLicenseeId = license.Id, Status = "Confirmed"
+        };
+        fixture.DbContext.RegulatoryDataSnapshots.Add(snapshot);
+        fixture.DbContext.RegulatoryLicensees.Add(license);
+        fixture.DbContext.RosterAccountRequests.Add(request);
+        await fixture.DbContext.SaveChangesAsync();
+        await fixture.CompleteAllRequiredLessonsAsync(learner.Id, seed.RequiredLessonIds);
+        await fixture.PassExamAsync(seed.CourseId, learner.Id);
+        await fixture.EnrollmentService.ReconcileCompletionAsync(learner.Id, seed.CourseId);
+        Assert.Empty(await fixture.DbContext.CompletionCertificates.ToListAsync());
+        await Assert.ThrowsAsync<CertificationDetailsException>(() => fixture.EnrollmentService.SubmitCertificationIdentityAsync(
+            learner.Id, seed.CourseId, "Taylor", "Student", "manual-bypass", "Florida", true));
+        foreach (var invalid in new[] { "other-owner", "wrong-state", "pending", "rejected", "unverified", "restricted" })
+        {
+            var originalOwner = request.UserAccountId;
+            if (invalid == "other-owner")
+                request.UserAccountId = (await fixture.DbContext.UserAccounts.FirstAsync(user => user.Role == "Admin")).Id;
+            if (invalid == "wrong-state") license.State = "Texas";
+            if (invalid is "pending" or "rejected") request.Status = invalid == "pending" ? "Pending" : "Rejected";
+            if (invalid == "unverified") learner.EmailVerifiedAtUtc = null;
+            if (invalid == "restricted") license.IsRestricted = true;
+            await fixture.DbContext.SaveChangesAsync();
+            await Assert.ThrowsAsync<CertificationDetailsException>(() => fixture.EnrollmentService.SubmitCertificationIdentityAsync(
+                learner.Id, seed.CourseId, "Taylor", "Student", "manual-bypass", "Florida", true, request.Id));
+            request.UserAccountId = originalOwner;
+            request.Status = "Confirmed";
+            license.State = "Florida";
+            license.IsRestricted = false;
+            learner.EmailVerifiedAtUtc = DateTime.UtcNow;
+            await fixture.DbContext.SaveChangesAsync();
+        }
+        Assert.True(await fixture.EnrollmentService.SubmitCertificationIdentityAsync(
+            learner.Id, seed.CourseId, " Taylor ", " Student ", "TAMPERED", "Texas", true, request.Id,
+            printedName: "Licensee, Taylor"));
+        fixture.DbContext.ChangeTracker.Clear();
+        var certificate = await fixture.DbContext.CompletionCertificates.SingleAsync();
+        Assert.Equal("SYNTHETIC-123", certificate.CertificationLicenseNumber);
+        Assert.Equal("Florida", certificate.CertificationState);
+        Assert.Equal("StudentConfirmedRoster", certificate.CertificationIdentitySource);
+        Assert.Equal("Taylor", certificate.CertificationFirstName);
+        Assert.Equal("Licensee, Taylor", certificate.CertificationPrintedName);
+        var payload = await fixture.EnrollmentService.GetCertificateDownloadPayloadAsync(certificate.Id, learner.Id, isPrivileged: false);
+        Assert.Equal("Licensee, Taylor", payload!.LearnerName);
+        Assert.Empty(await fixture.DbContext.UserRegulatoryLicenseLinks.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Certification_DoesNotAcceptIdentityBeforeRequiredExamPass()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Exam still required");
+        var course = await fixture.DbContext.Courses.FindAsync(seed.CourseId);
+        course!.ComplianceType = CourseComplianceTypes.Prelicensing;
+        course.State = "Florida";
+        await fixture.DbContext.SaveChangesAsync();
+        await fixture.CompleteAllRequiredLessonsAsync(learner.Id, seed.RequiredLessonIds);
+        await Assert.ThrowsAsync<CertificationDetailsException>(() => fixture.EnrollmentService.SubmitCertificationIdentityAsync(
+            learner.Id, seed.CourseId, "Taylor", "Student", "", "", true));
+        Assert.Empty(await fixture.DbContext.CompletionCertificates.ToListAsync());
+        Assert.False((await fixture.DbContext.Enrollments.SingleAsync(item => item.Id == seed.EnrollmentId)).CertificationNameConfirmed);
+    }
+
     private static Course CreatePublishedCourse(string title, string state) => new()
     {
         Title = title,
@@ -965,9 +1359,10 @@ public class EnrollmentServiceTests
             CourseActivityService = courseActivityService;
         }
 
-        public static async Task<TestFixture> CreateAsync()
+        public static async Task<TestFixture> CreateAsync(string? databaseFile = null)
         {
-            var connection = new SqliteConnection("DataSource=:memory:");
+            var connection = new SqliteConnection(databaseFile is null ? "DataSource=:memory:"
+                : $"Data Source={databaseFile};Pooling=False;Default Timeout=5");
             await connection.OpenAsync();
 
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()

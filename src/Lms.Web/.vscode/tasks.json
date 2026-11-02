@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "run-src-lms-web-5001",
+			"type": "shell",
+			"command": "$env:ASPNETCORE_URLS='http://localhost:5001'; dotnet run --no-launch-profile",
+			"isBackground": true
+		}
+	]
+}

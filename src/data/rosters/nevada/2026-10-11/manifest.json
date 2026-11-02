@@ -1,0 +1,37 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Nevada",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Nevada Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEVADA\\TXTS\\Nevada Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "67A53C8966F5CE2425A7DD88B5E427723E9195C9CE1F91F9755BF649B4A2E74A",
+                      "Bytes":  1576,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Source roster type and scope notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Nevada_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\Nevada_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "381881430DE65C69B2B8F33E38723A13CD92E837A9468EC7893FEC8C11E57BB8",
+                      "Bytes":  10868,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Active individual development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Nevada_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEVADA\\XLXS\\Nevada_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "E75BAE91C5C58E0D0947B5A94AF0C81612D641B6744512C158402E2440985018",
+                      "Bytes":  2720,
+                      "OfficialSourceUrl":  "https://red.nv.gov/",
+                      "Coverage":  "Sample manifest and source scope"
+                  }
+              ]
+}

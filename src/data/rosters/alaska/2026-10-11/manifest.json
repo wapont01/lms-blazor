@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Alaska",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Alaska Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ALASKA\\TXTS\\Alaska Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "706E8174365B88029BD127556C984AE70976BDED2CDA90CB5CDE070DA10A7A9A",
+                      "Bytes":  2589,
+                      "OfficialSourceUrl":  "https://www.commerce.alaska.gov/cbp/main/",
+                      "Coverage":  "Development-source selection and scope notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Alaska_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ALASKA\\XLXS\\Alaska_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "5B700065ECE81581F5A27420D571BD6A55EFC2505FA54AB85308BE2664D688CF",
+                      "Bytes":  8800,
+                      "OfficialSourceUrl":  "https://www.commerce.alaska.gov/cbp/main/",
+                      "Coverage":  "Active real-estate individual sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Alaska_Open_Office_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ALASKA\\XLXS\\Alaska_Open_Office_Development_Sample_20261011.csv",
+                      "Sha256":  "B721406048F266A8BAA88800553AFA1F86F215CA34E0C005A58E4DAD86101FF9",
+                      "Bytes":  10423,
+                      "OfficialSourceUrl":  "https://www.commerce.alaska.gov/cbp/main/",
+                      "Coverage":  "Open-office business sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Alaska_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ALASKA\\XLXS\\Alaska_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "60EC104D41B5E476D21BBE90B6064D4457D89D099F6AC1B34665953FF59805BA",
+                      "Bytes":  4198,
+                      "OfficialSourceUrl":  "https://www.commerce.alaska.gov/cbp/main/",
+                      "Coverage":  "Sample manifest and source notes"
+                  }
+              ]
+}

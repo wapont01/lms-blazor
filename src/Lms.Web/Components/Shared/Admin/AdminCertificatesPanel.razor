@@ -1,4 +1,6 @@
 @using Lms.Application.Services
+@using Lms.Domain.Entities
+@inject AdminCertificateService CertificateQuery
 
 <section class="card" id="admin-certificate-compliance">
     <h2>Certificate Compliance</h2>
@@ -26,16 +28,54 @@
         </article>
     </div>
 
-    @if (CertificateRows.Count == 0)
+    <div class="form-row" role="search" aria-label="Official certificate filters">
+        <label>State
+            <select aria-label="Official certificate state" @bind="_state" @bind:after="StateChangedAsync" disabled="@_loading">
+                <option value="">Select state</option>
+                @foreach (var state in DevelopmentCourseCatalog.States)
+                {
+                    <option value="@state">@state</option>
+                }
+            </select>
+        </label>
+        <label>Search
+            <input type="search" aria-label="Search official certificates" placeholder="Name, email, certificate number" @bind="_search" disabled="@(_loading || _state.Length == 0)" />
+        </label>
+        <label>Course
+            <select aria-label="Official certificate course" @bind="_course" disabled="@(_loading || _state.Length == 0)">
+                <option value="">All courses</option>
+                @foreach (var course in _courses)
+                {
+                    <option value="@course">@course</option>
+                }
+            </select>
+        </label>
+        <label>Status
+            <select aria-label="Official certificate status" @bind="_status" disabled="@(_loading || _state.Length == 0)">
+                <option value="">All statuses</option>
+                @foreach (var status in new[] { "Active", "Expiring Soon", "Expired", "Revoked" })
+                {
+                    <option value="@status">@status</option>
+                }
+            </select>
+        </label>
+        <button type="button" @onclick="ApplyAsync" disabled="@(_loading || _state.Length == 0)">Apply filters</button>
+        <button type="button" class="secondary-button" @onclick="ClearFilters" disabled="@_loading">Clear filters</button>
+    </div>
+    @if (_state.Length == 0)
     {
-        <p class="muted-text">No certificates generated yet.</p>
+        <p>Select a state to view certificates.</p>
+    }
+    else if (_result.Total == 0)
+    {
+        <p>No certificates match the selected filters.</p>
     }
     else
     {
         <table class="simple-table">
             <thead>
                 <tr>
-                    <th>Learner</th>
+                    <th>Student</th>
                     <th>Course</th>
                     <th>Certificate</th>
                     <th>Verification</th>
@@ -46,7 +86,7 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var row in CertificateRows)
+                @foreach (var row in _result.Items)
                 {
                     <tr>
                         <td>
@@ -65,7 +105,7 @@
                                 <a href="@BuildVerifyLink(row.CertificateNumber, row.VerificationCode)">Verify</a>
                                 @if (row.CanRenew)
                                 {
-                                    <button type="button" @onclick="() => OnRenewCertificate.InvokeAsync(row.CertificateId)">Renew</button>
+                                    <button type="button" @onclick="() => RenewAsync(row.CertificateId)" disabled="@_loading">Renew</button>
                                 }
                             </div>
                         </td>
@@ -74,14 +114,70 @@
             </tbody>
         </table>
     }
+    @if (_state.Length > 0)
+    {
+        <div role="status">@_result.Total matching certificates · Page @_result.Page of @Math.Max(1, (_result.Total + _result.PageSize - 1) / _result.PageSize)</div>
+        <button type="button" @onclick="() => LoadAsync(_result.Page - 1)" disabled="@(_loading || _result.Page <= 1)">Previous</button>
+        <button type="button" @onclick="() => LoadAsync(_result.Page + 1)" disabled="@(_loading || _result.Page * _result.PageSize >= _result.Total)">Next</button>
+    }
 </section>
 
+<AdminDevelopmentCertificatesPanel />
+
 @code {
-    [Parameter]
-    public CertificateComplianceSummary CertificateSummary { get; set; } = new(0, 0, 0, 0, 0);
+    private string _search = string.Empty;
+    private string _course = string.Empty;
+    private string _status = string.Empty;
+    private string _state = string.Empty;
+    private string _appliedSearch = string.Empty;
+    private string _appliedCourse = string.Empty;
+    private string _appliedStatus = string.Empty;
+    private bool _loading;
+    private List<string> _courses = [];
+    private CertificatePage<CertificateComplianceRow> _result = new([], 0, 1, 20);
+    private Task ApplyAsync()
+    {
+        (_appliedSearch, _appliedCourse, _appliedStatus) = (_search, _course, _status);
+        return LoadAsync(1);
+    }
+    private async Task RenewAsync(Guid certificateId)
+    {
+        _loading = true;
+        try
+        {
+            await OnRenewCertificate.InvokeAsync(certificateId);
+            await LoadAsync(_result.Page);
+        }
+        finally { _loading = false; }
+    }
+    private async Task StateChangedAsync()
+    {
+        _course = _search = _status = string.Empty;
+        _result = new([], 0, 1, AdminCertificateService.PageSize);
+        _loading = true;
+        try
+        {
+            _courses = _state.Length == 0 ? [] : await CertificateQuery.GetOfficialCoursesAsync(_state);
+            await ApplyAsync();
+        }
+        finally { _loading = false; }
+    }
+    private async Task LoadAsync(int page)
+    {
+        _loading = true;
+        try { _result = await CertificateQuery.GetOfficialAsync(_state, _appliedSearch, _appliedCourse, _appliedStatus, page); }
+        finally { _loading = false; }
+    }
+    private void ClearFilters()
+    {
+        _state = _search = _course = _status = string.Empty;
+        _appliedSearch = _appliedCourse = _appliedStatus = string.Empty;
+        _courses = [];
+        _result = new([], 0, 1, 20);
+    }
 
     [Parameter]
-    public IReadOnlyList<CertificateComplianceRow> CertificateRows { get; set; } = [];
+    public CertificateComplianceSummary CertificateSummary { get; set; } = new(0, 0, 0, 0, 0);
 
     [Parameter]
     public Func<string, string, string> BuildVerifyLink { get; set; } = (_, _) => "/verify-certificate";

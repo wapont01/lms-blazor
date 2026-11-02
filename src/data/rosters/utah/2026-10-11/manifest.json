@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Utah",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Utah Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "UTAH\\TXTS\\Utah Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "731366C318EEA68C924CE88D615A539B220C3C0196A1FAAEC37561CE66723332",
+                      "Bytes":  2884,
+                      "OfficialSourceUrl":  "https://secure.utah.gov/rer/relv/search.html",
+                      "Coverage":  "Source lists and sample coverage notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Utah_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "UTAH\\XLXS\\Utah_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "31C064298E8F9DA2CE33AB3D6A5C8388E28C6B403FD9652003CC59F8A3421B22",
+                      "Bytes":  12297,
+                      "OfficialSourceUrl":  "https://secure.utah.gov/rer/relv/search.html",
+                      "Coverage":  "Active entity development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Utah_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "UTAH\\XLXS\\Utah_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "50E0D7BD476A5DAF3EEDDBFFF55ACD41A434AAB5EC50A44861B8BEAF14D3C512",
+                      "Bytes":  16407,
+                      "OfficialSourceUrl":  "https://secure.utah.gov/rer/relv/search.html",
+                      "Coverage":  "Active individual development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Utah_Sampled_Licensee_Company_Affiliations_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "UTAH\\XLXS\\Utah_Sampled_Licensee_Company_Affiliations_20261011.csv",
+                      "Sha256":  "EFAA1F6DD79CCBEB8EBBEDC64D2EBC81C44BB10D7A570467E9E223DDEFC13EFB",
+                      "Bytes":  25333,
+                      "OfficialSourceUrl":  "https://secure.utah.gov/rer/relv/search.html",
+                      "Coverage":  "Sampled published company affiliation rows"
+                  }
+              ]
+}

@@ -1,4 +1,5 @@
 using Lms.Application.Data;
+using Lms.Application.Services;
 using Lms.Domain.Entities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -202,6 +203,38 @@ public class StateRosterCaptureSeedTests
         await NevadaNredCaptureSeed.SeedAsync(fixture.DbContext, fixture.WorkspaceRoot);
         Assert.Equal(1, await fixture.DbContext.RegulatoryDataSnapshots.CountAsync(candidate =>
             candidate.State == "Nevada" && candidate.SourceUrl == "https://red.nv.gov/"));
+    }
+
+    [Fact]
+    public async Task NevadaNredBulkImport_PreservesAllSourceTypesAndIsIdempotent()
+    {
+        await using var fixture = await SeedFixture.CreateAsync(seedCaptureData: false);
+        var importer = new NevadaNredBulkImportService(fixture.DbContext);
+
+        var result = await importer.ImportCaptureAsync(fixture.WorkspaceRoot);
+
+        var snapshot = await fixture.DbContext.RegulatoryDataSnapshots.SingleAsync(candidate =>
+            candidate.Id == result.SnapshotId);
+        Assert.Equal(RegulatorySnapshotStatuses.Approved, snapshot.Status);
+        Assert.Equal(new DateTime(2026, 9, 26, 0, 0, 0, DateTimeKind.Utc), snapshot.RetrievedAtUtc);
+        Assert.Equal(12, result.SourceRowsByType.Count);
+        Assert.Equal(36_904, result.SourceRows);
+        Assert.True(result.NumberedLicenses > 25_596);
+        Assert.Equal(result.SourceRows, await fixture.DbContext.RegulatorySourceRecords.CountAsync(record =>
+            record.SnapshotId == snapshot.Id));
+        Assert.Equal(result.NumberedLicenses, await fixture.DbContext.RegulatoryLicensees.CountAsync(record =>
+            record.SnapshotId == snapshot.Id));
+        Assert.Equal(new[] { "Broker", "Broker-Salesperson", "Salesperson" },
+            await fixture.DbContext.RegulatoryLicensees.Where(record => record.SnapshotId == snapshot.Id
+                    && NevadaNredBulkImportService.RealEstateLicenseTypes.Contains(record.LicenseType!))
+                .Select(record => record.LicenseType!).Distinct().OrderBy(type => type).ToArrayAsync());
+        Assert.True(await fixture.DbContext.RegulatorySourceRecords.AnyAsync(record =>
+            record.SnapshotId == snapshot.Id && record.SourceRecordJson.Contains("NRED-ACTIVE-HOA.xlsx")));
+
+        var repeated = await importer.ImportCaptureAsync(fixture.WorkspaceRoot);
+        Assert.Equal(result.SnapshotId, repeated.SnapshotId);
+        Assert.Equal(1, await fixture.DbContext.RegulatoryDataSnapshots.CountAsync(candidate =>
+            candidate.State == "Nevada" && candidate.ParserVersion == NevadaNredBulkImportService.ParserVersion));
     }
 
     [Fact]

@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "North Dakota",
+    "CaptureDate":  "2026-10-10",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\XLXS\\North_Dakota_Bismarck_58501_Real_Estate_Firms_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NORTH DAKOTA\\XLXS\\North_Dakota_Bismarck_58501_Real_Estate_Firms_20261010.csv",
+                      "Sha256":  "1D344CEC3F8AEDA723668E1EA7984A587533B77E2494E9C3A0FCFD2C01302369",
+                      "Bytes":  525,
+                      "OfficialSourceUrl":  "https://services.realestatend.org/directory/index.asp",
+                      "Coverage":  "Bismarck firm search results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\North_Dakota_Bismarck_58501_Real_Estate_Licensees_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NORTH DAKOTA\\XLXS\\North_Dakota_Bismarck_58501_Real_Estate_Licensees_20261010.csv",
+                      "Sha256":  "DB0EDF1037FCB1FD5D49E24840BB83CE8BEFFB08A947FCAEF006DE0AEB63094F",
+                      "Bytes":  2793,
+                      "OfficialSourceUrl":  "https://services.realestatend.org/directory/index.asp",
+                      "Coverage":  "Bismarck licensee search results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\North_Dakota_Fargo_Real_Estate_Firms_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NORTH DAKOTA\\XLXS\\North_Dakota_Fargo_Real_Estate_Firms_20261010.csv",
+                      "Sha256":  "FC22FBE171A635C96D7C2A1E6F08F3C8D0ED523FF442971842EE39BD5EC2CCEE",
+                      "Bytes":  655,
+                      "OfficialSourceUrl":  "https://services.realestatend.org/directory/index.asp",
+                      "Coverage":  "Fargo firm search results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\North_Dakota_Fargo_Real_Estate_Licensees_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NORTH DAKOTA\\XLXS\\North_Dakota_Fargo_Real_Estate_Licensees_20261010.csv",
+                      "Sha256":  "8CAB6DD4B2F22133ECDCC1E691D9C5494E2CA18E386C7EB921868C8614E84CB6",
+                      "Bytes":  2328,
+                      "OfficialSourceUrl":  "https://services.realestatend.org/directory/index.asp",
+                      "Coverage":  "Fargo licensee search results"
+                  }
+              ]
+}

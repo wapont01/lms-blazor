@@ -1,0 +1,127 @@
+@using System.Security.Claims
+@using Lms.Application.Services
+@inject IDevelopmentCertificateService Certificates
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IWebHostEnvironment HostEnvironment
+@inject IConfiguration Configuration
+
+@if (Enabled && _isAdmin)
+{
+    <section class="card" aria-label="Sample certificates">
+    <h2>Sample certificates</h2>
+    <p class="muted-text">Simulated completions, not valid for credit or regulatory reporting.</p>
+    @if (_coverage.Count > 0)
+    {
+        <p>@_coverage.Sum(state => state.AccountCount) certificates · @_coverage.Count(state => state.AccountCount >= 2) of 50 states ready.</p>
+        <details class="card">
+            <summary>State coverage and gaps</summary>
+            <ul>
+                @foreach (var state in _coverage)
+                {
+                    <li>@state.State: @state.AccountCount accounts — @state.Status</li>
+                }
+            </ul>
+        </details>
+    }
+    <div class="form-row" role="search" aria-label="Sample certificate filters">
+        <label>State
+            <select aria-label="Sample certificate state" @bind="_state" @bind:after="StateChangedAsync" disabled="@_loading">
+                <option value="">Select state</option>
+                @foreach (var state in _coverage)
+                {
+                    <option value="@state.State">@state.State</option>
+                }
+            </select>
+        </label>
+        <label>Search
+            <input type="search" aria-label="Search sample certificates" placeholder="Name, email, license, certificate number" @bind="_search" disabled="@(_loading || _state.Length == 0)" />
+        </label>
+        <label>Course
+            <select aria-label="Sample certificate course" @bind="_course" disabled="@(_loading || _state.Length == 0)">
+                <option value="">All courses</option>
+                @foreach (var course in _state.Length == 0 ? Array.Empty<string>() : new[] { _state == "North Carolina" ? "Document Diligence: Safeguarding Your Transactions" : "Ethics at Work" })
+                {
+                    <option value="@course">@course</option>
+                }
+            </select>
+        </label>
+        <button type="button" @onclick="ApplyAsync" disabled="@(_loading || _state.Length == 0)">Apply filters</button>
+        <button type="button" class="secondary-button" @onclick="ClearFilters" disabled="@_loading">Clear filters</button>
+    </div>
+    @if (_state.Length == 0)
+    {
+        <p>Select a state to view certificates.</p>
+    }
+    else if (_result.Total == 0)
+    {
+        <p>No certificates match the selected filters.</p>
+    }
+    @foreach (var certificate in _result.Items)
+    {
+        <section class="card">
+            <h2>@certificate.Name</h2>
+            <p>@certificate.State · License # @certificate.LicenseNumber</p>
+            <p>@certificate.CourseTitle · @certificate.Hours</p>
+            <p>Login: @certificate.Email</p>
+            <a href="@($"/dev/certificates/{certificate.UserId}/download")" download="@certificate.FileName">Download PDF</a>
+        </section>
+    }
+    @if (_state.Length > 0)
+    {
+        <div role="status">@_result.Total matching certificates · Page @_result.Page of @Math.Max(1, (_result.Total + _result.PageSize - 1) / _result.PageSize)</div>
+        <button type="button" @onclick="() => LoadAsync(_result.Page - 1)" disabled="@(_loading || _result.Page <= 1)">Previous</button>
+        <button type="button" @onclick="() => LoadAsync(_result.Page + 1)" disabled="@(_loading || _result.Page * _result.PageSize >= _result.Total)">Next</button>
+    }
+    </section>
+}
+
+@code {
+    private bool Enabled => HostEnvironment.IsDevelopment()
+        && Configuration.GetValue<bool>("DevelopmentCertificates:Enabled");
+    private CertificatePage<DevelopmentCertificate> _result = new([], 0, 1, 20);
+    private bool _loading;
+    private List<DevelopmentCertificateCoverage> _coverage = [];
+    private bool _isAdmin;
+    private string _search = string.Empty;
+    private string _state = string.Empty;
+    private string _course = string.Empty;
+    private string _appliedSearch = string.Empty;
+    private string _appliedCourse = string.Empty;
+    private Task ApplyAsync()
+    {
+        (_appliedSearch, _appliedCourse) = (_search, _course);
+        return LoadAsync(1);
+    }
+    private async Task StateChangedAsync()
+    {
+        _search = _course = string.Empty;
+        _result = new([], 0, 1, AdminCertificateService.PageSize);
+        await ApplyAsync();
+    }
+    private async Task LoadAsync(int page)
+    {
+        _loading = true;
+        try { _result = await Certificates.GetPageAsync(_state, _appliedSearch, _appliedCourse, page); }
+        finally { _loading = false; }
+    }
+    private void ClearFilters()
+    {
+        _search = _state = _course = string.Empty;
+        _appliedSearch = _appliedCourse = string.Empty;
+        _result = new([], 0, 1, 20);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Enabled)
+        {
+            return;
+        }
+        var auth = (await AuthenticationStateProvider.GetAuthenticationStateAsync()).User;
+        _isAdmin = auth.IsInRole("Admin");
+        if (_isAdmin && Guid.TryParse(auth.FindFirstValue(ClaimTypes.NameIdentifier), out var id))
+        {
+            _coverage = await Certificates.GetCoverageAsync();
+        }
+    }
+}

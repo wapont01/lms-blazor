@@ -1,0 +1,37 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Utah",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\TXTS\\Utah DRE Active License Lists Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "UTAH\\TXTS\\Utah DRE Active License Lists Capture.json",
+                      "Sha256":  "BC1FEAF58F94C8532B2006212C1D79734FAB88CE3C588DD794AC3485A64A7784",
+                      "Bytes":  5426,
+                      "OfficialSourceUrl":  "https://secure.utah.gov/rer/relv/search.html",
+                      "Coverage":  "Official active license list capture notes"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Real_Estate_Agents_and_Brokers_Summary.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "UTAH\\XLXS\\Real_Estate_Agents_and_Brokers_Summary.csv",
+                      "Sha256":  "070CF91B7D1252D4B21D48031EE032D602D853829359F7CBAA1F6630A8947E68",
+                      "Bytes":  4571851,
+                      "OfficialSourceUrl":  "https://secure.utah.gov/rer/relv/search.html",
+                      "Coverage":  "Real-estate agents and brokers source summary"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Real_Estate_Company_Summary.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "UTAH\\XLXS\\Real_Estate_Company_Summary.csv",
+                      "Sha256":  "292C5E33A9FB50D0C292F2E9F380A0709735E667B9346B91651C417CFE6401C8",
+                      "Bytes":  461041,
+                      "OfficialSourceUrl":  "https://secure.utah.gov/rer/relv/search.html",
+                      "Coverage":  "Real-estate company source summary"
+                  }
+              ]
+}

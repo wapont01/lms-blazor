@@ -1,0 +1,28 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Florida",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TEXTs\\Miami-Dade - First Page Corporation Related License Rosters - DBPR Capture.md",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "FLORIDA\\LICENSING\\TEXTs\\Miami-Dade - First Page Corporation Related License Rosters - DBPR Capture.md",
+                      "Sha256":  "253EE5FF6CD943DA91AFE252CB971042F1F2F73C0D0F07A28BB507149DE476E4",
+                      "Bytes":  10625,
+                      "OfficialSourceUrl":  "https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv",
+                      "Coverage":  "Municipal public-search capture of corporation-related licenses"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TEXTs\\Miami-Dade - First Page Real Estate Corporations - DBPR Capture.md",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "FLORIDA\\LICENSING\\TEXTs\\Miami-Dade - First Page Real Estate Corporations - DBPR Capture.md",
+                      "Sha256":  "C33D2CC0C2D5B4057225BDA32C84F6B2072110A0FF52F6B32369D04EFFA17289",
+                      "Bytes":  3460,
+                      "OfficialSourceUrl":  "https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv",
+                      "Coverage":  "Municipal real-estate corporation query capture"
+                  }
+              ]
+}

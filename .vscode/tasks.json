@@ -1,0 +1,68 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "validate-app-tests",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"test",
+				"src\\Lms.Application.Tests\\Lms.Application.Tests.csproj",
+				"--filter",
+				"EnsureSeedUsersAsync_BackfillsSecondLearner_WhenDatabaseAlreadyHasUsers|SeedEnrollmentsAsync_BackfillsMissingLearnerEnrollments_WithoutDuplicatingExistingRows|LearnerDashboardServiceTests"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "build-lms",
+			"type": "process",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"${workspaceFolder}\\src\\Lms.Web\\Lms.Web.csproj"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": "$msCompile",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"isBackground": false
+		},
+		{
+			"label": "ef-migration-add-broker-assignment-notifications",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"ef",
+				"migrations",
+				"add",
+				"AddBrokerAssignmentsAndNotifications",
+				"--project",
+				"src/Lms.Application",
+				"--startup-project",
+				"src/Lms.Web"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "test-lms-application-tests",
+			"type": "shell",
+			"command": "dotnet test .\\src\\Lms.Application.Tests\\Lms.Application.Tests.csproj",
+			"isBackground": false
+		},
+		{
+			"label": "git-push-ssh",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"$sshDir = Join-Path $HOME '.ssh'; if (-not (Test-Path $sshDir)) { New-Item -ItemType Directory -Path $sshDir | Out-Null }; ssh-keyscan github.com >> (Join-Path $sshDir 'known_hosts'); & 'C:\\Program Files\\Git\\cmd\\git.exe' push -u origin feature/checkout-cart-stabilization"
+			],
+			"isBackground": false
+		}
+	]
+}

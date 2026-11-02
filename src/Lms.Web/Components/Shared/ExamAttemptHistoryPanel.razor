@@ -1,0 +1,112 @@
+@using Lms.Application.Services
+
+<section class="card exam-history" aria-label="My exam history">
+    <h3>My Exam History</h3>
+    @if (Attempts.Count == 0)
+    {
+        <p class="muted-text">No exam attempts have been recorded for this course yet.</p>
+    }
+    else
+    {
+        <div class="exam-history-list">
+            @foreach (var attempt in Attempts)
+            {
+                <details class="exam-history-item">
+                    <summary class="exam-history-summary">
+                        <strong class="exam-history-title">@attempt.ExamTitle</strong>
+                        <span class="exam-history-stats">
+                            <span class="exam-history-stat">
+                                <span>Attempt</span>
+                                <strong>@attempt.AttemptNumber</strong>
+                            </span>
+                            <span class="exam-history-stat">
+                                <span>Result</span>
+                                <strong class="@(attempt.Passed ? "status-completed" : "exam-failure-text")">@(attempt.Passed ? "Passed" : "Failed")</strong>
+                            </span>
+                            <span class="exam-history-stat">
+                                <span>Score</span>
+                                <strong>@attempt.ScorePercent.ToString("0.##")%</strong>
+                            </span>
+                            @if (HasDistinctStartTime(attempt))
+                            {
+                                <span class="exam-history-stat">
+                                    <span>Started</span>
+                                    <strong>@FormatDateTime(attempt.StartedAt!.Value)</strong>
+                                </span>
+                            }
+                            <span class="exam-history-stat">
+                                <span>Duration</span>
+                                <strong>@FormatDuration(attempt.Duration)</strong>
+                            </span>
+                            <span class="exam-history-stat">
+                                <span>Submitted</span>
+                                <strong>@FormatDateTime(attempt.SubmittedAt)</strong>
+                            </span>
+                        </span>
+                    </summary>
+                    @if (!string.IsNullOrWhiteSpace(attempt.UnitTitle))
+                    {
+                        <p class="muted-text">Unit: @attempt.UnitTitle</p>
+                    }
+                    @if (attempt.Answers.Count > 0)
+                    {
+                        <ol>
+                            @foreach (var answer in attempt.Answers)
+                            {
+                                <li>
+                                    <p>@answer.Prompt</p>
+                                    <p class="muted-text">Your answer: @FormatOption(answer, answer.SelectedOption)</p>
+                                    <p class="muted-text">Correct answer: @FormatOption(answer, answer.CorrectOption)</p>
+                                    <p class="@(answer.IsCorrect ? "status-completed" : "exam-failure-text")">@(answer.IsCorrect ? "Correct" : "Incorrect")</p>
+                                    @if (!string.IsNullOrWhiteSpace(answer.FeedbackText))
+                                    {
+                                        <p class="muted-text">@answer.FeedbackText</p>
+                                    }
+                                </li>
+                            }
+                        </ol>
+                    }
+                </details>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ExamAttemptHistoryItem> Attempts { get; set; } = Array.Empty<ExamAttemptHistoryItem>();
+
+    private static bool HasDistinctStartTime(ExamAttemptHistoryItem attempt)
+    {
+        return attempt.StartedAt.HasValue
+            && FormatDateTime(attempt.StartedAt.Value) != FormatDateTime(attempt.SubmittedAt);
+    }
+
+    private static string FormatDateTime(DateTime value) =>
+        value.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+    private static string FormatDuration(TimeSpan duration)
+    {
+        if (duration < TimeSpan.FromMinutes(1))
+        {
+            return "Under 1 min";
+        }
+
+        return duration.TotalHours >= 1
+            ? $"{(int)duration.TotalHours}h {duration.Minutes}m"
+            : $"{(int)duration.TotalMinutes}m";
+    }
+
+    private static string FormatOption(ExamAttemptAnswerReview answer, string option)
+    {
+        var text = option switch
+        {
+            "A" => answer.OptionA,
+            "B" => answer.OptionB,
+            "C" => answer.OptionC,
+            "D" => answer.OptionD,
+            _ => null
+        };
+        return string.IsNullOrWhiteSpace(text) ? option : $"{option}. {text}";
+    }
+}

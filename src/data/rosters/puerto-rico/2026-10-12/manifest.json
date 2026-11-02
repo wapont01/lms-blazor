@@ -1,0 +1,100 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Puerto Rico",
+    "CaptureDate":  "2026-10-12",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Puerto Rico Real Estate Development Data Notes 20261012.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PUERTO RICO\\TXTS\\Puerto Rico Real Estate Development Data Notes 20261012.txt",
+                      "Sha256":  "9BD9D6AA5F1A155A7A1C1CF495F78049FD0CD0C58E64837930E3BAB057368954",
+                      "Bytes":  6785,
+                      "OfficialSourceUrl":  "https://pr.pcshq.com/lookup/es/",
+                      "Coverage":  "Sharding method source counts and coverage notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Puerto_Rico_Active_Entity_Development_Sample_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PUERTO RICO\\XLXS\\Puerto_Rico_Active_Entity_Development_Sample_20261012.csv",
+                      "Sha256":  "498282D398AC7AAEA30A683CC6BCF810650BFD56C23116DD62596E2975970874",
+                      "Bytes":  3931,
+                      "OfficialSourceUrl":  "https://pr.pcshq.com/lookup/es/",
+                      "Coverage":  "Active entity development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Puerto_Rico_Active_Licensee_Development_Sample_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PUERTO RICO\\XLXS\\Puerto_Rico_Active_Licensee_Development_Sample_20261012.csv",
+                      "Sha256":  "864E20F929BF05247DE3AA21EF99407DE8DA1D786C534756CEB936D5D9DE1D80",
+                      "Bytes":  4531,
+                      "OfficialSourceUrl":  "https://pr.pcshq.com/lookup/es/",
+                      "Coverage":  "Active individual development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Puerto_Rico_Development_Data_20261012.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PUERTO RICO\\XLXS\\Puerto_Rico_Development_Data_20261012.json",
+                      "Sha256":  "DF5AB1B208900D25017FB8785C98B3CDFF163D45A587D362F0DA4F39942BEA0B",
+                      "Bytes":  4436,
+                      "OfficialSourceUrl":  "https://pr.pcshq.com/lookup/es/",
+                      "Coverage":  "Capture counts method and file hashes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Puerto_Rico_Exact_Active_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PUERTO RICO\\XLXS\\Puerto_Rico_Exact_Active_Entities_20261012.csv",
+                      "Sha256":  "1FCA93C8E7A8895CEAFBDC4DD2CBCC45C1D5B8667020120981ED66A1180880C7",
+                      "Bytes":  35406,
+                      "OfficialSourceUrl":  "https://pr.pcshq.com/lookup/es/",
+                      "Coverage":  "Exact active entity subset"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Puerto_Rico_Exact_Active_Licensees_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PUERTO RICO\\XLXS\\Puerto_Rico_Exact_Active_Licensees_20261012.csv",
+                      "Sha256":  "1ED5DE739B1B1C38AADF72E0CB054EE0278943F55BCB4EBEA9E315C6CC2FC512",
+                      "Bytes":  2267585,
+                      "OfficialSourceUrl":  "https://pr.pcshq.com/lookup/es/",
+                      "Coverage":  "Exact active individual subset"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Puerto_Rico_Full_Captured_Business_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PUERTO RICO\\XLXS\\Puerto_Rico_Full_Captured_Business_Entities_20261012.csv",
+                      "Sha256":  "910905348AD308A66808C7034290356E0B219303F08FAA9C0E20554D9A7EB428",
+                      "Bytes":  50375,
+                      "OfficialSourceUrl":  "https://pr.pcshq.com/lookup/es/",
+                      "Coverage":  "Full captured business entities"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Puerto_Rico_Full_Captured_Licensees_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "PUERTO RICO\\XLXS\\Puerto_Rico_Full_Captured_Licensees_20261012.csv",
+                      "Sha256":  "6194CEE175A20A72D034E8CCF8589406C6B96DFFE0D2A845CFC9F9E92460A531",
+                      "Bytes":  3578606,
+                      "OfficialSourceUrl":  "https://pr.pcshq.com/lookup/es/",
+                      "Coverage":  "Full captured individual licensees"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Puerto_Rico_Firms_Search_Raw_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "PUERTO RICO\\XLXS\\Puerto_Rico_Firms_Search_Raw_20261012.json",
+                      "Sha256":  "1DA3B27A75FDFEBBC2AF492C3DFDD6F725EB4636FA7E618DA16328F5D49DB182",
+                      "Bytes":  102059,
+                      "OfficialSourceUrl":  "https://pr.pcshq.com/lookup/es/",
+                      "Coverage":  "Raw business portal responses"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Puerto_Rico_Individuals_Search_Raw_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "PUERTO RICO\\XLXS\\Puerto_Rico_Individuals_Search_Raw_20261012.json",
+                      "Sha256":  "F533AEBAB97D1A9680717397B008F25B89E0BF12676776CADF0B02B423F0483C",
+                      "Bytes":  6257389,
+                      "OfficialSourceUrl":  "https://pr.pcshq.com/lookup/es/",
+                      "Coverage":  "Raw sharded individual portal responses"
+                  }
+              ]
+}

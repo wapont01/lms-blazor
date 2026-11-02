@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Illinois",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\IL Chicago Active Real Estate Firm Crawl 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ILLINOIS\\LICENSING\\TXTs\\IL Chicago Active Real Estate Firm Crawl 01.json",
+                      "Sha256":  "6FD464052AE7E796C81C740053B8E2DF0740D59D56E5B631F528D91EA70E4497",
+                      "Bytes":  4474,
+                      "OfficialSourceUrl":  "https://data.illinois.gov/Business-and-Workforce/Professional-Licensing/pzzh-kp68",
+                      "Coverage":  "Chicago real-estate firm crawl capture"
+                  }
+              ]
+}

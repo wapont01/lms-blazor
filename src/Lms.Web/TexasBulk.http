@@ -1,0 +1,11 @@
+@baseUrl = http://localhost:5012
+# Sign in as an administrator in the HTTP client's cookie jar.
+
+### Original completed Texas roster
+GET {{baseUrl}}/admin/texas-bulk/exports/license-holders.csv
+
+### Acquisition evidence
+GET {{baseUrl}}/admin/texas-bulk/exports/manifest.json
+
+### Unknown filename: 404 for authenticated administrators
+GET {{baseUrl}}/admin/texas-bulk/exports/unknown.csv

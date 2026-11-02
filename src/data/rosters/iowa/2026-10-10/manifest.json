@@ -1,0 +1,82 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Iowa",
+    "CaptureDate":  "2026-10-10",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\XLXS\\Iowa_Des_Moines_50309_AK_Real_Estate_Firms_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IOWA\\XLXS\\Iowa_Des_Moines_50309_AK_Real_Estate_Firms_20261010.csv",
+                      "Sha256":  "DFEA335AC3C3B57D7B40DF162FAE089B3EE0A715E37EA1000BE6C056A8E5E099",
+                      "Bytes":  2557,
+                      "OfficialSourceUrl":  "https://ia-plb.my.site.com/LicenseSearchPage",
+                      "Coverage":  "Des Moines AK firm query results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Iowa_Des_Moines_50309_AK_Real_Estate_Licensees_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IOWA\\XLXS\\Iowa_Des_Moines_50309_AK_Real_Estate_Licensees_20261010.csv",
+                      "Sha256":  "62F7E7F3CBF80BAAFDF8952AED3E47907D3C25366BE3ABB4270F2B01DF8BBB4D",
+                      "Bytes":  4493,
+                      "OfficialSourceUrl":  "https://ia-plb.my.site.com/LicenseSearchPage",
+                      "Coverage":  "Des Moines AK licensee query results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Iowa_Des_Moines_50309_LZ_Additional_Businesses_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IOWA\\XLXS\\Iowa_Des_Moines_50309_LZ_Additional_Businesses_20261010.csv",
+                      "Sha256":  "26C022A74A26910E1ACC29A8B32C794FD05FFDC6098CFA36C566805903056FBA",
+                      "Bytes":  597,
+                      "OfficialSourceUrl":  "https://ia-plb.my.site.com/LicenseSearchPage",
+                      "Coverage":  "Des Moines LZ additional business results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Iowa_Des_Moines_50309_LZ_Additional_Licensees_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IOWA\\XLXS\\Iowa_Des_Moines_50309_LZ_Additional_Licensees_20261010.csv",
+                      "Sha256":  "CAE7E18410813C9697B30C9CAC4F7281B39530A76D12282E9B34F8C1BF5DA5E9",
+                      "Bytes":  3536,
+                      "OfficialSourceUrl":  "https://ia-plb.my.site.com/LicenseSearchPage",
+                      "Coverage":  "Des Moines LZ additional licensee results"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Iowa_Des_Moines_50309_LZ_Page2_Additional_Businesses_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IOWA\\XLXS\\Iowa_Des_Moines_50309_LZ_Page2_Additional_Businesses_20261010.csv",
+                      "Sha256":  "9D2BE51F684949003F8EA71FB7EFFB461BA02D4AEB1A63CD17FFC58372D8E9EC",
+                      "Bytes":  521,
+                      "OfficialSourceUrl":  "https://ia-plb.my.site.com/LicenseSearchPage",
+                      "Coverage":  "Des Moines LZ page 2 businesses"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Iowa_Des_Moines_50309_LZ_Page2_Additional_Licensees_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IOWA\\XLXS\\Iowa_Des_Moines_50309_LZ_Page2_Additional_Licensees_20261010.csv",
+                      "Sha256":  "65327407B10C1122D099B45E255B66044212A506FFD31EFF8E4245C76C8F60A3",
+                      "Bytes":  861,
+                      "OfficialSourceUrl":  "https://ia-plb.my.site.com/LicenseSearchPage",
+                      "Coverage":  "Des Moines LZ page 2 licensees"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Iowa_Des_Moines_50309_AK_Roster_Capture_20261010.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "IOWA\\XLXS\\Iowa_Des_Moines_50309_AK_Roster_Capture_20261010.json",
+                      "Sha256":  "2DF102F7FCD96254BCCAF7CF7ABC109818EF33FC95A066E3B2CF1F04DC26360F",
+                      "Bytes":  3703,
+                      "OfficialSourceUrl":  "https://ia-plb.my.site.com/LicenseSearchPage",
+                      "Coverage":  "Des Moines search capture set AK"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Iowa_Des_Moines_50309_LZ_Roster_Capture_20261010.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "IOWA\\XLXS\\Iowa_Des_Moines_50309_LZ_Roster_Capture_20261010.json",
+                      "Sha256":  "60A617E92A387A60DFAF5A9B568196F6F3D4BABC7F5021D4603B26F08CC93B31",
+                      "Bytes":  3340,
+                      "OfficialSourceUrl":  "https://ia-plb.my.site.com/LicenseSearchPage",
+                      "Coverage":  "Des Moines search capture set LZ"
+                  }
+              ]
+}

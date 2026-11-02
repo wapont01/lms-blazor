@@ -47,12 +47,15 @@ public class UserAccountService : IUserAccountService
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuditLogService _auditLogService;
     private readonly INotificationService? _notificationService;
+    private readonly EmailJourneyOptions? _emailJourney;
 
-    public UserAccountService(ApplicationDbContext dbContext, IAuditLogService auditLogService, INotificationService? notificationService = null)
+    public UserAccountService(ApplicationDbContext dbContext, IAuditLogService auditLogService, INotificationService? notificationService = null,
+        EmailJourneyOptions? emailJourney = null)
     {
         _dbContext = dbContext;
         _auditLogService = auditLogService;
         _notificationService = notificationService;
+        _emailJourney = emailJourney;
     }
 
     public async Task<LoginResult> AuthenticateAsync(string email, string password)
@@ -173,10 +176,11 @@ public class UserAccountService : IUserAccountService
             .FirstOrDefaultAsync();
         if (schoolProfile is not null)
         {
-            var staffMember = schoolProfile.StaffMembers.FirstOrDefault(member =>
-                    string.Equals(member.Email, previousEmail, StringComparison.OrdinalIgnoreCase))
+            var staffMember = schoolProfile.StaffMembers.FirstOrDefault(member => member.UserAccountId == user.Id)
                 ?? schoolProfile.StaffMembers.FirstOrDefault(member =>
-                    string.Equals(member.Name, user.DisplayName, StringComparison.OrdinalIgnoreCase));
+                    member.UserAccountId is null && string.Equals(member.Email, previousEmail, StringComparison.OrdinalIgnoreCase))
+                ?? schoolProfile.StaffMembers.FirstOrDefault(member =>
+                    member.UserAccountId is null && string.Equals(member.Name, user.DisplayName, StringComparison.OrdinalIgnoreCase));
             if (staffMember is null)
             {
                 staffMember = new SchoolStaffMember
@@ -256,7 +260,8 @@ public class UserAccountService : IUserAccountService
         var user = new UserAccount
         {
             Email = normalizedEmail,
-            DisplayName = "Guest Learner",
+            DisplayName = "Guest",
+            EmailTwoStepEnabled = _emailJourney?.AppliesTo(normalizedEmail) == true,
             MarketingEmailOptOutAtUtc = marketingOptIn ? null : now,
             PasswordHash = HashPassword(password),
             Role = "Learner",
@@ -464,7 +469,7 @@ public class UserAccountService : IUserAccountService
             new SeedUserDefinition("william.broker@wlr.com", "William A. Aponte", "Broker123!", "Broker", "William Alfonso Aponte", State: "North Carolina", LicenseType: "B", LegacyEmailLocalPart: "broker"),
             new SeedUserDefinition("clara.broker@wlr.com", "Clara M. Aponte", "Broker234!", "Broker", "Clara Maria Aponte", State: "North Carolina", LicenseType: "PB", LegacyEmailLocalPart: "broker2"),
             new SeedUserDefinition(
-                "william.learner@wlr.com",
+                "william.guest@wlr.com",
                 "WILLIAM ALFONSO APONTE",
                 "Learner123!",
                 "Learner",
@@ -475,7 +480,8 @@ public class UserAccountService : IUserAccountService
                 PhoneNumber: "704-555-0121",
                 "17214 Belmont Stakes Lane, Charlotte, NC 28278",
                 LegacyEmailLocalPart: "learner",
-                IsBicEligible: true),
+                IsBicEligible: true,
+                PreviousEmail: "william.learner@wlr.com"),
             new SeedUserDefinition("maya.thompson@wlr.com", "Maya Thompson", "Learner234!", "Learner", "Maya Elise Thompson", "481205", "PB", State: "North Carolina", PhoneNumber: "704-555-0122", PermanentAddress: "811 East Boulevard, Charlotte, NC 28203", LegacyEmailLocalPart: "learner2"),
             new SeedUserDefinition("ethan.brooks@wlr.com", "Ethan Brooks", "Learner345!", "Learner", "Ethan James Brooks", "517842", "PB", State: "North Carolina", PhoneNumber: "704-555-0123", PermanentAddress: "1420 Central Avenue, Charlotte, NC 28205", LegacyEmailLocalPart: "learner3"),
             new SeedUserDefinition("sofia.martinez.fl@wlr.com", "Sofia Martinez", "FloridaLearner123!", "Learner", "Sofia Elena Martinez", "FL-DEMO-SL-001", "SL", State: "Florida", PhoneNumber: "305-555-0141", PermanentAddress: "1450 Brickell Avenue, Miami, FL 33131"),
@@ -488,6 +494,13 @@ public class UserAccountService : IUserAccountService
         var existingUsers = await _dbContext.UserAccounts
             .ToListAsync();
 
+        foreach (var guest in existingUsers.Where(user => user.Role == "Learner"
+                     && (user.DisplayName == "Guest Learner" || user.DisplayName == "Guest Student")))
+        {
+            guest.DisplayName = "Guest";
+            hasChanges = true;
+        }
+
         foreach (var seededUser in seededUsers)
         {
             var legacyEmail = seededUser.LegacyEmailLocalPart is null
@@ -495,11 +508,14 @@ public class UserAccountService : IUserAccountService
                 : $"{seededUser.LegacyEmailLocalPart}@{LegacySeedEmailDomain}";
             var existingUser = existingUsers.SingleOrDefault(user =>
                 string.Equals(user.Email, seededUser.Email, StringComparison.OrdinalIgnoreCase)
+                || (seededUser.PreviousEmail is not null
+                    && string.Equals(user.Email, seededUser.PreviousEmail, StringComparison.OrdinalIgnoreCase))
                 || (!string.IsNullOrWhiteSpace(legacyEmail)
                     && string.Equals(user.Email, legacyEmail, StringComparison.OrdinalIgnoreCase)));
             if (existingUser is not null)
             {
-                if (legacyEmail is not null && string.Equals(existingUser.Email, legacyEmail, StringComparison.OrdinalIgnoreCase))
+                if ((legacyEmail is not null && string.Equals(existingUser.Email, legacyEmail, StringComparison.OrdinalIgnoreCase))
+                    || (seededUser.PreviousEmail is not null && string.Equals(existingUser.Email, seededUser.PreviousEmail, StringComparison.OrdinalIgnoreCase)))
                 {
                     existingUser.Email = seededUser.Email;
                     hasChanges = true;
@@ -673,11 +689,12 @@ public class UserAccountService : IUserAccountService
         string? PhoneNumber = null,
         string? PermanentAddress = null,
         string? LegacyEmailLocalPart = null,
-        bool IsBicEligible = false);
+        bool IsBicEligible = false,
+        string? PreviousEmail = null);
 
     private static string? NormalizeOptional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static string HashPassword(string password)
+    internal static string HashPassword(string password)
     {
         var salt = RandomNumberGenerator.GetBytes(SaltSize);
         var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, HashAlgorithmName.SHA256, HashSize);
@@ -705,18 +722,11 @@ public class UserAccountService : IUserAccountService
         return user.PasswordExpiresAt.HasValue && user.PasswordExpiresAt.Value <= DateTime.UtcNow;
     }
 
-    private static void EnsurePasswordComplexity(string password)
+    internal static void EnsurePasswordComplexity(string password)
     {
-        var candidate = password.Trim();
-
-        var hasUpper = candidate.Any(char.IsUpper);
-        var hasLower = candidate.Any(char.IsLower);
-        var hasDigit = candidate.Any(char.IsDigit);
-        var hasSpecial = candidate.Any(character => !char.IsLetterOrDigit(character));
-
-        if (candidate.Length < 10 || !hasUpper || !hasLower || !hasDigit || !hasSpecial)
+        if (password.Length < 8 || string.IsNullOrWhiteSpace(password))
         {
-            throw new InvalidOperationException("Password must be at least 10 characters and include uppercase, lowercase, number, and special character.");
+            throw new InvalidOperationException("Password must be at least 8 characters.");
         }
     }
 }

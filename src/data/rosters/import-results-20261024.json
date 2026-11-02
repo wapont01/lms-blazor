@@ -1,0 +1,1279 @@
+{
+  "Backup": "C:\\Users\\LENOVO\\lms-blazor\\src\\Lms.Web\\App_Data\\lms.db.before-roster-import-20261024T212300-0b219180ec55466a95e7ff3fc8687abc.db",
+  "Complete": true,
+  "UnrelatedCountsUnchanged": true,
+  "IdempotentRepeat": true,
+  "Results": [
+    {
+      "State": "Arizona",
+      "SnapshotId": "d8466308-fad0-402b-bdce-93ab28942b12",
+      "Imported": true,
+      "Individuals": 221545,
+      "Firms": 6999,
+      "Affiliations": 59912,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "ARIZONA\\XLXS\\Arizona_ADRE_Individual_Licenses_20261011.csv",
+          "Sha256": "BD83B237A5808187493AE29706297C82912D7AE702EEE990BECE909C5F0F62E1",
+          "Coverage": "Full captured individual export, real-estate category only; all statuses.",
+          "SourceRows": 225386,
+          "ImportedRows": 221545,
+          "DuplicateRows": 3,
+          "Exclusions": {
+            "Outside real-estate license category": 3838
+          },
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "ARIZONA\\XLXS\\Arizona_ADRE_Entity_Licenses_20261011.csv",
+          "Sha256": "9C3870E02CA6742B0AA462892ACDB71C793FA4F49E3397F6EB98DC23193EF556",
+          "Coverage": "Full captured real-estate entity export.",
+          "SourceRows": 7035,
+          "ImportedRows": 6999,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Outside real-estate license category": 36
+          },
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Colorado",
+      "SnapshotId": "baa20e8e-b747-435b-bcd1-6bb0ae24b520",
+      "Imported": true,
+      "Individuals": 42047,
+      "Firms": 5643,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "COLORADO\\XLXS\\Colorado_Active_Associate_Brokers_20261011.csv",
+          "Sha256": "3782D1C601057ACF4709C1F9ECFB325EEFA321A2AB588381A966EB183D2B4ACA",
+          "Coverage": "Captured active associate brokers.",
+          "SourceRows": 32329,
+          "ImportedRows": 32329,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "COLORADO\\XLXS\\Colorado_Active_Responsible_Brokers_20261011.csv",
+          "Sha256": "026D250C024373E8DF801B62FEED1B594A0203697B2B30F694896010BBCFFC2E",
+          "Coverage": "Captured active responsible brokers; source permits text following a closing quote in DBA fields.",
+          "SourceRows": 5640,
+          "ImportedRows": 5640,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "COLORADO\\XLXS\\Colorado_Active_Individual_Proprietors_20261011.csv",
+          "Sha256": "66C590B1F36E92D23D4A20F3EE804C544E724498D7CB84E31885D01FAC4B1A5B",
+          "Coverage": "Captured active individual proprietors.",
+          "SourceRows": 4078,
+          "ImportedRows": 4078,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "COLORADO\\XLXS\\Colorado_Active_Real_Estate_Companies_20261011.csv",
+          "Sha256": "BC98B7E3309BF6FDF5E679D571358ECD939BCAEF30EFF1531CD9DE6601D8F0C6",
+          "Coverage": "Captured active real-estate companies. General DORA occupational export is NOT used; its EC prefix refers to a different profession.",
+          "SourceRows": 5643,
+          "ImportedRows": 5643,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Connecticut",
+      "SnapshotId": "19b2ab8d-fa08-4246-9d6b-89a376f6b84d",
+      "Imported": true,
+      "Individuals": 20,
+      "Firms": 22,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "CONNECTICUT\\LICENSING\\XLXS\\Connecticut_Hartford_Active_Real_Estate_Salesperson_Development_Sample_20261011.csv",
+          "Sha256": "B69074C1EBE318C21C4B1E7200AA25B7E64822583FE85598851B9BEA61596794",
+          "Coverage": "20 Hartford salesperson sample rows; not statewide. Broker-category holders are not classified by name.",
+          "SourceRows": 20,
+          "ImportedRows": 20,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "CONNECTICUT\\LICENSING\\XLXS\\Connecticut_Hartford_Active_Firm_Campaign_Sample_20261011.csv",
+          "Sha256": "3F02081780F82D20B805E38EF256D3A28284C13753ECEA509CF70C3D3C45BB4A",
+          "Coverage": "Profile-verified Hartford business sample.",
+          "SourceRows": 22,
+          "ImportedRows": 22,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Delaware",
+      "SnapshotId": "aff221ad-36ae-4601-973a-67d0e5fd3bb5",
+      "Imported": true,
+      "Individuals": 40,
+      "Firms": 20,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "DELAWARE\\LICENSING\\XLXS\\Delaware_Wilmington_Active_Real_Estate_Broker_Development_Sample_20261011.csv",
+          "Sha256": "89EF2976BC2B5343B018D109F6AB7AFE2CDE901548839A903566B7AFA7E1423B",
+          "Coverage": "Wilmington active broker sample; not statewide.",
+          "SourceRows": 20,
+          "ImportedRows": 20,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "DELAWARE\\LICENSING\\XLXS\\Delaware_Wilmington_Active_Real_Estate_Salesperson_Development_Sample_20261011.csv",
+          "Sha256": "FFCAE3859D4BB5B9C56D43E73079304622B47B8071914A7EDAD7A3959AFABEEF",
+          "Coverage": "Wilmington active salesperson sample; not statewide.",
+          "SourceRows": 20,
+          "ImportedRows": 20,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "DELAWARE\\LICENSING\\XLXS\\Delaware_Wilmington_Active_Main_Office_Campaign_Sample_20261011.csv",
+          "Sha256": "552A3CC4118A67A3AFB54EBBDB16568BCC69653D5263D56D0775163244FCB944",
+          "Coverage": "Wilmington main-office sample.",
+          "SourceRows": 20,
+          "ImportedRows": 20,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Idaho",
+      "SnapshotId": "a656bd24-9de0-4962-aa25-0b112256801b",
+      "Imported": true,
+      "Individuals": 13868,
+      "Firms": 1338,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "ENTITY_CAMPAIGN\\Full_License_Development_Data_20261011.csv",
+          "Sha256": "CBACB852A0F9BF4174ABE36021A79A9A462807353F2F0ABE17D0AE447056BB9E",
+          "Coverage": "Idaho captured active roster; Indiana Indianapolis sample; Kentucky captured roster; Washington Seattle only.",
+          "SourceRows": 15206,
+          "ImportedRows": 15206,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Indiana",
+      "SnapshotId": "4f103a61-4442-41c5-b0be-6aa247cecf1f",
+      "Imported": true,
+      "Individuals": 20,
+      "Firms": 40,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "ENTITY_CAMPAIGN\\Full_License_Development_Data_20261011.csv",
+          "Sha256": "CBACB852A0F9BF4174ABE36021A79A9A462807353F2F0ABE17D0AE447056BB9E",
+          "Coverage": "Idaho captured active roster; Indiana Indianapolis sample; Kentucky captured roster; Washington Seattle only.",
+          "SourceRows": 60,
+          "ImportedRows": 60,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Kentucky",
+      "SnapshotId": "479da727-e055-43d6-9836-b863aea788ec",
+      "Imported": true,
+      "Individuals": 8616,
+      "Firms": 2814,
+      "Affiliations": 1,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "ENTITY_CAMPAIGN\\Full_License_Development_Data_20261011.csv",
+          "Sha256": "CBACB852A0F9BF4174ABE36021A79A9A462807353F2F0ABE17D0AE447056BB9E",
+          "Coverage": "Idaho captured active roster; Indiana Indianapolis sample; Kentucky captured roster; Washington Seattle only.",
+          "SourceRows": 11430,
+          "ImportedRows": 11430,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "ENTITY_CAMPAIGN\\Full_License_Development_Relationships_20261011.csv",
+          "Sha256": "99490C25D10A31199CD727C1233F909A918CB4D9F407F12E48FC45F32B1B56CC",
+          "Coverage": "Explicit published Kentucky principal-broker link; not broker-in-charge or ownership verification.",
+          "SourceRows": 1,
+          "ImportedRows": 1,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Louisiana",
+      "SnapshotId": "f66853c5-19ae-4f6c-8c2c-456cfee8e46b",
+      "Imported": true,
+      "Individuals": 492,
+      "Firms": 68,
+      "Affiliations": 1,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "LOUISIANA\\XLXS\\Louisiana_All_Captured_Individuals_20261012.csv",
+          "Sha256": "0D36AC3A9D21EC28F8F129EAD941FF2D74E085002F5CCA9C8A407CFA6ACF8A02",
+          "Coverage": "All saved city-limited captures; not statewide.",
+          "SourceRows": 492,
+          "ImportedRows": 492,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "LOUISIANA\\XLXS\\Louisiana_All_Captured_Entities_20261012.csv",
+          "Sha256": "0F0965E4434B1177FE109EE1BD7FECD85CAFF92B51B329D5B0653C07C09B1E8E",
+          "Coverage": "All saved entity captures; source status evidence preserved.",
+          "SourceRows": 69,
+          "ImportedRows": 68,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Published field exceeds application schema length; source retained without truncation": 1
+          },
+          "RejectedDataRows": [
+            36
+          ],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "LOUISIANA\\XLXS\\Louisiana_Verified_Sponsor_Relationship_20261012.csv",
+          "Sha256": "5412D83D90A87ADA1A3F52AE7342E8A7A3C83ADA425E4C7389208E8D166CE18A",
+          "Coverage": "Published sponsor reference; future supervision date is retained, not inferred effective now.",
+          "SourceRows": 2,
+          "ImportedRows": 1,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Relationship endpoint not an imported firm/individual; no inferred link": 1
+          },
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Maine",
+      "SnapshotId": "8e1a479d-4174-4134-80b1-b8f8b8dac517",
+      "Imported": true,
+      "Individuals": 7097,
+      "Firms": 1101,
+      "Affiliations": 958,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "MAINE\\XLXS\\Maine_Full_Active_Individuals_20261012.csv",
+          "Sha256": "B59EB8E46D974CFF536F415CE77AE6931A2C4F815DC47432FD91AD2DCF6DD1D4",
+          "Coverage": "Full captured active individual list, all locations.",
+          "SourceRows": 7097,
+          "ImportedRows": 7097,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "MAINE\\XLXS\\Maine_Full_Active_Entities_20261012.csv",
+          "Sha256": "E6D25684C78182D2FD87EE74F146518B06758D274474F5F8450789F39D4BC2B1",
+          "Coverage": "Full captured active entity list.",
+          "SourceRows": 1101,
+          "ImportedRows": 1101,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "MAINE\\XLXS\\Maine_Published_Relationships_20261012.csv",
+          "Sha256": "139E7D162BFFE13CBEF93AC4D358D32C0DF9E5EB6E133393B9D777C67CBBAC92",
+          "Coverage": "Published responsible-individual links; firm-to-firm parent links retained only in source evidence.",
+          "SourceRows": 962,
+          "ImportedRows": 959,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Relationship endpoint not an imported firm/individual; no inferred link": 3
+          },
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Maryland",
+      "SnapshotId": "478becf4-bb44-459b-ae6e-f697715f3b0b",
+      "Imported": true,
+      "Individuals": 2434,
+      "Firms": 0,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "MARYLAND\\XLXS\\Maryland_Baltimore_Location_Personal_Licensees_20261011.csv",
+          "Sha256": "4D4E990106B3742349B665DBB359F092C3E326A599BD4F5C7A79AC9D0D3F2382",
+          "Coverage": "Baltimore linked-location crawl; manifest reports one source error; status not inferred.",
+          "SourceRows": 2434,
+          "ImportedRows": 2434,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Massachusetts",
+      "SnapshotId": "54fc8529-1eb9-429e-8ab4-784e0e58100d",
+      "Imported": true,
+      "Individuals": 40,
+      "Firms": 63,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "MASSACHUSETTS\\XLXS\\Massachusetts_Active_Individual_Development_Sample_20261011.csv",
+          "Sha256": "20493953DBFEA1BA3B59BAD03432F1818646B2F2C75DAB71BC61733963B7A5B3",
+          "Coverage": "Boston active individual sample; not statewide.",
+          "SourceRows": 40,
+          "ImportedRows": 40,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "MASSACHUSETTS\\XLXS\\Massachusetts_Active_Entity_Campaign_Development_Sample_20261011.csv",
+          "Sha256": "84C12F2A5D40DAFF49C017D77F662E0CF37501BB5C8189816E3216975F795280",
+          "Coverage": "Boston business sample.",
+          "SourceRows": 63,
+          "ImportedRows": 63,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Michigan",
+      "SnapshotId": "b21371d3-4b77-4b50-91f8-4e956e7cc89e",
+      "Imported": true,
+      "Individuals": 55783,
+      "Firms": 7642,
+      "Affiliations": 50905,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "MICHIGAN\\XLXS\\Michigan_Full_Captured_Individuals_20261012.csv",
+          "Sha256": "AD2E5C2108B245B6C05F4058A3AEFE8CB1FD075AE631EEEE9ADEFEF6E9EA7F3C",
+          "Coverage": "Full saved official reports without downsampling; capture scope per source manifest.",
+          "SourceRows": 55783,
+          "ImportedRows": 55783,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "MICHIGAN\\XLXS\\Michigan_Full_Captured_Entities_20261012.csv",
+          "Sha256": "044A71066CBFB5CBB2D83630842B3A286166383B85D8F24EF428C94448068589",
+          "Coverage": "Full captured entity report.",
+          "SourceRows": 7642,
+          "ImportedRows": 7642,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "MICHIGAN\\XLXS\\Michigan_Published_Broker_Relationships_20261012.csv",
+          "Sha256": "CB271E624A33F0F873E8D1E6BC950A0FB9EBD1A19196A214C82E5265C339C541",
+          "Coverage": "Published broker affiliations; unresolved or non-firm endpoints remain explicit in import evidence.",
+          "SourceRows": 53442,
+          "ImportedRows": 50905,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Relationship endpoint not an imported firm/individual; no inferred link": 2537
+          },
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Mississippi",
+      "SnapshotId": "b066fb85-f81a-4f54-81be-9877f1bbb9d3",
+      "Imported": true,
+      "Individuals": 40,
+      "Firms": 0,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Resident_Salesperson_Sample_20261010.csv",
+          "Sha256": "3E53736459DF52B79AC41C76C7866B3E6F944A2543C66C68D1CD5D4AD9A56653",
+          "Coverage": "Jackson resident salesperson sample.",
+          "SourceRows": 10,
+          "ImportedRows": 10,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Resident_Salespersons_20261010.csv",
+          "Sha256": "8DEB0027E1F435441608C55357F81014FBBCC6634FF0C827EDA6D0680A152363",
+          "Coverage": "Additional Jackson resident salesperson captures.",
+          "SourceRows": 10,
+          "ImportedRows": 10,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Resident_Broker_Sample_20261010.csv",
+          "Sha256": "C4FD08F56BB78D5AC68D317826E8335C55FAF7697676DB468C3A292F1528F1ED",
+          "Coverage": "Jackson resident broker sample.",
+          "SourceRows": 10,
+          "ImportedRows": 10,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Resident_Brokers_20261010.csv",
+          "Sha256": "C04428762DDDB6DD5EA713B3B5356A122AE5D619742CCF9C74C590889B52C66B",
+          "Coverage": "Additional Jackson resident broker captures.",
+          "SourceRows": 10,
+          "ImportedRows": 10,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Missouri",
+      "SnapshotId": "2de728b2-23fc-45cd-8865-ab045a62d649",
+      "Imported": true,
+      "Individuals": 40,
+      "Firms": 20,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "MISSOURI\\XLXS\\Missouri_Active_Individual_Development_Sample_20261011.csv",
+          "Sha256": "BC0443FF33BE6ED604401CCD9F3406A9A2504E8BE028A2B27C303E00A4CE849A",
+          "Coverage": "Jackson County active sample; not statewide.",
+          "SourceRows": 40,
+          "ImportedRows": 40,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "MISSOURI\\XLXS\\Missouri_Active_Entity_Campaign_Development_Sample_20261011.csv",
+          "Sha256": "1BDE01D5BADC685F1D7F6262C475576538F083562803D89F689BF416C0E6C1D5",
+          "Coverage": "Jackson County business sample.",
+          "SourceRows": 20,
+          "ImportedRows": 20,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Montana",
+      "SnapshotId": "57c0693c-562c-4b3e-9176-272a34ebb873",
+      "Imported": true,
+      "Individuals": 19666,
+      "Firms": 0,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "MONTANA\\XLXS\\Montana_All_Captured_Development_Campaign_20261012.csv",
+          "Sha256": "22124D48C7A9738C25BAD37B0B991331B8E72FACF1BF390AD1C799770B7B6588",
+          "Coverage": "All supplied individual-category exports, mixed statuses; completeness unverified. Nameless records excluded explicitly.",
+          "SourceRows": 19667,
+          "ImportedRows": 19666,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Missing published personal/business name; no identity fabricated": 1
+          },
+          "RejectedDataRows": [
+            16918
+          ],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Nebraska",
+      "SnapshotId": "70460c3a-7507-449a-a4c8-ac6c7ec891e0",
+      "Imported": true,
+      "Individuals": 5235,
+      "Firms": 0,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "NEBRASKA\\XLXS\\Nebraska_All_Captured_Development_Campaign_20261012.csv",
+          "Sha256": "3F5AD05A3656A0691C18588C89B0E1B8769FC6F1E7D3272DAB7121290F1E6E6D",
+          "Coverage": "Captured active and inactive individual credentials; preserve distinct source identities.",
+          "SourceRows": 8593,
+          "ImportedRows": 5235,
+          "DuplicateRows": 3358,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "New Jersey",
+      "SnapshotId": "d332a06a-600b-4fa2-a370-570abd651e43",
+      "Imported": true,
+      "Individuals": 303,
+      "Firms": 22,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Salesperson_Query_Results_20261011.csv",
+          "Sha256": "B113FB608D626FCFABF579FB397A2F04830E730F9F476E805BF8162C7B1EDF3B",
+          "Coverage": "SMITH surname query only; not statewide.",
+          "SourceRows": 252,
+          "ImportedRows": 252,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Broker_Salesperson_Query_Results_20261011.csv",
+          "Sha256": "DCB37D0579CC3AB6363271DBC229CEA10BB383764F19494294BB73A174A482D4",
+          "Coverage": "SMITH surname broker-salesperson query only.",
+          "SourceRows": 24,
+          "ImportedRows": 24,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Broker_Of_Record_Query_Results_20261011.csv",
+          "Sha256": "C56EDC604F6F2808CF5F3EDB8A03887AF137D41E662983706BDAE7EF6FF8C790",
+          "Coverage": "SMITH surname broker-of-record query only.",
+          "SourceRows": 29,
+          "ImportedRows": 27,
+          "DuplicateRows": 2,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Realty_Active_Company_Branch_Campaign_Sample_20261011.csv",
+          "Sha256": "1DB11829E9B6832AA5F093E3944A0C476D513D2158AA2B2EC8CD0679E8890DE2",
+          "Coverage": "Profile-verified REALTY company/branch sample. Full query has aliases sharing license numbers and is retained as evidence, not separate firms.",
+          "SourceRows": 22,
+          "ImportedRows": 22,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "New Mexico",
+      "SnapshotId": "7e9561cc-ced1-4727-92a7-8feb1b854e43",
+      "Imported": true,
+      "Individuals": 0,
+      "Firms": 5116,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "NEW_MEXICO\\XLXS\\New_Mexico_Full_Active_Entities_20261012.csv",
+          "Sha256": "A3B9D62B8C1F4053713C473E4CBE41674ABF951B1BAB3387B8BDB9B012BBAC20",
+          "Coverage": "Full saved active Trade Name businesses; no individual roster available.",
+          "SourceRows": 5116,
+          "ImportedRows": 5116,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Ohio",
+      "SnapshotId": "554071f3-98c4-4e12-a37c-828dbf148de8",
+      "Imported": true,
+      "Individuals": 78082,
+      "Firms": 8322,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "OHIO\\XLXS\\repl_LicenseLookUpwithAffiliations.xlsx",
+          "Sha256": "05731C5BC2251BE1027BF5FF8787603E668BE675B0F0F4BDD71F36BA711E0A99",
+          "Coverage": "Statewide workbook as of 2026-09-04; real-estate broker/salesperson and brokerage/branch/sole proprietor only.",
+          "SourceRows": 96774,
+          "ImportedRows": 86404,
+          "DuplicateRows": 393,
+          "Exclusions": {
+            "Outside broker/salesperson/brokerage scope": 9957,
+            "Missing published personal/business name; no identity fabricated": 20
+          },
+          "RejectedDataRows": [
+            89218,
+            94357,
+            94622,
+            94642,
+            94653,
+            94981,
+            95918,
+            95940,
+            95964,
+            95977,
+            95987,
+            95995,
+            96027,
+            96182,
+            96335,
+            96538,
+            96596,
+            96694,
+            96737,
+            96744
+          ],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Oklahoma",
+      "SnapshotId": "84ee7825-4510-4ec3-a2ad-1fa399ef30a7",
+      "Imported": true,
+      "Individuals": 87826,
+      "Firms": 8629,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "OKLAHOMA\\XLXS\\Oklahoma_Full_Captured_Licensees_20261012.csv",
+          "Sha256": "BA97A6974BA718FD5F4942FBA6F738B0A3FEE1E16420879370F8BFFED371F6D2",
+          "Coverage": "Full captured licensee file; captured total differs from source README estimate.",
+          "SourceRows": 87828,
+          "ImportedRows": 87826,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Missing published license number; no credential identity fabricated": 1,
+            "Missing published personal/business name; no identity fabricated": 1
+          },
+          "RejectedDataRows": [
+            1,
+            87826
+          ],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "OKLAHOMA\\XLXS\\Oklahoma_Full_Captured_Business_Entities_20261012.csv",
+          "Sha256": "80AC9FEC909BC62B887ECE7087F6AD4325C0660B8119769DD794D3C1CAFBAAF3",
+          "Coverage": "Full captured business-entity file.",
+          "SourceRows": 8630,
+          "ImportedRows": 8629,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Missing published personal/business name; no identity fabricated": 1
+          },
+          "RejectedDataRows": [
+            5326
+          ],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Pennsylvania",
+      "SnapshotId": "63c34881-62ed-4dc3-b0d3-c633486c9b4d",
+      "Imported": true,
+      "Individuals": 40,
+      "Firms": 49,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "PENNSYLVANIA\\XLXS\\Pennsylvania_Active_Personal_Licensee_Development_Sample_20261011.csv",
+          "Sha256": "DD60EFAB41DDA246310758C58A272AEB1C04F5BEB20F3B6F696EB37E2BEEE94E",
+          "Coverage": "40 personal-license sample rows; not statewide.",
+          "SourceRows": 40,
+          "ImportedRows": 40,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "PENNSYLVANIA\\XLXS\\Pennsylvania_Active_Entity_Development_Sample_20261011.csv",
+          "Sha256": "B45A3FAFCDA97F6AC7C6E058A64332A5D28F2FE32838CD78074817270EC73380",
+          "Coverage": "Business-license sample.",
+          "SourceRows": 49,
+          "ImportedRows": 49,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Puerto Rico",
+      "SnapshotId": "b3c8ba99-b4eb-495e-801e-14c0612a3fc1",
+      "Imported": true,
+      "Individuals": 15964,
+      "Firms": 246,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "PUERTO RICO\\XLXS\\Puerto_Rico_Full_Captured_Licensees_20261012.csv",
+          "Sha256": "6194CEE175A20A72D034E8CCF8589406C6B96DFFE0D2A845CFC9F9E92460A531",
+          "Coverage": "Full saved deduplicated broker and salesperson captures, mixed statuses.",
+          "SourceRows": 15964,
+          "ImportedRows": 15964,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "PUERTO RICO\\XLXS\\Puerto_Rico_Full_Captured_Business_Entities_20261012.csv",
+          "Sha256": "910905348AD308A66808C7034290356E0B219303F08FAA9C0E20554D9A7EB428",
+          "Coverage": "Full saved business credentials.",
+          "SourceRows": 246,
+          "ImportedRows": 246,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Rhode Island",
+      "SnapshotId": "4f064dd2-68f5-4e51-a071-595f27172e2a",
+      "Imported": true,
+      "Individuals": 29014,
+      "Firms": 657,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "RHODE_ISLAND\\XLXS\\Rhode_Island_Full_Captured_Licensees_20261012.csv",
+          "Sha256": "C4B4A6943F2885AF2ED569DB3726C4BA17359D9148F7BC95E5F242466B55F749",
+          "Coverage": "Full captured broker and salesperson licenses, mixed statuses.",
+          "SourceRows": 29015,
+          "ImportedRows": 29014,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Missing published personal/business name; no identity fabricated": 1
+          },
+          "RejectedDataRows": [
+            19480
+          ],
+          "Warnings": {
+            "Source expiration repeats internal record ID, not a date; expiry left unknown": 190
+          },
+          "WarningDataRows": [
+            300,
+            413,
+            484,
+            589,
+            598,
+            617,
+            1545,
+            1566,
+            1580,
+            1638,
+            1666,
+            2182,
+            2236,
+            2237,
+            2238,
+            2247,
+            2250,
+            2361,
+            2639,
+            3079,
+            3589,
+            3827,
+            4185,
+            4373,
+            4647,
+            5170,
+            5408,
+            5521,
+            5526,
+            5569,
+            5578,
+            5822,
+            7069,
+            7128,
+            7352,
+            9534,
+            9960,
+            10162,
+            10438,
+            11408,
+            11528,
+            12070,
+            13042,
+            13182,
+            13514,
+            13598,
+            13636,
+            13729,
+            14921,
+            15258,
+            15701,
+            16068,
+            16217,
+            16301,
+            16813,
+            17501,
+            17637,
+            17647,
+            17648,
+            17650,
+            17651,
+            17653,
+            17654,
+            17656,
+            17657,
+            17659,
+            17660,
+            17663,
+            17666,
+            17668,
+            17670,
+            17672,
+            17673,
+            17944,
+            17945,
+            17946,
+            17947,
+            17948,
+            17949,
+            17950,
+            17951,
+            17952,
+            17953,
+            17954,
+            17955,
+            17956,
+            17957,
+            17958,
+            17959,
+            17960,
+            17961,
+            17962,
+            17963,
+            17964,
+            17965,
+            17966,
+            17967,
+            17968,
+            17969,
+            17970,
+            17971,
+            17972,
+            17973,
+            17974,
+            17975,
+            17976,
+            17977,
+            17978,
+            17979,
+            17980,
+            17981,
+            17982,
+            17983,
+            17984,
+            17985,
+            17986,
+            17987,
+            17988,
+            17989,
+            17990,
+            17991,
+            17992,
+            17993,
+            17994,
+            17995,
+            17996,
+            17997,
+            17998,
+            17999,
+            18000,
+            18001,
+            18002,
+            18003,
+            18004,
+            18005,
+            18006,
+            18016,
+            18017,
+            18018,
+            18019,
+            18020,
+            18021,
+            18022,
+            18023,
+            18024,
+            18025,
+            18026,
+            18027,
+            18028,
+            18029,
+            18030,
+            18031,
+            18032,
+            18033,
+            18034,
+            18035,
+            18036,
+            18037,
+            18038,
+            18039,
+            18040,
+            18041,
+            18042,
+            18043,
+            18044,
+            18045,
+            18046,
+            18047,
+            18048,
+            18049,
+            18050,
+            18051,
+            19016,
+            19303,
+            20288,
+            20805,
+            21004,
+            21320,
+            21459,
+            21927,
+            22030,
+            23087,
+            23379,
+            23470,
+            25194,
+            25602,
+            26573,
+            27296,
+            27395,
+            28372
+          ]
+        },
+        {
+          "File": "RHODE_ISLAND\\XLXS\\Rhode_Island_Full_Captured_Business_Entities_20261012.csv",
+          "Sha256": "B59D3AC2FCFC6D81B84A2BC19E4E36B8598447D8433649F7BA2C33EBBA7C017D",
+          "Coverage": "Full captured business credentials.",
+          "SourceRows": 658,
+          "ImportedRows": 657,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Missing published personal/business name; no identity fabricated": 1
+          },
+          "RejectedDataRows": [
+            637
+          ],
+          "Warnings": {
+            "Source expiration repeats internal record ID, not a date; expiry left unknown": 7
+          },
+          "WarningDataRows": [
+            48,
+            49,
+            53,
+            67,
+            96,
+            112,
+            230
+          ]
+        }
+      ]
+    },
+    {
+      "State": "Vermont",
+      "SnapshotId": "82acf4bc-02c6-4b32-b02e-d2c70f89ac56",
+      "Imported": true,
+      "Individuals": 2341,
+      "Firms": 545,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "VERMONT\\XLXS\\Vermont_Active_Real_Estate_Salespersons_20261011.xlsx",
+          "Sha256": "36709870EAB714DBD01DE03CAE9745E032FA66339DFA970DF7D5232DA99620CB",
+          "Coverage": "Captured active statewide salesperson export.",
+          "SourceRows": 1395,
+          "ImportedRows": 1394,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Missing published personal/business name; no identity fabricated": 1
+          },
+          "RejectedDataRows": [
+            1395
+          ],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "VERMONT\\XLXS\\Vermont_Active_Real_Estate_Brokers_20261011.xlsx",
+          "Sha256": "664465CC31D25E99232D04556F2910A00420FF9936659E02B182A97B96EB34DC",
+          "Coverage": "Captured active statewide broker export.",
+          "SourceRows": 948,
+          "ImportedRows": 947,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Missing published personal/business name; no identity fabricated": 1
+          },
+          "RejectedDataRows": [
+            948
+          ],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "VERMONT\\XLXS\\Vermont_Active_Real_Estate_Firms_Main_Office_20261011.xlsx",
+          "Sha256": "78E85FBB44A7883F401EE616AB1935905D0A3B09E020A9F9FCE99876625ECCF6",
+          "Coverage": "Captured active main offices.",
+          "SourceRows": 471,
+          "ImportedRows": 471,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "VERMONT\\XLXS\\Vermont_Active_Real_Estate_Firms_Branch_Office_20261011.xlsx",
+          "Sha256": "91C663D4C58B0A7572398E529EF2C928EA98F2645FFE3891C4811E4718B49523",
+          "Coverage": "Captured active branch offices.",
+          "SourceRows": 74,
+          "ImportedRows": 74,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "VERMONT\\XLXS\\Vermont_Active_Real_Estate_Firms_Sole_Proprietorship_20261011.xlsx",
+          "Sha256": "AA02A7B234053BC1A9FE6AFE66BDCE0E6A676D64B73E989A8E765547312C8112",
+          "Coverage": "Captured active sole proprietorships.",
+          "SourceRows": 1,
+          "ImportedRows": 0,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Missing published personal/business name; no identity fabricated": 1
+          },
+          "RejectedDataRows": [
+            1
+          ],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Washington",
+      "SnapshotId": "e587cc2f-6e05-46e6-9124-661c5fcdfa4b",
+      "Imported": true,
+      "Individuals": 4861,
+      "Firms": 497,
+      "Affiliations": 0,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "ENTITY_CAMPAIGN\\Full_License_Development_Data_20261011.csv",
+          "Sha256": "CBACB852A0F9BF4174ABE36021A79A9A462807353F2F0ABE17D0AE447056BB9E",
+          "Coverage": "Idaho captured active roster; Indiana Indianapolis sample; Kentucky captured roster; Washington Seattle only.",
+          "SourceRows": 5358,
+          "ImportedRows": 5358,
+          "DuplicateRows": 0,
+          "Exclusions": {},
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    },
+    {
+      "State": "Wyoming",
+      "SnapshotId": "b98d85bd-bf41-4d71-9fb5-81fc9bb7d60f",
+      "Imported": true,
+      "Individuals": 3902,
+      "Firms": 785,
+      "Affiliations": 3127,
+      "Status": "Approved",
+      "Evidence": [
+        {
+          "File": "WYOMING\\XLXS\\Wyoming_Full_Captured_Licensees_20261012.csv",
+          "Sha256": "7AE880AA4F087C8F3F72D663C2334B4DB06AE65E88B6883E7E433B9763C4FE55",
+          "Coverage": "All captured individual-license records.",
+          "SourceRows": 4333,
+          "ImportedRows": 3902,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Appraiser/AMC credential; not real-estate broker/salesperson/firm": 430,
+            "Missing published license number; no credential identity fabricated": 1
+          },
+          "RejectedDataRows": [
+            1696
+          ],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "WYOMING\\XLXS\\Wyoming_Full_Captured_Business_Entities_20261012.csv",
+          "Sha256": "291E204C94E493F96F14D3231319F735510A7ACD61E8F35428D07E31405BCE18",
+          "Coverage": "Captured real-estate firms; test/delete placeholders excluded.",
+          "SourceRows": 788,
+          "ImportedRows": 785,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Published source explicitly labels test record for deletion": 1,
+            "Missing published license number; no credential identity fabricated": 2
+          },
+          "RejectedDataRows": [
+            3,
+            10,
+            16
+          ],
+          "Warnings": {},
+          "WarningDataRows": []
+        },
+        {
+          "File": "WYOMING\\XLXS\\Wyoming_Published_Broker_Relationships_20261012.csv",
+          "Sha256": "5F96442029108F0B3A2DA04843AB7C41E7C397BE1193A26F77CE1AA124A532EC",
+          "Coverage": "Published individual-to-firm links, without inferring ownership or BIC status.",
+          "SourceRows": 3106,
+          "ImportedRows": 3092,
+          "DuplicateRows": 0,
+          "Exclusions": {
+            "Relationship endpoint not an imported firm/individual; no inferred link": 14
+          },
+          "RejectedDataRows": [],
+          "Warnings": {},
+          "WarningDataRows": []
+        }
+      ]
+    }
+  ]
+}

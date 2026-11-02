@@ -10,6 +10,78 @@ namespace Lms.Application.Tests.Services;
 public class RegulatoryDirectoryServiceTests
 {
     [Fact]
+    public async Task RestorePreservesSourceHistoryIsAuditedAndNextSyncBecomesCurrent()
+    {
+        await using var f = await TestFixture.CreateAsync();
+        using var archive = await BulkTestArchive.CreateAsync();
+        var importer = new FloridaBulkImportService(f.DbContext);
+        var originalId = await importer.ImportArchiveAsync(archive.Path);
+        var acquired = await f.DbContext.RegulatoryDataSnapshots.Where(s => s.Id == originalId).Select(s => s.RetrievedAtUtc).SingleAsync();
+        var newer = new RegulatoryDataSnapshot
+        {
+            State = "Florida", SourceName = "Newer synthetic bulk", Status = RegulatorySnapshotStatuses.Approved,
+            ParserVersion = FloridaBulkImportService.ParserVersion, ActivatedAtUtc = DateTime.UtcNow,
+            RetrievedAtUtc = DateTime.UtcNow
+        };
+        f.DbContext.RegulatoryLicensees.Add(new RegulatoryLicensee
+        {
+            Snapshot = newer, State = "Florida", Name = "Newer person", LicenseNumber = "SL2", LicenseType = "Sales Associate"
+        });
+        await f.DbContext.SaveChangesAsync();
+        var admin = await f.DbContext.UserAccounts.FirstAsync(u => u.Role == "Admin");
+        var learner = await f.DbContext.UserAccounts.FirstAsync(u => u.Role == "Learner");
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.RestoreFloridaRosterAsync(originalId, newer.Id, learner.Id, "Unauthorized"));
+        await Assert.ThrowsAsync<ArgumentException>(() => f.Service.RestoreFloridaRosterAsync(originalId, newer.Id, admin.Id, " "));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.RestoreFloridaRosterAsync(originalId, Guid.NewGuid(), admin.Id, "Stale"));
+        await f.Service.RestoreFloridaRosterAsync(originalId, newer.Id, admin.Id, "Recover previous roster");
+        Assert.Equal(originalId, (await f.Service.GetLatestApprovedSnapshotAsync("Florida"))!.Id);
+        Assert.Equal(acquired, await f.DbContext.RegulatoryDataSnapshots.Where(s => s.Id == originalId).Select(s => s.RetrievedAtUtc).SingleAsync());
+        Assert.Equal(2, (await f.Service.GetFloridaRosterHistoryAsync()).Count);
+        Assert.Contains(await f.DbContext.AuditLogs.ToListAsync(), log => log.Action == "regulatory-roster.restored" && log.Details!.Contains(newer.Id.ToString()));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.RestoreFloridaRosterAsync(originalId, originalId, admin.Id, "Already current"));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => f.Service.RestoreFloridaRosterAsync(Guid.NewGuid(), originalId, admin.Id, "Missing"));
+        await importer.ImportArchiveAsync(archive.Path);
+        Assert.Equal(2, await f.DbContext.RegulatoryDataSnapshots.CountAsync());
+        await f.Service.RestoreFloridaRosterAsync(newer.Id, originalId, admin.Id, "Select alternate version");
+        await importer.ImportArchiveAsync(archive.Path);
+        Assert.Equal(originalId, (await f.Service.GetLatestApprovedSnapshotAsync("Florida"))!.Id);
+        Assert.Equal(2, await f.DbContext.RegulatoryDataSnapshots.CountAsync());
+        var stats = await new RegulatoryStatisticsService(f.DbContext).GetAsync("Florida", bulkOnly: true);
+        Assert.Equal(originalId, stats.Incoming!.Id);
+        Assert.Equal(newer.Id, stats.Baseline!.Id);
+    }
+
+    [Fact]
+    public async Task FloridaDirectoryUsesOnlyLatestActivatedRosterWhilePreservingHistory()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        foreach (var day in new[] { 1, 2 })
+        {
+            var snapshot = new RegulatoryDataSnapshot
+            {
+                State = "Florida", SourceName = $"Roster {day}", Status = RegulatorySnapshotStatuses.Approved,
+                RetrievedAtUtc = new DateTime(2026, 10, day, 0, 0, 0, DateTimeKind.Utc),
+                ParserVersion = FloridaBulkImportService.ParserVersion
+            };
+            fixture.DbContext.RegulatoryDataSnapshots.Add(snapshot);
+            fixture.DbContext.RegulatoryLicensees.Add(new RegulatoryLicensee
+            {
+                Snapshot = snapshot, State = "Florida", LicenseNumber = "SL1", Name = $"Person {day}"
+            });
+            fixture.DbContext.RegulatoryFirms.Add(new RegulatoryFirm
+            {
+                Snapshot = snapshot, State = "Florida", LicenseNumber = "CQ1", LegalName = $"Firm {day}"
+            });
+        }
+        await fixture.DbContext.SaveChangesAsync();
+        var licenses = await fixture.Service.GetApprovedLicenseesAsync("Florida");
+        Assert.Equal("Person 2", Assert.Single(licenses).Name);
+        var firms = await fixture.Service.GetCampaignFirmTargetsAsync("Florida");
+        Assert.Equal("Firm 2", Assert.Single(firms).FirmName);
+        Assert.Equal(2, await fixture.DbContext.RegulatoryLicensees.CountAsync(l => l.State == "Florida"));
+    }
+
+    [Fact]
     public async Task GetCampaignStateOptionsAsync_ReturnsAllUsStatesAndApprovedAdditionalJurisdictions()
     {
         await using var fixture = await TestFixture.CreateAsync();
@@ -81,7 +153,7 @@ public class RegulatoryDirectoryServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var snapshot = new RegulatoryDataSnapshot
         {
             State = "North Carolina",

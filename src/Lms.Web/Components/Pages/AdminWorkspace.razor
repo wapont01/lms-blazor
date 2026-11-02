@@ -44,6 +44,15 @@
 			OnExamCourseChanged="OnExamCourseChanged"
 			OnLoadExamEditor="LoadExamEditorAsync"
 			ExamEditor="_examEditor"
+			SupplementalExams="_supplementalExams"
+			UnitExams="_unitExams"
+			IsEditingSupplementalExam="_isEditingSupplementalExam"
+			OnCreateSupplementalExam="CreateSupplementalExamAsync"
+			OnCreateUnitExam="CreateUnitExamAsync"
+			OnLoadUnitExamEditor="LoadSupplementalExamEditorAsync"
+			OnLoadSupplementalExamEditor="LoadSupplementalExamEditorAsync"
+			OnDeleteSupplementalExam="DeleteSupplementalExamAsync"
+			OnSaveSupplementalExam="SaveExamEditorAsync"
 			OnAddExamQuestion="AddExamQuestion"
 			OnRemoveExamQuestion="RemoveExamQuestion"
 			OnSaveExamEditor="SaveExamEditorAsync"
@@ -59,6 +68,7 @@
 			SetRetakeGrantDraft="SetRetakeGrantDraft"
 			OnUpdateRetakeGrant="UpdateRetakeGrantAsync"
 			OnRevokeRetakeGrant="RevokeRetakeGrantAsync" />
+		<ExamAttemptAuditPanel Courses="_courses" IsAdmin="true" />
 	}
 
 	@if (IsSectionVisible("users"))
@@ -95,7 +105,6 @@
 	{
 		<AdminCertificatesPanel
 			CertificateSummary="_certificateSummary"
-			CertificateRows="_certificateRows"
 			BuildVerifyLink="BuildVerifyLink"
 			OnRenewCertificate="RenewCertificateAsync" />
 	}
@@ -135,13 +144,13 @@
 	@if (IsSectionVisible("logs"))
 	{
 		<section class="card">
-			<h2>Learner Logs</h2>
+			<h2>Student Logs</h2>
 
 			<div class="form-row">
 				<div class="form-field">
-					<label>Learner</label>
+					<label>Student</label>
 					<select value="@(_selectedLogsLearnerId?.ToString() ?? string.Empty)" @onchange="OnLogsLearnerChangedAsync">
-						<option value="">Select learner</option>
+						<option value="">Select student</option>
 						@foreach (var learner in _users.Where(user => user.Role == "Learner"))
 						{
 							<option value="@learner.Id">@learner.DisplayName (@learner.Email)</option>
@@ -152,7 +161,7 @@
 
 			@if (_adminLogs.Count == 0)
 			{
-				<p class="muted-text">No log events available for the selected learner.</p>
+				<p class="muted-text">No log events available for the selected student.</p>
 			}
 			else
 			{
@@ -196,7 +205,6 @@
 	private List<UserAccount> _users = new();
 	private List<AuditLog> _auditLogs = new();
 	private CertificateComplianceSummary _certificateSummary = new(0, 0, 0, 0, 0);
-	private List<CertificateComplianceRow> _certificateRows = new();
 	private List<CourseCompletionReportRow> _pendingCompletionReports = new();
 	private List<MonthlySummaryReportRow> _summaryRows = new();
 	private List<CheatingIncidentReportRow> _pendingCheatingIncidents = new();
@@ -212,6 +220,9 @@
 	private int _summaryMonth = DateTime.UtcNow.Month;
 	private readonly Dictionary<Guid, string> _resetPasswords = new();
 	private ExamEditorModel? _examEditor;
+	private List<SupplementalExamInfo> _supplementalExams = new();
+	private List<CourseExamMenuInfo> _unitExams = new();
+	private bool _isEditingSupplementalExam;
 	private Guid? _examCourseId;
 	private string _examCourseIdText = string.Empty;
 	private string? _examError;
@@ -312,7 +323,7 @@
 			"audit" => "Audit",
 			"certificates" => "Certificates",
 			"compliance" => "Compliance Reports",
-			"logs" => "Learner Logs",
+			"logs" => "Student Logs",
 			_ => "Dashboard"
 		};
 	}
@@ -357,6 +368,11 @@
 	{
 		_courseError = null;
 		_courseMessage = null;
+		if (course.IsDevelopmentSample)
+		{
+			_courseError = "Development samples cannot be published for credit.";
+			return;
+		}
 
 		course.IsPublished = !course.IsPublished;
 		await CourseService.UpdateAsync(course);
@@ -390,7 +406,11 @@
 			return;
 		}
 
-		await CourseService.ApproveCourseAsync(course.Id, _actorUserId.Value);
+		if (!await CourseService.ApproveCourseAsync(course.Id, _actorUserId.Value))
+		{
+			_courseError = "The course could not be approved. Development samples cannot be approved for credit.";
+			return;
+		}
 		await RefreshCoursesAsync();
 		_courseMessage = "Course approved and published.";
 	}
@@ -537,6 +557,9 @@
 		_examCourseIdText = args.Value?.ToString() ?? string.Empty;
 		_examCourseId = Guid.TryParse(_examCourseIdText, out var parsed) ? parsed : null;
 		_examEditor = null;
+		_supplementalExams.Clear();
+		_unitExams.Clear();
+		_isEditingSupplementalExam = false;
 		_examError = null;
 		_examMessage = null;
 		_retakeGrants.Clear();
@@ -548,6 +571,7 @@
 	{
 		_examError = null;
 		_examMessage = null;
+		_isEditingSupplementalExam = false;
 
 		if (!_examCourseId.HasValue)
 		{
@@ -556,20 +580,97 @@
 		}
 
 		_examEditor = await ExamService.GetExamEditorAsync(_examCourseId.Value);
+		_supplementalExams = await ExamService.GetSupplementalExamsAsync(_examCourseId.Value);
+		_unitExams = await ExamService.GetCourseMenuExamsAsync(_examCourseId.Value);
 		_retakeGrants = await ExamService.GetRetakeGrantsAsync(_examCourseId.Value);
 		_retakeGrantDraftAttempts.Clear();
 		_examMessage = _examEditor is null
 			? "No exam is available for this course."
 			: "Exam loaded.";
 
-		if (_retakeLearnerId is null && _users.Any(user => user.Role == "Learner"))
-		{
-			_retakeLearnerId = _users.First(user => user.Role == "Learner").Id;
-		}
-
 		if (_examEditor is not null)
 		{
 			_retakeLearnerId ??= _users.FirstOrDefault(user => user.Role == "Learner")?.Id;
+		}
+	}
+
+	private async Task LoadSupplementalExamEditorAsync(Guid examId)
+	{
+		_examError = null;
+		_examMessage = null;
+		_examEditor = await ExamService.GetExamEditorByIdAsync(examId);
+		_isEditingSupplementalExam = _examEditor is not null;
+		_examMessage = _examEditor is null ? "Exam not found." : "Exam loaded.";
+	}
+
+	private async Task CreateSupplementalExamAsync(SupplementalExamCreateRequest request)
+	{
+		if (!_examCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_examError = "Select a course and sign in before adding an exam.";
+			return;
+		}
+
+		_examError = null;
+		try
+		{
+			var exam = await ExamService.CreateSupplementalExamAsync(
+				_examCourseId.Value,
+				request.Kind,
+				request.UnitId,
+				null,
+				_actorUserId.Value,
+				_actorEmail);
+			await LoadSupplementalExamEditorAsync(exam.Id);
+			_examMessage = "Exam added. Add questions, then save it.";
+			_supplementalExams = await ExamService.GetSupplementalExamsAsync(_examCourseId.Value);
+		}
+		catch (InvalidOperationException exception)
+		{
+			_examError = exception.Message;
+		}
+	}
+
+	private async Task CreateUnitExamAsync(Guid unitId)
+	{
+		if (!_examCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_examError = "Select a course and sign in before adding a Unit Exam.";
+			return;
+		}
+
+		_examError = null;
+		try
+		{
+			var exam = await ExamService.CreateUnitExamAsync(_examCourseId.Value, unitId, _actorUserId.Value, _actorEmail);
+			_unitExams = await ExamService.GetCourseMenuExamsAsync(_examCourseId.Value);
+			await LoadSupplementalExamEditorAsync(exam.Id);
+			_examMessage = "Unit Exam added. Add questions, then save it.";
+		}
+		catch (InvalidOperationException exception)
+		{
+			_examError = exception.Message;
+		}
+	}
+
+	private async Task DeleteSupplementalExamAsync(Guid examId)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			_examError = "Unable to identify the signed in admin account.";
+			return;
+		}
+
+		_examError = null;
+		try
+		{
+			await ExamService.DeleteSupplementalExamAsync(examId, _actorUserId.Value, _actorEmail);
+			await LoadExamEditorAsync();
+			_examMessage = "Supplemental exam deleted.";
+		}
+		catch (InvalidOperationException exception)
+		{
+			_examError = exception.Message;
 		}
 	}
 
@@ -622,11 +723,27 @@
 
 		try
 		{
-			await ExamService.SaveExamEditorAsync(_examCourseId.Value, _examEditor, _actorUserId.Value, _actorEmail);
-			_examMessage = "Exam saved. Existing attempts were reset for this course.";
-			await RefreshCertificatesAsync();
-			await RefreshAuditAsync();
-			await LoadExamEditorAsync();
+			if (_isEditingSupplementalExam)
+			{
+				if (!_examEditor.ExamId.HasValue)
+				{
+					throw new InvalidOperationException("Supplemental exam was not loaded.");
+				}
+
+				await ExamService.SaveExamEditorByIdAsync(_examEditor.ExamId.Value, _examEditor, _actorUserId.Value, _actorEmail);
+				_examMessage = "Exam saved.";
+				_supplementalExams = await ExamService.GetSupplementalExamsAsync(_examCourseId.Value);
+				_unitExams = await ExamService.GetCourseMenuExamsAsync(_examCourseId.Value);
+				await LoadSupplementalExamEditorAsync(_examEditor.ExamId.Value);
+			}
+			else
+			{
+				await ExamService.SaveExamEditorAsync(_examCourseId.Value, _examEditor, _actorUserId.Value, _actorEmail);
+				_examMessage = "Exam saved. Previous attempts remain available in the audit history.";
+				await RefreshCertificatesAsync();
+				await RefreshAuditAsync();
+				await LoadExamEditorAsync();
+			}
 		}
 		catch (InvalidOperationException exception)
 		{
@@ -664,7 +781,7 @@
 
 		if (!_examCourseId.HasValue || !_retakeLearnerId.HasValue)
 		{
-			_examError = "Select both course and learner before granting retake.";
+			_examError = "Select both course and student before granting retake.";
 			return;
 		}
 
@@ -859,7 +976,6 @@
 	private async Task RefreshCertificatesAsync()
 	{
 		_certificateSummary = await EnrollmentService.GetCertificateComplianceSummaryAsync();
-		_certificateRows = await EnrollmentService.GetCertificateComplianceRowsAsync();
 	}
 
 	private async Task RenewCertificateAsync(Guid certificateId)

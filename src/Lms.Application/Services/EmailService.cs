@@ -4,7 +4,8 @@ using Microsoft.Extensions.Logging;
 
 namespace Lms.Application.Services;
 
-public record EmailMessage(string RecipientEmail, string Subject, string HtmlBody);
+public sealed record EmailAttachment(string FileName, string ContentType, byte[] Content);
+public record EmailMessage(string RecipientEmail, string Subject, string HtmlBody, IReadOnlyList<EmailAttachment>? Attachments = null);
 
 public interface IEmailService
 {
@@ -25,10 +26,12 @@ public class EmailService : IEmailService
     private readonly int _smtpTimeoutMs;
     private readonly string _deliveryMode;
     private readonly string _invoicePath;
+    private readonly MailSlurpEmailTransport? _mailSlurp;
 
-    public EmailService(ILogger<EmailService> logger)
+    public EmailService(ILogger<EmailService> logger, MailSlurpEmailTransport? mailSlurp = null)
     {
         _logger = logger;
+        _mailSlurp = mailSlurp;
         
         // Configuration from environment or appsettings
         _smtpHost = Environment.GetEnvironmentVariable("SMTP_HOST") ?? "localhost";
@@ -56,6 +59,13 @@ public class EmailService : IEmailService
     {
         try
         {
+            if (_mailSlurp is not null)
+            {
+                await _mailSlurp.SendAsync(message, attachmentFilePaths);
+                _logger.LogInformation("MailSlurp accepted development email to {Recipient}: {Subject}", message.RecipientEmail, message.Subject);
+                return true;
+            }
+
             if (_deliveryMode != "smtp")
             {
                 _logger.LogInformation("Email delivery mode is '{Mode}'. Simulating send to {Recipient}: {Subject}", _deliveryMode, message.RecipientEmail, message.Subject);
@@ -71,7 +81,7 @@ public class EmailService : IEmailService
                 client.Credentials = new NetworkCredential(_smtpUsername, _smtpPassword);
             }
 
-            var mailMessage = new MailMessage
+            using var mailMessage = new MailMessage
             {
                 From = new MailAddress(_fromEmail, _fromName),
                 Subject = message.Subject,
@@ -80,6 +90,9 @@ public class EmailService : IEmailService
             };
 
             mailMessage.To.Add(message.RecipientEmail);
+
+            foreach (var attachment in message.Attachments ?? [])
+                mailMessage.Attachments.Add(new Attachment(new MemoryStream(attachment.Content), attachment.FileName, attachment.ContentType));
 
             if (attachmentFilePaths is not null)
             {

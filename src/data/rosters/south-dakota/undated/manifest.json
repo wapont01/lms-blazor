@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "South Dakota",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\TXTS\\FIRM ROSTER PORTAL.txt",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "SOUTH DAKOTA\\TXTS\\FIRM ROSTER PORTAL.txt",
+                      "Sha256":  "4E9C258F7A8D18921A6DEEE4BFE04738900DC26D320DA962DF15713B6E8922C7",
+                      "Bytes":  223,
+                      "OfficialSourceUrl":  "https://sdrec.sd.gov/registration/licenseelist.aspx",
+                      "Coverage":  "Official firm roster portal evidence"
+                  },
+                  {
+                      "Path":  "raw\\TXTS\\LICENSE ROSTER PORTAL.txt",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "SOUTH DAKOTA\\TXTS\\LICENSE ROSTER PORTAL.txt",
+                      "Sha256":  "85BE343BAE0A820D6EEFAA170B07F4BFAE2936D13C30E5A0D4365A3F5A35D902",
+                      "Bytes":  378,
+                      "OfficialSourceUrl":  "https://sdrec.sd.gov/registration/licenseelist.aspx",
+                      "Coverage":  "Official license roster portal evidence"
+                  },
+                  {
+                      "Path":  "raw\\TXTS\\LICENSEE ROSTER PORTAL.txt",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "SOUTH DAKOTA\\TXTS\\LICENSEE ROSTER PORTAL.txt",
+                      "Sha256":  "6465F4E5F67E66B279AC1B544DE51BA454B695EFA026815BB0FC990643482CEA",
+                      "Bytes":  378,
+                      "OfficialSourceUrl":  "https://sdrec.sd.gov/registration/licenseelist.aspx",
+                      "Coverage":  "Official licensee roster portal evidence"
+                  },
+                  {
+                      "Path":  "raw\\TXTS\\South Dakota Real Estate City Sample Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "SOUTH DAKOTA\\TXTS\\South Dakota Real Estate City Sample Capture.json",
+                      "Sha256":  "7CC95523412B3A527593C587D5461A5704B6678B5649BEABF94F1D00867B12B2",
+                      "Bytes":  17928,
+                      "OfficialSourceUrl":  "https://sdrec.sd.gov/registration/licenseelist.aspx",
+                      "Coverage":  "City-based public search capture and source notes"
+                  }
+              ]
+}

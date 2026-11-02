@@ -13,6 +13,9 @@ public class Course
 
     public string Slug { get; set; } = string.Empty;
 
+    [NotMapped]
+    public bool IsDevelopmentSample => Slug.StartsWith(DevelopmentCourseCatalog.SlugPrefix, StringComparison.Ordinal);
+
     public string? Description { get; set; }
 
     [Required]
@@ -63,6 +66,11 @@ public class Course
 
     public bool IsPrelicensingOrPostlicensing => string.Equals(ComplianceType, CourseComplianceTypes.Prelicensing, StringComparison.OrdinalIgnoreCase)
         || string.Equals(ComplianceType, CourseComplianceTypes.Postlicensing, StringComparison.OrdinalIgnoreCase);
+
+    public bool IsPrelicensing => string.Equals(ComplianceType, CourseComplianceTypes.Prelicensing, StringComparison.OrdinalIgnoreCase);
+
+    public bool RequiresCommissionRecord => string.Equals(ComplianceType, CourseComplianceTypes.Postlicensing, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(ComplianceType, CourseComplianceTypes.ContinuingEducation, StringComparison.OrdinalIgnoreCase);
 
     // NC 21 NCAC 58H .0207(a)-(b): only in-person/synchronous/blended delivery requires time-based attendance; pure distance courses satisfy attendance via full unit/exam completion instead.
     public bool RequiresTimedAttendance => DeliveryMethod is CourseDeliveryMethods.InPerson or CourseDeliveryMethods.SynchronousDistanceLearning or CourseDeliveryMethods.Blended;
@@ -321,6 +329,8 @@ public class UserAccount
     public bool ForcePasswordChange { get; set; }
     public int FailedLoginCount { get; set; }
     public DateTime? LockoutEndUtc { get; set; }
+    public DateTime? EmailVerifiedAtUtc { get; set; }
+    public bool EmailTwoStepEnabled { get; set; }
 
     // null = marketing email allowed; a timestamp records when the user opted out (CAN-SPAM suppression)
     public DateTime? MarketingEmailOptOutAtUtc { get; set; }
@@ -533,6 +543,9 @@ public class Enrollment
     [StringLength(80)]
     public string? CertificationLastName { get; set; }
 
+    [StringLength(160)]
+    public string? CertificationPrintedName { get; set; }
+
     [StringLength(40)]
     public string? CertificationLicenseNumber { get; set; }
 
@@ -569,7 +582,6 @@ public class AuditLog
 
     public Guid? TargetId { get; set; }
 
-    [StringLength(800)]
     public string? Details { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -613,6 +625,9 @@ public class CompletionCertificate
     [StringLength(80)]
     public string? CertificationLastName { get; set; }
 
+    [StringLength(160)]
+    public string? CertificationPrintedName { get; set; }
+
     [StringLength(40)]
     public string? CertificationLicenseNumber { get; set; }
 
@@ -649,11 +664,30 @@ public class CompletionCertificate
     public Enrollment? Enrollment { get; set; }
 }
 
+public static class CourseExamKinds
+{
+    // Standard is the original behavior: the final exam when UnitId is null, otherwise the unit-scoped exam.
+    public const string Standard = "Standard";
+    // Intermediate exams sit after the unit in UnitId; a course can have several.
+    public const string Intermediate = "Intermediate";
+    // Practice exams have no unit, mimic the final exam, and are taken right before it.
+    public const string Practice = "Practice";
+
+    public static readonly string[] All = [Standard, Intermediate, Practice];
+}
+
 public class CourseExam
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CourseId { get; set; }
     public Guid? UnitId { get; set; }
+    public int ContentVersion { get; set; } = 1;
+
+    [Required]
+    [StringLength(20)]
+    public string Kind { get; set; } = CourseExamKinds.Standard;
+
+    public int OrderIndex { get; set; }
 
     [Required]
     [StringLength(160)]
@@ -719,9 +753,22 @@ public class ExamAttempt
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
     public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
     public int AttemptNumber { get; set; } = 1;
+    public int ExamVersion { get; set; } = 1;
     public decimal ScorePercent { get; set; }
     public bool Passed { get; set; }
     public Guid? ExamProctoringSessionId { get; set; }
+
+    [StringLength(160)]
+    public string? CourseTitleSnapshot { get; set; }
+
+    [StringLength(160)]
+    public string? ExamTitleSnapshot { get; set; }
+
+    [StringLength(20)]
+    public string? ExamKindSnapshot { get; set; }
+
+    [StringLength(160)]
+    public string? UnitTitleSnapshot { get; set; }
 
     [StringLength(500)]
     public string? FeedbackSummary { get; set; }
@@ -780,13 +827,35 @@ public class ExamAnswer
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid ExamAttemptId { get; set; }
-    public Guid ExamQuestionId { get; set; }
+    public Guid? ExamQuestionId { get; set; }
+    public int QuestionOrderSnapshot { get; set; }
 
     [Required]
     [StringLength(1)]
     public string SelectedOption { get; set; } = "A";
 
     public bool IsCorrect { get; set; }
+
+    [StringLength(500)]
+    public string? PromptSnapshot { get; set; }
+
+    [StringLength(220)]
+    public string? OptionASnapshot { get; set; }
+
+    [StringLength(220)]
+    public string? OptionBSnapshot { get; set; }
+
+    [StringLength(220)]
+    public string? OptionCSnapshot { get; set; }
+
+    [StringLength(220)]
+    public string? OptionDSnapshot { get; set; }
+
+    [StringLength(1)]
+    public string? CorrectOptionSnapshot { get; set; }
+
+    [StringLength(500)]
+    public string? FeedbackTextSnapshot { get; set; }
 
     public ExamAttempt? ExamAttempt { get; set; }
     public ExamQuestion? ExamQuestion { get; set; }

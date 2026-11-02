@@ -1,0 +1,55 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Indiana",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\XLXS\\Indiana_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "INDIANA\\XLXS\\Indiana_Development_Samples_20261011.json",
+                      "Sha256":  "01033EFE4DB216236C20BC253D018D398A3A74364373E5E94308EFEE0DD51D63",
+                      "Bytes":  2198,
+                      "OfficialSourceUrl":  "https://mylicense.in.gov/EVerification/SearchResults.aspx",
+                      "Coverage":  "Sample coverage and selection metadata"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Indiana_Indianapolis_Active_Broker_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "INDIANA\\XLXS\\Indiana_Indianapolis_Active_Broker_Development_Sample_20261011.csv",
+                      "Sha256":  "9F0F38022F7F349604F5EE819C64B9260F6FC473FAA9314A6371122E3985F752",
+                      "Bytes":  11322,
+                      "OfficialSourceUrl":  "https://mylicense.in.gov/EVerification/SearchResults.aspx",
+                      "Coverage":  "Indianapolis active broker sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Indiana_Indianapolis_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "INDIANA\\XLXS\\Indiana_Indianapolis_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "ADBA47DC6B92E6205982576FCC6B5ACE2EFFA973108E041DBDDB40E6D2BB9585",
+                      "Bytes":  23457,
+                      "OfficialSourceUrl":  "https://mylicense.in.gov/EVerification/SearchResults.aspx",
+                      "Coverage":  "Indianapolis active entity sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Indiana_Indianapolis_Development_Campaign_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "INDIANA\\XLXS\\Indiana_Indianapolis_Development_Campaign_20261011.csv",
+                      "Sha256":  "2F268D684CAF24C06643C0F59F42D117B785BFCCEAD460BC137957F97181776A",
+                      "Bytes":  34550,
+                      "OfficialSourceUrl":  "https://mylicense.in.gov/EVerification/SearchResults.aspx",
+                      "Coverage":  "Indianapolis bounded 60-record individual/business campaign dataset"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Indiana_License_Result_Captures_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "INDIANA\\XLXS\\Indiana_License_Result_Captures_20261011.json",
+                      "Sha256":  "50449744182E5EF91A734CA4008A73178599478E7B034C58BC724DA88F92B103",
+                      "Bytes":  53088,
+                      "OfficialSourceUrl":  "https://mylicense.in.gov/EVerification/SearchResults.aspx",
+                      "Coverage":  "Portal search result grid captures"
+                  }
+              ]
+}

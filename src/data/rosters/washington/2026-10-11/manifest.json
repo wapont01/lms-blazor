@@ -1,0 +1,136 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Washington",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\XLXS\\Washington_Full_Development_Campaign_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Full_Development_Campaign_20261011.json",
+                      "Sha256":  "5DDFD73BA946EB13447DF637DE06A074786AA71251B2E25BB6CF81337F5B79E8",
+                      "Bytes":  1452,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Full campaign coverage manifest"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Washington_Personal_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Personal_Development_Samples_20261011.json",
+                      "Sha256":  "D42D56EDDC78DFDA5E585F232303A247B329016B7E49E67DE723A5B478D7A2E6",
+                      "Bytes":  2966,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Personal search sample manifest"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Washington_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "3E68417F91BD43E8955B01A598B9B709DF13ABE3FC7DFDCBF394C01B394A64AA",
+                      "Bytes":  1478,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Sample manifest and coverage caveats"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Washington_Seattle_Active_Broker_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Active_Broker_Development_Sample_20261011.csv",
+                      "Sha256":  "B88BDC46DEF7F69DD71F6C1BE4713BAF27DCEA064DDC4FEAEE03CAF4664ADBF7",
+                      "Bytes":  10332,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Seattle active broker sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Washington_Seattle_Active_Firm_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Active_Firm_Development_Sample_20261011.csv",
+                      "Sha256":  "C3D64EDA711C171B597AA7853A2CF88E032E08617BD9D639DB37A05440818312",
+                      "Bytes":  8005,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Seattle active firm sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Washington_Seattle_Active_Managing_Broker_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Active_Managing_Broker_Development_Sample_20261011.csv",
+                      "Sha256":  "59E987240F9BA77D9027AD6D129298C40C14CAC0F23CDA26723559CEE5388BBF",
+                      "Bytes":  10725,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Seattle active managing broker sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Washington_Seattle_Full_Development_Campaign_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Full_Development_Campaign_20261011.csv",
+                      "Sha256":  "BCFC97C9ABF0CED873757B29DCA6990EC83632D18C5A41CB80116482EBE43A45",
+                      "Bytes":  3615680,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Combined Seattle-limited individual and business credentials"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Washington_Seattle_Active_Broker_Query_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Active_Broker_Query_20261011.csv",
+                      "Sha256":  "C96C38D7D1E7C5BB21AD302DFF3AF0706063F38766D59EC8BF9CF925D31AE20C",
+                      "Bytes":  305574,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Seattle active broker result pages"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Washington_Seattle_Active_Broker_Result_Captures_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Active_Broker_Result_Captures_20261011.json",
+                      "Sha256":  "30E39910B71B4E663D1DDC31072F716BEEAA8EBFA34F2E697433874FB5CF9E7A",
+                      "Bytes":  10428,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Broker search result capture evidence"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Washington_Seattle_Active_Firm_Query_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Active_Firm_Query_20261011.csv",
+                      "Sha256":  "911B3882931D509A22F4574353807D1D1A9DAD77681F97A8CE481D6E5093DD48",
+                      "Bytes":  60294,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Seattle active firm result pages"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Washington_Seattle_Active_Managing_Broker_Query_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Active_Managing_Broker_Query_20261011.csv",
+                      "Sha256":  "4F5713CE4573BFE0B8E54AA71E7C650FAAD75135A411B4F455B57AA7283EA380",
+                      "Bytes":  90080,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Seattle active managing broker results"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Washington_Seattle_Active_Managing_Broker_Result_Captures_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Active_Managing_Broker_Result_Captures_20261011.json",
+                      "Sha256":  "F1371C0F53F1EA276959E9D052BA57790587DDBA9CA40BB44AE97D1F8656E08D",
+                      "Bytes":  10650,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Managing broker result capture evidence"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Washington_Seattle_Firm_Profile_Captures_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Firm_Profile_Captures_20261011.json",
+                      "Sha256":  "0DFBE69CA5A1AFAEB423A14B203912805866B61E9E5E69888CE59CD195F887C7",
+                      "Bytes":  2158,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Firm profile captures"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Washington_Seattle_Firm_Result_Pages_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WASHINGTON\\XLXS\\Washington_Seattle_Firm_Result_Pages_20261011.json",
+                      "Sha256":  "72FFD0417484F1221EB84FE81B53131AB060239541CD3F853CDF885F4C1AA1B0",
+                      "Bytes":  226896,
+                      "OfficialSourceUrl":  "https://professions.dol.wa.gov/s/license-lookup",
+                      "Coverage":  "Firm search result pages and capture evidence"
+                  }
+              ]
+}

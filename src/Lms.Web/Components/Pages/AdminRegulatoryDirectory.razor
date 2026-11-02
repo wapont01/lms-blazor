@@ -4,7 +4,9 @@
 @using System.Text.Json
 @using Lms.Application.Services
 @using Lms.Domain.Entities
+@using Lms.Web.Services
 @inject IRegulatoryDirectoryService RegulatoryDirectoryService
+@inject ColoradoDoraDisplaySelectionStore ColoradoDoraSelectionStore
 @inject IUserAccountService UserAccountService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
@@ -15,6 +17,7 @@
         <h1>Regulatory Directory</h1>
         <p class="muted-text">Weekly licensing snapshots</p>
             <button type="button" class="secondary-btn" @onclick="RefreshAsync" disabled="@_isWorking">Refresh records</button>
+            <a class="secondary-btn" href="/admin/regulatory-statistics">State collection statistics</a>
     </div>
 </div>
 
@@ -23,8 +26,52 @@
     <p class="@(_hasError ? "auth-error" : "auth-help")">@_message</p>
 }
 
+<Lms.Web.Components.Shared.Admin.AdminRosterRequestsPanel />
+
 <section class="card">
-    <h2>Import Snapshot</h2>
+    <select aria-label="Bulk roster state" @bind="_bulkState">
+        <option>Florida</option><option>Texas</option><option>California</option><option>Colorado</option><option>Nevada</option>
+    </select>
+</section>
+<Lms.Web.Components.Shared.Admin.AdminFloridaBulkCollection @key="_bulkState" State="@_bulkState" SnapshotCompleted="OnBulkSnapshotCompletedAsync" />
+<Lms.Web.Components.Shared.Admin.AdminFloridaRosterHistory @key="@($"{_bulkState}-{_rosterHistoryVersion}")" State="@_bulkState" RosterRestored="OnRosterRestoredAsync" />
+@if (_bulkState == "Nevada")
+{
+    <Lms.Web.Components.Shared.Admin.AdminNevadaBulkBrowse @key="_rosterHistoryVersion" />
+}
+
+<section class="card">
+    <details>
+        <summary>Colorado DORA types shown in LMS (@_selectedColoradoTypes.Count of @ColoradoDoraLicenseTypes.DefaultEnabled.Count real-estate types enabled)</summary>
+        <p class="muted-text">The full DORA source is retained in the database. Real-estate license types can be enabled for the roster directory and registration search. Other professions are listed as future options but are unavailable in the public roster for now; company records cannot be linked to individual accounts.</p>
+        <div class="form-field">
+            @foreach (var option in ColoradoDoraLicenseTypes.All)
+            {
+                <label>
+                    <input type="checkbox" checked="@_selectedColoradoTypes.Contains(option.Name)"
+                           @onchange="args => SetColoradoTypeEnabled(option.Name, args.Value)"
+                           disabled="@(_isWorking || !option.IsRealEstate)" />
+                    @option.Name (@option.Prefix)@(!option.IsRealEstate ? " — not enabled yet" : string.Empty)
+                </label>
+            }
+        </div>
+        <button type="button" class="secondary-btn" @onclick="SaveColoradoTypesAsync" disabled="@_isWorking">Save Colorado types</button>
+    </details>
+</section>
+
+<section class="card" aria-label="Nevada NRED source types">
+    <details>
+        <summary>Nevada NRED source coverage</summary>
+        <p class="muted-text">The saved September 2026 baseline retains 12 source lists: 36,904 source rows, including 32,959 numbered license records across 11 categories and 3,944 HOA source entries. These are baseline counts, not guaranteed counts for later collections. Select Nevada above for current collection, lookup and history. Admin lookup searches all numbered categories; public registration remains limited to Broker, Broker-Salesperson and Salesperson.</p>
+        <p><strong>Admin-only numbered categories:</strong> Appraisal Management Company, Appraiser, Business Broker, Community Association Manager, Energy Auditor, Inspector of Structures, Property Manager, Timeshare Agent.</p>
+        <p>HOA entries are retained as source evidence, not individual licenses. The separately linked historical Reserve Study Specialists workbook is not included in this active-list integration.</p>
+        <a href="https://red.nv.gov/Content/Administration/Active_Licensee_Lists/" target="_blank" rel="noopener noreferrer">Open Nevada NRED Active Licensee Lists</a>
+    </details>
+</section>
+
+<section class="card">
+    <h2>Other sources: import normalized snapshot</h2>
+    <p class="muted-text">Florida, Texas, California, Colorado and Nevada use the official bulk collection above. This import remains available for other states and historical sources.</p>
     <div class="form-field">
         <label for="regulatory-snapshot-json">Normalized snapshot JSON</label>
         <textarea id="regulatory-snapshot-json" rows="14" @bind="_snapshotJson" disabled="@_isWorking"></textarea>
@@ -74,9 +121,9 @@
                             <td>@snapshot.RetrievedAtUtc.ToString("yyyy-MM-dd HH:mm 'UTC'")</td>
                             <td>@(snapshot.AcquisitionCost.HasValue ? $"${snapshot.AcquisitionCost.Value:F2}" : "Not recorded")</td>
                             <td>@snapshot.FirmCount firms, @snapshot.LicenseeCount licensees</td>
-                            <td><span class="status-pill @GetStatusClass(snapshot.Status)">@GetStatusText(snapshot.Status)</span></td>
+                            <td><span class="status-pill @GetStatusClass(snapshot.Status)">@(IsBulk(snapshot.ParserVersion) && snapshot.Status == RegulatorySnapshotStatuses.Approved ? "Synchronized" : GetStatusText(snapshot.Status))</span></td>
                             <td>
-                                @if (snapshot.Status == RegulatorySnapshotStatuses.PendingReview)
+                                @if (snapshot.Status == RegulatorySnapshotStatuses.PendingReview && !IsBulk(snapshot.ParserVersion))
                                 {
                                     <button type="button" class="secondary-btn" @onclick="() => ApproveAsync(snapshot.SnapshotId)" disabled="@_isWorking">Approve</button>
                                 }
@@ -90,20 +137,20 @@
 </section>
 
 <section class="card">
-    <h2>Approved licensees</h2>
+    <h2>Roster licensees</h2>
     <p class="muted-text">Review captured state records before linking them to local user accounts.</p>
     <div class="course-actions">
         <button type="button" class="secondary-btn" @onclick="RefreshLicenseesAsync" disabled="@(_isWorking || _isLoadingLicensees)">
-            @(_isLoadingLicensees ? "Loading approved licensees..." : _licenseesLoaded ? "Refresh approved licensees" : "Load approved licensees")
+            @(_isLoadingLicensees ? "Loading roster licensees..." : _licenseesLoaded ? "Refresh roster licensees" : "Load roster licensees")
         </button>
     </div>
     @if (!_licenseesLoaded)
     {
-        <p class="muted-text">Approved licensees are not loaded.</p>
+        <p class="muted-text">Roster licensees are not loaded.</p>
     }
     else if (_licensees.Count == 0)
     {
-        <p class="muted-text">No approved licensee records are available.</p>
+        <p class="muted-text">No current roster licensee records are available.</p>
     }
     else
     {
@@ -127,20 +174,29 @@
                         <tr>
                             <td>@licensee.State</td>
                             <td>@licensee.Name</td>
-                            <td>@licensee.LicenseNumber (@licensee.LicenseLevel)</td>
+                            <td>
+                                @licensee.LicenseNumber (@(licensee.SourceLicenseType ?? licensee.LicenseLevel ?? licensee.LicenseType))
+                            </td>
                             <td>@licensee.LicenseStatus</td>
                             <td>@(licensee.LicenseIssuedDate?.ToString("yyyy-MM-dd") ?? "Not reported")</td>
                             <td>@(licensee.LicenseRenewalDate?.ToString("yyyy-MM-dd") ?? "Not reported")</td>
                             <td>@GetLinkedUserText(licensee.LinkedUserId)</td>
                             <td>
-                                <select value="@GetSelectedUserId(licensee)" @onchange="args => SelectUser(licensee.LicenseeId, args.Value?.ToString())" disabled="@_isWorking">
-                                    <option value="">Select account</option>
-                                    @foreach (var user in _users)
-                                    {
-                                        <option value="@user.Id">@user.DisplayName (@user.Email)</option>
-                                    }
-                                </select>
-                                <button type="button" class="secondary-btn" @onclick="() => LinkAsync(licensee.LicenseeId)" disabled="@(_isWorking || !HasSelectedUser(licensee.LicenseeId))">Link</button>
+                                @if (CanLinkToUser(licensee))
+                                {
+                                    <select value="@GetSelectedUserId(licensee)" @onchange="args => SelectUser(licensee.LicenseeId, args.Value?.ToString())" disabled="@_isWorking">
+                                        <option value="">Select account</option>
+                                        @foreach (var user in _users)
+                                        {
+                                            <option value="@user.Id">@user.DisplayName (@user.Email)</option>
+                                        }
+                                    </select>
+                                    <button type="button" class="secondary-btn" @onclick="() => LinkAsync(licensee.LicenseeId)" disabled="@(_isWorking || !HasSelectedUser(licensee.LicenseeId))">Link</button>
+                                }
+                                else
+                                {
+                                    <span class="muted-text">Organization record</span>
+                                }
                             </td>
                         </tr>
                     }
@@ -152,7 +208,7 @@
 
 <section class="card">
     <h2>Campaign targets</h2>
-    <p class="muted-text">Approved firms with qualifying brokers and upcoming licensee renewals for sales outreach. Choose a state to preview its targets and export that state's full list for Excel.</p>
+    <p class="muted-text">Current roster firms with qualifying brokers and upcoming licensee renewals. Choose a state to preview its targets and export that state's full list for Excel.</p>
     <div class="form-field">
         <label for="campaign-state-filter">Preview and export state</label>
         <select id="campaign-state-filter" value="@_campaignState" @onchange="OnCampaignStateChangedAsync" disabled="@_isWorking">
@@ -214,6 +270,16 @@
 </section>
 
 @code {
+    private string _bulkState = "Florida";
+    [SupplyParameterFromQuery(Name = "state")] public string? RequestedState { get; set; }
+    private static bool IsBulk(string? parser) => parser is FloridaBulkImportService.ParserVersion or TexasBulkImportService.ParserVersion or CaliforniaBulkImportService.ParserVersion or ColoradoDoraBulkImportService.ParserVersion or NevadaNredBulkImportService.ParserVersion;
+    private int _rosterHistoryVersion;
+    private async Task OnRosterRestoredAsync()
+    {
+        await RefreshSnapshotsAsync();
+        if (_licenseesLoaded) await RefreshLicenseesAsync();
+        if (_campaignTargetsLoaded) await RefreshCampaignTargetsAsync();
+    }
     private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
     private List<RegulatorySnapshotSummary> _snapshots = new();
     private List<RegulatoryLicenseeSummary> _licensees = new();
@@ -222,6 +288,7 @@
     private string _campaignState = string.Empty;
     private List<UserAccount> _users = new();
     private readonly Dictionary<Guid, Guid> _selectedUsers = new();
+    private HashSet<string> _selectedColoradoTypes = new(StringComparer.Ordinal);
     private string _snapshotJson = string.Empty;
     private string? _message;
     private bool _hasError;
@@ -233,6 +300,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        if (RequestedState is "Florida" or "Texas" or "California" or "Colorado" or "Nevada") _bulkState = RequestedState;
+        _selectedColoradoTypes = ColoradoDoraSelectionStore.GetSelected().ToHashSet(StringComparer.Ordinal);
         _users = (await UserAccountService.GetAllAsync()).Where(user => user.IsActive).OrderBy(user => user.DisplayName).ToList();
         await RefreshSnapshotsAsync();
         _campaignStates = await RegulatoryDirectoryService.GetCampaignStateOptionsAsync();
@@ -347,6 +416,16 @@
         _snapshots = await RegulatoryDirectoryService.GetRecentSnapshotsAsync();
     }
 
+    private async Task OnBulkSnapshotCompletedAsync(Guid snapshotId)
+    {
+        _rosterHistoryVersion++;
+        await RefreshSnapshotsAsync();
+        _hasError = false;
+        _message = $"Bulk roster {snapshotId} synchronized automatically.";
+        if (_licenseesLoaded) await RefreshLicenseesAsync();
+        if (_campaignTargetsLoaded) await RefreshCampaignTargetsAsync();
+    }
+
     private async Task RefreshAsync()
     {
         _isWorking = true;
@@ -375,7 +454,7 @@
         catch (Exception)
         {
             _hasError = true;
-            _message = "Approved licensees could not be loaded. Please try again.";
+            _message = "Roster licensees could not be loaded. Please try again.";
         }
         finally
         {
@@ -403,6 +482,42 @@
     }
 
     private bool HasSelectedUser(Guid licenseeId) => _selectedUsers.ContainsKey(licenseeId);
+
+    private bool CanLinkToUser(RegulatoryLicenseeSummary licensee)
+    {
+        if (licensee.State != "Colorado")
+            return true;
+        var option = ColoradoDoraLicenseTypes.All.FirstOrDefault(item => item.Name == licensee.SourceLicenseType);
+        return option?.IsIndividual == true;
+    }
+
+    private void SetColoradoTypeEnabled(string typeName, object? rawValue)
+    {
+        if (ColoradoDoraLicenseTypes.All.FirstOrDefault(option => option.Name == typeName)?.IsRealEstate != true)
+            return;
+        if (rawValue is not bool enabled) return;
+        if (enabled)
+            _selectedColoradoTypes.Add(typeName);
+        else
+            _selectedColoradoTypes.Remove(typeName);
+    }
+
+    private async Task SaveColoradoTypesAsync()
+    {
+        try
+        {
+            ColoradoDoraSelectionStore.Save(_selectedColoradoTypes);
+            _selectedColoradoTypes = ColoradoDoraSelectionStore.GetSelected().ToHashSet(StringComparer.Ordinal);
+            if (_licenseesLoaded) await RefreshLicenseesAsync();
+            _hasError = false;
+            _message = "Colorado DORA display types saved.";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or InvalidDataException or ArgumentException)
+        {
+            _hasError = true;
+            _message = $"Colorado DORA display types could not be saved: {exception.Message}";
+        }
+    }
 
     private string GetLinkedUserText(Guid? userId)
     {

@@ -1,0 +1,161 @@
+@page "/admin/regulatory-schedules"
+@attribute [Authorize(Roles = "Admin")]
+@using Lms.Web.Services
+@inject IEnumerable<BulkCollectionService> Collections
+@inject ILogger<AdminRegulatorySchedules> Logger
+
+<PageTitle>Collection Schedules</PageTitle>
+
+<div class="collection-schedules">
+    <header>
+        <h1>Collection schedules</h1>
+        <p class="muted-text">Set an independent recurring update schedule for each implemented state.</p>
+    </header>
+    <p class="muted-text">Times use the time zone shown for each state; current states default to their capital's zone, and daylight-saving changes are applied automatically. New state collectors appear here when implemented; verify their time zone before saving. Saving a schedule sets its next run after the selected interval.</p>
+    <p class="muted-text">With collection alerts enabled, active admins receive a reminder within 24 hours before each scheduled update and a notification after a scheduled collection succeeds. Notifications show the state's time zone; email uses the configured delivery service. Checks run while the LMS is running.</p>
+    @if (_error is not null)
+    {
+        <p class="auth-error" role="alert">@_error</p>
+    }
+    @if (_rows.Count > 0)
+    {
+        <div class="table-wrap">
+            <table aria-label="State collection schedules">
+                <thead>
+                    <tr><th scope="col">State</th><th scope="col">Automatic</th><th scope="col">Interval</th><th scope="col">Local time</th><th scope="col">Time zone</th><th scope="col">Next run</th><th scope="col">Action</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in _rows)
+                    {
+                        <tr @key="row.State">
+                            <th scope="row">
+                                @row.State
+                                <details class="cadence-note" aria-label="@($"{row.State} publication cadence")">
+                                    <summary>Source: @row.Cadence.Frequency</summary>
+                                    <p>@row.Cadence.Evidence</p>
+                                    @if (row.Cadence.SourceUrl.Length > 0)
+                                    {
+                                        <a href="@row.Cadence.SourceUrl" target="_blank" rel="noopener noreferrer">Official cadence source</a>
+                                        <p>Evidence reviewed: @row.Cadence.ReviewedOn</p>
+                                    }
+                                    @if (row.Cadence.SavedEvidence is { } saved)
+                                    {
+                                        <p>Saved evidence: @saved</p>
+                                    }
+                                    <p>Source publication cadence and the saved LMS collection schedule are separate. These notes do not change your schedule automatically.</p>
+                                </details>
+                                <p class="cadence-guidance">@row.Cadence.SchedulingNote</p>
+                            </th>
+                            <td><input aria-label="@($"{row.State} automatic updates")" type="checkbox" @bind="row.Enabled" /></td>
+                            <td class="interval">
+                                <input aria-label="@($"{row.State} interval")" type="number" min="1" max="365" @bind="row.Interval" />
+                                <select aria-label="@($"{row.State} interval unit")" @bind="row.Unit">
+                                    <option value="Days">Days</option>
+                                    <option value="Weeks">Weeks</option>
+                                    <option value="Months">Months</option>
+                                </select>
+                            </td>
+                            <td><input aria-label="@($"{row.State} local update time")" type="time" value="@row.LocalTime"
+                                       @onchange="eventArgs => row.LocalTime = eventArgs.Value?.ToString() ?? string.Empty" /></td>
+                            <td><input aria-label="@($"{row.State} time zone")" type="text" @bind="row.TimeZoneId" /></td>
+                            <td>@NextRun(row)</td>
+                            <td>
+                                <button type="button" class="secondary-btn" @onclick="() => SaveAsync(row)"
+                                        disabled="@(_savingState is not null)">
+                                    @(_savingState == row.State ? "Saving..." : "Save")
+                                </button>
+                                @if (row.Error is not null)
+                                {
+                                    <small class="auth-error" role="alert">@row.Error</small>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<ScheduleRow> _rows = [];
+    private string? _error;
+    private string? _savingState;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            foreach (var collection in Collections.OrderBy(item => item.State, StringComparer.Ordinal))
+            {
+                var schedule = await collection.GetScheduleAsync();
+                _rows.Add(new ScheduleRow(collection, schedule));
+            }
+        }
+        catch (Exception exception) when (exception is IOException or InvalidDataException or InvalidOperationException or ArgumentException)
+        {
+            Logger.LogError(exception, "Could not load state collection schedules");
+            _error = "Collection schedules could not be loaded: " + exception.Message;
+        }
+    }
+
+    private async Task SaveAsync(ScheduleRow row)
+    {
+        row.Error = null;
+        _savingState = row.State;
+        try
+        {
+            await row.Collection.SaveScheduleAsync(row.Enabled, row.Interval, row.Unit, row.LocalTime, row.TimeZoneId);
+            var schedule = await row.Collection.GetScheduleAsync();
+            row.Update(schedule);
+        }
+        catch (Exception exception) when (exception is ArgumentException or IOException or InvalidDataException or InvalidOperationException)
+        {
+            Logger.LogError(exception, "Could not save {State} collection schedule", row.State);
+            row.Error = exception.Message;
+        }
+        finally
+        {
+            _savingState = null;
+        }
+    }
+
+    private static string NextRun(ScheduleRow row)
+    {
+        if (!row.Enabled) return "Disabled";
+        if (row.NextRunAtUtc is not { } nextRun) return "Not scheduled";
+        try
+        {
+            var zone = TimeZoneInfo.FindSystemTimeZoneById(row.TimeZoneId);
+            return TimeZoneInfo.ConvertTimeFromUtc(nextRun, zone).ToString("yyyy-MM-dd HH:mm") + $" ({row.TimeZoneId})";
+        }
+        catch (Exception exception) when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return "Invalid time zone";
+        }
+    }
+
+    private sealed class ScheduleRow(BulkCollectionService collection, BulkCollectionSchedule schedule)
+    {
+        public BulkCollectionService Collection { get; } = collection;
+        public string State => Collection.State;
+        public RosterPublicationCadence Cadence => RosterPublicationCadence.ForState(State);
+        public bool Enabled { get; set; } = schedule.Enabled;
+        public int Interval { get; set; } = schedule.Interval;
+        public string Unit { get; set; } = schedule.Unit;
+        public string LocalTime { get; set; } = schedule.LocalTime;
+        public string TimeZoneId { get; set; } = schedule.TimeZoneId;
+        public DateTime? NextRunAtUtc { get; private set; } = schedule.NextRunAtUtc;
+        public string? Error { get; set; }
+
+        public void Update(BulkCollectionSchedule saved)
+        {
+            Enabled = saved.Enabled;
+            Interval = saved.Interval;
+            Unit = saved.Unit;
+            LocalTime = saved.LocalTime;
+            TimeZoneId = saved.TimeZoneId;
+            NextRunAtUtc = saved.NextRunAtUtc;
+        }
+    }
+}

@@ -1,0 +1,100 @@
+.record-view {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.record-heading,
+.record-source {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.record-state {
+    margin: 0 0 4px;
+    color: #1e40af;
+    font-size: .8rem;
+    font-weight: 700;
+}
+
+.record-heading h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    color: #0f172a;
+}
+
+.record-number {
+    display: grid;
+    gap: 3px;
+}
+
+.record-number span,
+dt {
+    font-size: .8rem;
+    color: #475569;
+}
+
+.record-number strong {
+    font-size: 1.1rem;
+    letter-spacing: .03em;
+    color: #0f172a;
+}
+
+.record-summary,
+.record-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
+    gap: 12px 20px;
+    margin: 0;
+}
+
+.record-summary {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 12px;
+    margin-top: 16px;
+}
+
+dd {
+    margin: 4px 0 0;
+    color: #1e293b;
+    font-weight: 600;
+    font-size: .9rem;
+}
+
+.record-section {
+    margin-top: 16px;
+}
+
+.record-section h4 {
+    margin: 0 0 10px;
+    font-size: .85rem;
+    color: #334155;
+}
+
+.record-source {
+    border-top: 1px solid #e2e8f0;
+    margin-top: 16px;
+    padding-top: 10px;
+    font-size: .75rem;
+    color: #64748b;
+}
+
+.source-date {
+    display: inline-block;
+    margin-left: 8px;
+}
+
+@media (max-width: 480px) {
+    .record-number {
+        width: 100%;
+    }
+
+    .source-date {
+        display: block;
+        margin: 4px 0 0;
+    }
+}

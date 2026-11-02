@@ -4,6 +4,7 @@
 @using System.Security.Claims
 @using Lms.Application.Services
 @using Lms.Domain.Entities
+@using Lms.Web.Components.Shared
 @inject ICourseService CourseService
 @inject IEnrollmentService EnrollmentService
 @inject IExamService ExamService
@@ -20,6 +21,14 @@
 }
 else
 {
+    @if (_course.IsDevelopmentSample)
+    {
+        <section class="card" role="status">
+            <strong>Development sample - not state-approved or eligible for credit.</strong>
+            <p>Copied content may refer to another state. Completion does not issue a certificate.</p>
+            <a href="@($"/state-licensing?state={Uri.EscapeDataString(_course.State ?? string.Empty)}")">Real estate licensing Q&amp;A for @_course.State</a>
+        </section>
+    }
     var firstLesson = _course.Units
         .OrderBy(unit => unit.OrderIndex)
         .SelectMany(unit => unit.Lessons.OrderBy(lesson => lesson.OrderIndex))
@@ -83,6 +92,51 @@ else
                                 }
                             </ul>
                         }
+                        @{
+                            var unitExams = GetMenuExamsForUnit(unit.Id);
+                        }
+                        @if (unitExams.Count > 0)
+                        {
+                            <ul class="lesson-menu-exam-list">
+                                @foreach (var exam in unitExams)
+                                {
+                                    var examLabel = exam.Kind == CourseExamKinds.Standard ? "Unit Exam" : exam.Title;
+                                    <li>
+                                        @if (IsCurrentMenuExam(exam.Id) && GetLastLessonInUnit(unit) is { } examLesson)
+                                        {
+                                            <a class="menu-item-link menu-exam-entry" href="@BuildExamMenuUri(examLesson.Id, exam.Id)">@examLabel — @GetExamMenuStatus(exam.Id)</a>
+                                        }
+                                        else
+                                        {
+                                            <span class="menu-link-disabled menu-exam-entry">@examLabel — @GetExamMenuStatus(exam.Id)</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </section>
+                }
+                @if (_courseMenuExams.Any(exam => exam.UnitId is null
+                    && (exam.Kind != CourseExamKinds.Standard || exam.IsRequired)))
+                {
+                    <section class="lesson-menu-unit">
+                        <ul class="lesson-menu-exam-list">
+                            @foreach (var exam in _courseMenuExams.Where(exam => exam.UnitId is null
+                                && (exam.Kind != CourseExamKinds.Standard || exam.IsRequired)))
+                            {
+                                var examLabel = exam.Kind == CourseExamKinds.Standard ? "Final Exam" : exam.Title;
+                                <li>
+                                    @if (IsCurrentMenuExam(exam.Id) && GetLastCourseLesson() is { } examLesson)
+                                    {
+                                        <a class="menu-item-link menu-exam-entry" href="@BuildExamMenuUri(examLesson.Id, exam.Id)">@examLabel — @GetExamMenuStatus(exam.Id)</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="menu-link-disabled menu-exam-entry">@examLabel — @GetExamMenuStatus(exam.Id)</span>
+                                    }
+                                </li>
+                            }
+                        </ul>
                     </section>
                 }
             </div>
@@ -171,6 +225,10 @@ else
                     </div>
                 }
             </section>
+            @if (_isEnrolled && _userId.HasValue)
+            {
+                <ExamAttemptHistoryPanel Attempts="_courseExamHistory" />
+            }
         </section>
     </div>
 }
@@ -209,9 +267,11 @@ else
     private decimal _learnerFlowProgressPercent;
     private Dictionary<Guid, bool> _lessonCompletion = new();
     private CourseExamView? _exam;
+    private List<CourseExamMenuInfo> _courseMenuExams = new();
     private ExamEligibility? _examEligibility;
     private ExamAttemptSummary? _latestAttempt;
     private List<ExamAttemptHistoryItem> _examHistory = new();
+    private List<ExamAttemptHistoryItem> _courseExamHistory = new();
     private readonly ExamSubmissionForm _examForm = new();
     private readonly List<ExamQuestionInput> _examInputs = new();
     private readonly HashSet<Guid> _expandedUnitIds = new();
@@ -222,6 +282,14 @@ else
     private bool ShowLearnerFlowProgress => _isEnrolled && OverviewProgressPercent > 0;
     private decimal OverviewProgressPercent => _examEligibility?.HasPassed == true ? 100m : _enrollmentProgressPercent;
     private bool MenuLinksEnabled => _hasTimedSessionStarted && !IsExamTerminalOverviewLock;
+    private Guid? CurrentMenuExamId => _course is null
+        ? null
+        : CourseExamMenuProgress.GetCurrentRequiredExamId(
+            _course,
+            _courseMenuExams,
+            _courseExamHistory,
+            _lessonCompletion,
+            MenuLinksEnabled);
     private bool PassedFinalExamOnFirstAttempt => _examHistory
         .OrderBy(item => item.AttemptNumber)
         .ThenBy(item => item.SubmittedAt)
@@ -292,6 +360,8 @@ else
 
         if (_course is not null)
         {
+            _courseMenuExams = await ExamService.GetCourseMenuExamsAsync(_course.Id);
+
             foreach (var unit in _course.Units.Where(unit => !IsGettingStartedUnit(unit)))
             {
                 _expandedUnitIds.Add(unit.Id);
@@ -328,6 +398,7 @@ else
         else
         {
             _isEnrolled = false;
+            _courseExamHistory.Clear();
         }
     }
 
@@ -341,7 +412,8 @@ else
         try
         {
             var storedUtc = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", BuildTimedSessionStorageKey());
-            _hasTimedSessionStarted = DateTime.TryParse(storedUtc, out _);
+            _hasTimedSessionStarted = DateTimeOffset.TryParse(storedUtc, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out _);
         }
         catch (JSException)
         {
@@ -462,6 +534,7 @@ else
         _examEligibility = await ExamService.GetEligibilityAsync(_course.Id, _userId.Value);
         _latestAttempt = _examEligibility.LatestAttempt;
         _examHistory = await ExamService.GetAttemptHistoryAsync(_course.Id, _userId.Value);
+        _courseExamHistory = await ExamService.GetAttemptHistoryForCourseAsync(_course.Id, _userId.Value);
 
         _examInputs.Clear();
         if (_exam is not null)
@@ -555,6 +628,64 @@ else
         }
 
         return $"{lessonUri}?learnerId={Uri.EscapeDataString(_learnerContextUserId.Value.ToString())}";
+    }
+
+    private string BuildExamMenuUri(Guid lessonId, Guid examId)
+    {
+        var lessonUri = BuildLessonUri(lessonId);
+        var separator = lessonUri.Contains('?') ? '&' : '?';
+        return $"{lessonUri}{separator}examId={Uri.EscapeDataString(examId.ToString("D"))}";
+    }
+
+    private List<CourseExamMenuInfo> GetMenuExamsForUnit(Guid unitId)
+    {
+        return _courseMenuExams
+            .Where(exam => exam.UnitId == unitId
+                && (exam.Kind != CourseExamKinds.Standard || exam.IsRequired))
+            .OrderBy(exam => exam.OrderIndex)
+            .ToList();
+    }
+
+    private bool IsCurrentMenuExam(Guid examId) => CurrentMenuExamId == examId;
+
+    private string GetExamMenuStatus(Guid examId)
+    {
+        var latestAttempt = _courseExamHistory
+            .Where(attempt => attempt.ExamId == examId)
+            .OrderByDescending(attempt => attempt.SubmittedAt)
+            .FirstOrDefault();
+        var currentVersion = _courseMenuExams.FirstOrDefault(exam => exam.Id == examId)?.ContentVersion ?? 1;
+        if (_courseExamHistory.Any(attempt => attempt.ExamId == examId
+            && attempt.ExamVersion == currentVersion
+            && attempt.Passed))
+        {
+            return "Passed";
+        }
+
+        if (latestAttempt is not null)
+        {
+            return IsCurrentMenuExam(examId) ? "Failed · Retake available" : "Failed · Locked";
+        }
+
+        if (_courseMenuExams.FirstOrDefault(exam => exam.Id == examId)?.Kind == CourseExamKinds.Practice)
+        {
+            return "Practice · optional";
+        }
+
+        return IsCurrentMenuExam(examId) ? "Available" : "Locked";
+    }
+
+    private static Lesson? GetLastLessonInUnit(Unit unit)
+    {
+        return unit.Lessons.OrderBy(lesson => lesson.OrderIndex).LastOrDefault();
+    }
+
+    private Lesson? GetLastCourseLesson()
+    {
+        return _course?.Units
+            .OrderBy(unit => unit.OrderIndex)
+            .SelectMany(unit => unit.Lessons.OrderBy(lesson => lesson.OrderIndex))
+            .LastOrDefault();
     }
 
     private string BuildCourseDetailUri(Guid courseId, Guid? learnerUserId)

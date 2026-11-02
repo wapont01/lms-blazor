@@ -1,0 +1,82 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Colorado",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Colorado Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "COLORADO\\TXTS\\Colorado Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "133E2D569D4E0CCFB515B3D75C043615FF927CC9E69A55412ACE0BE6A54FA3E1",
+                      "Bytes":  6273,
+                      "OfficialSourceUrl":  "https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Development-source selection and scope notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Colorado_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "COLORADO\\XLXS\\Colorado_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "83AB3B05E8F4032F3C42DEE5D84E29F1D4C0D6E177FDDA1259D0A761A11B2ACF",
+                      "Bytes":  16406,
+                      "OfficialSourceUrl":  "https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Active entity development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Colorado_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "COLORADO\\XLXS\\Colorado_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "3FF4A48D3B5F8BF6D3E7B9DC3E29355268DCF4AF7CFA5BAF5C765A79A2CB876E",
+                      "Bytes":  58349,
+                      "OfficialSourceUrl":  "https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Active individual development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Colorado_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "COLORADO\\XLXS\\Colorado_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "66649E2DE55114DF8E008F63F3A8DB5EE7DDD62248E629CC0B91972AE85E74A6",
+                      "Bytes":  10474,
+                      "OfficialSourceUrl":  "https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Sample manifest and source type counts"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Colorado_Active_Associate_Brokers_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "COLORADO\\XLXS\\Colorado_Active_Associate_Brokers_20261011.csv",
+                      "Sha256":  "3782D1C601057ACF4709C1F9ECFB325EEFA321A2AB588381A966EB183D2B4ACA",
+                      "Bytes":  5917062,
+                      "OfficialSourceUrl":  "https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Statewide active associate brokers"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Colorado_Active_Individual_Proprietors_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "COLORADO\\XLXS\\Colorado_Active_Individual_Proprietors_20261011.csv",
+                      "Sha256":  "66C590B1F36E92D23D4A20F3EE804C544E724498D7CB84E31885D01FAC4B1A5B",
+                      "Bytes":  589279,
+                      "OfficialSourceUrl":  "https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Statewide active individual proprietors"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Colorado_Active_Real_Estate_Companies_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "COLORADO\\XLXS\\Colorado_Active_Real_Estate_Companies_20261011.csv",
+                      "Sha256":  "BC98B7E3309BF6FDF5E679D571358ECD939BCAEF30EFF1531CD9DE6601D8F0C6",
+                      "Bytes":  886822,
+                      "OfficialSourceUrl":  "https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Statewide active real-estate companies"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Colorado_Active_Responsible_Brokers_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "COLORADO\\XLXS\\Colorado_Active_Responsible_Brokers_20261011.csv",
+                      "Sha256":  "026D250C024373E8DF801B62FEED1B594A0203697B2B30F694896010BBCFFC2E",
+                      "Bytes":  1015107,
+                      "OfficialSourceUrl":  "https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Statewide active responsible brokers"
+                  }
+              ]
+}

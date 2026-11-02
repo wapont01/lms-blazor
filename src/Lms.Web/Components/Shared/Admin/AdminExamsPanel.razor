@@ -26,11 +26,92 @@
         }
     </div>
     <div class="course-actions">
-        <button type="button" @onclick="OnLoadExamEditor" disabled="@string.IsNullOrWhiteSpace(ExamCourseIdText)">Load Exam</button>
+        <button type="button" @onclick="OnLoadExamEditor" disabled="@string.IsNullOrWhiteSpace(ExamCourseIdText)">Load Final Exam</button>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(ExamCourseIdText))
+    {
+        <h3>Unit Exams</h3>
+        <p class="muted-text">Add or edit the required exam attached to each unit. Unit Exams unlock after that unit's lessons are complete.</p>
+        @if (!ActiveCourseUnits.Any())
+        {
+            <p class="muted-text">Add course units before configuring Unit Exams.</p>
+        }
+        else
+        {
+            <ul class="course-list">
+                @foreach (var unit in ActiveCourseUnits)
+                {
+                    var unitExam = UnitExams.FirstOrDefault(exam => exam.Kind == CourseExamKinds.Standard && exam.UnitId == unit.Id);
+                    <li>
+                        <span>@unit.Title — @(unitExam is null ? "No Unit Exam configured" : $"{unitExam.QuestionCount} questions")</span>
+                        @if (unitExam is null)
+                        {
+                            <button type="button" @onclick="() => OnCreateUnitExam.InvokeAsync(unit.Id)">Add Unit Exam</button>
+                        }
+                        else
+                        {
+                            <button type="button" @onclick="() => OnLoadUnitExamEditor.InvokeAsync(unitExam.Id)">Edit Unit Exam</button>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+
+        <h3>Intermediate and Practice Exams</h3>
+        <p class="muted-text">Intermediate Exams follow a unit. The Practice Exam is placed before the Final Exam and starts with a copy of its questions.</p>
+        <div class="form-row">
+            <div class="form-field">
+                <label>Exam Type</label>
+                <InputSelect @bind-Value="_newSupplementalKind">
+                    <option value="@CourseExamKinds.Intermediate">Intermediate Exam</option>
+                    <option value="@CourseExamKinds.Practice">Practice Exam</option>
+                </InputSelect>
+            </div>
+            @if (_newSupplementalKind == CourseExamKinds.Intermediate)
+            {
+                <div class="form-field">
+                    <label>After Unit</label>
+                    <InputSelect @bind-Value="_newSupplementalUnitIdText">
+                        <option value="">Select a unit</option>
+                        @foreach (var unit in ActiveCourseUnits)
+                        {
+                            <option value="@unit.Id">@unit.Title</option>
+                        }
+                    </InputSelect>
+                </div>
+            }
+        </div>
+        <div class="course-actions">
+            <button type="button" @onclick="CreateSupplementalExamAsync" disabled="@(OnCreateSupplementalExam.HasDelegate == false || (_newSupplementalKind == CourseExamKinds.Intermediate && string.IsNullOrWhiteSpace(_newSupplementalUnitIdText)))">Add Exam</button>
+        </div>
+        @if (SupplementalExams.Count == 0)
+        {
+            <p class="muted-text">No Intermediate or Practice Exams are configured for this course.</p>
+        }
+        else
+        {
+            <ul class="course-list">
+                @foreach (var exam in SupplementalExams.OrderBy(exam => exam.OrderIndex))
+                {
+                    var unitTitle = exam.UnitId.HasValue
+                        ? ActiveCourse?.Units.FirstOrDefault(unit => unit.Id == exam.UnitId.Value)?.Title
+                        : null;
+                    <li>
+                        <span>@exam.Title (@(exam.Kind == CourseExamKinds.Practice ? "Practice Exam" : $"after {unitTitle ?? "unit"}"), @exam.QuestionCount questions)</span>
+                        <span class="action-stack">
+                            <button type="button" @onclick="() => OnLoadSupplementalExamEditor.InvokeAsync(exam.Id)">Edit</button>
+                            <button type="button" @onclick="() => OnDeleteSupplementalExam.InvokeAsync(exam.Id)">Delete</button>
+                        </span>
+                    </li>
+                }
+            </ul>
+        }
+    }
 
     @if (ExamEditor is not null)
     {
+        <h3>@(IsEditingSupplementalExam ? "Exam Editor" : "Final Exam Editor")</h3>
         <div class="form-field">
             <label>Exam Title</label>
             <InputText @bind-Value="ExamEditor.Title" />
@@ -41,7 +122,7 @@
         </div>
         <div class="form-row">
             <div class="form-field">
-                <label>Learner Attempt Policy</label>
+                <label>Student Attempt Policy</label>
                 <p class="muted-text">Base limit is fixed at 1 attempt, or 2 if the first attempt fails. Use retake grants below to allow additional attempts.</p>
             </div>
             <div class="form-field">
@@ -99,15 +180,17 @@
 
         <div class="course-actions">
             <button type="button" @onclick="OnAddExamQuestion">Add Question</button>
-            <button type="button" @onclick="OnSaveExamEditor">Save Exam</button>
+            <button type="button" @onclick="@(IsEditingSupplementalExam ? OnSaveSupplementalExam : OnSaveExamEditor)">Save Exam</button>
         </div>
 
+        @if (!IsEditingSupplementalExam)
+        {
         <h3>Grant Retake Attempts</h3>
         <div class="form-row">
             <div class="form-field">
-                <label>Learner</label>
+                <label>Student</label>
                 <select value="@RetakeLearnerIdText" @onchange="OnRetakeLearnerChanged">
-                    <option value="">Select learner</option>
+                    <option value="">Select student</option>
                     @foreach (var learner in Users.Where(user => user.Role == "Learner"))
                     {
                         <option value="@learner.Id">@learner.DisplayName (@learner.Email)</option>
@@ -137,7 +220,7 @@
             <table class="simple-table">
                 <thead>
                     <tr>
-                        <th>Learner</th>
+                        <th>Student</th>
                         <th>Attempts</th>
                         <th>Last Updated</th>
                         <th>Updated By</th>
@@ -169,10 +252,24 @@
                 </tbody>
             </table>
         }
+        }
     }
 </section>
 
 @code {
+    private string _newSupplementalKind = CourseExamKinds.Intermediate;
+    private string _newSupplementalUnitIdText = string.Empty;
+    private Course? ActiveCourse => Guid.TryParse(ExamCourseIdText, out var courseId)
+        ? Courses.FirstOrDefault(course => course.Id == courseId)
+        : null;
+    private IEnumerable<Unit> ActiveCourseUnits => ActiveCourse?.Units.OrderBy(unit => unit.OrderIndex) ?? Enumerable.Empty<Unit>();
+
+    private Task CreateSupplementalExamAsync()
+    {
+        var unitId = Guid.TryParse(_newSupplementalUnitIdText, out var parsedUnitId) ? parsedUnitId : (Guid?)null;
+        return OnCreateSupplementalExam.InvokeAsync(new SupplementalExamCreateRequest(_newSupplementalKind, unitId));
+    }
+
     [Parameter]
     public string? ExamError { get; set; }
 
@@ -199,6 +296,33 @@
 
     [Parameter]
     public ExamEditorModel? ExamEditor { get; set; }
+
+    [Parameter]
+    public IReadOnlyList<SupplementalExamInfo> SupplementalExams { get; set; } = [];
+
+    [Parameter]
+    public IReadOnlyList<CourseExamMenuInfo> UnitExams { get; set; } = [];
+
+    [Parameter]
+    public bool IsEditingSupplementalExam { get; set; }
+
+    [Parameter]
+    public EventCallback<SupplementalExamCreateRequest> OnCreateSupplementalExam { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnCreateUnitExam { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnLoadUnitExamEditor { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnLoadSupplementalExamEditor { get; set; }
+
+    [Parameter]
+    public EventCallback<Guid> OnDeleteSupplementalExam { get; set; }
+
+    [Parameter]
+    public EventCallback OnSaveSupplementalExam { get; set; }
 
     [Parameter]
     public EventCallback OnAddExamQuestion { get; set; }

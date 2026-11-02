@@ -1,0 +1,245 @@
+@page "/instructor/mail"
+@attribute [Authorize(Roles = "Admin,Instructor")]
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@inject InstructorMailboxService Mailbox
+@inject ILogger<InstructorMail> Logger
+
+<PageTitle>Instructor Mail</PageTitle>
+
+<section class="mail-workspace">
+    <header class="mail-header">
+        <div>
+            <h1>Mail</h1>
+            <p>@(_account?.Address ?? "Instructor mailbox")
+                @if (_account?.TestMode == true) { <span class="test-mode">Test mode · @_account.Provider</span> }
+            </p>
+        </div>
+        <button type="button" disabled="@(!_interactive || _busy || _account is null || _composing)" @onclick="Compose">+ Compose</button>
+    </header>
+
+    @if (_error is not null) { <p class="mail-error" role="alert">@_error</p> }
+    @if (_notice is not null) { <p role="status">@_notice</p> }
+    @if (_account is null)
+    {
+        <p>Connect a dedicated test inbox to enable instructor mail. No messages will be simulated or sent from a shared system inbox.</p>
+        <button disabled="@(!_interactive || _busy)" @onclick="InitializeAsync">Retry connection</button>
+    }
+    else
+    {
+        <fieldset disabled="@(!_interactive || _busy)" class="mail-shell" aria-busy="@_busy">
+            <legend class="visually-hidden">Instructor mailbox</legend>
+            <nav class="mail-folders" aria-label="Mail folders">
+                @foreach (var folder in new[] { "Inbox", "Sent", "Drafts", "Archived" })
+                {
+                    <button class="@(_folder == folder ? "selected" : "")" disabled="@_composing"
+                            aria-current="@(_folder == folder ? "page" : null)" @onclick="() => ChangeFolderAsync(folder)">@folder</button>
+                }
+                <button disabled="@_composing" @onclick="RefreshAsync">Refresh</button>
+            </nav>
+            <section class="mail-list" aria-label="Message list">
+                <input aria-label="Search this page" placeholder="Search this page…" @bind="_search" @bind:event="oninput" disabled="@_composing" />
+                @if (_folder == "Drafts")
+                {
+                    @foreach (var draft in _states.Where(s => s.IsDraft).OrderByDescending(s => s.UpdatedAtUtc)
+                        .Where(s => Matches(s.Subject + " " + s.Recipient)))
+                    {
+                        <button class="mail-preview" disabled="@_composing" @onclick="() => EditDraft(draft)">
+                            <strong>@(draft.Subject.Length == 0 ? "(No subject)" : draft.Subject)</strong>
+                            <span>@draft.Recipient</span><small>@draft.UpdatedAtUtc.ToString("g") UTC</small>
+                        </button>
+                    }
+                    @if (!_states.Any(s => s.IsDraft)) { <p>No drafts.</p> }
+                }
+                else
+                {
+                    @foreach (var message in _messages.Where(m => Matches(m.Subject + " " + m.From + " " + string.Join(" ", m.To))))
+                    {
+                        <button class="mail-preview @(_selectedId == message.Id ? "selected" : "")" disabled="@_composing"
+                                @onclick="() => OpenAsync(message)">
+                            <strong>@(message.Subject.Length == 0 ? "(No subject)" : message.Subject)</strong>
+                            <span>@(message.Sent ? string.Join(", ", message.To) : message.From)</span>
+                            <small>@message.CreatedAt.UtcDateTime.ToString("g") UTC</small>
+                        </button>
+                    }
+                    @if (_messages.Count == 0) { <p>No messages on this page.</p> }
+                    <div class="mail-pagination">
+                        <button disabled="@(_page == 0 || _composing)" @onclick="() => PageAsync(-1)">Previous</button>
+                        <span>Page @(_page + 1)</span>
+                        <button disabled="@(!_hasNext || _composing)" @onclick="() => PageAsync(1)">Next</button>
+                    </div>
+                }
+            </section>
+            <section class="mail-detail" aria-label="Conversation">
+                @if (_composing)
+                {
+                    <h2>@(_replyToId is null ? "New message" : "Reply")</h2>
+                    <label>To <input type="email" @bind="_to" readonly="@(_replyToId is not null)" maxlength="320" /></label>
+                    @if (_replyToId is null) { <label>CC <input type="email" @bind="_cc" maxlength="320" /></label> }
+                    <label>Subject <input @bind="_subject" maxlength="200" readonly="@(_replyToId is not null)" /></label>
+                    <label>Message <textarea @bind="_body" maxlength="50000" rows="12"></textarea></label>
+                    <label>Attachments (up to 5 files, 5 MB total)
+                        <InputFile OnChange="AttachAsync" multiple />
+                    </label>
+                    @foreach (var file in _attachments)
+                    {
+                        <div class="mail-file">@file.FileName <button @onclick="() => _attachments.Remove(file)">Remove</button></div>
+                    }
+                    <div class="mail-actions">
+                        <button @onclick="SendAsync">Send</button>
+                        <button @onclick="SaveDraftAsync">Save draft</button>
+                        <button @onclick="CancelCompose">Cancel</button>
+                    </div>
+                    <p class="mail-hint">Only administrator-approved test recipients can receive mail. Drafts save message text, not attachments.</p>
+                }
+                else if (_conversation.Count > 0)
+                {
+                    <div class="mail-actions">
+                        <button @onclick="CloseConversation">Back to messages</button>
+                        @if (_folder != "Sent")
+                        {
+                            <button @onclick="ArchiveAsync">@(_folder == "Archived" ? "Move to Inbox" : "Archive")</button>
+                        }
+                    </div>
+                    @foreach (var message in _conversation)
+                    {
+                        <article class="mail-message">
+                            <h2>@message.Subject</h2>
+                            <p><strong>From:</strong> @message.From<br />
+                                <strong>To:</strong> @string.Join(", ", message.To)
+                                @if (message.Cc.Length > 0) { <br /><strong>CC:</strong> @string.Join(", ", message.Cc) }
+                                <br />@message.CreatedAt.UtcDateTime.ToString("g") UTC
+                            </p>
+                            <pre>@message.Body</pre>
+                            @for (var index = 0; index < message.Attachments.Length; index++)
+                            {
+                                var attachmentId = message.Attachments[index];
+                                <button @onclick="() => DownloadAsync(message, attachmentId)">Download attachment @(index + 1)</button>
+                            }
+                            @if (!message.Sent) { <button @onclick="() => Reply(message)">Reply</button> }
+                        </article>
+                    }
+                    @if (_download is not null)
+                    {
+                        <a download="@_download.Name" href="@("data:application/octet-stream;base64," + Convert.ToBase64String(_download.Content))">Save @_download.Name</a>
+                    }
+                }
+                else { <p>Select a message or compose a new email.</p> }
+            </section>
+        </fieldset>
+    }
+</section>
+
+@code {
+    private MailboxAccount? _account;
+    private bool _busy, _composing, _hasNext, _interactive;
+    private string? _error, _notice, _selectedId, _replyToId;
+    private string _folder = "Inbox", _search = "", _to = "", _cc = "", _subject = "", _body = "";
+    private int _page;
+    private Guid? _draftId;
+    private List<MailboxState> _states = [];
+    private IReadOnlyList<MailboxMessage> _messages = [], _conversation = [];
+    private List<EmailAttachment> _attachments = [];
+    private MailboxFile? _download;
+
+    protected override Task OnInitializedAsync() => InitializeAsync();
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) { _interactive = true; StateHasChanged(); }
+    }
+    private Task InitializeAsync() => RunAsync(async () =>
+    {
+        _account = await Mailbox.GetAccountAsync();
+        await LoadAsync();
+    });
+
+    private async Task RunAsync(Func<Task> action)
+    {
+        if (_busy) return;
+        _busy = true;
+        _error = _notice = null;
+        try { await action(); }
+        catch (Exception ex) when (ex is InvalidOperationException or HttpRequestException or UnauthorizedAccessException
+            or IOException or System.Text.Json.JsonException or FormatException or TaskCanceledException)
+        {
+            Logger.LogError(ex, "Instructor mailbox operation failed");
+            _error = ex is InvalidOperationException or UnauthorizedAccessException
+                ? ex.Message : "Mail operation failed. Refresh to check delivery before retrying a send.";
+        }
+        finally { _busy = false; }
+    }
+
+    private async Task LoadAsync()
+    {
+        _states = await Mailbox.GetStatesAsync();
+        if (_folder == "Drafts") { _messages = []; return; }
+        var page = _folder == "Archived" ? await Mailbox.ListArchivedAsync(_page)
+            : await Mailbox.ListAsync(_folder == "Sent", _page);
+        _messages = page.Messages.Where(m => _folder != "Inbox"
+            || !_states.Any(s => s.MessageId == m.Id && s.Archived)).ToArray();
+        _hasNext = page.HasNext;
+    }
+    private bool Matches(string value) => value.Contains(_search, StringComparison.OrdinalIgnoreCase);
+    private Task RefreshAsync() => RunAsync(LoadAsync);
+    private Task ChangeFolderAsync(string folder) => RunAsync(async () =>
+    {
+        _folder = folder; _page = 0; _search = ""; CloseConversation(); await LoadAsync();
+    });
+    private Task PageAsync(int delta) => RunAsync(async () => { _page += delta; CloseConversation(); await LoadAsync(); });
+    private Task OpenAsync(MailboxMessage message) => RunAsync(async () =>
+    {
+        CloseConversation();
+        _conversation = await Mailbox.ReadConversationAsync(message.Id, message.Sent);
+        _selectedId = message.Id;
+    });
+    private void CloseConversation() { _conversation = []; _selectedId = null; _download = null; }
+    private void Compose()
+    {
+        _composing = true; _draftId = null; _replyToId = null;
+        _to = _cc = _subject = _body = ""; _attachments = []; _notice = _error = null;
+    }
+    private void Reply(MailboxMessage message)
+    {
+        Compose(); _to = message.From; _replyToId = message.Id;
+        _subject = message.Subject.StartsWith("Re:", StringComparison.OrdinalIgnoreCase) ? message.Subject : "Re: " + message.Subject;
+    }
+    private void EditDraft(MailboxState draft)
+    {
+        Compose(); _draftId = draft.Id; _to = draft.Recipient; _cc = draft.Cc;
+        _subject = draft.Subject; _body = draft.Body; _replyToId = draft.ReplyToId;
+    }
+    private void CancelCompose() { _composing = false; _attachments = []; }
+    private MailboxCompose Message() => new(_to.Trim(), _cc.Trim(), _subject.Trim(), _body, _attachments, _replyToId);
+    private Task SendAsync() => RunAsync(async () =>
+    {
+        await Mailbox.SendAsync(Message(), _draftId);
+        _composing = false; _attachments = []; _folder = "Sent"; _page = 0; CloseConversation();
+        _notice = "Message accepted by the email provider.";
+        await LoadAsync();
+    });
+    private Task SaveDraftAsync() => RunAsync(async () =>
+    {
+        _draftId = await Mailbox.SaveDraftAsync(Message(), _draftId);
+        _composing = false; _folder = "Drafts"; CloseConversation(); await LoadAsync(); _notice = "Draft saved.";
+    });
+    private Task ArchiveAsync() => RunAsync(async () =>
+    {
+        await Mailbox.ArchiveAsync(_selectedId!, _folder != "Archived"); CloseConversation(); await LoadAsync();
+    });
+    private Task DownloadAsync(MailboxMessage message, string id) => RunAsync(async () =>
+        _download = await Mailbox.DownloadAsync(message.Id, message.Sent, id));
+    private Task AttachAsync(InputFileChangeEventArgs args) => RunAsync(async () =>
+    {
+        var files = args.GetMultipleFiles(5);
+        if (_attachments.Count + files.Count > 5 || _attachments.Sum(f => (long)f.Content.Length) + files.Sum(f => f.Size) > 5 * 1024 * 1024)
+            throw new InvalidOperationException("Attach at most 5 files totaling no more than 5 MB.");
+        var uploads = new List<EmailAttachment>();
+        foreach (var file in files)
+        {
+            await using var stream = file.OpenReadStream(5 * 1024 * 1024);
+            using var memory = new MemoryStream(); await stream.CopyToAsync(memory);
+            uploads.Add(new(Path.GetFileName(file.Name), "application/octet-stream", memory.ToArray()));
+        }
+        _attachments.AddRange(uploads);
+    });
+}

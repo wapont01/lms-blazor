@@ -1,4 +1,4 @@
-﻿using Lms.Domain.Entities;
+using Lms.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lms.Application.Data;
@@ -18,17 +18,15 @@ public static class CourseSeed
         """;
     private static readonly string[] DeprecatedNavigationTitles = ["Navigation", "How to navigate this course"];
     private static readonly Guid RealEstateLicensingBasicsCourseId = Guid.Parse("64cc1cbb-45fc-4a76-b3b4-de399cb3830f");
-    private static readonly Guid AdvancedBrokerageComplianceCourseId = Guid.Parse("5bc4b74b-71ac-40fe-8bc9-1daf5a922782");
     private static readonly Guid PropertyMarketingCourseId = Guid.Parse("c2a11379-8fb4-479a-9209-45441a56d812");
     private static readonly Guid TransactionCoordinationCourseId = Guid.Parse("f5e5df5f-5b7a-4d8c-aafd-0cd1745311e4");
     private static readonly Guid ClientCommunicationCourseId = Guid.Parse("9f4f6d8c-2f7a-4b6c-9a53-5b7a2d4e1c90");
     private static readonly Guid FloridaDistanceLearningCourseId = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef0");
-    private static readonly Guid DraftCourseId = Guid.Parse("b9c7d0ef-3b89-4c1d-9e5e-6de7ce5585a1");
     private static readonly Guid[] LegacyMockCourseIds =
     [
         RealEstateLicensingBasicsCourseId,
-        AdvancedBrokerageComplianceCourseId,
-        DraftCourseId,
+        Guid.Parse("5bc4b74b-71ac-40fe-8bc9-1daf5a922782"),
+        Guid.Parse("b9c7d0ef-3b89-4c1d-9e5e-6de7ce5585a1"),
         PropertyMarketingCourseId,
         TransactionCoordinationCourseId,
         ClientCommunicationCourseId
@@ -41,8 +39,22 @@ public static class CourseSeed
         await AdditionalCourseSeed.EnsureAsync(dbContext);
         await FloridaBrokeragePostlicensingCourseSeed.EnsureAsync(dbContext);
         await FloridaFinancePostlicensingCourseSeed.EnsureAsync(dbContext);
+        await CourseExamContentSeed.SeedAsync(dbContext);
         await EnsureCourseReviewStatusBackfilledAsync(dbContext);
         await EnsureCourseOwnershipBackfilledAsync(dbContext);
+    }
+
+    private static async Task RemoveLegacyMockCoursesAsync(ApplicationDbContext dbContext)
+    {
+        var mockCourses = await dbContext.Courses
+            .Where(course => LegacyMockCourseIds.Contains(course.Id)).ToListAsync();
+        if (mockCourses.Count == 0)
+        {
+            return;
+        }
+
+        dbContext.Courses.RemoveRange(mockCourses);
+        await dbContext.SaveChangesAsync();
     }
 
     private static async Task LegacyMockSeedAsync(ApplicationDbContext dbContext)
@@ -252,8 +264,6 @@ public static class CourseSeed
         }
 
         await EnsureAdditionalMockCoursesAsync(dbContext);
-        await EnsureCourseStatesAsync(dbContext);
-        await FloridaCoreLawCourseSeed.EnsureAsync(dbContext, FloridaDistanceLearningCourseId);
         await EnsureWelcomeLessonTitleAsync(dbContext);
         await RemoveLicensingChecklistLessonAsync(dbContext);
         await RemoveCoreLicensingConceptsUnitAsync(dbContext);
@@ -287,7 +297,8 @@ public static class CourseSeed
         var instructors = await dbContext.UserAccounts
             .Where(user =>
                 user.Role == "Instructor" &&
-                user.IsActive)
+                user.IsActive &&
+                (user.Email == "instructor@lms.com" || user.Email == "instructor2@lms.com" || user.Email == "instructor3@lms.com"))
             .OrderBy(user => user.Email)
             .ToListAsync();
 
@@ -314,37 +325,20 @@ public static class CourseSeed
         await dbContext.SaveChangesAsync();
     }
 
-    private static async Task RemoveLegacyMockCoursesAsync(ApplicationDbContext dbContext)
-    {
-        var mockCourses = await dbContext.Courses
-            .Where(course => LegacyMockCourseIds.Contains(course.Id))
-            .ToListAsync();
-        if (mockCourses.Count == 0)
-        {
-            return;
-        }
-
-        dbContext.Courses.RemoveRange(mockCourses);
-        await dbContext.SaveChangesAsync();
-    }
-
     public static Task SeedEnrollmentsAsync(ApplicationDbContext dbContext) => Task.CompletedTask;
 
     private static async Task LegacyMockEnrollmentsAsync(ApplicationDbContext dbContext)
     {
         var learnersByEmail = await dbContext.UserAccounts
             .Where(user =>
-                user.Email == "william.learner@wlr.com" ||
-                user.Email == "maya.thompson@wlr.com" ||
-                user.Email == "ethan.brooks@wlr.com" ||
-                user.Email == "sofia.martinez.fl@wlr.com" ||
-                user.Email == "noah.williams.fl@wlr.com" ||
-                user.Email == "ava.johnson.fl@wlr.com")
+                user.Email == "learner@lms.com" ||
+                user.Email == "learner2@lms.com" ||
+                user.Email == "learner3@lms.com")
             .ToDictionaryAsync(user => user.Email);
 
         var enrollmentSeeds = new List<EnrollmentSeed>();
 
-        if (learnersByEmail.TryGetValue("william.learner@wlr.com", out var primaryLearner))
+        if (learnersByEmail.TryGetValue("learner@lms.com", out var primaryLearner))
         {
             enrollmentSeeds.AddRange(
             [
@@ -354,7 +348,7 @@ public static class CourseSeed
             ]);
         }
 
-        if (learnersByEmail.TryGetValue("maya.thompson@wlr.com", out var secondaryLearner))
+        if (learnersByEmail.TryGetValue("learner2@lms.com", out var secondaryLearner))
         {
             enrollmentSeeds.AddRange(
             [
@@ -363,28 +357,13 @@ public static class CourseSeed
             ]);
         }
 
-        if (learnersByEmail.TryGetValue("ethan.brooks@wlr.com", out var tertiaryLearner))
+        if (learnersByEmail.TryGetValue("learner3@lms.com", out var tertiaryLearner))
         {
             enrollmentSeeds.AddRange(
             [
                 new EnrollmentSeed(tertiaryLearner.Id, Guid.Parse("c2a11379-8fb4-479a-9209-45441a56d812"), 20m, -6),
                 new EnrollmentSeed(tertiaryLearner.Id, Guid.Parse("9f4f6d8c-2f7a-4b6c-9a53-5b7a2d4e1c90"), 0m, -2)
             ]);
-        }
-
-        if (learnersByEmail.TryGetValue("sofia.martinez.fl@wlr.com", out var floridaSalesAssociate))
-        {
-            enrollmentSeeds.Add(new EnrollmentSeed(floridaSalesAssociate.Id, FloridaDistanceLearningCourseId, 0m, -1));
-        }
-
-        if (learnersByEmail.TryGetValue("noah.williams.fl@wlr.com", out var floridaBrokerAssociate))
-        {
-            enrollmentSeeds.Add(new EnrollmentSeed(floridaBrokerAssociate.Id, FloridaDistanceLearningCourseId, 0m, -1));
-        }
-
-        if (learnersByEmail.TryGetValue("ava.johnson.fl@wlr.com", out var floridaBrokerLearner))
-        {
-            enrollmentSeeds.Add(new EnrollmentSeed(floridaBrokerLearner.Id, FloridaDistanceLearningCourseId, 0m, -1));
         }
 
         if (enrollmentSeeds.Count == 0)
@@ -428,73 +407,23 @@ public static class CourseSeed
         }
 
         await SeedBrokerAssignmentsAsync(dbContext);
-        await SeedFloridaBrokerAssignmentsAsync(dbContext);
         await SeedBrokerCoursePurchasesAsync(dbContext);
-        await EnsureFloridaPilotRosterScenarioAsync(dbContext);
         await EnsureLearnerThreeCanReceiveRealEstateLicensingBasicsAsync(dbContext);
     }
 
     private sealed record EnrollmentSeed(Guid UserAccountId, Guid CourseId, decimal ProgressPercent, int EnrolledDaysAgo);
 
-    private static async Task EnsureFloridaPilotRosterScenarioAsync(ApplicationDbContext dbContext)
-    {
-        var rosterUsers = await dbContext.UserAccounts
-            .Where(user => user.IsActive &&
-                (user.Email == "william.learner@wlr.com" ||
-                 user.Email == "maya.thompson@wlr.com" ||
-                 user.Email == "ethan.brooks@wlr.com" ||
-                 user.Email == "william.broker@wlr.com" ||
-                 user.Email == "clara.broker@wlr.com" ||
-                 user.Email == "jordan.lee@wlr.com" ||
-                 user.Email == "clara.aponte@wlr.com" ||
-                 user.Email == "susan.malloy@wlr.com" ||
-                 user.Email == "william.aponte@wlr.com"))
-            .ToDictionaryAsync(user => user.Email);
-
-        if (!await dbContext.Courses.AnyAsync(course => course.Id == FloridaDistanceLearningCourseId))
-        {
-            return;
-        }
-
-        var pilotLearners = new[] { "william.learner@wlr.com", "maya.thompson@wlr.com", "ethan.brooks@wlr.com" };
-        var pilotBrokers = new[] { "william.broker@wlr.com", "clara.broker@wlr.com" };
-        var existingEnrollments = await dbContext.Enrollments
-            .Where(enrollment => enrollment.CourseId == FloridaDistanceLearningCourseId)
-            .Select(enrollment => enrollment.UserAccountId)
-            .ToListAsync();
-
-        foreach (var email in pilotLearners.Concat(pilotBrokers))
-        {
-            if (rosterUsers.TryGetValue(email, out var user) && !existingEnrollments.Contains(user.Id))
-            {
-                dbContext.Enrollments.Add(new Enrollment
-                {
-                    UserAccountId = user.Id,
-                    CourseId = FloridaDistanceLearningCourseId,
-                    EnrollmentSource = user.Role == "Broker" ? "BrokerSponsored" : "LearnerPurchase",
-                    SponsoredByBrokerUserId = user.Role == "Broker" ? null : rosterUsers.GetValueOrDefault("william.broker@wlr.com")?.Id,
-                    ConsentStatus = "NotRequired",
-                    EnrolledAt = DateTime.UtcNow,
-                    ProgressPercent = 0,
-                    Completed = false
-                });
-            }
-        }
-
-        await dbContext.SaveChangesAsync();
-    }
-
     private static async Task SeedBrokerAssignmentsAsync(ApplicationDbContext dbContext)
     {
         var brokerIds = await dbContext.UserAccounts
             .AsNoTracking()
-            .Where(user => user.Role == "Broker" && user.IsActive && !user.Email.EndsWith(".fl@wlr.com"))
+            .Where(user => user.Role == "Broker" && user.IsActive)
             .Select(user => user.Id)
             .ToListAsync();
 
         var learnerIds = await dbContext.UserAccounts
             .AsNoTracking()
-            .Where(user => user.Role == "Learner" && user.IsActive && !user.Email.EndsWith(".fl@wlr.com"))
+            .Where(user => user.Role == "Learner" && user.IsActive)
             .Select(user => user.Id)
             .ToListAsync();
 
@@ -540,69 +469,13 @@ public static class CourseSeed
         }
     }
 
-    private static async Task SeedFloridaBrokerAssignmentsAsync(ApplicationDbContext dbContext)
-    {
-        var floridaBrokerEmails = new[] { "marcus.reed.fl@wlr.com", "elena.rossi.fl@wlr.com" };
-        var floridaLearnerEmails = new[] { "sofia.martinez.fl@wlr.com", "noah.williams.fl@wlr.com", "ava.johnson.fl@wlr.com" };
-        var floridaUsers = await dbContext.UserAccounts
-            .AsNoTracking()
-            .Where(user => floridaBrokerEmails.Contains(user.Email) || floridaLearnerEmails.Contains(user.Email))
-            .ToDictionaryAsync(user => user.Email);
-
-        if (floridaUsers.Count == 0)
-        {
-            return;
-        }
-
-        var floridaUserIds = floridaUsers.Values.Select(user => user.Id).ToList();
-        var staleAssignments = await dbContext.BrokerLearnerAssignments
-            .Where(assignment => floridaUserIds.Contains(assignment.BrokerUserId)
-                || floridaUserIds.Contains(assignment.LearnerUserId))
-            .ToListAsync();
-        if (staleAssignments.Count > 0)
-        {
-            dbContext.BrokerLearnerAssignments.RemoveRange(staleAssignments);
-            await dbContext.SaveChangesAsync();
-        }
-
-        var assignments = new[]
-        {
-            (Broker: "marcus.reed.fl@wlr.com", Learner: "sofia.martinez.fl@wlr.com"),
-            (Broker: "marcus.reed.fl@wlr.com", Learner: "noah.williams.fl@wlr.com"),
-            (Broker: "elena.rossi.fl@wlr.com", Learner: "ava.johnson.fl@wlr.com")
-        };
-
-        foreach (var assignment in assignments)
-        {
-            if (!floridaUsers.TryGetValue(assignment.Broker, out var broker)
-                || !floridaUsers.TryGetValue(assignment.Learner, out var learner))
-            {
-                continue;
-            }
-
-            var exists = await dbContext.BrokerLearnerAssignments.AnyAsync(existing =>
-                existing.BrokerUserId == broker.Id && existing.LearnerUserId == learner.Id);
-            if (!exists)
-            {
-                dbContext.BrokerLearnerAssignments.Add(new BrokerLearnerAssignment
-                {
-                    BrokerUserId = broker.Id,
-                    LearnerUserId = learner.Id,
-                    AssignedAt = DateTime.UtcNow
-                });
-            }
-        }
-
-        await dbContext.SaveChangesAsync();
-    }
-
     private static async Task SeedBrokerCoursePurchasesAsync(ApplicationDbContext dbContext)
     {
         var brokers = await dbContext.UserAccounts
             .Where(user =>
                 user.Role == "Broker" &&
                 user.IsActive &&
-                (user.Email == "william.broker@wlr.com" || user.Email == "clara.broker@wlr.com"))
+                (user.Email == "broker@lms.com" || user.Email == "broker2@lms.com"))
             .OrderBy(user => user.Email)
             .ToListAsync();
 
@@ -629,7 +502,7 @@ public static class CourseSeed
         var plannedPurchases = new List<(Guid BrokerUserId, Guid CourseId)>();
         foreach (var broker in brokers)
         {
-            var selectedCourses = broker.Email == "william.broker@wlr.com" ? brokerOneCourseIds : brokerTwoCourseIds;
+            var selectedCourses = broker.Email == "broker@lms.com" ? brokerOneCourseIds : brokerTwoCourseIds;
             plannedPurchases.AddRange(selectedCourses.Select(courseId => (broker.Id, courseId)));
         }
 
@@ -682,7 +555,7 @@ public static class CourseSeed
     private static async Task EnsureLearnerThreeCanReceiveRealEstateLicensingBasicsAsync(ApplicationDbContext dbContext)
     {
         var learner = await dbContext.UserAccounts
-            .SingleOrDefaultAsync(user => user.Email == "ethan.brooks@wlr.com" && user.Role == "Learner" && user.IsActive);
+            .SingleOrDefaultAsync(user => user.Email == "learner3@lms.com" && user.Role == "Learner" && user.IsActive);
 
         if (learner is null)
         {
@@ -765,11 +638,6 @@ public static class CourseSeed
 
         foreach (var course in courses)
         {
-            if (course.Id == FloridaDistanceLearningCourseId)
-            {
-                continue;
-            }
-
             var orderedUnits = course.Units
                 .OrderBy(unit => unit.OrderIndex)
                 .ToList();
@@ -843,164 +711,6 @@ public static class CourseSeed
                 hasChanges = true;
             }
 
-        }
-
-        if (hasChanges)
-        {
-            await dbContext.SaveChangesAsync();
-        }
-    }
-
-    private static async Task EnsureFloridaDistanceLearningCourseAsync(ApplicationDbContext dbContext)
-    {
-        var floridaInstructorId = await dbContext.UserAccounts
-            .Where(user => user.Email == "william.aponte@wlr.com" && user.Role == "Instructor" && user.IsActive)
-            .Select(user => (Guid?)user.Id)
-            .FirstOrDefaultAsync();
-
-        if (await dbContext.Courses.AnyAsync(course => course.Id == FloridaDistanceLearningCourseId))
-        {
-            var existingCourse = await dbContext.Courses.FirstAsync(course => course.Id == FloridaDistanceLearningCourseId);
-            var hasChanges = false;
-            if (existingCourse.CommissionCourseNumber != "0023061")
-            {
-                existingCourse.CommissionCourseNumber = "0023061";
-                hasChanges = true;
-            }
-            if (floridaInstructorId.HasValue && existingCourse.OwnerInstructorId != floridaInstructorId)
-            {
-                existingCourse.OwnerInstructorId = floridaInstructorId;
-                hasChanges = true;
-            }
-            if (!string.Equals(existingCourse.State, "Florida", StringComparison.OrdinalIgnoreCase))
-            {
-                existingCourse.State = "Florida";
-                hasChanges = true;
-            }
-            if (hasChanges)
-            {
-                await dbContext.SaveChangesAsync();
-            }
-
-            return;
-        }
-
-        var course = new Course
-        {
-            Id = FloridaDistanceLearningCourseId,
-            Title = "Florida Real Estate Distance Learning Fundamentals",
-            Slug = "florida-real-estate-distance-learning-fundamentals",
-            Description = "A six-lesson Florida-focused mock course covering licensing foundations, online provider compliance, professional practice, and renewal readiness.",
-            Level = "Beginner",
-            DurationHours = 8,
-            CreditHours = 6,
-            ComplianceType = CourseComplianceTypes.Prelicensing,
-            DeliveryMethod = CourseDeliveryMethods.DistanceEducation,
-            CommissionCourseNumber = "0023061",
-            State = "Florida",
-            OwnerInstructorId = floridaInstructorId,
-            CompletionWindowDays = 180,
-            RequiresProctoredExam = false,
-            RequiredInstructionalMinutes = 360,
-            MinimumPassingPercent = 75,
-            MinimumAttendancePercent = 80,
-            Price = 0m,
-            IsPublished = true,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        var units = new[]
-        {
-            new Unit { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef1"), CourseId = course.Id, Title = "Licensing Foundations", OrderIndex = 1 },
-            new Unit { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef2"), CourseId = course.Id, Title = "Professional Practice and Legal Responsibilities", OrderIndex = 2 }
-        };
-
-        var lessons = new[]
-        {
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde01"), UnitId = units[0].Id, Title = "Florida Licensing Foundations", DurationMinutes = 60, OrderIndex = 1, TextContent = "Objectives\n- Identify the Florida licensing and regulatory framework.\n- Distinguish licensure preparation from postlicensure and continuing education.\n\nFlorida real estate education must be matched to the learner's license pathway and the provider's approved course requirements. Treat this mock course as instructional content, not as a substitute for current guidance from the Florida Real Estate Commission or the Department of Business and Professional Regulation." },
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde02"), UnitId = units[0].Id, Title = "Distance Learning, Provider Rules, and Compliance", DurationMinutes = 60, OrderIndex = 2, TextContent = "Objectives\n- Describe the controls expected in an online course.\n- Identify provider, identity, progress, exam, and records obligations.\n\nAn online provider should maintain accurate course descriptions, learner identity controls, progress records, exam results, completion evidence, and a clear process for support and complaints. Course approval and provider approval must be verified against current Florida requirements before deployment." },
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde03"), UnitId = units[0].Id, Title = "Postlicensure Education, Continuing Education, and Renewal", DurationMinutes = 60, OrderIndex = 3, TextContent = "Objectives\n- Separate initial licensing education from renewal education.\n- Build a renewal-readiness checklist.\n\nTrack the learner's license status, required education category, completion date, provider documentation, and renewal deadline independently. Completing an LMS course does not by itself renew a license." },
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde04"), UnitId = units[1].Id, Title = "Brokerage Relationships and Disclosure", DurationMinutes = 60, OrderIndex = 1, TextContent = "Objectives\n- Recognize the importance of agency and brokerage disclosures.\n- Apply a timely, documented disclosure workflow.\n\nA defensible transaction file records the relationship selected, disclosures delivered, material facts communicated, and consumer acknowledgments. Escalate uncertainty instead of relying on informal assumptions." },
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde05"), UnitId = units[1].Id, Title = "Contracts, Trust Funds, and Transaction Compliance", DurationMinutes = 60, OrderIndex = 2, TextContent = "Objectives\n- Identify controls for contracts, deposits, and transaction records.\n- Explain why reconciliation and escalation matter.\n\nUse approved forms and documented review checkpoints. Trust funds require prompt handling, accurate ledgers, reconciliation, and escalation of discrepancies. Preserve drafts, approvals, communications, and final documents according to the provider and brokerage retention policies." },
-            new Lesson { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde06"), UnitId = units[1].Id, Title = "Final Exam and Renewal Readiness", DurationMinutes = 60, OrderIndex = 3, TextContent = "Objectives\n- Demonstrate course completion readiness.\n- Assemble a renewal and compliance evidence packet.\n\nBefore completion, confirm every required lesson and activity is complete, the exam result is recorded, identity and integrity checks are satisfied, and the certificate data is accurate. Recheck current Florida rules before using this mock course for a regulated offering." }
-        };
-
-        dbContext.Courses.Add(course);
-        dbContext.Units.AddRange(units);
-        dbContext.Lessons.AddRange(lessons);
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureFloridaFinalExamAsync(ApplicationDbContext dbContext)
-    {
-        var exam = await dbContext.CourseExams
-            .Include(existing => existing.Questions)
-            .FirstOrDefaultAsync(existing => existing.CourseId == FloridaDistanceLearningCourseId && existing.IsRequired);
-        var isNewExam = exam is null;
-
-        if (exam is not null && exam.Questions.Count > 0)
-        {
-            return;
-        }
-
-        exam ??= new CourseExam
-        {
-            Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef7"),
-            CourseId = FloridaDistanceLearningCourseId,
-            Title = "Florida Distance Learning Fundamentals Final Exam",
-            PassPercent = 75m,
-            IsRequired = true,
-            RetakeCooldownMinutes = 0
-        };
-
-        exam.Title = "Florida Distance Learning Fundamentals Final Exam";
-        exam.PassPercent = 75m;
-        exam.IsRequired = true;
-        exam.Questions =
-        [
-            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde11"), Prompt = "Which Florida license category is the appropriate mapping for an NC provisional broker in a Florida scenario?", OptionA = "Sales Associate", OptionB = "Provisional Broker", OptionC = "BIC", OptionD = "Broker-in-Charge", CorrectOption = "A", OrderIndex = 1 },
-            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde12"), Prompt = "What should an online provider retain to support a course completion record?", OptionA = "Only the learner's name", OptionB = "Progress, exam, identity, and completion evidence", OptionC = "Only the payment receipt", OptionD = "A verbal confirmation", CorrectOption = "B", OrderIndex = 2 },
-            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde13"), Prompt = "What does completing an LMS course establish by itself?", OptionA = "Automatic license renewal", OptionB = "A broker designation", OptionC = "Completion of the configured course requirements", OptionD = "A license transfer", CorrectOption = "C", OrderIndex = 3 },
-            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde14"), Prompt = "When should a material fact and its delivery be documented?", OptionA = "Only after closing", OptionB = "As soon as verified and before key decisions", OptionC = "Only if requested twice", OptionD = "At the next renewal", CorrectOption = "B", OrderIndex = 4 },
-            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde15"), Prompt = "Which control best supports trust-fund compliance?", OptionA = "Unrecorded verbal approvals", OptionB = "Deleting transaction drafts", OptionC = "Accurate ledgers and reconciliation with escalation", OptionD = "Deferring review until year-end", CorrectOption = "C", OrderIndex = 5 },
-            new ExamQuestion { Id = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcde16"), Prompt = "What should a learner verify before claiming Florida renewal readiness?", OptionA = "Only that the course page loaded", OptionB = "Course completion, exam result, identity evidence, and current regulator requirements", OptionC = "Only the tuition balance", OptionD = "That an NC PB label was used", CorrectOption = "B", OrderIndex = 6 }
-        ];
-
-        if (isNewExam)
-        {
-            dbContext.CourseExams.Add(exam);
-        }
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureCourseStatesAsync(ApplicationDbContext dbContext)
-    {
-        var stateByCourseId = new Dictionary<Guid, string>
-        {
-            [RealEstateLicensingBasicsCourseId] = "North Carolina",
-            [AdvancedBrokerageComplianceCourseId] = "North Carolina",
-            [PropertyMarketingCourseId] = "Florida",
-            [TransactionCoordinationCourseId] = "North Carolina",
-            [ClientCommunicationCourseId] = "Florida",
-            [Guid.Parse("b9c7d0ef-3b89-4c1d-9e5e-6de7ce5585a1")] = "North Carolina"
-        };
-
-        var courses = await dbContext.Courses
-            .Where(course => stateByCourseId.Keys.Contains(course.Id)
-                || course.Title == "Advanced Brokerage Compliance")
-            .ToListAsync();
-        var hasChanges = false;
-        foreach (var course in courses)
-        {
-            var state = course.Title == "Advanced Brokerage Compliance"
-                ? "North Carolina"
-                : stateByCourseId[course.Id];
-            if (!string.Equals(course.State, state, StringComparison.OrdinalIgnoreCase))
-            {
-                course.State = state;
-                hasChanges = true;
-            }
         }
 
         if (hasChanges)
@@ -1496,7 +1206,7 @@ public static class CourseSeed
                     --- page ---
 
                     New candidates often underestimate dependency steps like fingerprints, background checks, and sponsor approval.
-                    A practical plan should include unitExams for each dependency with date ranges, not single-day assumptions.
+                    A practical plan should include checkpoints for each dependency with date ranges, not single-day assumptions.
 
                     --- page ---
 

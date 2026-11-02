@@ -1,5 +1,6 @@
 using Lms.Application.Data;
 using Lms.Application.Services;
+using Lms.Domain.Entities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -8,6 +9,52 @@ namespace Lms.Application.Tests.Services;
 
 public class UserAccountServiceTests
 {
+    [Theory]
+    [InlineData("william.learner@wlr.com")]
+    [InlineData("learner@lms.com")]
+    public async Task EnsureSeedUsersAsync_RenamesDemoLoginInPlace(string previousEmail)
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var user = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var id = user.Id;
+        var passwordHash = user.PasswordHash;
+        var count = await fixture.DbContext.UserAccounts.CountAsync();
+        user.Email = previousEmail;
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.UserAccountService.EnsureSeedUsersAsync();
+        await fixture.UserAccountService.EnsureSeedUsersAsync();
+
+        var renamed = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        Assert.Equal(id, renamed.Id);
+        Assert.Equal(passwordHash, renamed.PasswordHash);
+        Assert.Equal(count, await fixture.DbContext.UserAccounts.CountAsync());
+        Assert.Equal("Learner", renamed.Role);
+        var login = await fixture.UserAccountService.AuthenticateAsync(renamed.Email, "Learner123!");
+        Assert.Equal(LoginStatus.Succeeded, login.Status);
+    }
+
+    [Theory]
+    [InlineData("Guest Learner")]
+    [InlineData("Guest Student")]
+    public async Task EnsureSeedUsersAsync_NormalizesGuestPlaceholderWithoutChangingIdentity(string displayName)
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var guest = await fixture.UserAccountService.RegisterLearnerAsync("guest@example.com", "GuestTest123!");
+        guest.DisplayName = displayName;
+        var passwordHash = guest.PasswordHash;
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.UserAccountService.EnsureSeedUsersAsync();
+        await fixture.UserAccountService.EnsureSeedUsersAsync();
+
+        var updated = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Id == guest.Id);
+        Assert.Equal("Guest", updated.DisplayName);
+        Assert.Equal("guest@example.com", updated.Email);
+        Assert.Equal(passwordHash, updated.PasswordHash);
+        Assert.Equal("Learner", updated.Role);
+    }
+
     [Fact]
     public async Task AuthenticateAsync_LocksUserAfterFiveFailedAttempts()
     {
@@ -40,21 +87,21 @@ public class UserAccountServiceTests
         var service = fixture.UserAccountService;
 
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
-        await service.AdminResetPasswordAsync(admin.Id, admin.Email, learner.Id, "TempLearner1!");
+        await service.AdminResetPasswordAsync(admin.Id, admin.Email, learner.Id, "abcdefgh");
 
-        var loginWithResetPassword = await service.AuthenticateAsync(learner.Email, "TempLearner1!");
+        var loginWithResetPassword = await service.AuthenticateAsync(learner.Email, "abcdefgh");
         Assert.Equal(LoginStatus.Succeeded, loginWithResetPassword.Status);
         Assert.NotNull(loginWithResetPassword.User);
         Assert.True(loginWithResetPassword.User!.ForcePasswordChange);
 
-        await service.ChangePasswordAsync(learner.Id, "TempLearner1!", "Learner999!");
+        await service.ChangePasswordAsync(learner.Id, "abcdefgh", "two words");
 
-        var refreshedLearner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var refreshedLearner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         Assert.False(refreshedLearner.ForcePasswordChange);
 
-        var loginWithNewPassword = await service.AuthenticateAsync(refreshedLearner.Email, "Learner999!");
+        var loginWithNewPassword = await service.AuthenticateAsync(refreshedLearner.Email, "two words");
         Assert.Equal(LoginStatus.Succeeded, loginWithNewPassword.Status);
         Assert.NotNull(loginWithNewPassword.User);
         Assert.False(loginWithNewPassword.User!.ForcePasswordChange);
@@ -86,7 +133,7 @@ public class UserAccountServiceTests
         await using var fixture = await TestFixture.CreateAsync();
 
         var primaryLearner = await fixture.DbContext.UserAccounts
-            .SingleAsync(user => user.Email == "william.learner@wlr.com");
+            .SingleAsync(user => user.Email == "william.guest@wlr.com");
         var brokerTwo = await fixture.DbContext.UserAccounts
             .SingleAsync(user => user.Email == "clara.broker@wlr.com");
         var learnerTwo = await fixture.DbContext.UserAccounts
@@ -118,7 +165,7 @@ public class UserAccountServiceTests
         var restoredLearnerThree = await fixture.DbContext.UserAccounts
             .SingleOrDefaultAsync(user => user.Email == "ethan.brooks@wlr.com");
         var reconciledPrimaryLearner = await fixture.DbContext.UserAccounts
-            .SingleAsync(user => user.Email == "william.learner@wlr.com");
+            .SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         Assert.Equal("WILLIAM ALFONSO APONTE", reconciledPrimaryLearner.DisplayName);
         Assert.Equal("WILLIAM ALFONSO APONTE", reconciledPrimaryLearner.LegalName);
@@ -223,6 +270,47 @@ public class UserAccountServiceTests
         Assert.Equal(existing.Id, updated.Id);
         Assert.Equal("Existing SSO Updated", updated.DisplayName);
         Assert.Equal("Broker", updated.Role);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task UpdateInstructorProfileAsync_RespectsExplicitFacultyOwnership(bool hasOwnedRecord)
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        var instructor = await fixture.DbContext.UserAccounts.SingleAsync(u => u.Email == "jordan.lee@wlr.com");
+        var other = await fixture.DbContext.UserAccounts.SingleAsync(u => u.Email == "susan.malloy@wlr.com");
+        var school = new SchoolProfile { State = "Test" };
+        var otherRecord = new SchoolStaffMember
+        {
+            SchoolProfileId = school.Id, UserAccountId = other.Id, Role = SchoolStaffRoles.Instructor,
+            Name = instructor.DisplayName, Email = instructor.Email, LicenseNumber = "KEEP-OTHER"
+        };
+        var ownedRecord = new SchoolStaffMember
+        {
+            SchoolProfileId = school.Id, UserAccountId = instructor.Id, Role = SchoolStaffRoles.Instructor,
+            Name = "Previous name", Email = "previous@example.invalid", LicenseNumber = "OLD"
+        };
+        fixture.DbContext.SchoolProfiles.Add(school);
+        fixture.DbContext.SchoolStaffMembers.Add(otherRecord);
+        if (hasOwnedRecord) fixture.DbContext.SchoolStaffMembers.Add(ownedRecord);
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.UserAccountService.UpdateInstructorProfileAsync(instructor.Id, "updated@example.invalid",
+            "NEW-LICENSE", "555-0100", null);
+
+        fixture.DbContext.ChangeTracker.Clear();
+        var records = await fixture.DbContext.SchoolStaffMembers.ToListAsync();
+        var unchanged = records.Single(m => m.Id == otherRecord.Id);
+        Assert.Equal("KEEP-OTHER", unchanged.LicenseNumber);
+        Assert.Equal(other.Id, unchanged.UserAccountId);
+        Assert.Equal("jordan.lee@wlr.com", unchanged.Email);
+        var updated = records.Single(m => m.Id != otherRecord.Id);
+        Assert.Equal("NEW-LICENSE", updated.LicenseNumber);
+        Assert.Equal("updated@example.invalid", updated.Email);
+        Assert.Equal("555-0100", updated.Telephone);
+        if (hasOwnedRecord) Assert.Equal(instructor.Id, updated.UserAccountId);
+        else Assert.Null(updated.UserAccountId);
     }
 
     private sealed class TestFixture : IAsyncDisposable

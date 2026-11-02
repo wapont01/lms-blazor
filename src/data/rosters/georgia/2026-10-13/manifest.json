@@ -1,0 +1,28 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Georgia",
+    "CaptureDate":  "2026-10-13",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Georgia_Atlanta_Broker_Development_Sample_20261013.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "GEORGIA\\LICENSING\\XLXS\\Georgia_Atlanta_Broker_Development_Sample_20261013.csv",
+                      "Sha256":  "3C8CEF4600C13ED3F493A1302676DBD850155877ABB900F26177752D26C976E9",
+                      "Bytes":  2340,
+                      "OfficialSourceUrl":  "https://ata.grec.state.ga.us/Account/Search",
+                      "Coverage":  "Atlanta broker development sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Georgia_Atlanta_Firm_Development_Sample_20261013.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "GEORGIA\\LICENSING\\XLXS\\Georgia_Atlanta_Firm_Development_Sample_20261013.csv",
+                      "Sha256":  "187FB47826FB2629E5644ECD1D191E4863DAA32D4650E68519476EFCDCB92746",
+                      "Bytes":  5002,
+                      "OfficialSourceUrl":  "https://ata.grec.state.ga.us/Account/Search",
+                      "Coverage":  "Atlanta firm development sample"
+                  }
+              ]
+}

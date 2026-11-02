@@ -10,6 +10,9 @@ public interface IRegulatoryDirectoryService
     Task<bool> ApproveAsync(Guid snapshotId, Guid actorUserId, string actorEmail);
     Task<RegulatoryDataSnapshot?> GetLatestApprovedSnapshotAsync(string state);
     Task<List<RegulatorySnapshotSummary>> GetRecentSnapshotsAsync(int take = 25);
+    Task<List<RegulatorySnapshotSummary>> GetFloridaRosterHistoryAsync(int page = 1, string state = "Florida");
+    Task<List<RosterSelection>> GetFloridaRosterRecordsAsync(Guid snapshotId, int page = 1, string state = "Florida");
+    Task RestoreFloridaRosterAsync(Guid snapshotId, Guid expectedCurrentId, Guid actorUserId, string reason, string state = "Florida");
     Task<List<string>> GetCampaignStateOptionsAsync();
     Task<List<RegulatoryLicenseeSummary>> GetApprovedLicenseesAsync(string? state = null, int take = 250);
     Task<List<CampaignFirmTarget>> GetCampaignFirmTargetsAsync(string? state = null, int take = 100);
@@ -60,7 +63,9 @@ public sealed record RegulatorySnapshotSummary(
     string Status,
     int FirmCount,
     int LicenseeCount,
-    DateTime? ReviewedAtUtc);
+    DateTime? ReviewedAtUtc,
+    string? ParserVersion = null,
+    DateTime? ActivatedAtUtc = null);
 
 public sealed record RegulatoryLicenseeSummary(
     Guid LicenseeId,
@@ -75,7 +80,8 @@ public sealed record RegulatoryLicenseeSummary(
     string? FirmName,
     string? FirmLicenseNumber,
     bool IsBrokerInCharge,
-    Guid? LinkedUserId);
+    Guid? LinkedUserId,
+    string? SourceLicenseType = null);
 
 public sealed record CampaignFirmTarget(
     string State,
@@ -102,11 +108,14 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IAuditLogService _auditLogService;
+    private readonly IColoradoDoraLicenseTypeSelection? _coloradoDoraTypeSelection;
 
-    public RegulatoryDirectoryService(ApplicationDbContext dbContext, IAuditLogService auditLogService)
+    public RegulatoryDirectoryService(ApplicationDbContext dbContext, IAuditLogService auditLogService,
+        IColoradoDoraLicenseTypeSelection? coloradoDoraTypeSelection = null)
     {
         _dbContext = dbContext;
         _auditLogService = auditLogService;
+        _coloradoDoraTypeSelection = coloradoDoraTypeSelection;
     }
 
     public async Task<RegulatoryDataSnapshot> ImportAsync(RegulatorySnapshotImport input)
@@ -239,11 +248,8 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             return null;
         }
 
-        return await _dbContext.RegulatoryDataSnapshots
-            .AsNoTracking()
-            .Where(snapshot => snapshot.State == state.Trim() && snapshot.Status == RegulatorySnapshotStatuses.Approved)
-            .OrderByDescending(snapshot => snapshot.RetrievedAtUtc)
-            .ThenByDescending(snapshot => snapshot.ImportedAtUtc)
+        return await RegulatoryRoster.Published(_dbContext.RegulatoryDataSnapshots.AsNoTracking()
+            .Where(snapshot => snapshot.State == state.Trim()))
             .FirstOrDefaultAsync();
     }
 
@@ -264,8 +270,67 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
                 snapshot.Status,
                 snapshot.Firms.Count,
                 snapshot.Licensees.Count,
-                snapshot.ReviewedAtUtc))
+                snapshot.ReviewedAtUtc,
+                snapshot.ParserVersion,
+                snapshot.ActivatedAtUtc))
             .ToListAsync();
+    }
+
+    public Task<List<RegulatorySnapshotSummary>> GetFloridaRosterHistoryAsync(int page = 1, string state = "Florida") =>
+        RegulatoryRoster.Published(_dbContext.RegulatoryDataSnapshots.AsNoTracking().Where(snapshot =>
+            snapshot.State == state && snapshot.ParserVersion == RegulatoryRoster.BulkParser(state)))
+            .Skip((Math.Clamp(page, 1, 10000) - 1) * 20).Take(21)
+            .Select(snapshot => new RegulatorySnapshotSummary(snapshot.Id, snapshot.State, snapshot.SourceName,
+                snapshot.SourceUrl, snapshot.RetrievedAtUtc, snapshot.AcquisitionCost, snapshot.Status,
+                snapshot.Firms.Count, snapshot.Licensees.Count, snapshot.ReviewedAtUtc,
+                snapshot.ParserVersion, snapshot.ActivatedAtUtc)).ToListAsync();
+
+    public Task<List<RosterSelection>> GetFloridaRosterRecordsAsync(Guid snapshotId, int page = 1, string state = "Florida")
+    {
+        var query = _dbContext.RegulatoryLicensees.AsNoTracking().Where(record =>
+            record.SnapshotId == snapshotId && record.Snapshot != null && record.State == state
+            && record.Snapshot.State == state && record.Snapshot.ParserVersion == RegulatoryRoster.BulkParser(state)
+            && record.Snapshot.Status == RegulatorySnapshotStatuses.Approved);
+        if (state == "Colorado" && _coloradoDoraTypeSelection is not null)
+        {
+            var enabled = ColoradoDoraLicenseTypes.EnabledRealEstateTypes(_coloradoDoraTypeSelection.GetSelected());
+            query = query.Where(record => record.Snapshot!.ParserVersion != ColoradoDoraBulkImportService.ParserVersion
+                || record.SourceLicenseType != null && enabled.Contains(record.SourceLicenseType));
+        }
+
+        return query.OrderBy(record => record.Name).ThenBy(record => record.LicenseNumber).ThenBy(record => record.Id)
+            .Skip((Math.Clamp(page, 1, 100000) - 1) * 25).Take(26)
+            .Select(record => new RosterSelection(record.Id, record.State, record.LicenseNumber, record.Name,
+                record.LicenseType, record.LicenseStatus, record.Snapshot!.SourceName,
+                record.Snapshot.SourceUrl, record.Snapshot.RetrievedAtUtc)).ToListAsync();
+    }
+
+    public async Task RestoreFloridaRosterAsync(Guid snapshotId, Guid expectedCurrentId, Guid actorUserId, string reason, string state = "Florida")
+    {
+        var parser = RegulatoryRoster.BulkParser(state);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
+        reason = reason.Trim();
+        if (reason.Length > 1000) throw new InvalidOperationException("Restore reason must be at most 1,000 characters.");
+        var actor = await _dbContext.UserAccounts.AsNoTracking()
+            .SingleOrDefaultAsync(user => user.Id == actorUserId && user.IsActive && user.Role == "Admin")
+            ?? throw new InvalidOperationException("An active administrator is required to restore a roster.");
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        var current = await GetLatestApprovedSnapshotAsync(state);
+        if (current?.Id != expectedCurrentId)
+            throw new InvalidOperationException("The current roster changed. Refresh history before restoring.");
+        var target = await _dbContext.RegulatoryDataSnapshots.SingleOrDefaultAsync(snapshot =>
+            snapshot.Id == snapshotId && snapshot.State == state
+            && snapshot.ParserVersion == parser
+            && snapshot.Status == RegulatorySnapshotStatuses.Approved)
+            ?? throw new InvalidOperationException("Only a validated, synchronized bulk roster for this state can be restored.");
+        if (target.Id == current.Id) throw new InvalidOperationException("This roster is already current.");
+        if (!await _dbContext.RegulatoryLicensees.AnyAsync(record => record.SnapshotId == target.Id))
+            throw new InvalidOperationException("An empty roster cannot be restored.");
+        target.ActivatedAtUtc = DateTime.UtcNow;
+        await _auditLogService.WriteAsync(actor.Id, actor.Email, "regulatory-roster.restored",
+            "RegulatoryDataSnapshot", target.Id, $"Previous={current.Id};Reason={reason}");
+        await _dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
     }
 
     public async Task<List<string>> GetCampaignStateOptionsAsync()
@@ -292,10 +357,23 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             .Include(licensee => licensee.Snapshot)
             .Include(licensee => licensee.FirmAffiliations)
                 .ThenInclude(affiliation => affiliation.Firm)
-            .Where(licensee => licensee.Snapshot!.Status == RegulatorySnapshotStatuses.Approved);
+            .Where(licensee => licensee.Snapshot!.Status == RegulatorySnapshotStatuses.Approved
+                && (licensee.State != "Florida" && licensee.State != "Texas" && licensee.State != "California" && licensee.State != "Colorado" && licensee.State != "Nevada" || licensee.SnapshotId == _dbContext.RegulatoryDataSnapshots
+                    .Where(snapshot => snapshot.State == licensee.State && snapshot.Status == RegulatorySnapshotStatuses.Approved)
+                    .OrderByDescending(snapshot => snapshot.ActivatedAtUtc ?? snapshot.RetrievedAtUtc).ThenByDescending(snapshot => snapshot.ImportedAtUtc).ThenBy(snapshot => snapshot.Id)
+                    .Select(snapshot => snapshot.Id).First()));
         if (!string.IsNullOrWhiteSpace(state))
         {
             query = query.Where(licensee => licensee.State == state.Trim());
+        }
+        var enabledColoradoLicenseTypes = _coloradoDoraTypeSelection is null
+            ? null
+            : ColoradoDoraLicenseTypes.EnabledRealEstateTypes(_coloradoDoraTypeSelection.GetSelected());
+        if (enabledColoradoLicenseTypes is not null)
+        {
+            query = query.Where(licensee => licensee.State != "Colorado"
+                || licensee.Snapshot!.ParserVersion != ColoradoDoraBulkImportService.ParserVersion
+                || licensee.SourceLicenseType != null && enabledColoradoLicenseTypes.Contains(licensee.SourceLicenseType));
         }
 
         var licensees = await query
@@ -325,7 +403,8 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
                 affiliation?.Firm?.LegalName,
                 affiliation?.Firm?.LicenseNumber,
                 affiliation?.IsBrokerInCharge ?? false,
-                links.GetValueOrDefault(licensee.Id));
+                links.GetValueOrDefault(licensee.Id),
+                licensee.SourceLicenseType);
         }).ToList();
     }
 
@@ -339,7 +418,11 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             .Include(firm => firm.Snapshot)
             .Include(firm => firm.LicenseeAffiliations)
                 .ThenInclude(affiliation => affiliation.Licensee)
-            .Where(firm => firm.Snapshot!.Status == RegulatorySnapshotStatuses.Approved);
+            .Where(firm => firm.Snapshot!.Status == RegulatorySnapshotStatuses.Approved
+                && (firm.State != "Florida" && firm.State != "Texas" && firm.State != "California" && firm.State != "Colorado" && firm.State != "Nevada" || firm.SnapshotId == _dbContext.RegulatoryDataSnapshots
+                    .Where(snapshot => snapshot.State == firm.State && snapshot.Status == RegulatorySnapshotStatuses.Approved)
+                    .OrderByDescending(snapshot => snapshot.ActivatedAtUtc ?? snapshot.RetrievedAtUtc).ThenByDescending(snapshot => snapshot.ImportedAtUtc).ThenBy(snapshot => snapshot.Id)
+                    .Select(snapshot => snapshot.Id).First()));
         if (!string.IsNullOrWhiteSpace(state))
         {
             query = query.Where(firm => firm.State == state.Trim());
@@ -438,7 +521,9 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
         var licensee = await _dbContext.RegulatoryLicensees
             .Include(candidate => candidate.Snapshot)
             .FirstOrDefaultAsync(candidate => candidate.Id == licenseeId);
-        if (user is null || licensee?.Snapshot?.Status != RegulatorySnapshotStatuses.Approved)
+        if (user is null || licensee is null
+            || licensee.Snapshot?.Status != RegulatorySnapshotStatuses.Approved
+            || IsColoradoDoraLicenseeUnavailable(licensee))
         {
             return false;
         }
@@ -462,11 +547,8 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             return false;
         }
 
-        var snapshot = await _dbContext.RegulatoryDataSnapshots
-            .Where(candidate => candidate.Status == RegulatorySnapshotStatuses.Approved
-                && candidate.State == normalizedState)
-            .OrderByDescending(candidate => candidate.RetrievedAtUtc)
-            .ThenByDescending(candidate => candidate.ImportedAtUtc)
+        var snapshot = await RegulatoryRoster.Published(_dbContext.RegulatoryDataSnapshots
+            .Where(candidate => candidate.State == normalizedState))
             .FirstOrDefaultAsync();
         if (snapshot is null)
         {
@@ -478,6 +560,9 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
                 && candidate.State == normalizedState
                 && candidate.LicenseNumber == normalizedLicense)
             .ToListAsync();
+
+        if (normalizedState == "Colorado" && snapshot.ParserVersion == ColoradoDoraBulkImportService.ParserVersion)
+            candidates = candidates.Where(candidate => !IsColoradoDoraLicenseeUnavailable(candidate, isDoraSnapshot: true)).ToList();
 
         if (user.LicenseType is not null)
         {
@@ -513,6 +598,22 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
         var licensee = candidates[0];
         await ApplyLinkAsync(user, licensee, null, user.Email, "regulatory-license.auto-linked");
         return true;
+    }
+
+    private bool IsColoradoDoraLicenseeUnavailable(RegulatoryLicensee licensee, bool isDoraSnapshot = false)
+    {
+        if (licensee.State != "Colorado"
+            || (!isDoraSnapshot && licensee.Snapshot?.ParserVersion != ColoradoDoraBulkImportService.ParserVersion))
+            return false;
+
+        var sourceType = licensee.SourceLicenseType;
+        if (sourceType is null)
+            return true;
+        var option = ColoradoDoraLicenseTypes.All.FirstOrDefault(candidate => candidate.Name == sourceType);
+        if (option is not { IsRealEstate: true, IsIndividual: true })
+            return true;
+        return _coloradoDoraTypeSelection is not null
+            && !_coloradoDoraTypeSelection.GetSelected().Contains(sourceType);
     }
 
     private async Task ApplyLinkAsync(UserAccount user, RegulatoryLicensee licensee, Guid? actorUserId, string actorEmail, string auditAction)

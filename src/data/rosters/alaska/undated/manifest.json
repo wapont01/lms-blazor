@@ -1,0 +1,55 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Alaska",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\TXTS\\Alaska CBPL Professional License Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ALASKA\\TXTS\\Alaska CBPL Professional License Capture.json",
+                      "Sha256":  "839D5B1E97F2CEADC6DA374A3171210639A2169EC7A64D5F25A79A498D892D89",
+                      "Bytes":  1713,
+                      "OfficialSourceUrl":  "https://www.commerce.alaska.gov/cbp/main/",
+                      "Coverage":  "Capture metadata and source context for professional license records"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\AgentsDownload.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ALASKA\\XLXS\\AgentsDownload.csv",
+                      "Sha256":  "DCAC10FCDDDB22A523B83A22537F8AC333EB79AF0D45047C252AFBD9215BD0A2",
+                      "Bytes":  11208185,
+                      "OfficialSourceUrl":  "https://www.commerce.alaska.gov/cbp/main/",
+                      "Coverage":  "Registered agent directory export"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\BusinessLicenseDownload.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ALASKA\\XLXS\\BusinessLicenseDownload.csv",
+                      "Sha256":  "A1415B3FA58E373D5B6EC0BEF5C2978B910402398CAD5E008D545491599E8710",
+                      "Bytes":  22351888,
+                      "OfficialSourceUrl":  "https://www.commerce.alaska.gov/cbp/main/",
+                      "Coverage":  "Business license registry export; entity evidence only, not a real-estate license list"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\CorporationsDownload.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ALASKA\\XLXS\\CorporationsDownload.csv",
+                      "Sha256":  "62DE9DEBA00220E37FC82FA6B386CB65622D8120DA061422567DDD0A82D7FF1E",
+                      "Bytes":  42905486,
+                      "OfficialSourceUrl":  "https://www.commerce.alaska.gov/cbp/main/",
+                      "Coverage":  "Corporate registry export; entity evidence only"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\ProfessionalLicenseDownload.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "ALASKA\\XLXS\\ProfessionalLicenseDownload.csv",
+                      "Sha256":  "B9AF0AE3E6084F197A4FC9A2A93EB0402AF1889A626D7B23826E5C264983D3FC",
+                      "Bytes":  16840352,
+                      "OfficialSourceUrl":  "https://www.commerce.alaska.gov/cbp/main/",
+                      "Coverage":  "Published professional-license export; broad captured dataset"
+                  }
+              ]
+}

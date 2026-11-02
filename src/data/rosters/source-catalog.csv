@@ -1,0 +1,464 @@
+Jurisdiction,LegacyRelativePath,CaptureDate,Role,OfficialSourceUrl,Coverage
+Alaska,ALASKA\TXTS\Alaska CBPL Professional License Capture.json,undated,raw,https://www.commerce.alaska.gov/cbp/main/,Capture metadata and source context for professional license records
+Alaska,ALASKA\XLXS\ProfessionalLicenseDownload.csv,undated,raw,https://www.commerce.alaska.gov/cbp/main/,Published professional-license export; broad captured dataset
+Alaska,ALASKA\XLXS\BusinessLicenseDownload.csv,undated,raw,https://www.commerce.alaska.gov/cbp/main/,"Business license registry export; entity evidence only, not a real-estate license list"
+Alaska,ALASKA\XLXS\CorporationsDownload.csv,undated,raw,https://www.commerce.alaska.gov/cbp/main/,Corporate registry export; entity evidence only
+Alaska,ALASKA\XLXS\AgentsDownload.csv,undated,raw,https://www.commerce.alaska.gov/cbp/main/,Registered agent directory export
+Alaska,ALASKA\XLXS\Alaska_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.commerce.alaska.gov/cbp/main/,Active real-estate individual sample
+Alaska,ALASKA\XLXS\Alaska_Open_Office_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.commerce.alaska.gov/cbp/main/,Open-office business sample
+Alaska,ALASKA\XLXS\Alaska_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://www.commerce.alaska.gov/cbp/main/,Sample manifest and source notes
+Alaska,ALASKA\TXTS\Alaska Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://www.commerce.alaska.gov/cbp/main/,Development-source selection and scope notes
+Arizona,ARIZONA\TXTS\Arizona ADRE Public Database Capture.json,2026-10-11,raw,https://services.azre.gov/PdbWeb/List/ViewLists,Official public database capture and sample provenance
+Arizona,ARIZONA\XLXS\Arizona_ADRE_Individual_Licenses_20261011.csv,2026-10-11,raw,https://services.azre.gov/PdbWeb/List/ViewLists,Full captured individual-license export; all statuses/types
+Arizona,ARIZONA\XLXS\Arizona_ADRE_Entity_Licenses_20261011.csv,2026-10-11,raw,https://services.azre.gov/PdbWeb/List/ViewLists,Full captured entity-license export
+Arizona,ARIZONA\XLXS\Arizona_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://services.azre.gov/PdbWeb/List/ViewLists,Active individual development sample
+Arizona,ARIZONA\XLXS\Arizona_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://services.azre.gov/PdbWeb/List/ViewLists,Active entity development sample
+Arizona,ARIZONA\XLXS\Arizona_Sampled_Individual_Employer_Relationships_20261011.csv,2026-10-11,prepared,https://services.azre.gov/PdbWeb/List/ViewLists,Sampled published employer/license relationships
+Arizona,ARIZONA\TXTS\Arizona Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://services.azre.gov/PdbWeb/List/ViewLists,Development-source selection and scope notes
+Arkansas,ARKANSAS\LICENSING\TXTs\AREC Little Rock Agent Capture 01.json,2026-09-19,raw,https://labor.arkansas.gov/licensing/real-estate-commission/arec-roster/agent-search/,Little Rock public-search capture; individual agent results
+Arkansas,ARKANSAS\LICENSING\TXTs\AREC Little Rock Agent Type Classification 01.json,undated,prepared,https://labor.arkansas.gov/licensing/real-estate-commission/arec-roster/agent-search/,Classification notes for captured agent license types
+California,CALIFORNIA\LICENSING\XLXS\broker_associates_list_20261009.xls,2026-10-09,raw,https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html,Broker-associate source export
+California,CALIFORNIA\LICENSING\XLXS\broker_associates_list.xls,undated,raw,https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html,Broker-associate source workbook
+California,CALIFORNIA\LICENSING\XLXS\broker_associates_20261009.csv,2026-10-09,prepared,https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html,Broker-associate parsed roster
+California,CALIFORNIA\LICENSING\XLXS\CurrList_20261009.zip,2026-10-09,raw,https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html,Source archive containing current license roster
+California,CALIFORNIA\LICENSING\XLXS\CurrList.csv,undated,raw,https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html,Current license roster extracted from source archive
+California,CALIFORNIA\LICENSING\XLXS\new_licensees.xls,undated,raw,https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html,New licensee source export
+California,CALIFORNIA\LICENSING\DRE_CAPTURE_SUMMARY.md,2026-10-09,prepared,https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html,Official source URLs archive names and capture summary
+Colorado,COLORADO\XLXS\Colorado_Active_Associate_Brokers_20261011.csv,2026-10-11,raw,https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx,Statewide active associate brokers
+Colorado,COLORADO\XLXS\Colorado_Active_Responsible_Brokers_20261011.csv,2026-10-11,raw,https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx,Statewide active responsible brokers
+Colorado,COLORADO\XLXS\Colorado_Active_Individual_Proprietors_20261011.csv,2026-10-11,raw,https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx,Statewide active individual proprietors
+Colorado,COLORADO\XLXS\Colorado_Active_Real_Estate_Companies_20261011.csv,2026-10-11,raw,https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx,Statewide active real-estate companies
+Colorado,COLORADO\XLXS\Colorado_Active_Responsible_Brokers_20261101.csv,2026-11-01,raw,https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx,"Newer statewide active responsible-broker roster; 5,646 credentials; capture date inferred from local file timestamp"
+Colorado,COLORADO\XLXS\Colorado_DORA_Licensed_Real_Estate_Professionals_20261102.csv,2026-11-02,raw,https://data.colorado.gov/Regulations/Licensed-Real-Estate-Professionals-in-Colorado/4zse-6bnw/about_data,"DORA real-estate dataset export; 109,743 rows across multiple program types; not imported"
+Colorado,COLORADO\XLXS\Colorado_DORA_eLicense_Comparison_20261102.json,2026-11-02,prepared,https://data.colorado.gov/Regulations/Licensed-Real-Estate-Professionals-in-Colorado/4zse-6bnw/about_data,Credential-level DORA and eLicense comparison counts and source hashes; no names
+Colorado,COLORADO\XLXS\Colorado_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx,Active individual development sample
+Colorado,COLORADO\XLXS\Colorado_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx,Active entity development sample
+Colorado,COLORADO\XLXS\Colorado_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx,Sample manifest and source type counts
+Colorado,COLORADO\TXTS\Colorado Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx,Development-source selection and scope notes
+Connecticut,CONNECTICUT\LICENSING\TXTs\CT eLicense Hartford Broker Capture 01.json,undated,raw,https://www.elicense.ct.gov/lookup/licenselookup.aspx,Hartford broker search capture; includes qualified records
+Connecticut,CONNECTICUT\LICENSING\TXTs\CT eLicense Hartford Broker+Salesperson Capture 01.json,undated,raw,https://www.elicense.ct.gov/lookup/licenselookup.aspx,Hartford broker and salesperson search capture; bounded pages
+Connecticut,CONNECTICUT\LICENSING\TXTs\CT Hartford Firm Profiles Batch 02.json,undated,raw,https://www.elicense.ct.gov/lookup/licenselookup.aspx,Hartford firm profile capture batch
+Connecticut,CONNECTICUT\LICENSING\TXTs\CT Hartford Firm Profiles Batch 03.json,undated,raw,https://www.elicense.ct.gov/lookup/licenselookup.aspx,Hartford firm profile capture batch
+Connecticut,CONNECTICUT\LICENSING\TXTs\CT Hartford Firm Profiles Batch 04.json,undated,raw,https://www.elicense.ct.gov/lookup/licenselookup.aspx,Hartford firm profile capture batch
+Connecticut,CONNECTICUT\LICENSING\XLXS\Connecticut_Hartford_Active_Real_Estate_Broker_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.elicense.ct.gov/lookup/licenselookup.aspx,Hartford active broker-category sample
+Connecticut,CONNECTICUT\LICENSING\XLXS\Connecticut_Hartford_Active_Real_Estate_Salesperson_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.elicense.ct.gov/lookup/licenselookup.aspx,Hartford active salesperson sample
+Connecticut,CONNECTICUT\LICENSING\XLXS\Connecticut_Hartford_Active_Firm_Campaign_Sample_20261011.csv,2026-10-11,prepared,https://www.elicense.ct.gov/lookup/licenselookup.aspx,Hartford firm campaign sample
+Connecticut,CONNECTICUT\LICENSING\XLXS\Connecticut_Hartford_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://www.elicense.ct.gov/lookup/licenselookup.aspx,Query counts sample hashes and coverage caveats
+Connecticut,CONNECTICUT\LICENSING\XLXS\Connecticut_Hartford_Active_Firm_Campaign_Sample_20261011.json,2026-10-11,prepared,https://www.elicense.ct.gov/lookup/licenselookup.aspx,Firm campaign sample provenance
+Delaware,DELAWARE\LICENSING\XLXS\Delaware_Wilmington_Active_Real_Estate_Broker_Development_Sample_20261011.csv,2026-10-11,prepared,https://delpros.delaware.gov/oh_verifylicense,Wilmington active broker sample
+Delaware,DELAWARE\LICENSING\XLXS\Delaware_Wilmington_Active_Real_Estate_Salesperson_Development_Sample_20261011.csv,2026-10-11,prepared,https://delpros.delaware.gov/oh_verifylicense,Wilmington active salesperson sample
+Delaware,DELAWARE\LICENSING\XLXS\Delaware_Wilmington_Active_Main_Office_Campaign_Sample_20261011.csv,2026-10-11,prepared,https://delpros.delaware.gov/oh_verifylicense,Wilmington main-office business sample
+Delaware,DELAWARE\LICENSING\XLXS\Delaware_Wilmington_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://delpros.delaware.gov/oh_verifylicense,Query counts and sample provenance
+Delaware,DELAWARE\TXTS\License Rosters PORTAL.txt,undated,raw,https://delpros.delaware.gov/oh_verifylicense,Official roster lookup page capture
+Florida,FLORIDA\XLXS\Florida_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv,State entity roster source and development sample manifest
+Florida,FLORIDA\XLXS\Florida_Real_Estate_Corporations_Partnerships_Branches_20261011.csv,2026-10-11,raw,https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv,Statewide real-estate entity licenses and branches
+Florida,FLORIDA\XLXS\Florida_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv,Active entity sample from statewide export
+Florida,FLORIDA\LICENSING\TXTs\Florida Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv,Development-source selection and scope notes
+Florida,FLORIDA\LICENSING\TEXTs\Miami-Dade - First Page Corporation Related License Rosters - DBPR Capture.md,undated,raw,https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv,Municipal public-search capture of corporation-related licenses
+Florida,FLORIDA\LICENSING\TEXTs\Miami-Dade - First Page Real Estate Corporations - DBPR Capture.md,undated,raw,https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv,Municipal real-estate corporation query capture
+Georgia,GEORGIA\LICENSING\TXTs\GA GREC Atlanta Company Broker Capture 01.json,undated,raw,https://ata.grec.state.ga.us/Account/Search,Atlanta company/broker query capture
+Georgia,GEORGIA\LICENSING\TXTs\GA GREC Atlanta Certification Details 01.json,undated,raw,https://ata.grec.state.ga.us/Account/Search,Atlanta license certification details
+Georgia,GEORGIA\LICENSING\XLXS\Georgia_Atlanta_Broker_Development_Sample_20261013.csv,2026-10-13,prepared,https://ata.grec.state.ga.us/Account/Search,Atlanta broker development sample
+Georgia,GEORGIA\LICENSING\XLXS\Georgia_Atlanta_Firm_Development_Sample_20261013.csv,2026-10-13,prepared,https://ata.grec.state.ga.us/Account/Search,Atlanta firm development sample
+Hawaii,HAWAII\LICENSING\TXTs\HI MyPVL Business Employee Capture 01.json,2026-09-19,raw,https://mypvl.dcca.hawaii.gov/public-license-search/,Business employee/profile capture
+Hawaii,HAWAII\LICENSING\TXTs\HI MyPVL License Capture RB-22161.json,2026-09-19,raw,https://mypvl.dcca.hawaii.gov/public-license-search/,Real-estate broker license profile capture
+Idaho,IDAHO\XLXS\Idaho_REC_Active_All_Types_20261011.csv,2026-10-11,raw,https://edopl.idaho.gov/OnlineServices/,Official active board export; all included license types
+Idaho,IDAHO\XLXS\Idaho_REC_Active_All_Types_20261011.ods,2026-10-11,raw,https://edopl.idaho.gov/OnlineServices/,Original spreadsheet version of active board export
+Idaho,IDAHO\XLXS\Idaho_Full_Development_Campaign_20261011.csv,2026-10-11,prepared,https://edopl.idaho.gov/OnlineServices/,"Full normalized campaign; 15,206 included credentials"
+Idaho,IDAHO\XLXS\Idaho_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://edopl.idaho.gov/OnlineServices/,Active individual sample
+Idaho,IDAHO\XLXS\Idaho_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://edopl.idaho.gov/OnlineServices/,Active entity sample
+Idaho,IDAHO\XLXS\Idaho_Development_Data_20261011.json,2026-10-11,prepared,https://edopl.idaho.gov/OnlineServices/,Manifest with row counts scope and source hashes
+Idaho,IDAHO\TXTS\Idaho Real Estate Development Data Notes 20261011.txt,2026-10-11,prepared,https://edopl.idaho.gov/OnlineServices/,Full active export selection and coverage notes
+Illinois,ILLINOIS\LICENSING\TXTs\IL Chicago Active Real Estate Firm Crawl 01.json,undated,raw,https://data.illinois.gov/Business-and-Workforce/Professional-Licensing/pzzh-kp68,Chicago real-estate firm crawl capture
+Illinois,ILLINOIS\LICENSING\XLXS\Illinois_Active_Real_Estate_Business_Licenses_20261011.json,2026-10-11,raw,https://data.illinois.gov/Business-and-Workforce/Professional-Licensing/pzzh-kp68,Active real-estate business license source data
+Illinois,ILLINOIS\LICENSING\XLXS\Illinois_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://data.illinois.gov/Business-and-Workforce/Professional-Licensing/pzzh-kp68,Active entity development sample
+Illinois,ILLINOIS\LICENSING\XLXS\Illinois_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://data.illinois.gov/Business-and-Workforce/Professional-Licensing/pzzh-kp68,Manifest and sample provenance
+Illinois,ILLINOIS\LICENSING\TXTs\Illinois Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://data.illinois.gov/Business-and-Workforce/Professional-Licensing/pzzh-kp68,Development-source selection and scope notes
+Indiana,INDIANA\XLXS\Indiana_License_Result_Captures_20261011.json,2026-10-11,raw,https://mylicense.in.gov/EVerification/SearchResults.aspx,Portal search result grid captures
+Indiana,INDIANA\XLXS\Indiana_Indianapolis_Development_Campaign_20261011.csv,2026-10-11,prepared,https://mylicense.in.gov/EVerification/SearchResults.aspx,Indianapolis bounded 60-record individual/business campaign dataset
+Indiana,INDIANA\XLXS\Indiana_Indianapolis_Active_Broker_Development_Sample_20261011.csv,2026-10-11,prepared,https://mylicense.in.gov/EVerification/SearchResults.aspx,Indianapolis active broker sample
+Indiana,INDIANA\XLXS\Indiana_Indianapolis_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://mylicense.in.gov/EVerification/SearchResults.aspx,Indianapolis active entity sample
+Indiana,INDIANA\XLXS\Indiana_Development_Samples_20261011.json,2026-10-11,prepared,https://mylicense.in.gov/EVerification/SearchResults.aspx,Sample coverage and selection metadata
+Iowa,IOWA\XLXS\Iowa_Des_Moines_50309_AK_Roster_Capture_20261010.json,2026-10-10,raw,https://ia-plb.my.site.com/LicenseSearchPage,Des Moines search capture set AK
+Iowa,IOWA\XLXS\Iowa_Des_Moines_50309_LZ_Roster_Capture_20261010.json,2026-10-10,raw,https://ia-plb.my.site.com/LicenseSearchPage,Des Moines search capture set LZ
+Iowa,IOWA\XLXS\Iowa_Des_Moines_50309_AK_Real_Estate_Licensees_20261010.csv,2026-10-10,prepared,https://ia-plb.my.site.com/LicenseSearchPage,Des Moines AK licensee query results
+Iowa,IOWA\XLXS\Iowa_Des_Moines_50309_AK_Real_Estate_Firms_20261010.csv,2026-10-10,prepared,https://ia-plb.my.site.com/LicenseSearchPage,Des Moines AK firm query results
+Iowa,IOWA\XLXS\Iowa_Des_Moines_50309_LZ_Additional_Licensees_20261010.csv,2026-10-10,prepared,https://ia-plb.my.site.com/LicenseSearchPage,Des Moines LZ additional licensee results
+Iowa,IOWA\XLXS\Iowa_Des_Moines_50309_LZ_Additional_Businesses_20261010.csv,2026-10-10,prepared,https://ia-plb.my.site.com/LicenseSearchPage,Des Moines LZ additional business results
+Iowa,IOWA\XLXS\Iowa_Des_Moines_50309_LZ_Page2_Additional_Licensees_20261010.csv,2026-10-10,prepared,https://ia-plb.my.site.com/LicenseSearchPage,Des Moines LZ page 2 licensees
+Iowa,IOWA\XLXS\Iowa_Des_Moines_50309_LZ_Page2_Additional_Businesses_20261010.csv,2026-10-10,prepared,https://ia-plb.my.site.com/LicenseSearchPage,Des Moines LZ page 2 businesses
+Kansas,KANSAS\TXTs\Kansas KREC Licensee Data Report Capture.json,undated,raw,https://krec.ks.gov/,Statewide report capture and retrieval evidence
+Kansas,KANSAS\XLXS\Licensee Data.csv,undated,raw,https://krec.ks.gov/,Downloaded licensee data source export
+Kansas,KANSAS\XLXS\Kansas_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://krec.ks.gov/,Active individual sample
+Kansas,KANSAS\XLXS\Kansas_Active_Company_Affiliation_Development_Sample_20261011.csv,2026-10-11,prepared,https://krec.ks.gov/,Active company affiliation sample
+Kansas,KANSAS\XLXS\Kansas_Sampled_Licensee_Company_Affiliations_20261011.csv,2026-10-11,prepared,https://krec.ks.gov/,Sampled licensee-company relationship edges
+Kansas,KANSAS\XLXS\Kansas_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://krec.ks.gov/,Sample coverage manifest
+Kansas,KANSAS\TXTS\Kansas Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://krec.ks.gov/,Source capture and coverage notes
+Kansas,KANSAS\XLXS\LicenseHistoryCertification Links.xlsx,undated,raw,https://krec.ks.gov/,License history and certification source links
+Kentucky,KENTUCKY\XLXS\Kentucky_Active_Broker_All_Regions_20261011.csv,2026-10-11,raw,https://oop.ky.gov/active_lic_dir.aspx,Active statewide-region broker directory export
+Kentucky,KENTUCKY\XLXS\Kentucky_Active_Broker_All_Regions_20261011.xls,2026-10-11,raw,https://oop.ky.gov/active_lic_dir.aspx,Original broker directory workbook
+Kentucky,KENTUCKY\XLXS\Kentucky_Active_Sales_Associate_All_Regions_20261011.csv,2026-10-11,raw,https://oop.ky.gov/active_lic_dir.aspx,Active statewide-region sales associate export
+Kentucky,KENTUCKY\XLXS\Kentucky_Active_Sales_Associate_All_Regions_20261011.xls,2026-10-11,raw,https://oop.ky.gov/active_lic_dir.aspx,Original sales associate workbook
+Kentucky,KENTUCKY\XLXS\Kentucky_Active_Registered_Firm_Branch_All_Regions_20261011.csv,2026-10-11,raw,https://oop.ky.gov/active_lic_dir.aspx,Active registered firm and branch export
+Kentucky,KENTUCKY\XLXS\Kentucky_Active_Registered_Firm_Branch_All_Regions_20261011.xls,2026-10-11,raw,https://oop.ky.gov/active_lic_dir.aspx,Original firm and branch workbook
+Kentucky,KENTUCKY\XLXS\Kentucky_Full_Directory_Development_Campaign_20261011.csv,2026-10-11,prepared,https://oop.ky.gov/active_lic_dir.aspx,Full saved active directory development dataset
+Kentucky,KENTUCKY\XLXS\Kentucky_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://oop.ky.gov/active_lic_dir.aspx,Active individual development sample
+Kentucky,KENTUCKY\XLXS\Kentucky_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://oop.ky.gov/active_lic_dir.aspx,Active entity development sample
+Kentucky,KENTUCKY\XLXS\Kentucky_Development_Data_20261011.json,2026-10-11,prepared,https://oop.ky.gov/active_lic_dir.aspx,Counts scope status caveats and hashes
+Kentucky,KENTUCKY\XLXS\Kentucky_Directory_Query_Observations_20261011.json,2026-10-11,raw,https://oop.ky.gov/active_lic_dir.aspx,Query capture observations
+Kentucky,KENTUCKY\XLXS\Kentucky_Firm_Profile_251286_20261011.json,2026-10-11,raw,https://oop.ky.gov/Lics_Details.aspx?id=251286,Official firm profile evidence for one principal-broker relationship
+Kentucky,KENTUCKY\TXTS\Kentucky Real Estate Development Data Notes 20261011.txt,2026-10-11,prepared,https://oop.ky.gov/active_lic_dir.aspx,Directory capture and status caveats
+Louisiana,LOUISIANA\XLXS\Louisiana_All_Captured_Development_Campaign_20261012.csv,2026-10-12,prepared,https://portal.lrec.gov/Public/RequestRoster/,Captured individual and business development dataset
+Louisiana,LOUISIANA\XLXS\Louisiana_All_Captured_Individuals_20261012.csv,2026-10-12,prepared,https://portal.lrec.gov/public/search,Individual licensee records
+Louisiana,LOUISIANA\XLXS\Louisiana_All_Captured_Entities_20261012.csv,2026-10-12,prepared,https://portal.lrec.gov/public/search,Business/entity license records
+Louisiana,LOUISIANA\XLXS\Louisiana_Verified_Active_Entities_20261012.csv,2026-10-12,prepared,https://portal.lrec.gov/public/search,Verified active business entities
+Louisiana,LOUISIANA\XLXS\Louisiana_Verified_Sponsor_Relationship_20261012.csv,2026-10-12,prepared,https://portal.lrec.gov/public/search,Verified sponsor relationship evidence
+Louisiana,LOUISIANA\XLXS\Louisiana_Unresolved_Supervisor_References_20261012.csv,2026-10-12,prepared,https://portal.lrec.gov/public/search,Unresolved published supervisor references
+Louisiana,LOUISIANA\XLXS\Louisiana_Baton_Rouge_Result_Capture_20261012.json,2026-10-12,raw,https://portal.lrec.gov/Public/RequestRoster/,Baton Rouge roster result capture
+Louisiana,LOUISIANA\XLXS\Louisiana_Baton_Rouge_Result_Capture_Repeat_20261012.json,2026-10-12,raw,https://portal.lrec.gov/Public/RequestRoster/,Repeat query evidence
+Louisiana,LOUISIANA\XLXS\Louisiana_Development_Data_20261012.json,2026-10-12,prepared,https://portal.lrec.gov/Public/RequestRoster/,Record counts capture scope and artifact hashes
+Louisiana,LOUISIANA\XLXS\Louisiana_Paid_Roster_Query_Observation_20261012.json,2026-10-12,raw,https://portal.lrec.gov/Public/RequestRoster/,Paid roster query observation
+Louisiana,LOUISIANA\XLXS\Louisiana_Sponsor_Profile_Capture_20261012.json,2026-10-12,raw,https://portal.lrec.gov/public/search,Sponsor profile evidence
+Louisiana,LOUISIANA\XLXS\Louisiana_Verified_Profiles_20261012.json,2026-10-12,raw,https://portal.lrec.gov/public/search,Verified profile capture metadata
+Louisiana,LOUISIANA\TXTS\Louisiana Real Estate Development Data Notes 20261012.txt,2026-10-12,prepared,https://portal.lrec.gov/Public/RequestRoster/,Capture counts and query coverage notes
+Maine,MAINE\XLXS\Maine_Active_Individuals_All_Locations_20261012.csv,2026-10-12,raw,https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060,All-location active individual query export
+Maine,MAINE\XLXS\Maine_Active_Companies_All_Locations_20261012.csv,2026-10-12,raw,https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060,All-location active company query export
+Maine,MAINE\XLXS\Maine_Full_Active_Individuals_20261012.csv,2026-10-12,prepared,https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060,Full active individual prepared roster
+Maine,MAINE\XLXS\Maine_Full_Active_Entities_20261012.csv,2026-10-12,prepared,https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060,Full active business and branch roster
+Maine,MAINE\XLXS\Maine_Full_Active_Development_Campaign_20261012.csv,2026-10-12,prepared,https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060,Combined full active development dataset
+Maine,MAINE\XLXS\Maine_Published_Relationships_20261012.csv,2026-10-12,prepared,https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060,Published person-business relationships
+Maine,MAINE\XLXS\Maine_Development_Data_20261012.json,2026-10-12,prepared,https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060,Manifest with counts scope caveats and file hashes
+Maine,MAINE\XLXS\Maine_Query_Observations_20261012.json,2026-10-12,raw,https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060,Portal query observations
+Maine,MAINE\XLXS\Maine_Company_Profile_AL90603691_20261012.json,2026-10-12,raw,https://www.pfr.maine.gov/ALMSOnline/ALMSQuery/ShowDetail.aspx?DetailToken=55052A19EBEA97ABC0AA7C8788324055CC48D9A85230678E7AA18A828BD00EAF,Company profile capture
+Maine,MAINE\XLXS\Maine_Branch_Profile_AB90603149_20261012.json,2026-10-12,raw,https://www.pfr.maine.gov/ALMSOnline/ALMSQuery/ShowDetail.aspx?DetailToken=55052A19EBEA97ABC0AA7C8788324055CC48D9A85230678E7AA18A828BD00EAF,Branch profile capture
+Maine,MAINE\TXTS\Maine Real Estate Development Data Notes 20261012.txt,2026-10-12,prepared,https://www.pfr.maine.gov/almsonline/almsquery/welcome.aspx?board=4060,Source counts and completeness caveats
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_Location_Personal_Licensees_20261011.csv,2026-10-11,raw,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,"Baltimore location crawl of 2,434 personal license rows"
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_Business_Location_Query_20261011.csv,2026-10-11,raw,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,Baltimore business-location query results
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_Business_Location_Crawl_Coverage_20261011.csv,2026-10-11,prepared,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,Business location crawl coverage and completeness
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_BROKER_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,Baltimore broker sample
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_ASSOCIATE_BROKER_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,Baltimore associate broker sample
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_SALESPERSON_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,Baltimore salesperson sample
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_Smith_Personal_License_Query_20261011.csv,2026-10-11,prepared,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,Name-based search result capture
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_Broker_Linked_Location_Campaign_Sample_20261011.csv,2026-10-11,prepared,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,Broker-linked location sample
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_Development_Samples_20261011.json,2026-10-11,prepared,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,Sample and source hash manifest
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_Location_Roster_Captures_20261011.json,2026-10-11,raw,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,Source roster captures and crawl metadata
+Maryland,MARYLAND\XLXS\Maryland_Baltimore_Location_Crawl_Failures_20261011.json,2026-10-11,raw,https://www.dllr.state.md.us/cgi-bin/ElectronicLicensing/OP_Search/OP_search.cgi?calling_app=RE::RE_name_lookup,Crawl failure evidence
+Massachusetts,MASSACHUSETTS\XLXS\Massachusetts_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://occupationallicensingandpermitting.mass.gov/madol/s/license-search-page,Boston active individual samples
+Massachusetts,MASSACHUSETTS\XLXS\Massachusetts_Active_Entity_Campaign_Development_Sample_20261011.csv,2026-10-11,prepared,https://occupationallicensingandpermitting.mass.gov/madol/s/license-search-page,Entity campaign samples
+Massachusetts,MASSACHUSETTS\XLXS\Massachusetts_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://occupationallicensingandpermitting.mass.gov/madol/s/license-search-page,Query counts sample scope and hashes
+Massachusetts,MASSACHUSETTS\XLXS\Real-Estate-Brokers-and-Salespersons-Business-License-Affiliations-Form.csv,undated,raw,https://occupationallicensingandpermitting.mass.gov/madol/s/license-search-page,Real-estate broker and salesperson affiliation source form
+Michigan,MICHIGAN\XLXS\Michigan_Real_Estate_Active_Licenses_Raw_20261012.csv,2026-10-12,raw,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,State report source license rows
+Michigan,MICHIGAN\XLXS\Michigan_Real_Estate_Employer_Info_Raw_20261012.csv,2026-10-12,raw,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,State report employer information source rows
+Michigan,MICHIGAN\XLXS\Michigan_Real_Estate_Active_Licenses_20261012.xlsx,2026-10-12,raw,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Original active license report workbook
+Michigan,MICHIGAN\XLXS\Michigan_Real_Estate_Employer_Info_Active_20261012.xlsx,2026-10-12,raw,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Original employer information report workbook
+Michigan,MICHIGAN\XLXS\Michigan_Full_Captured_Individuals_20261012.csv,2026-10-12,prepared,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Full captured individual credentials
+Michigan,MICHIGAN\XLXS\Michigan_Full_Captured_Entities_20261012.csv,2026-10-12,prepared,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Full captured business credentials
+Michigan,MICHIGAN\XLXS\Michigan_Full_Captured_Development_Campaign_20261012.csv,2026-10-12,prepared,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Combined full captured campaign dataset
+Michigan,MICHIGAN\XLXS\Michigan_Exact_Active_Entities_20261012.csv,2026-10-12,prepared,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Exact active business subset
+Michigan,MICHIGAN\XLXS\Michigan_Published_Broker_Relationships_20261012.csv,2026-10-12,prepared,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Published broker relationship records
+Michigan,MICHIGAN\XLXS\Michigan_Unlinked_Employer_Rows_20261012.csv,2026-10-12,prepared,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Employer rows not linked to source license records
+Michigan,MICHIGAN\XLXS\Michigan_Development_Data_20261012.json,2026-10-12,prepared,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Counts scope and source integrity manifest
+Michigan,MICHIGAN\XLXS\Michigan_Report_Query_Observations_20261012.json,2026-10-12,raw,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Source report query and capture observations
+Michigan,MICHIGAN\TXTS\Michigan Real Estate Development Data Notes 20261012.txt,2026-10-12,prepared,https://www.michigan.gov/lara/bureau-list/bpl/license-lists-and-reports,Source report scope and date conversion notes
+Minnesota,MINNESOTA\XLXS\Minnesota_Saint_Paul_Pulse_Real_Estate_Licensees_20261010.csv,2026-10-10,raw,https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE,Saint Paul real-estate licensee query capture
+Minnesota,MINNESOTA\XLXS\Minnesota_Saint_Paul_Pulse_Real_Estate_Firms_20261010.csv,2026-10-10,raw,https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE,Saint Paul firm query capture
+Minnesota,MINNESOTA\XLXS\Minnesota_Minneapolis_Pulse_Additional_Licensee_Details_20261010.csv,2026-10-10,raw,https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE,Additional Minneapolis licensee detail captures
+Minnesota,MINNESOTA\XLXS\Minnesota_Minneapolis_Pulse_Additional_Active_Individual_Proprietors_20261010.csv,2026-10-10,raw,https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE,Additional individual proprietor capture
+Minnesota,MINNESOTA\XLXS\Minnesota_Minneapolis_Pulse_Additional_Limited_Brokers_20261010.csv,2026-10-10,raw,https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE,Additional limited broker capture
+Minnesota,MINNESOTA\XLXS\Minnesota_Minneapolis_Pulse_Additional_Closing_Agent_20261010.csv,2026-10-10,raw,https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE,Additional closing-agent records
+Minnesota,MINNESOTA\XLXS\Minnesota_Minneapolis_Sircon_Additional_Abstracters_20261010.csv,2026-10-10,raw,https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE,Additional abstracter records
+Minnesota,MINNESOTA\XLXS\Minnesota_Saint_Paul_Pulse_Salesperson_Detail_Samples_20261010.csv,2026-10-10,prepared,https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE,Salesperson detail sample
+Minnesota,MINNESOTA\XLXS\Minnesota_Saint_Paul_Pulse_Roster_Capture_20261010.json,2026-10-10,raw,https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE,Portal capture manifest and retrieval metadata
+Mississippi,MISSISSIPPI\LICENSING\TXTs\Mississippi Jackson License Capture 20261010.json,2026-10-10,raw,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Jackson public license search evidence
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Resident_Salesperson_Sample_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Resident salesperson sample
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Additional_Resident_Salespersons_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Additional resident salesperson sample
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Resident_Broker_Sample_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Resident broker sample
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Additional_Resident_Brokers_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Additional resident broker sample
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Active_Company_Sample_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Active company sample
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Additional_Active_Company_Sample_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Additional active company sample
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Active_Branch_Office_Sample_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Active branch-office sample
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Sample_Relationships_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Sample published affiliations
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Additional_Broker_Relationships_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Additional broker relationship records
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Additional_Company_Relationships_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Additional company relationship records
+Mississippi,MISSISSIPPI\LICENSING\XLXS\Mississippi_Jackson_Additional_Salesperson_Relationships_20261010.csv,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Additional salesperson relationship records
+Missouri,MISSOURI\XLXS\Missouri_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://mopro.mo.gov/license/s/license-search,Jackson County active individual sample
+Missouri,MISSOURI\XLXS\Missouri_Active_Entity_Campaign_Development_Sample_20261011.csv,2026-10-11,prepared,https://mopro.mo.gov/license/s/license-search,Jackson County active business sample
+Missouri,MISSOURI\XLXS\Missouri_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://mopro.mo.gov/license/s/license-search,Query coverage sample method and source manifest
+Missouri,MISSOURI\TXTS\Missouri Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://mopro.mo.gov/license/s/license-search,Query coverage and pagination notes
+Montana,MONTANA\XLXS\Montana_Broker_License_Export_20261012.csv,2026-10-12,raw,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,User-supplied official broker export
+Montana,MONTANA\XLXS\Montana_Salesperson_License_Export_20261012.csv,2026-10-12,raw,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,User-supplied official salesperson export
+Montana,MONTANA\XLXS\Montana_Salesperson_Temporary_License_Export_20261012.csv,2026-10-12,raw,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,User-supplied temporary salesperson export
+Montana,MONTANA\XLXS\Montana_Timeshare_Salesperson_License_Export_20261012.csv,2026-10-12,raw,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Supplementary timeshare salesperson export
+Montana,MONTANA\XLXS\Montana_All_Captured_Development_Campaign_20261012.csv,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,All captured individual-category credentials; mixed statuses
+Montana,MONTANA\XLXS\Montana_Exact_Active_Individuals_20261012.csv,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Exact active individual license subset
+Montana,MONTANA\XLXS\Montana_Core_Brokerage_Development_Campaign_20261012.csv,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Core brokerage development data
+Montana,MONTANA\XLXS\Montana_Supplementary_Timeshare_Development_20261012.csv,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Supplementary historical timeshare salesperson records
+Montana,MONTANA\XLXS\Montana_Captured_Coverage_20261012.csv,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Source export coverage evidence
+Montana,MONTANA\XLXS\Montana_Unresolved_Business_Name_References_20261012.csv,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Unresolved business-name annotations; not verified firm licenses
+Montana,MONTANA\XLXS\portal_samples\Montana_Sample_Search_BerkshireHathaway_20261012.csv,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Sample portal business-name search results
+Montana,MONTANA\XLXS\portal_samples\Montana_Sample_Search_ERALandmark_20261012.csv,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Sample portal business-name search results
+Montana,MONTANA\XLXS\portal_samples\Montana_Sample_Search_KellerWilliams_20261012.csv,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Sample portal business-name search results
+Montana,MONTANA\XLXS\portal_samples\Montana_Sample_Search_PureWest_20261012.csv,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Sample portal business-name search results
+Montana,MONTANA\XLXS\Montana_Development_Data_20261012.json,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Manifest and completeness limitations
+Montana,MONTANA\TXTS\Montana Real Estate Development Data Notes 20261012.txt,2026-10-12,prepared,https://ebizws.mt.gov/PUBLICPORTAL/searchform?mylist=licenses,Export scope and source completeness notes
+Nebraska,NEBRASKA\XLXS\Nebraska_Active_Brokers_20261012.csv,2026-10-12,raw,https://nrec.igovsolution.net/online/Verification/Individual,Active broker query export
+Nebraska,NEBRASKA\XLXS\Nebraska_Active_Salespersons_20261012.csv,2026-10-12,raw,https://nrec.igovsolution.net/online/Verification/Individual,Active salesperson query export
+Nebraska,NEBRASKA\XLXS\Nebraska_Inactive_Licensees_20261012.csv,2026-10-12,raw,https://nrec.igovsolution.net/online/Verification/Individual,Inactive licensees source export
+Nebraska,NEBRASKA\XLXS\Nebraska_All_Captured_Development_Campaign_20261012.csv,2026-10-12,prepared,https://nrec.igovsolution.net/online/Verification/Individual,All captured development records
+Nebraska,NEBRASKA\XLXS\Nebraska_Exact_Active_Individuals_20261012.csv,2026-10-12,prepared,https://nrec.igovsolution.net/online/Verification/Individual,Exact active individuals; distinct credential identifiers retained
+Nebraska,NEBRASKA\XLXS\Nebraska_Sample_Active_Individuals_20261012.csv,2026-10-12,prepared,https://nrec.igovsolution.net/online/Verification/Individual,Active individual sample
+Nevada,NEVADA\TXTs\Nevada NRED Active Licensee List Capture.json,undated,raw,https://red.nv.gov/,Active license list capture evidence
+Nevada,NEVADA\XLXS\NRED-ACTIVE-BROKER-SALESPERSONS.xlsx,undated,raw,https://red.nv.gov/,Combined active broker and salesperson roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-BROKERS.xlsx,undated,raw,https://red.nv.gov/,Active broker roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-SALESPERSONS.xlsx,undated,raw,https://red.nv.gov/,Active salesperson roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-BUSINESS-BROKERS.xlsx,undated,raw,https://red.nv.gov/,Active business broker roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-AMC.xlsx,undated,raw,https://red.nv.gov/,Active appraisal management company roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-APPRAISERS.xlsx,undated,raw,https://red.nv.gov/,Active appraiser roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-CAM.xlsx,undated,raw,https://red.nv.gov/,Active community association manager roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-ENERGY-AUDITORS.xlsx,undated,raw,https://red.nv.gov/,Active energy auditor roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-HOA.xlsx,undated,raw,https://red.nv.gov/,Active homeowners association roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-IOS.xlsx,undated,raw,https://red.nv.gov/,Active inspector-of-structures roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-PROPERTY-MANAGERS.xlsx,undated,raw,https://red.nv.gov/,Active property manager roster
+Nevada,NEVADA\XLXS\NRED-ACTIVE-TIMESHARE-AGENTS.xlsx,undated,raw,https://red.nv.gov/,Active timeshare agent roster
+Nevada,NEVADA\XLXS\Nevada_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://red.nv.gov/,Active individual development sample
+Nevada,NEVADA\XLXS\Nevada_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://red.nv.gov/,Sample manifest and source scope
+Nevada,NEVADA\TXTS\Nevada Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://red.nv.gov/,Source roster type and scope notes
+New Hampshire,NEW HAMPSHIRE\XLXS\real-estate-verification09212026.xlsx,2026-09-21,raw,https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types,Real-estate license verification source data
+New Hampshire,NEW HAMPSHIRE\XLXS\verification_data_09202026-v2.xlsx,2026-09-20,raw,https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types,Supplemental verification source workbook
+New Hampshire,NEW HAMPSHIRE\XLXS\New_Hampshire_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types,Active individual sample
+New Hampshire,NEW HAMPSHIRE\XLXS\New_Hampshire_Active_Firm_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types,Active firm sample
+New Hampshire,NEW HAMPSHIRE\XLXS\New_Hampshire_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types,Source and sample manifest
+New Hampshire,NEW HAMPSHIRE\TXTS\New Hampshire OPLC Real Estate Roster Capture.json,undated,raw,https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types,Official roster retrieval capture
+New Hampshire,NEW HAMPSHIRE\TXTS\New Hampshire Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types,Source and sample scope notes
+New Jersey,NEW JERSEY\LICENSING\XLXS\New_Jersey_Realty_Active_Company_Query_Results_20261011.csv,2026-10-11,raw,https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp,Active company query result rows
+New Jersey,NEW JERSEY\LICENSING\XLXS\New_Jersey_Realty_Active_Company_Branch_Campaign_Sample_20261011.csv,2026-10-11,prepared,https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp,Active company and branch sample
+New Jersey,NEW JERSEY\LICENSING\XLXS\New_Jersey_Smith_Active_Salesperson_Query_Results_20261011.csv,2026-10-11,raw,https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp,Smith surname active salesperson query results
+New Jersey,NEW JERSEY\LICENSING\XLXS\New_Jersey_Smith_Active_Salesperson_Development_Sample_20261011.csv,2026-10-11,prepared,https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp,Active salesperson sample
+New Jersey,NEW JERSEY\LICENSING\XLXS\New_Jersey_Smith_Active_Broker_Salesperson_Query_Results_20261011.csv,2026-10-11,raw,https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp,Broker-salesperson query result rows
+New Jersey,NEW JERSEY\LICENSING\XLXS\New_Jersey_Smith_Active_Broker_Salesperson_Development_Sample_20261011.csv,2026-10-11,prepared,https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp,Broker-salesperson sample
+New Jersey,NEW JERSEY\LICENSING\XLXS\New_Jersey_Smith_Active_Broker_Of_Record_Query_Results_20261011.csv,2026-10-11,raw,https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp,Broker of record query results
+New Jersey,NEW JERSEY\LICENSING\XLXS\New_Jersey_Smith_Active_Broker_Of_Record_Development_Sample_20261011.csv,2026-10-11,prepared,https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp,Broker of record sample
+New Jersey,NEW JERSEY\LICENSING\XLXS\New_Jersey_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp,Query counts sample method and source manifest
+New Jersey,NEW JERSEY\LICENSING\XLXS\New_Jersey_Realty_Campaign_Profile_Captures_20261011.json,2026-10-11,raw,https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp,Profile capture evidence
+New Mexico,NEW_MEXICO\XLXS\New_Mexico_Full_Active_Entities_20261012.csv,2026-10-12,prepared,https://nmrldlpi.my.site.com/bcd/s/rld-public-search,Full active Trade Name brokerage entities
+New Mexico,NEW_MEXICO\XLXS\New_Mexico_Active_Entity_Development_Sample_20261012.csv,2026-10-12,prepared,https://nmrldlpi.my.site.com/bcd/s/rld-public-search,Active entity sample
+New Mexico,NEW_MEXICO\XLXS\New_Mexico_Active_Trade_Names_Raw_20261012.json,2026-10-12,raw,https://nmrldlpi.my.site.com/bcd/s/rld-public-search,Raw active Trade Name records
+New Mexico,NEW_MEXICO\XLXS\New_Mexico_Development_Data_20261012.json,2026-10-12,prepared,https://nmrldlpi.my.site.com/bcd/s/rld-public-search,Manifest for full Trade Name capture
+New Mexico,NEW_MEXICO\TXTS\New Mexico Real Estate Development Data Notes 20261012.txt,2026-10-12,prepared,https://nmrldlpi.my.site.com/bcd/s/rld-public-search,Full active Trade Name coverage notes
+New York,NEW YORK\LICENSING\XLXS\New_York_Active_Real_Estate_Entity_Licenses_20261011.json,2026-10-11,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Active real-estate entity license records
+New York,NEW YORK\LICENSING\XLXS\New_York_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,State sample manifest
+New York,NEW YORK\LICENSING\TXTs\New York Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Crawl scope and source notes
+New York,NEW YORK\LICENSING\XLXS\New_York_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Active real-estate entity development sample
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Roster Crawl Summary.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Beacon roster crawl summary
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Individual Broker Crawl Summary.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Individual broker crawl summary
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Individual Broker Detail Chunk 01.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Individual broker detail records chunk 1
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Individual Broker Detail Chunk 02.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Individual broker detail records chunk 2
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Individual Broker Detail Chunk 03.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Individual broker detail records chunk 3
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Individual Broker Detail Chunk 04.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Individual broker detail records chunk 4
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Associate Broker Crawl Page 1.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Associate broker crawl page
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Salesperson Crawl Page 1 Batch 01.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Salesperson crawl page 1 batch 1
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Salesperson Crawl Page 1 Batch 02.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Salesperson crawl page 1 batch 2
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Salesperson Crawl Page 2 Batch 01.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Salesperson crawl page 2
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Salesperson Crawl Page 3 Batch 01.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Salesperson crawl page 3
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Salesperson Crawl Page 4 Batch 01.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Salesperson crawl page 4
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Branch Office Crawl Complete.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Branch office full crawl
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Branch Office Crawl Summary.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Branch office crawl summary
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Branch Office Details Retry.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Branch office profile retry evidence
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Corporate Broker Crawl Complete.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Corporate broker full crawl
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Corporate Broker Crawl Summary.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Corporate broker crawl summary
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Corporate Broker Details Retry.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Corporate broker profile retry evidence
+New York,NEW YORK\LICENSING\TXTs\NY Beacon LLC Broker Crawl Chunk 01.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,LLC broker crawl chunk 1
+New York,NEW YORK\LICENSING\TXTs\NY Beacon LLC Broker Crawl Chunk 02.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,LLC broker crawl chunk 2
+New York,NEW YORK\LICENSING\TXTs\NY Beacon LLC Broker Crawl Chunk 03.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,LLC broker crawl chunk 3
+New York,NEW YORK\LICENSING\TXTs\NY Beacon LLC Broker Crawl Chunk 04.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,LLC broker crawl chunk 4
+New York,NEW YORK\LICENSING\TXTs\NY Beacon LLC Broker Crawl Chunk 05.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,LLC broker crawl chunk 5
+New York,NEW YORK\LICENSING\TXTs\NY Beacon LLC Broker Crawl Summary.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,LLC broker crawl summary
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Partnership Broker Crawl Summary.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Partnership broker crawl summary
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Chunk 01.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl chunk 1
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Chunk 02.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl chunk 2
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Chunk 03.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl chunk 3
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Chunk 04.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl chunk 4
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Chunk 05.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl chunk 5
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Chunk 06.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl chunk 6
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Chunk 07.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl chunk 7
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Chunk 08.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl chunk 8
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Chunk 09.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl chunk 9
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Chunk 10.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl chunk 10
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Principal Office Crawl Summary.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Principal office crawl summary
+New York,NEW YORK\LICENSING\TXTs\NY Beacon Trade Name Broker Crawl.json,undated,raw,https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf,Trade name broker crawl
+North Carolina,NORTH CAROLINA\LICENSING\TEXTs\BROKER ROSTER\Charlotte - 65 Firms - NCREC Roster Capture 2026-09-17.json,2026-09-17,raw,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,Charlotte firm roster capture
+North Carolina,NORTH CAROLINA\LICENSING\TEXTs\BROKER ROSTER\Charlotte - 65 Firms - NCREC Link Map 2026-09-17.json,2026-09-17,raw,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,Charlotte roster link map
+North Carolina,NORTH CAROLINA\LICENSING\TEXTs\BROKER ROSTER\NCREC New Licenses From 368498 Capture.json,undated,raw,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,New-license result capture
+North Carolina,NORTH CAROLINA\LICENSING\TEXTs\BROKER ROSTER\NCREC New Licenses From 368544 Capture.json,undated,raw,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,New-license result capture
+North Carolina,NORTH CAROLINA\LICENSING\XLXS\North_Carolina_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,Sample manifest and source coverage
+North Carolina,NORTH CAROLINA\LICENSING\XLXS\North_Carolina_Charlotte_Active_Broker_Development_Sample_20261011.csv,2026-10-11,prepared,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,Charlotte active broker sample
+North Carolina,NORTH CAROLINA\LICENSING\XLXS\North_Carolina_Charlotte_Active_Firm_Development_Sample_20261011.csv,2026-10-11,prepared,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,Charlotte active firm sample
+North Carolina,NORTH CAROLINA\LICENSING\TXTs\North Carolina Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,Sample scope and source notes
+North Carolina,NORTH CAROLINA\LICENSING\TEXTs\BROKER ROSTER\Charlotte - Additional 5 to 10 Broker Firms - NCREC Capture.md,undated,raw,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,Additional Charlotte firm results capture
+North Carolina,NORTH CAROLINA\LICENSING\TEXTs\BROKER ROSTER\Charlotte - BIC Supervised Licensee Compliance Data.md,undated,raw,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,Broker-in-charge supervised licensee details
+North Carolina,NORTH CAROLINA\LICENSING\TEXTs\BROKER ROSTER\Charlotte - First 10 Firms - NCREC Firm and Broker Roster.md,undated,raw,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,Charlotte firm and broker roster capture
+North Carolina,NORTH CAROLINA\LICENSING\TEXTs\BROKER ROSTER\WILLIAMS LAND REALTY LLC - NCREC Firm and Broker Roster.md,undated,raw,https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW,Firm and broker roster profile capture
+North Dakota,NORTH DAKOTA\TXTS\North Dakota Fargo and Bismarck Roster Capture.json,undated,raw,https://services.realestatend.org/directory/index.asp,Fargo and Bismarck query capture
+North Dakota,NORTH DAKOTA\XLXS\North_Dakota_Bismarck_58501_Real_Estate_Licensees_20261010.csv,2026-10-10,prepared,https://services.realestatend.org/directory/index.asp,Bismarck licensee search results
+North Dakota,NORTH DAKOTA\XLXS\North_Dakota_Bismarck_58501_Real_Estate_Firms_20261010.csv,2026-10-10,prepared,https://services.realestatend.org/directory/index.asp,Bismarck firm search results
+North Dakota,NORTH DAKOTA\XLXS\North_Dakota_Fargo_Real_Estate_Licensees_20261010.csv,2026-10-10,prepared,https://services.realestatend.org/directory/index.asp,Fargo licensee search results
+North Dakota,NORTH DAKOTA\XLXS\North_Dakota_Fargo_Real_Estate_Firms_20261010.csv,2026-10-10,prepared,https://services.realestatend.org/directory/index.asp,Fargo firm search results
+Ohio,OHIO\XLXS\repl_LicenseLookUpwithAffiliations.xlsx,2026-10-10,raw,https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx,Statewide active roster export; as-of 2026-09-04
+Ohio,OHIO\XLXS\Ohio_Real_Estate_Development_Samples_20261010.json,2026-10-10,prepared,https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx,Source counts active/expiration logic and sample provenance
+Ohio,OHIO\XLXS\Ohio_Active_Individual_Development_Sample_20261010.csv,2026-10-10,prepared,https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx,Individual license sample
+Ohio,OHIO\XLXS\Ohio_Active_Entity_Branch_Campaign_Development_Sample_20261010.csv,2026-10-10,prepared,https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx,Entity and branch sample
+Ohio,OHIO\XLXS\Ohio_Active_Affiliation_Development_Sample_20261010.csv,2026-10-10,prepared,https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx,Published primary-license relationships
+Ohio,OHIO\TXTs\Ohio Real Estate License Roster Notes 20261010.txt,2026-10-10,prepared,https://elicense3.com.ohio.gov/Lookup/DownloadRoster.aspx,Source roster as-of date type counts and limitations
+Oklahoma,OKLAHOMA\XLXS\Oklahoma_Real_Estate_Licensees_Raw_20261012.csv,2026-10-12,raw,https://orec.us.thentiacloud.net/webs/orec/register/#,Raw statewide licensee data
+Oklahoma,OKLAHOMA\XLXS\Oklahoma_Real_Estate_Business_Entities_Raw_20261012.csv,2026-10-12,raw,https://orec.us.thentiacloud.net/webs/orec/register/#,Raw statewide business entity data
+Oklahoma,OKLAHOMA\XLXS\Oklahoma_Full_Captured_Licensees_20261012.csv,2026-10-12,prepared,https://orec.us.thentiacloud.net/webs/orec/register/#,Full captured individual licensee records
+Oklahoma,OKLAHOMA\XLXS\Oklahoma_Full_Captured_Business_Entities_20261012.csv,2026-10-12,prepared,https://orec.us.thentiacloud.net/webs/orec/register/#,Full captured entity records
+Oklahoma,OKLAHOMA\XLXS\Oklahoma_Exact_Active_Entities_20261012.csv,2026-10-12,prepared,https://orec.us.thentiacloud.net/webs/orec/register/#,Exact-active entity subset
+Oklahoma,OKLAHOMA\XLXS\Oklahoma_Active_Entity_Development_Sample_20261012.csv,2026-10-12,prepared,https://orec.us.thentiacloud.net/webs/orec/register/#,Active entity sample
+Oklahoma,OKLAHOMA\XLXS\Oklahoma_Development_Data_20261012.json,2026-10-12,prepared,https://orec.us.thentiacloud.net/webs/orec/register/#,Counts scope and source provenance manifest
+Oklahoma,OKLAHOMA\TXTS\Oklahoma Real Estate Development Data Notes 20261012.txt,2026-10-12,prepared,https://orec.us.thentiacloud.net/webs/orec/register/#,Full capture counts and source notes
+Oregon,OREGON\XLXS\Oregon_Active_Individuals_20261010.csv,2026-10-10,raw,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Official active individual roster
+Oregon,OREGON\XLXS\Oregon_Active_Businesses_20261010.csv,2026-10-10,raw,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Official active business roster
+Oregon,OREGON\XLXS\Active_Businesses.csv,undated,raw,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Business roster source copy
+Oregon,OREGON\XLXS\Inactive_Individuals.csv,undated,raw,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Inactive individual roster source copy
+Oregon,OREGON\XLXS\Recently_Licensed_Brokers_-_Principal_Brokers_and_Property_Managers.csv,undated,raw,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Recently licensed broker supplementary roster
+Oregon,OREGON\XLXS\Recently_Registered_Residential_Property_Wholesalers.csv,undated,raw,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Recently registered wholesaler supplementary roster
+Oregon,OREGON\DERIVED\oregon_active_individuals_all.csv,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Combined active individual records
+Oregon,OREGON\DERIVED\oregon_active_individuals_B.csv,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Active broker individuals
+Oregon,OREGON\DERIVED\oregon_active_individuals_PB.csv,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Active principal brokers
+Oregon,OREGON\DERIVED\oregon_active_individuals_PM.csv,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Active property managers
+Oregon,OREGON\DERIVED\oregon_active_businesses_all.csv,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Combined active business credentials
+Oregon,OREGON\DERIVED\oregon_active_businesses_EA.csv,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Active entity administrator firms
+Oregon,OREGON\DERIVED\oregon_active_businesses_RBN.csv,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Active registered business names
+Oregon,OREGON\DERIVED\oregon_active_businesses_RBO.csv,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Active registered business offices
+Oregon,OREGON\DERIVED\oregon_explicit_branch_records.csv,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Explicit branch records
+Oregon,OREGON\DERIVED\oregon_roster_manifest.json,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Roster file hashes counts and coverage
+Oregon,OREGON\DERIVED\README.md,undated,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Derived roster filenames processing and provenance notes
+Oregon,OREGON\TXTS\Oregon OREA Active License Rosters Capture.json,undated,raw,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Official roster retrieval evidence
+Oregon,OREGON\TXTS\Available Rosters for Download PORTAL.txt,undated,raw,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Official download portal capture
+Oregon,OREGON\TXTS\Available Rosters for Download.txt,undated,raw,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Portal roster retrieval instructions
+Pennsylvania,PENNSYLVANIA\XLXS\Pennsylvania_Active_Personal_Licensee_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.pals.pa.gov/#!/page/search,Active personal licensee samples
+Pennsylvania,PENNSYLVANIA\XLXS\Pennsylvania_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://www.pals.pa.gov/#!/page/search,Active entity sample
+Pennsylvania,PENNSYLVANIA\XLXS\Pennsylvania_Personal_Licensee_Development_Samples_20261011.json,2026-10-11,prepared,https://www.pals.pa.gov/#!/page/search,Personal search counts pagination and sample hashes
+Pennsylvania,PENNSYLVANIA\XLXS\Pennsylvania_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://www.pals.pa.gov/#!/page/search,Entity and individual sample manifest
+Pennsylvania,PENNSYLVANIA\TXTS\Pennsylvania Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://www.pals.pa.gov/#!/page/search,Query pagination and sample limitations
+Puerto Rico,PUERTO RICO\XLXS\Puerto_Rico_Full_Captured_Licensees_20261012.csv,2026-10-12,prepared,https://pr.pcshq.com/lookup/es/,Full captured individual licensees
+Puerto Rico,PUERTO RICO\XLXS\Puerto_Rico_Exact_Active_Licensees_20261012.csv,2026-10-12,prepared,https://pr.pcshq.com/lookup/es/,Exact active individual subset
+Puerto Rico,PUERTO RICO\XLXS\Puerto_Rico_Full_Captured_Business_Entities_20261012.csv,2026-10-12,prepared,https://pr.pcshq.com/lookup/es/,Full captured business entities
+Puerto Rico,PUERTO RICO\XLXS\Puerto_Rico_Exact_Active_Entities_20261012.csv,2026-10-12,prepared,https://pr.pcshq.com/lookup/es/,Exact active entity subset
+Puerto Rico,PUERTO RICO\XLXS\Puerto_Rico_Active_Licensee_Development_Sample_20261012.csv,2026-10-12,prepared,https://pr.pcshq.com/lookup/es/,Active individual development sample
+Puerto Rico,PUERTO RICO\XLXS\Puerto_Rico_Active_Entity_Development_Sample_20261012.csv,2026-10-12,prepared,https://pr.pcshq.com/lookup/es/,Active entity development sample
+Puerto Rico,PUERTO RICO\XLXS\Puerto_Rico_Individuals_Search_Raw_20261012.json,2026-10-12,raw,https://pr.pcshq.com/lookup/es/,Raw sharded individual portal responses
+Puerto Rico,PUERTO RICO\XLXS\Puerto_Rico_Firms_Search_Raw_20261012.json,2026-10-12,raw,https://pr.pcshq.com/lookup/es/,Raw business portal responses
+Puerto Rico,PUERTO RICO\XLXS\Puerto_Rico_Development_Data_20261012.json,2026-10-12,prepared,https://pr.pcshq.com/lookup/es/,Capture counts method and file hashes
+Puerto Rico,PUERTO RICO\TXTS\Puerto Rico Real Estate Development Data Notes 20261012.txt,2026-10-12,prepared,https://pr.pcshq.com/lookup/es/,Sharding method source counts and coverage notes
+Rhode Island,RHODE_ISLAND\XLXS\Rhode_Island_Full_Captured_Licensees_20261012.csv,2026-10-12,prepared,https://ridbrprod-search.state-reg-eastern.tylerapp.com/search,Full captured individual licensees
+Rhode Island,RHODE_ISLAND\XLXS\Rhode_Island_Full_Captured_Business_Entities_20261012.csv,2026-10-12,prepared,https://ridbrprod-search.state-reg-eastern.tylerapp.com/search,Full captured business entities
+Rhode Island,RHODE_ISLAND\XLXS\Rhode_Island_Exact_Active_Entities_20261012.csv,2026-10-12,prepared,https://ridbrprod-search.state-reg-eastern.tylerapp.com/search,Exact active business entity subset
+Rhode Island,RHODE_ISLAND\XLXS\Rhode_Island_Active_Entity_Development_Sample_20261012.csv,2026-10-12,prepared,https://ridbrprod-search.state-reg-eastern.tylerapp.com/search,Active entity development sample
+Rhode Island,RHODE_ISLAND\XLXS\Rhode_Island_Corporations_Search_Raw_20261012.json,2026-10-12,raw,https://ridbrprod-search.state-reg-eastern.tylerapp.com/search,Raw corporation search results
+Rhode Island,RHODE_ISLAND\XLXS\Rhode_Island_Real_Estate_Corporations_Detailed_20261012.json,2026-10-12,raw,https://ridbrprod-search.state-reg-eastern.tylerapp.com/search,Detailed corporation profiles
+Rhode Island,RHODE_ISLAND\XLXS\Rhode_Island_Development_Data_20261012.json,2026-10-12,prepared,https://ridbrprod-search.state-reg-eastern.tylerapp.com/search,Capture totals type counts and provenance
+Rhode Island,RHODE_ISLAND\TXTS\Rhode Island Real Estate Development Data Notes 20261012.txt,2026-10-12,prepared,https://ridbrprod-search.state-reg-eastern.tylerapp.com/search,Source totals and capture scope notes
+South Carolina,SOUTH CAROLINA\LICENSING\TXTs\SC LLR Columbia 20 License Types.json,undated,raw,https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19,Columbia license-type search capture
+South Carolina,SOUTH CAROLINA\LICENSING\TXTs\SC LLR Columbia 20 Links 01.json,undated,raw,https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19,Search result links capture batch 1
+South Carolina,SOUTH CAROLINA\LICENSING\TXTs\SC LLR Columbia 20 Links 02.json,undated,raw,https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19,Search result links capture batch 2
+South Carolina,SOUTH CAROLINA\LICENSING\TXTs\SC LLR Columbia 20 Links 03.json,undated,raw,https://verify.llronline.com/LicLookup/Rec/Rec.aspx?div=19,Search result links capture batch 3
+South Dakota,SOUTH DAKOTA\TXTS\South Dakota Real Estate City Sample Capture.json,undated,raw,https://sdrec.sd.gov/registration/licenseelist.aspx,City-based public search capture and source notes
+South Dakota,SOUTH DAKOTA\XLXS\South_Dakota_Real_Estate_City_Sample_Licensees_20261010.csv,2026-10-10,prepared,https://sdrec.sd.gov/registration/licenseelist.aspx,City-query licensee sample
+South Dakota,SOUTH DAKOTA\XLXS\South_Dakota_Real_Estate_City_Sample_Firms_20261010.csv,2026-10-10,prepared,https://sdrec.sd.gov/registration/licenseelist.aspx,City-query firm sample
+South Dakota,SOUTH DAKOTA\XLXS\South_Dakota_Rapid_City_Additional_Licensees_20261010.csv,2026-10-10,prepared,https://sdrec.sd.gov/registration/licenseelist.aspx,Additional Rapid City licensee results
+South Dakota,SOUTH DAKOTA\XLXS\South_Dakota_Rapid_City_Additional_Firms_20261010.csv,2026-10-10,prepared,https://sdrec.sd.gov/registration/licenseelist.aspx,Additional Rapid City firm results
+South Dakota,SOUTH DAKOTA\TXTS\FIRM ROSTER PORTAL.txt,undated,raw,https://sdrec.sd.gov/registration/licenseelist.aspx,Official firm roster portal evidence
+South Dakota,SOUTH DAKOTA\TXTS\LICENSE ROSTER PORTAL.txt,undated,raw,https://sdrec.sd.gov/registration/licenseelist.aspx,Official license roster portal evidence
+South Dakota,SOUTH DAKOTA\TXTS\LICENSEE ROSTER PORTAL.txt,undated,raw,https://sdrec.sd.gov/registration/licenseelist.aspx,Official licensee roster portal evidence
+Tennessee,TENNESSEE\XLXS\Tennessee_Real_Estate_Capture_20261010.json,2026-10-10,raw,https://search.cloud.commerce.tn.gov/,Search capture metadata
+Tennessee,TENNESSEE\XLXS\Tennessee_Nashville_Active_Individual_Licensees_20261010.csv,2026-10-10,prepared,https://search.cloud.commerce.tn.gov/,Nashville active individual query results
+Tennessee,TENNESSEE\XLXS\Tennessee_Nashville_Active_Real_Estate_Brokers_20261010.csv,2026-10-10,prepared,https://search.cloud.commerce.tn.gov/,Nashville active broker query results
+Tennessee,TENNESSEE\XLXS\Tennessee_Nashville_Active_Firm_Campaign_20261010.csv,2026-10-10,prepared,https://search.cloud.commerce.tn.gov/,Nashville active firm campaign sample
+Texas,TEXAS\LICENSING\TXTs\TX TREC Active Broker Sales Agent Roster Strategy Sample 01.json,undated,raw,https://www.trec.texas.gov/license-search/,Active broker/sales-agent roster retrieval evidence
+Texas,TEXAS\LICENSING\TXTs\TX TREC Active Business Broker Entity Sample 02.json,undated,raw,https://www.trec.texas.gov/license-search/,Business broker entity search evidence
+Texas,TEXAS\LICENSING\TXTs\TX TREC Active Business Broker Entity Sample 03 Details.json,undated,raw,https://www.trec.texas.gov/license-search/,Business broker entity profile evidence
+Texas,TEXAS\LICENSING\XLXS\Texas_TREC_Broker_and_Sales_Agent_License_Holder_Information_2026-10-10.csv,2026-10-10,raw,https://www.trec.texas.gov/license-search/,Statewide broker and sales-agent license-holder data
+Texas,TEXAS\LICENSING\XLXS\Texas_Active_Broker_Individual_Development_Sample_20261010.csv,2026-10-10,prepared,https://www.trec.texas.gov/license-search/,Active broker individual sample
+Texas,TEXAS\LICENSING\XLXS\Texas_Active_Sales_Agent_Development_Sample_20261010.csv,2026-10-10,prepared,https://www.trec.texas.gov/license-search/,Active sales agent sample
+Texas,TEXAS\LICENSING\XLXS\Texas_Active_Broker_Company_Development_Sample_20261010.csv,2026-10-10,prepared,https://www.trec.texas.gov/license-search/,Active broker company sample
+Texas,TEXAS\LICENSING\XLXS\Texas_Active_Broker_Company_TREC_Profile_Verification_20261010.csv,2026-10-10,prepared,https://www.trec.texas.gov/license-search/,Official company profile verification rows
+Texas,TEXAS\LICENSING\XLXS\Texas_Real_Estate_Development_Samples_20261010.json,2026-10-10,prepared,https://www.trec.texas.gov/license-search/,Sample manifest and source notes
+Utah,UTAH\TXTS\Utah DRE Active License Lists Capture.json,undated,raw,https://secure.utah.gov/rer/relv/search.html,Official active license list capture notes
+Utah,UTAH\XLXS\Real_Estate_Agents_and_Brokers_Summary.csv,undated,raw,https://secure.utah.gov/rer/relv/search.html,Real-estate agents and brokers source summary
+Utah,UTAH\XLXS\Real_Estate_Company_Summary.csv,undated,raw,https://secure.utah.gov/rer/relv/search.html,Real-estate company source summary
+Utah,UTAH\XLXS\Utah_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://secure.utah.gov/rer/relv/search.html,Active individual development sample
+Utah,UTAH\XLXS\Utah_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://secure.utah.gov/rer/relv/search.html,Active entity development sample
+Utah,UTAH\XLXS\Utah_Sampled_Licensee_Company_Affiliations_20261011.csv,2026-10-11,prepared,https://secure.utah.gov/rer/relv/search.html,Sampled published company affiliation rows
+Utah,UTAH\TXTS\Utah Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://secure.utah.gov/rer/relv/search.html,Source lists and sample coverage notes
+Vermont,VERMONT\XLXS\Vermont_Active_Real_Estate_Salespersons_20261011.xlsx,2026-10-11,raw,https://sos.vermont.gov/opr/find-a-professional/,Statewide active salesperson roster
+Vermont,VERMONT\XLXS\Vermont_Active_Real_Estate_Brokers_20261011.xlsx,2026-10-11,raw,https://sos.vermont.gov/opr/find-a-professional/,Statewide active broker roster
+Vermont,VERMONT\XLXS\Vermont_Active_Real_Estate_Firms_Main_Office_20261011.xlsx,2026-10-11,raw,https://sos.vermont.gov/opr/find-a-professional/,Active main-office firm roster
+Vermont,VERMONT\XLXS\Vermont_Active_Real_Estate_Firms_Branch_Office_20261011.xlsx,2026-10-11,raw,https://sos.vermont.gov/opr/find-a-professional/,Active branch-office firm roster
+Vermont,VERMONT\XLXS\Vermont_Active_Real_Estate_Firms_Sole_Proprietorship_20261011.xlsx,2026-10-11,raw,https://sos.vermont.gov/opr/find-a-professional/,Active sole-proprietor firm roster
+Vermont,VERMONT\XLXS\Vermont_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://sos.vermont.gov/opr/find-a-professional/,Active individual sample
+Vermont,VERMONT\XLXS\Vermont_Active_Entity_Development_Sample_20261011.csv,2026-10-11,prepared,https://sos.vermont.gov/opr/find-a-professional/,Active entity sample
+Vermont,VERMONT\XLXS\Vermont_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://sos.vermont.gov/opr/find-a-professional/,Parsed row counts sample and provenance manifest
+Vermont,VERMONT\TXTS\Vermont Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://sos.vermont.gov/opr/find-a-professional/,Source roster parse and scope notes
+Virginia,VIRGINIA\LICENSING\TXTs\VA DPOR Richmond Firm Capture 01.json,undated,raw,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Richmond firm public lookup capture
+Virginia,VIRGINIA\LICENSING\TXTs\VA DPOR Richmond Firm Licensee CE Capture 01.json,undated,raw,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Firm licensee relationship capture
+Virginia,VIRGINIA\LICENSING\TXTs\VA DPOR Richmond Firm Licensee CE Capture 02.json,undated,raw,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Firm licensee relationship capture
+Virginia,VIRGINIA\LICENSING\XLXS\Virginia_Richmond_23224_Individual_Capped_Query_20261011.csv,2026-10-11,raw,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Richmond postal-code individual capped query results
+Virginia,VIRGINIA\LICENSING\XLXS\Virginia_Richmond_Individual_Capped_Query_20261011.csv,2026-10-11,raw,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Richmond individual capped query results
+Virginia,VIRGINIA\LICENSING\XLXS\Virginia_Richmond_Firm_Capped_Query_20261011.csv,2026-10-11,raw,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Richmond firm capped query results
+Virginia,VIRGINIA\LICENSING\XLXS\Virginia_Richmond_23224_Individual_Partial_Profiles_20261011.csv,2026-10-11,prepared,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Partial profiles from bounded postal-code results
+Virginia,VIRGINIA\LICENSING\XLXS\Virginia_Richmond_Individual_Partial_Profiles_20261011.csv,2026-10-11,prepared,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Partial individual profile data
+Virginia,VIRGINIA\LICENSING\XLXS\Virginia_Richmond_Firm_Partial_Profiles_20261011.csv,2026-10-11,prepared,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Partial firm profile data
+Virginia,VIRGINIA\LICENSING\XLXS\Virginia_Richmond_23224_Individual_Partial_Profile_Captures_20261011.json,2026-10-11,raw,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Profile capture evidence for postal-code query
+Virginia,VIRGINIA\LICENSING\XLXS\Virginia_Richmond_Individual_Partial_Profile_Captures_20261011.json,2026-10-11,raw,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Individual profile capture evidence
+Virginia,VIRGINIA\LICENSING\XLXS\Virginia_Richmond_Firm_Partial_Profile_Captures_20261011.json,2026-10-11,raw,https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail,Firm profile capture evidence
+Washington,WASHINGTON\XLXS\Washington_Seattle_Active_Broker_Query_20261011.csv,2026-10-11,raw,https://professions.dol.wa.gov/s/license-lookup,Seattle active broker result pages
+Washington,WASHINGTON\XLXS\Washington_Seattle_Active_Managing_Broker_Query_20261011.csv,2026-10-11,raw,https://professions.dol.wa.gov/s/license-lookup,Seattle active managing broker results
+Washington,WASHINGTON\XLXS\Washington_Seattle_Active_Firm_Query_20261011.csv,2026-10-11,raw,https://professions.dol.wa.gov/s/license-lookup,Seattle active firm result pages
+Washington,WASHINGTON\XLXS\Washington_Seattle_Full_Development_Campaign_20261011.csv,2026-10-11,prepared,https://professions.dol.wa.gov/s/license-lookup,Combined Seattle-limited individual and business credentials
+Washington,WASHINGTON\XLXS\Washington_Seattle_Active_Broker_Development_Sample_20261011.csv,2026-10-11,prepared,https://professions.dol.wa.gov/s/license-lookup,Seattle active broker sample
+Washington,WASHINGTON\XLXS\Washington_Seattle_Active_Managing_Broker_Development_Sample_20261011.csv,2026-10-11,prepared,https://professions.dol.wa.gov/s/license-lookup,Seattle active managing broker sample
+Washington,WASHINGTON\XLXS\Washington_Seattle_Active_Firm_Development_Sample_20261011.csv,2026-10-11,prepared,https://professions.dol.wa.gov/s/license-lookup,Seattle active firm sample
+Washington,WASHINGTON\XLXS\Washington_Seattle_Active_Broker_Result_Captures_20261011.json,2026-10-11,raw,https://professions.dol.wa.gov/s/license-lookup,Broker search result capture evidence
+Washington,WASHINGTON\XLXS\Washington_Seattle_Active_Managing_Broker_Result_Captures_20261011.json,2026-10-11,raw,https://professions.dol.wa.gov/s/license-lookup,Managing broker result capture evidence
+Washington,WASHINGTON\XLXS\Washington_Seattle_Firm_Result_Pages_20261011.json,2026-10-11,raw,https://professions.dol.wa.gov/s/license-lookup,Firm search result pages and capture evidence
+Washington,WASHINGTON\XLXS\Washington_Seattle_Firm_Profile_Captures_20261011.json,2026-10-11,raw,https://professions.dol.wa.gov/s/license-lookup,Firm profile captures
+Washington,WASHINGTON\XLXS\Washington_Personal_Development_Samples_20261011.json,2026-10-11,prepared,https://professions.dol.wa.gov/s/license-lookup,Personal search sample manifest
+Washington,WASHINGTON\XLXS\Washington_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://professions.dol.wa.gov/s/license-lookup,Sample manifest and coverage caveats
+Washington,WASHINGTON\XLXS\Washington_Full_Development_Campaign_20261011.json,2026-10-11,prepared,https://professions.dol.wa.gov/s/license-lookup,Full campaign coverage manifest
+West Virginia,WEST VIRGINIA\LICENSING\XLXS\Salespersons Active.xlsx,undated,raw,https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx,Active salesperson roster workbook
+West Virginia,WEST VIRGINIA\LICENSING\XLXS\Broker Active.xlsx,undated,raw,https://rec.wv.gov/About/Documents/Active%20Rosters/Broker%20Active.xlsx,Active broker roster workbook
+West Virginia,WEST VIRGINIA\LICENSING\XLXS\AB Active.xlsx,undated,raw,https://rec.wv.gov/About/Documents/Active%20Rosters/AB%20Active.xlsx,Active associate broker roster workbook
+West Virginia,WEST VIRGINIA\LICENSING\XLXS\West_Virginia_Active_Individual_Development_Sample_20261011.csv,2026-10-11,prepared,https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx,Active individual sample
+West Virginia,WEST VIRGINIA\LICENSING\XLXS\West_Virginia_Company_Affiliation_Contact_Roster_20261011.csv,2026-10-11,prepared,https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx,Company affiliation and contact roster
+West Virginia,WEST VIRGINIA\LICENSING\XLXS\West_Virginia_Company_Number_Directory_20261011.csv,2026-10-11,prepared,https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx,Company number directory
+West Virginia,WEST VIRGINIA\LICENSING\XLXS\West_Virginia_Sampled_Licensee_Firm_Affiliations_20261011.csv,2026-10-11,prepared,https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx,Sampled licensee-to-firm affiliations
+West Virginia,WEST VIRGINIA\LICENSING\TXTs\WV Active Licensee Roster Capture Summary.json,undated,raw,https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx,Official active roster retrieval summary
+West Virginia,WEST VIRGINIA\LICENSING\TXTs\WV ARELLO Expiration Samples.json,undated,raw,,ARELLO expiry sample observations
+West Virginia,WEST VIRGINIA\LICENSING\XLXS\West_Virginia_Company_Affiliation_Contact_Roster_20261011.json,2026-10-11,prepared,https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx,Company contact and affiliation provenance
+West Virginia,WEST VIRGINIA\LICENSING\XLXS\West_Virginia_Company_Number_Directory_20261011.json,2026-10-11,prepared,https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx,Company directory provenance
+West Virginia,WEST VIRGINIA\LICENSING\XLXS\West_Virginia_Real_Estate_Development_Samples_20261011.json,2026-10-11,prepared,https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx,Sample selection and source manifest
+West Virginia,WEST VIRGINIA\LICENSING\TXTs\West Virginia Real Estate Development Sample Notes 20261011.txt,2026-10-11,prepared,https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx,Source roster and affiliation notes
+Wyoming,WYOMING\XLXS\Wyoming_Individuals_Search_Raw_20261012.json,2026-10-12,raw,https://online.wyrec.org/#/verifylicense,Full raw individual search response records
+Wyoming,WYOMING\XLXS\Wyoming_Firms_Search_Raw_20261012.json,2026-10-12,raw,https://online.wyrec.org/#/verifylicense,Raw firm search response records
+Wyoming,WYOMING\XLXS\Wyoming_AMC_Search_Raw_20261012.json,2026-10-12,raw,https://online.wyrec.org/#/verifylicense,Raw appraisal management company search responses
+Wyoming,WYOMING\XLXS\Wyoming_Full_Captured_Licensees_20261012.csv,2026-10-12,prepared,https://online.wyrec.org/#/verifylicense,Full individual licensee capture
+Wyoming,WYOMING\XLXS\Wyoming_Full_Captured_Business_Entities_20261012.csv,2026-10-12,prepared,https://online.wyrec.org/#/verifylicense,Full business entity capture
+Wyoming,WYOMING\XLXS\Wyoming_Exact_Active_Entities_20261012.csv,2026-10-12,prepared,https://online.wyrec.org/#/verifylicense,Exact active entity subset
+Wyoming,WYOMING\XLXS\Wyoming_Published_Broker_Relationships_20261012.csv,2026-10-12,prepared,https://online.wyrec.org/#/verifylicense,Published broker relationship edges
+Wyoming,WYOMING\XLXS\Wyoming_Active_Entity_Development_Sample_20261012.csv,2026-10-12,prepared,https://online.wyrec.org/#/verifylicense,Active entity sample
+Wyoming,WYOMING\XLXS\Wyoming_Development_Data_20261012.json,2026-10-12,prepared,https://online.wyrec.org/#/verifylicense,Record counts source hashes and capture provenance
+Wyoming,WYOMING\XLXS\Certified Real Estate Appraiser Board Discipline.xlsx,undated,raw,,Real-estate appraisal discipline source data; separate board/source
+Wyoming,WYOMING\TXTS\Wyoming Real Estate Development Data Notes 20261012.txt,2026-10-12,prepared,https://online.wyrec.org/#/verifylicense,Capture coverage and relationship notes
+multi-state,ENTITY_CAMPAIGN\Full_License_Development_Data_20261011.csv,2026-10-11,prepared,,Normalized four-state development records: Idaho Indiana Kentucky and Washington
+multi-state,ENTITY_CAMPAIGN\Full_License_Development_Coverage_20261011.csv,2026-10-11,prepared,,Four-state counts coverage source paths source hashes and scope
+multi-state,ENTITY_CAMPAIGN\Full_License_Development_Relationships_20261011.csv,2026-10-11,prepared,,One explicit Kentucky principal-broker relationship edge
+multi-state,ENTITY_CAMPAIGN\Full_License_Development_Data_20261011.json,2026-10-11,prepared,,Dataset manifest and SHA-256 hashes
+Oregon,ENTITY_CAMPAIGN\Oregon_Portland_RBN_RBO_Campaign_Candidates_20261010.csv,2026-10-10,prepared,https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx,Portland RBN/RBO entity campaign candidates
+multi-state,ENTITY_CAMPAIGN\Real_Estate_Entity_Campaign_Candidates_20261010.csv,2026-10-10,prepared,,Cross-jurisdiction real-estate entity campaign candidates
+Massachusetts,MASSACHUSETTS\TXTS\Massachusetts Real Estate License Search Notes 20261011.txt,2026-10-11,prepared,https://occupationallicensingandpermitting.mass.gov/madol/s/license-search-page,Search scope and sample retrieval notes
+Minnesota,MINNESOTA\TXTS\Minnesota Real Estate License Lookup Notes 20261010.txt,2026-10-10,prepared,https://www.pulseportal.com/Inquiry/searchEntityForProducerInfoSimple.do?method=menuInit&criteriaNextAction=producerInformationSimple&moduleCode=PRDCR_LIC&serviceCode=RQST_CNSMR&accessCode=MN&functionCode=RE,Lookup coverage and capture notes
+Mississippi,MISSISSIPPI\LICENSING\TXTs\Mississippi Real Estate License Lookup Notes 20261010.txt,2026-10-10,prepared,https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx,Search categories and capture scope notes
+Nebraska,NEBRASKA\TXTS\Nebraska Real Estate Development Data Notes 20261012.txt,2026-10-12,prepared,https://nrec.igovsolution.net/online/Verification/Individual,Captured source scope and credential identity notes
+Tennessee,TENNESSEE\TXTS\Tennessee Real Estate License Lookup Notes 20261010.txt,2026-10-10,prepared,https://search.cloud.commerce.tn.gov/,Search scope and capture notes

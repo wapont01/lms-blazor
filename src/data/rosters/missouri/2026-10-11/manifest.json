@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Missouri",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Missouri Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSOURI\\TXTS\\Missouri Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "F38F8D709A823E95BF564D42A03B1FEADEB4E2B18BB9F6A040FEEA1FF2E6D4A1",
+                      "Bytes":  1782,
+                      "OfficialSourceUrl":  "https://mopro.mo.gov/license/s/license-search",
+                      "Coverage":  "Query coverage and pagination notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Missouri_Active_Entity_Campaign_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSOURI\\XLXS\\Missouri_Active_Entity_Campaign_Development_Sample_20261011.csv",
+                      "Sha256":  "1BDE01D5BADC685F1D7F6262C475576538F083562803D89F689BF416C0E6C1D5",
+                      "Bytes":  4747,
+                      "OfficialSourceUrl":  "https://mopro.mo.gov/license/s/license-search",
+                      "Coverage":  "Jackson County active business sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Missouri_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSOURI\\XLXS\\Missouri_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "BC0443FF33BE6ED604401CCD9F3406A9A2504E8BE028A2B27C303E00A4CE849A",
+                      "Bytes":  8372,
+                      "OfficialSourceUrl":  "https://mopro.mo.gov/license/s/license-search",
+                      "Coverage":  "Jackson County active individual sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Missouri_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSOURI\\XLXS\\Missouri_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "1EA99EEEB9F5973E42A05541D0901703C32DE5F51687C7350C03C02377544C4D",
+                      "Bytes":  2818,
+                      "OfficialSourceUrl":  "https://mopro.mo.gov/license/s/license-search",
+                      "Coverage":  "Query coverage sample method and source manifest"
+                  }
+              ]
+}

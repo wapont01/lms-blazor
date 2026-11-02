@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Text;
+using Lms.Application.Services;
 using Lms.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -15,7 +16,7 @@ public static class CaliforniaDreCaptureSeed
     private const string CurrentListFileName = "CurrList_20261009.zip";
     private const string BrokerAssociateFileName = "broker_associates_20261009.csv";
     private const string SourceName =
-        "California DRE current licensee and broker-associate files (education information only)";
+        "California DRE current licensee and broker-associate files";
     private static readonly string[] DreDateFormats = ["yyyyMMdd"];
     private static readonly string[] AffiliationDateFormats = ["yyyy-MM-dd", "M/d/yyyy"];
     private static readonly string[] BrokerAssociateDateFormats = ["yyyy-MM-dd", "yyyyMMdd", "M/d/yyyy"];
@@ -58,13 +59,22 @@ public static class CaliforniaDreCaptureSeed
             return;
         }
 
+        await ImportFilesAsync(dbContext, currentListPath, brokerAssociatePath, Guid.NewGuid(),
+            "ca-dre-current-list-v1-2026-10-09", RetrievedAtUtc);
+    }
+
+    internal static async Task<Guid> ImportFilesAsync(ApplicationDbContext dbContext, string currentListPath,
+        string brokerAssociatePath, Guid snapshotId, string parserVersion, DateTime retrievedAtUtc,
+        CancellationToken ct = default, Action<long>? staged = null, bool officialBulk = false)
+    {
         var snapshot = new RegulatoryDataSnapshot
         {
+            Id = snapshotId,
             State = State,
             SourceName = SourceName,
             SourceUrl = SourceUrl,
-            ParserVersion = "ca-dre-current-list-v1-2026-10-09",
-            RetrievedAtUtc = RetrievedAtUtc,
+            ParserVersion = parserVersion,
+            RetrievedAtUtc = retrievedAtUtc,
             Status = RegulatorySnapshotStatuses.PendingReview
         };
         var firmsByLicenseNumber = new Dictionary<string, RegulatoryFirm>(StringComparer.Ordinal);
@@ -81,6 +91,7 @@ public static class CaliforniaDreCaptureSeed
 
         foreach (var row in ReadCurrentList(currentListPath))
         {
+            ct.ThrowIfCancellationRequested();
             scannedRows++;
             var record = ParseCurrentLicensee(row, currentListPath);
             var identity = new LicenseeIdentity(
@@ -158,7 +169,7 @@ public static class CaliforniaDreCaptureSeed
                         .GetValueOrDefault(licensee.RelatedLicenseNumber)?
                         .FirstOrDefault(candidate => candidate.LicenseType == licensee.RelatedLicenseType);
                     var relatedName = licensee.RelatedLicenseName ?? relatedLicensee?.Name;
-                    if (relatedName is not null)
+                    if (relatedName is not null && (!officialBulk || relatedLicensee is not null))
                     {
                         relatedFirm = GetOrAddFirm(
                             firmsByLicenseNumber,
@@ -181,7 +192,9 @@ public static class CaliforniaDreCaptureSeed
                 && firmsByLicenseNumber.TryGetValue(licensee.LicenseNumber, out var corporationFirm)
                 && licenseesByNumber.TryGetValue(licensee.RelatedLicenseNumber, out var relatedOfficers))
             {
-                foreach (var officer in relatedOfficers.Where(candidate => candidate.LicenseType == "Officer"))
+                foreach (var officer in relatedOfficers.Where(candidate => candidate.LicenseType == "Officer"
+                    && (!officialBulk || (candidate.RelatedLicenseNumber == licensee.LicenseNumber
+                        && candidate.RelatedLicenseType == "Corporation"))))
                 {
                     AddAffiliation(affiliations, snapshot.Id, corporationFirm, officer);
                 }
@@ -196,6 +209,7 @@ public static class CaliforniaDreCaptureSeed
         var brokerAssociateRows = 0;
         foreach (var row in ReadBrokerAssociateList(brokerAssociatePath))
         {
+            ct.ThrowIfCancellationRequested();
             brokerAssociateRows++;
             if (logProgress && brokerAssociateRows % 5_000 == 0)
             {
@@ -236,12 +250,15 @@ public static class CaliforniaDreCaptureSeed
                     $"Unexpected responsible broker type '{responsibleBrokerType}' at {brokerAssociatePath}, row {row.LineNumber}.");
             }
 
-            var firm = GetOrAddFirm(
+            var hasResponsibleRecord = firmsByLicenseNumber.ContainsKey(responsibleBrokerNumber)
+                || (licenseesByNumber.GetValueOrDefault(responsibleBrokerNumber)?.Any(r => r.LicenseType == responsibleBrokerType) ?? false);
+            var firm = officialBulk && !hasResponsibleRecord ? null : GetOrAddFirm(
                 firmsByLicenseNumber,
                 snapshot.Id,
                 responsibleBrokerNumber,
                 responsibleBrokerName,
-                null);
+                licenseesByNumber.GetValueOrDefault(responsibleBrokerNumber)?
+                    .FirstOrDefault(r => r.LicenseType == responsibleBrokerType)?.LicenseStatus);
             if (licenseesByNumber.TryGetValue(responsibleBrokerNumber, out var responsibleBrokerRecords))
             {
                 foreach (var responsibleBroker in responsibleBrokerRecords.Where(
@@ -272,7 +289,7 @@ public static class CaliforniaDreCaptureSeed
                             brokerAssociatePath,
                             row.LineNumber);
                         associate.LicenseLevel = "Broker Associate";
-                        AddAffiliation(affiliations, snapshot.Id, firm, associate, affiliationStartDate);
+                        if (firm is not null) AddAffiliation(affiliations, snapshot.Id, firm, associate, affiliationStartDate);
                     }
 
                     continue;
@@ -287,9 +304,12 @@ public static class CaliforniaDreCaptureSeed
                 Name = associateName,
                 LicenseType = "Broker",
                 LicenseLevel = "Broker Associate",
-                LicenseStatus = "Licensed",
-                    LicenseRenewalDate = associateExpiration,
-                    IsAdditionalLicenseRecord = null
+                LicenseStatus = officialBulk ? "Status not published" : "Licensed",
+                LicenseRenewalDate = associateExpiration,
+                IsAdditionalLicenseRecord = null,
+                RelatedLicenseNumber = officialBulk ? responsibleBrokerNumber : null,
+                RelatedLicenseType = officialBulk ? responsibleBrokerType : null,
+                RelatedLicenseName = officialBulk ? responsibleBrokerName : null
             };
             if (!licenseesByNumber.TryGetValue(associateNumber, out var associatesForNumber))
             {
@@ -299,7 +319,7 @@ public static class CaliforniaDreCaptureSeed
 
             associatesForNumber.Add(newAssociate);
             licensees.Add(newAssociate);
-            AddAffiliation(affiliations, snapshot.Id, firm, newAssociate, affiliationStartDate);
+            if (firm is not null) AddAffiliation(affiliations, snapshot.Id, firm, newAssociate, affiliationStartDate);
 
         }
 
@@ -309,34 +329,123 @@ public static class CaliforniaDreCaptureSeed
                 $"California DRE data prepared in {timer.Elapsed}; {firmsByLicenseNumber.Count:N0} firms, {licensees.Count:N0} licensees, {affiliations.Count:N0} affiliations.");
         }
 
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(ct);
+        if (officialBulk)
+        {
+            var existing = await dbContext.RegulatoryDataSnapshots.SingleOrDefaultAsync(s => s.Id == snapshotId, ct);
+            if (existing is not null)
+            {
+                if (existing.State != State || existing.ParserVersion != parserVersion || existing.Status != RegulatorySnapshotStatuses.Approved
+                    || await dbContext.RegulatoryLicensees.CountAsync(r => r.SnapshotId == snapshotId, ct) != licensees.Count
+                    || await dbContext.RegulatoryFirms.CountAsync(r => r.SnapshotId == snapshotId, ct) != firmsByLicenseNumber.Count)
+                    throw new InvalidDataException("The California archive conflicts with the existing snapshot coverage.");
+                var current = await Lms.Application.Services.RegulatoryRoster.Published(dbContext.RegulatoryDataSnapshots.Where(s => s.State == State))
+                    .Select(s => s.Id).FirstAsync(ct);
+                if (current != snapshotId || existing.ActivatedAtUtc is null)
+                {
+                    existing.ActivatedAtUtc = DateTime.UtcNow;
+                    await dbContext.SaveChangesAsync(ct);
+                }
+                await transaction.CommitAsync(ct);
+                return snapshotId;
+            }
+        }
         dbContext.RegulatoryDataSnapshots.Add(snapshot);
-        await dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync(ct);
         if (logProgress)
         {
             Console.Error.WriteLine($"California DRE snapshot saved in {timer.Elapsed}.");
         }
 
-        await PersistBatchesAsync(dbContext, dbContext.RegulatoryFirms, firmsByLicenseNumber.Values.ToList());
+        await PersistBatchesAsync(dbContext, dbContext.RegulatoryFirms, firmsByLicenseNumber.Values.ToList(), ct, staged);
         if (logProgress)
         {
             Console.Error.WriteLine($"California DRE firms saved in {timer.Elapsed}.");
         }
-        await PersistBatchesAsync(dbContext, dbContext.RegulatoryLicensees, licensees);
+        await PersistBatchesAsync(dbContext, dbContext.RegulatoryLicensees, licensees, ct,
+            count => staged?.Invoke(firmsByLicenseNumber.Count + count));
         if (logProgress)
         {
             Console.Error.WriteLine($"California DRE licensees saved in {timer.Elapsed}.");
         }
-        await PersistBatchesAsync(dbContext, dbContext.RegulatoryFirmLicenseeAffiliations, affiliations.Values.ToList());
+        await PersistBatchesAsync(dbContext, dbContext.RegulatoryFirmLicenseeAffiliations, affiliations.Values.ToList(), ct,
+            count => staged?.Invoke(firmsByLicenseNumber.Count + licensees.Count + count));
+        staged?.Invoke(firmsByLicenseNumber.Count + licensees.Count + affiliations.Count);
         if (logProgress)
         {
             Console.Error.WriteLine($"California DRE affiliations saved in {timer.Elapsed}.");
         }
 
         snapshot.Status = RegulatorySnapshotStatuses.Approved;
-        snapshot.ReviewedAtUtc = RetrievedAtUtc;
-        await dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
+        snapshot.ReviewedAtUtc = officialBulk ? DateTime.UtcNow : retrievedAtUtc;
+        snapshot.ActivatedAtUtc = officialBulk ? DateTime.UtcNow : null;
+        await dbContext.SaveChangesAsync(ct);
+        ct.ThrowIfCancellationRequested();
+        await transaction.CommitAsync(ct);
+        return snapshotId;
+    }
+
+    internal static long ValidateCurrentList(string path, CancellationToken ct, Action<long>? progress)
+    {
+        long count = 0;
+        var types = new HashSet<string>(StringComparer.Ordinal);
+        var identities = new HashSet<(string Number, string Type, string? RelatedNumber, string? RelatedType)>();
+        foreach (var row in ReadCurrentList(path))
+        {
+            ct.ThrowIfCancellationRequested();
+            var record = ParseCurrentLicensee(row, path);
+            if (record.LicenseType is not ("Broker" or "Salesperson" or "Corporation" or "Officer"))
+                throw new InvalidDataException($"Unknown California license role: {record.LicenseType}.");
+            if (!identities.Add((record.LicenseNumber, record.LicenseType, record.RelatedLicenseNumber, record.RelatedLicenseType)))
+                throw new InvalidDataException("Duplicate California license-role/relationship identity.");
+            if (record.RelatedLicenseType is not (null or "Broker" or "Corporation" or "Officer" or "Salesperson"))
+                throw new InvalidDataException("Unknown California related-license role.");
+            types.Add(record.LicenseType);
+            count++;
+            if (count % 10000 == 0) progress?.Invoke(count);
+        }
+        if (!types.Contains("Broker") || !types.Contains("Salesperson") || !types.Contains("Corporation"))
+            throw new InvalidDataException("California statewide source is missing broker, salesperson or corporation coverage.");
+        return count;
+    }
+
+    internal static IReadOnlyList<CaliforniaBrokerAssociateRelationship> ReadAssociateRelationships(
+        string path, IReadOnlySet<string> licenseNumbers, CancellationToken ct)
+    {
+        var relationships = new List<CaliforniaBrokerAssociateRelationship>();
+        foreach (var row in ReadBrokerAssociateList(path))
+        {
+            ct.ThrowIfCancellationRequested();
+            var number = NormalizeLicenseNumber(RequireValue(row, "ba_license_id", path), path, row.LineNumber);
+            if (!licenseNumbers.Contains(number)) continue;
+            relationships.Add(new(number,
+                NormalizeLicenseNumber(RequireValue(row, "rb_license_id", path), path, row.LineNumber),
+                RequireValue(row, "rb_license_type", path), RequireValue(row, "rb_name", path),
+                ParseDate(row.Get("affiliation_start_date"), AffiliationDateFormats, path, row.LineNumber)));
+        }
+        return relationships;
+    }
+
+    internal static long ValidateAssociates(string path, CancellationToken ct, Action<long>? progress)
+    {
+        long count = 0;
+        foreach (var row in ReadBrokerAssociateList(path))
+        {
+            ct.ThrowIfCancellationRequested();
+            NormalizeLicenseNumber(RequireValue(row, "rb_license_id", path), path, row.LineNumber);
+            NormalizeLicenseNumber(RequireValue(row, "ba_license_id", path), path, row.LineNumber);
+            RequireValue(row, "rb_name", path);
+            RequireValue(row, "ba_name", path);
+            if (RequireValue(row, "rb_license_type", path) is not ("Broker" or "Corporation"))
+                throw new InvalidDataException("Invalid California responsible-broker role.");
+            ParseDate(row.Get("affiliation_start_date"), AffiliationDateFormats, path, row.LineNumber);
+            ParseDate(row.Get("rb_expiration_date"), BrokerAssociateDateFormats, path, row.LineNumber);
+            ParseDate(row.Get("ba_expiration_date"), BrokerAssociateDateFormats, path, row.LineNumber);
+            count++;
+            if (count % 10000 == 0) progress?.Invoke(count);
+        }
+        if (count == 0) throw new InvalidDataException("California broker-associate source is empty.");
+        return count;
     }
 
     private static IEnumerable<CsvRecord> ReadCurrentList(string archivePath)
@@ -350,8 +459,11 @@ public static class CaliforniaDreCaptureSeed
         }
 
         using var stream = entry.Open();
-        using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+        using var reader = new StreamReader(stream, Encoding.GetEncoding(1252, EncoderFallback.ExceptionFallback,
+            DecoderFallback.ExceptionFallback), detectEncodingFromByteOrderMarks: true);
         using var csv = new CsvRecordReader(reader, entry.FullName);
+        csv.RequireColumnCount(25);
         csv.RequireColumns(
             "lic_number",
             "multiple_license_ind",
@@ -430,6 +542,7 @@ public static class CaliforniaDreCaptureSeed
     {
         using var reader = new StreamReader(csvPath, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
         using var csv = new CsvRecordReader(reader, csvPath);
+        csv.RequireColumnCount(18);
         csv.RequireColumns(
             "rb_license_id",
             "ba_license_id",
@@ -507,12 +620,12 @@ public static class CaliforniaDreCaptureSeed
     private static async Task PersistBatchesAsync<TEntity>(
         ApplicationDbContext dbContext,
         DbSet<TEntity> set,
-        IReadOnlyList<TEntity> entities)
+        IReadOnlyList<TEntity> entities, CancellationToken ct = default, Action<long>? staged = null)
         where TEntity : class
     {
         if (dbContext.Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
         {
-            await PersistSqliteBatchesAsync(dbContext, entities);
+            await PersistSqliteBatchesAsync(dbContext, entities, ct, staged);
             return;
         }
 
@@ -523,9 +636,11 @@ public static class CaliforniaDreCaptureSeed
         {
             for (var offset = 0; offset < entities.Count; offset += batchSize)
             {
+                ct.ThrowIfCancellationRequested();
                 var batch = entities.Skip(offset).Take(batchSize).ToArray();
                 set.AddRange(batch);
-                await dbContext.SaveChangesAsync();
+                await dbContext.SaveChangesAsync(ct);
+                staged?.Invoke(offset + batch.Length);
 
                 foreach (var entity in batch)
                 {
@@ -541,7 +656,7 @@ public static class CaliforniaDreCaptureSeed
 
     private static async Task PersistSqliteBatchesAsync<TEntity>(
         ApplicationDbContext dbContext,
-        IReadOnlyList<TEntity> entities)
+        IReadOnlyList<TEntity> entities, CancellationToken ct = default, Action<long>? staged = null)
         where TEntity : class
     {
         if (entities.Count == 0)
@@ -567,6 +682,7 @@ public static class CaliforniaDreCaptureSeed
 
         for (var offset = 0; offset < entities.Count; offset += batchSize)
         {
+            ct.ThrowIfCancellationRequested();
             var count = Math.Min(batchSize, entities.Count - offset);
             await using var command = connection.CreateCommand();
             command.Transaction = transaction;
@@ -594,7 +710,8 @@ public static class CaliforniaDreCaptureSeed
 
             command.CommandText =
                 $"INSERT INTO {QuoteSqliteIdentifier(tableName)} ({columns}) VALUES {string.Join(", ", valueGroups)};";
-            await command.ExecuteNonQueryAsync();
+            await command.ExecuteNonQueryAsync(ct);
+            if (offset % (batchSize * 100) == 0) staged?.Invoke(offset + count);
         }
     }
 
@@ -764,6 +881,11 @@ public static class CaliforniaDreCaptureSeed
             {
                 _selectedColumns[_columnIndexes[column]] = true;
             }
+        }
+
+        public void RequireColumnCount(int count)
+        {
+            if (_columnCount != count) throw new InvalidDataException($"Unexpected CSV column count in {_sourceName}.");
         }
 
         public IEnumerable<CsvRecord> ReadRows()

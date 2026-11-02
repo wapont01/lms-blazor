@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "New Hampshire",
+    "CaptureDate":  "2026-09-20",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\XLXS\\verification_data_09202026-v2.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW HAMPSHIRE\\XLXS\\verification_data_09202026-v2.xlsx",
+                      "Sha256":  "9AF327AE72FD3F44E522269A43EC3C6286B6260462C686217A65350F0F2BBAC1",
+                      "Bytes":  13153268,
+                      "OfficialSourceUrl":  "https://www.oplc.nh.gov/list-oplc-licensees-and-their-license-types",
+                      "Coverage":  "Supplemental verification source workbook"
+                  }
+              ]
+}

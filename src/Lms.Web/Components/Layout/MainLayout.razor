@@ -28,9 +28,12 @@
                                 <li><NavLink href="/admin/certificates" Match="NavLinkMatch.All">Certificates</NavLink></li>
                                 <li><NavLink href="/admin/compliance" Match="NavLinkMatch.All">Compliance</NavLink></li>
                                 <li><NavLink href="/admin/regulatory-directory" Match="NavLinkMatch.All">Regulatory Directory</NavLink></li>
+                                <li><NavLink href="/admin/regulatory-statistics" Match="NavLinkMatch.All">State Statistics</NavLink></li>
+                                <li><NavLink href="/admin/regulatory-schedules" Match="NavLinkMatch.All">Collection Schedules</NavLink></li>
                                 <li><NavLink href="/admin/support" Match="NavLinkMatch.All">Support</NavLink></li>
                                 <li><NavLink href="/admin/logs" Match="NavLinkMatch.All">Logs</NavLink></li>
                                 <li><NavLink href="/admin/school-profile" Match="NavLinkMatch.All">EP</NavLink></li>
+                                <li><NavLink href="/admin/licensing-qa" Match="NavLinkMatch.All">Licensing Q&amp;A</NavLink></li>
                             </ul>
                         </details>
                     </li>
@@ -39,6 +42,8 @@
             <AuthorizeView Roles="Admin,Instructor">
                 <Authorized>
                     <li><a href="/instructor">Instructor</a></li>
+                    <li><NavLink href="/instructor/records" Match="NavLinkMatch.All">Instructor Records</NavLink></li>
+                    <li><NavLink href="/instructor/mail" Match="NavLinkMatch.All">Mail</NavLink></li>
                 </Authorized>
             </AuthorizeView>
             <AuthorizeView Roles="Admin,Broker">
@@ -62,7 +67,7 @@
             </AuthorizeView>
             <AuthorizeView Roles="Admin,Learner">
                 <Authorized>
-                    <li><a href="/learner">Learner</a></li>
+                    <li><a href="/learner">My Courses</a></li>
                 </Authorized>
             </AuthorizeView>
             <AuthorizeView>
@@ -82,6 +87,10 @@
                             displayName = displayName[..^11].TrimEnd();
                         }
                         else if (authState.User.IsInRole("Learner") && displayName.EndsWith(" LEARNER", StringComparison.OrdinalIgnoreCase))
+                        {
+                            displayName = displayName[..^8].TrimEnd();
+                        }
+                        else if (authState.User.IsInRole("Learner") && displayName.EndsWith(" STUDENT", StringComparison.OrdinalIgnoreCase))
                         {
                             displayName = displayName[..^8].TrimEnd();
                         }

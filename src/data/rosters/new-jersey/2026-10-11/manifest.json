@@ -1,0 +1,100 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "New Jersey",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\New_Jersey_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "2877BED41C1D81413E71AF52E23175A4A2F10F9335F0160AFCDF991A21D5CA00",
+                      "Bytes":  6720,
+                      "OfficialSourceUrl":  "https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp",
+                      "Coverage":  "Query counts sample method and source manifest"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\New_Jersey_Realty_Active_Company_Branch_Campaign_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Realty_Active_Company_Branch_Campaign_Sample_20261011.csv",
+                      "Sha256":  "1DB11829E9B6832AA5F093E3944A0C476D513D2158AA2B2EC8CD0679E8890DE2",
+                      "Bytes":  12455,
+                      "OfficialSourceUrl":  "https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp",
+                      "Coverage":  "Active company and branch sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Broker_Of_Record_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Broker_Of_Record_Development_Sample_20261011.csv",
+                      "Sha256":  "A26A9FEFE1496325C3F6B7FA265FE12066921284810646787D96A7336821ECC7",
+                      "Bytes":  5526,
+                      "OfficialSourceUrl":  "https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp",
+                      "Coverage":  "Broker of record sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Broker_Salesperson_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Broker_Salesperson_Development_Sample_20261011.csv",
+                      "Sha256":  "C02D572654F3BC97A1004309F8448A708CBAE0875FD14D6328290A48C91FFAC0",
+                      "Bytes":  5385,
+                      "OfficialSourceUrl":  "https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp",
+                      "Coverage":  "Broker-salesperson sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Salesperson_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Salesperson_Development_Sample_20261011.csv",
+                      "Sha256":  "F4516CE660ACAD564D001784181D6ED6AED098FFBA6288319DCC33DA9C679234",
+                      "Bytes":  5271,
+                      "OfficialSourceUrl":  "https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp",
+                      "Coverage":  "Active salesperson sample"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\New_Jersey_Realty_Active_Company_Query_Results_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Realty_Active_Company_Query_Results_20261011.csv",
+                      "Sha256":  "A2CC2F77BF82D44BE56009ACA69548324A3A847DEE63603870835DA5D0EB547E",
+                      "Bytes":  20707,
+                      "OfficialSourceUrl":  "https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp",
+                      "Coverage":  "Active company query result rows"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\New_Jersey_Realty_Campaign_Profile_Captures_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Realty_Campaign_Profile_Captures_20261011.json",
+                      "Sha256":  "03733C43B481708A81F478BF17CAE2D50F7105EF934A3ECA1896A2D681BAD636",
+                      "Bytes":  91455,
+                      "OfficialSourceUrl":  "https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp",
+                      "Coverage":  "Profile capture evidence"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Broker_Of_Record_Query_Results_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Broker_Of_Record_Query_Results_20261011.csv",
+                      "Sha256":  "C56EDC604F6F2808CF5F3EDB8A03887AF137D41E662983706BDAE7EF6FF8C790",
+                      "Bytes":  6833,
+                      "OfficialSourceUrl":  "https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp",
+                      "Coverage":  "Broker of record query results"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Broker_Salesperson_Query_Results_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Broker_Salesperson_Query_Results_20261011.csv",
+                      "Sha256":  "DCB37D0579CC3AB6363271DBC229CEA10BB383764F19494294BB73A174A482D4",
+                      "Bytes":  5711,
+                      "OfficialSourceUrl":  "https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp",
+                      "Coverage":  "Broker-salesperson query result rows"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Salesperson_Query_Results_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW JERSEY\\LICENSING\\XLXS\\New_Jersey_Smith_Active_Salesperson_Query_Results_20261011.csv",
+                      "Sha256":  "B113FB608D626FCFABF579FB397A2F04830E730F9F476E805BF8162C7B1EDF3B",
+                      "Bytes":  56389,
+                      "OfficialSourceUrl":  "https://www-dobi.nj.gov/DOBI_LicSearch/recSearch.jsp",
+                      "Coverage":  "Smith surname active salesperson query results"
+                  }
+              ]
+}

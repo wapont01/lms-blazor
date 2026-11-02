@@ -1,0 +1,55 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "West Virginia",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\WV Active Licensee Roster Capture Summary.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\TXTs\\WV Active Licensee Roster Capture Summary.json",
+                      "Sha256":  "70FC7165F5ED35593FA8F68B479219E3638AA4E304CBD835B26DD703F320FB68",
+                      "Bytes":  1853,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx",
+                      "Coverage":  "Official active roster retrieval summary"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\WV ARELLO Expiration Samples.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\TXTs\\WV ARELLO Expiration Samples.json",
+                      "Sha256":  "6DBE64C2BA10FD2243859A349FD239D318EFA73F2903F1A8413C52C1E4AD7843",
+                      "Bytes":  1152,
+                      "OfficialSourceUrl":  "",
+                      "Coverage":  "ARELLO expiry sample observations"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\AB Active.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\XLXS\\AB Active.xlsx",
+                      "Sha256":  "07D98F098CB6A9C80CF1B49F543E28DAE49ADEB688CAD1D4F4D60AD4DCA425F6",
+                      "Bytes":  60631,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/AB%20Active.xlsx",
+                      "Coverage":  "Active associate broker roster workbook"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\Broker Active.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\XLXS\\Broker Active.xlsx",
+                      "Sha256":  "E9B7BC8C585F001BBA13D1E124195B72BA67F3FC09CBA86F2F42DC10DB382B91",
+                      "Bytes":  121117,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Broker%20Active.xlsx",
+                      "Coverage":  "Active broker roster workbook"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\Salespersons Active.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "WEST VIRGINIA\\LICENSING\\XLXS\\Salespersons Active.xlsx",
+                      "Sha256":  "E0389A90FD0F3953D6B7FAD568519CFD5A1A42D58275B78621072612C898A72D",
+                      "Bytes":  383827,
+                      "OfficialSourceUrl":  "https://rec.wv.gov/About/Documents/Active%20Rosters/Salespersons%20Active.xlsx",
+                      "Coverage":  "Active salesperson roster workbook"
+                  }
+              ]
+}

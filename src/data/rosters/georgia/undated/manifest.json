@@ -1,0 +1,28 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Georgia",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\GA GREC Atlanta Certification Details 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "GEORGIA\\LICENSING\\TXTs\\GA GREC Atlanta Certification Details 01.json",
+                      "Sha256":  "CC84700BA47BA8623D57AA7406BCF708F407F6529C422CACDDE0468AA37A42E5",
+                      "Bytes":  7531,
+                      "OfficialSourceUrl":  "https://ata.grec.state.ga.us/Account/Search",
+                      "Coverage":  "Atlanta license certification details"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\GA GREC Atlanta Company Broker Capture 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "GEORGIA\\LICENSING\\TXTs\\GA GREC Atlanta Company Broker Capture 01.json",
+                      "Sha256":  "98140B729AFAAD40D3AE98BFC30DB399E171DCA108D0C329CAB592B7AFD98FC1",
+                      "Bytes":  7554,
+                      "OfficialSourceUrl":  "https://ata.grec.state.ga.us/Account/Search",
+                      "Coverage":  "Atlanta company/broker query capture"
+                  }
+              ]
+}

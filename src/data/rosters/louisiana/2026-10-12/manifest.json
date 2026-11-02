@@ -1,0 +1,127 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Louisiana",
+    "CaptureDate":  "2026-10-12",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Louisiana Real Estate Development Data Notes 20261012.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "LOUISIANA\\TXTS\\Louisiana Real Estate Development Data Notes 20261012.txt",
+                      "Sha256":  "3CD794635D4083DEF9738B94322199BE082F347B58C4D9C9188564B35CE1C16F",
+                      "Bytes":  4147,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/Public/RequestRoster/",
+                      "Coverage":  "Capture counts and query coverage notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Louisiana_All_Captured_Development_Campaign_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_All_Captured_Development_Campaign_20261012.csv",
+                      "Sha256":  "1BAC48CEEABB208C82EE81B5EAD646891501384E9D5C0EF33EAB3FBAEF4DE020",
+                      "Bytes":  311796,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/Public/RequestRoster/",
+                      "Coverage":  "Captured individual and business development dataset"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Louisiana_All_Captured_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_All_Captured_Entities_20261012.csv",
+                      "Sha256":  "0F0965E4434B1177FE109EE1BD7FECD85CAFF92B51B329D5B0653C07C09B1E8E",
+                      "Bytes":  40584,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/public/search",
+                      "Coverage":  "Business/entity license records"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Louisiana_All_Captured_Individuals_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_All_Captured_Individuals_20261012.csv",
+                      "Sha256":  "0D36AC3A9D21EC28F8F129EAD941FF2D74E085002F5CCA9C8A407CFA6ACF8A02",
+                      "Bytes":  271486,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/public/search",
+                      "Coverage":  "Individual licensee records"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Louisiana_Development_Data_20261012.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_Development_Data_20261012.json",
+                      "Sha256":  "F599FD4A060F3ABF77A68B9F33E1E4F98E396F822762CFD144AF8A44436073D9",
+                      "Bytes":  5078,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/Public/RequestRoster/",
+                      "Coverage":  "Record counts capture scope and artifact hashes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Louisiana_Unresolved_Supervisor_References_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_Unresolved_Supervisor_References_20261012.csv",
+                      "Sha256":  "FB79F8B39424701C5EB430DFD9A5B0C00AA6CA3BDA6D7DC02539C0B9FD28CA0D",
+                      "Bytes":  548,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/public/search",
+                      "Coverage":  "Unresolved published supervisor references"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Louisiana_Verified_Active_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_Verified_Active_Entities_20261012.csv",
+                      "Sha256":  "DBEE04EF17E06A82B26EE297B389F813A0A17ADEA8743AB79C192266A8B9DF0A",
+                      "Bytes":  1486,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/public/search",
+                      "Coverage":  "Verified active business entities"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Louisiana_Verified_Sponsor_Relationship_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_Verified_Sponsor_Relationship_20261012.csv",
+                      "Sha256":  "5412D83D90A87ADA1A3F52AE7342E8A7A3C83ADA425E4C7389208E8D166CE18A",
+                      "Bytes":  786,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/public/search",
+                      "Coverage":  "Verified sponsor relationship evidence"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Louisiana_Baton_Rouge_Result_Capture_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_Baton_Rouge_Result_Capture_20261012.json",
+                      "Sha256":  "D93E5C317EB8E5774E1C9D092F506280F8AE7A6EC848F5FCC09F6ECE10BE792D",
+                      "Bytes":  146857,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/Public/RequestRoster/",
+                      "Coverage":  "Baton Rouge roster result capture"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Louisiana_Baton_Rouge_Result_Capture_Repeat_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_Baton_Rouge_Result_Capture_Repeat_20261012.json",
+                      "Sha256":  "80473B2368A85290B84323BCF1A57DDAE21A71FD2A78E23DEA2AAEAFB8955A15",
+                      "Bytes":  147671,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/Public/RequestRoster/",
+                      "Coverage":  "Repeat query evidence"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Louisiana_Paid_Roster_Query_Observation_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_Paid_Roster_Query_Observation_20261012.json",
+                      "Sha256":  "8A62C5B1F0180EA6333EC0F2360003ECDAA0F2123E1A8B7DFFA1341ABEA4FFB0",
+                      "Bytes":  993,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/Public/RequestRoster/",
+                      "Coverage":  "Paid roster query observation"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Louisiana_Sponsor_Profile_Capture_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_Sponsor_Profile_Capture_20261012.json",
+                      "Sha256":  "EDA66CD5A93921815705D4F2060C10EC4C4A6E0C7295C3A38B1A2EF3349A27E0",
+                      "Bytes":  2022,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/public/search",
+                      "Coverage":  "Sponsor profile evidence"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Louisiana_Verified_Profiles_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "LOUISIANA\\XLXS\\Louisiana_Verified_Profiles_20261012.json",
+                      "Sha256":  "902A7E22F862B0371BB9DBE7ED42E0AAFC7BE7D7637D3658B0A6E8E7ED0F3EF9",
+                      "Bytes":  3133,
+                      "OfficialSourceUrl":  "https://portal.lrec.gov/public/search",
+                      "Coverage":  "Verified profile capture metadata"
+                  }
+              ]
+}

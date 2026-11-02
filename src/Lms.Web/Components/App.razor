@@ -5,12 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
     <title>LMS Starter</title>
-    <link rel="stylesheet" href="app.css?v=course-industries-v1" />
+    <link rel="stylesheet" href="app.css?v=licensing-history-v2" />
+    <link rel="stylesheet" href="Lms.Web.styles.css" />
 </head>
 <body>
     <CascadingAuthenticationState>
-        <Routes @rendermode="InteractiveServer" />
+        <Routes @rendermode="@(IsStaticForm ? null : InteractiveServer)" />
     </CascadingAuthenticationState>
     <script src="_framework/blazor.web.js"></script>
 </body>
 </html>
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private bool IsStaticForm => HttpContext.Request.Path.StartsWithSegments("/register")
+        || HttpContext.Request.Path.StartsWithSegments("/forgot-password")
+        || HttpContext.Request.Path.StartsWithSegments("/reset-password");
+}

@@ -4,10 +4,80 @@
 @using Lms.Application.Services
 @inject IUserAccountService UserAccountService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IWebHostEnvironment Environment
+@inject EmailJourneyOptions EmailJourney
+@inject IRosterRegistrationService Roster
+@inject ILogger<Account> Logger
 
 <PageTitle>Account</PageTitle>
 
-<h1>Account</h1>
+<div class="account-page">
+<header class="account-heading">
+    <h1>Account</h1>
+    <p>Manage your license profile, security and email preferences.</p>
+</header>
+
+<section class="account-identity" aria-label="Account details">
+    <div>
+        <strong>@_displayName</strong>
+        <span>@_email</span>
+    </div>
+    <span class="email-status @(_emailVerified ? "is-verified" : "")">Email @(_emailVerified ? "verified" : "not verified")</span>
+</section>
+
+@if (_showLicenseRecords)
+{
+    <section class="card license-profile" aria-label="License Profile">
+        <header class="license-profile-header">
+            <h2>License Profile</h2>
+            @if (_licenseRequests.Count > 0)
+            {
+                <a href="/roster-registration">Add another license</a>
+            }
+        </header>
+        <p>Keep all your professional licenses on this account. Confirming a current, active instructor license enables instructor tools without changing your existing access.</p>
+        @if (_licenseError is not null)
+        {
+            <p class="auth-error" role="alert">@_licenseError</p>
+            <button type="button" class="secondary-button" @onclick="LoadLicenseProfilesAsync">Retry</button>
+        }
+        else if (_licenseRequests.Count == 0)
+        {
+            <div class="license-empty">
+                <div>
+                    <span class="review-status">Not added</span>
+                    <h3>Add your professional license</h3>
+                    <p>Find your record, review the details and confirm to save it here.</p>
+                </div>
+                <a class="account-primary-link" href="/roster-registration">Find my license record</a>
+            </div>
+            <ol class="license-steps" aria-label="Adding your license">
+                <li><strong>Find</strong><span>Search by state and license number.</span></li>
+                <li><strong>Confirm</strong><span>Review your details. Verified email is required.</span></li>
+                <li><strong>Save</strong><span>Your confirmed record appears in your license profile.</span></li>
+            </ol>
+        }
+        @foreach (var request in _licenseRequests)
+        {
+            var record = request.Selection;
+            <article class="license-record" aria-label="@($"{record.State} license {record.LicenseNumber}")">
+                <div class="association-state @(request.Status == "Confirmed" ? "is-approved" : request.Status == "Rejected" ? "is-rejected" : "is-pending")">
+                    <span class="review-status">@(request.Status == "Confirmed" ? "Confirmed by licensee" : request.Status == "Pending" ? "Email verification required" : request.Status == "Approved" ? "Previously approved" : "Association Rejected")</span>
+                    <p>@(request.Status == "Confirmed" ? "You confirmed this license record. Commission information is shown below."
+                        : request.Status == "Pending" ? "Your selection is saved. Verify your email to finish confirming it."
+                        : request.Status == "Approved" ? "This association was approved under the previous review policy."
+                        : "There is an issue with this association. See the note below.")</p>
+                    <span class="saved-date">Saved @request.SubmittedAtUtc.ToString("MMM d, yyyy")</span>
+                </div>
+                <LicenseRecordView Record="record" />
+                @if (!string.IsNullOrWhiteSpace(request.ReviewNote))
+                {
+                    <p class="review-note"><strong>Review note:</strong> @request.ReviewNote</p>
+                }
+            </article>
+        }
+    </section>
+}
 
 <div class="dashboard-grid">
     @if (_isInstructor)
@@ -54,6 +124,7 @@
 
     <section class="card auth-card">
         <h2>Change Password</h2>
+        <p class="settings-description">Keep your sign-in secure with a unique password.</p>
 
         @if (_forceChangeRequired)
         {
@@ -76,16 +147,16 @@
             <ValidationSummary />
 
             <div class="form-field">
-                <label>Current Password</label>
-                <InputText @bind-Value="_model.CurrentPassword" type="password" />
+                <label for="account-current-password">Current Password</label>
+                <InputText id="account-current-password" @bind-Value="_model.CurrentPassword" type="password" autocomplete="current-password" />
             </div>
             <div class="form-field">
-                <label>New Password</label>
-                <InputText @bind-Value="_model.NewPassword" type="password" />
+                <label for="account-new-password">New Password</label>
+                <InputText id="account-new-password" @bind-Value="_model.NewPassword" type="password" autocomplete="new-password" />
             </div>
             <div class="form-field">
-                <label>Confirm New Password</label>
-                <InputText @bind-Value="_model.ConfirmNewPassword" type="password" />
+                <label for="account-confirm-password">Confirm New Password</label>
+                <InputText id="account-confirm-password" @bind-Value="_model.ConfirmNewPassword" type="password" autocomplete="new-password" />
             </div>
 
             <button type="submit">Update Password</button>
@@ -94,6 +165,7 @@
 
     <section class="card auth-card">
         <h2>Email Preferences</h2>
+        <p class="settings-description">Choose which course updates you receive.</p>
 
         @if (!string.IsNullOrWhiteSpace(_marketingMessage))
         {
@@ -103,7 +175,7 @@
         <EditForm Model="_marketingModel" OnValidSubmit="UpdateMarketingPreferenceAsync" FormName="marketing-pref-form">
             <AntiforgeryToken />
             <div class="form-field">
-                <label style="display:flex;align-items:center;gap:0.5rem;font-weight:normal;">
+                <label class="marketing-choice">
                     <InputCheckbox @bind-Value="_marketingModel.OptIn" style="width:auto;" />
                     Send me course recommendations and license-deadline alerts by email
                 </label>
@@ -113,8 +185,12 @@
         </EditForm>
     </section>
 </div>
+</div>
 
 @code {
+    private string _displayName = "";
+    private string _email = "";
+    private bool _emailVerified;
     private Guid? _userId;
     private string? _message;
     private string? _error;
@@ -122,6 +198,9 @@
     private string? _profileError;
     private string? _marketingMessage;
     private bool _isInstructor;
+    private bool _showLicenseRecords;
+    private List<RosterRequestRow> _licenseRequests = [];
+    private string? _licenseError;
     private bool _forceChangeRequired;
     private InstructorProfileModel _profileModel { get; set; } = new();
     private MarketingPreferenceModel _marketingModel = new();
@@ -137,19 +216,26 @@
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _showLicenseRecords = (authState.User.IsInRole("Learner") || authState.User.IsInRole("Broker") || authState.User.IsInRole("Instructor"))
+            && Environment.IsDevelopment() && EmailJourney.Enabled;
         var userIdClaim = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (Guid.TryParse(userIdClaim, out var parsedUserId))
         {
             _userId = parsedUserId;
-            _isInstructor = authState.User.IsInRole("Instructor");
+            var account = await UserAccountService.GetByIdAsync(parsedUserId);
+            _displayName = account?.DisplayName ?? "";
+            _email = account?.Email ?? "";
+            _emailVerified = account?.EmailVerifiedAtUtc is not null;
+            if (_showLicenseRecords) await LoadLicenseProfilesAsync();
+            // Added instructor licenses must not overwrite a broker's primary license.
+            _isInstructor = account?.Role == "Instructor";
             if (MarketingForm is not null)
             {
                 _marketingModel = MarketingForm;
             }
             else
             {
-                var account = await UserAccountService.GetByIdAsync(parsedUserId);
                 _marketingModel.OptIn = account?.MarketingEmailOptOutAtUtc is null;
             }
 
@@ -170,6 +256,21 @@
         }
 
         _forceChangeRequired = string.Equals(ForceChange, "1", StringComparison.Ordinal);
+    }
+
+    private async Task LoadLicenseProfilesAsync()
+    {
+        if (!_userId.HasValue) return;
+        _licenseError = null;
+        try
+        {
+            _licenseRequests = await Roster.GetMineAsync(_userId.Value);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Account license profiles could not be loaded.");
+            _licenseError = "Your license details could not be loaded. Please try again.";
+        }
     }
 
     private async Task UpdateMarketingPreferenceAsync()
@@ -251,7 +352,7 @@
         public string CurrentPassword { get; set; } = string.Empty;
 
         [System.ComponentModel.DataAnnotations.Required]
-        [System.ComponentModel.DataAnnotations.MinLength(10)]
+        [System.ComponentModel.DataAnnotations.MinLength(8)]
         public string NewPassword { get; set; } = string.Empty;
 
         [System.ComponentModel.DataAnnotations.Required]

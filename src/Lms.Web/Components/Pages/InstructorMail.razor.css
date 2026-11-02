@@ -1,0 +1,32 @@
+.mail-workspace { margin: -8px; padding: 20px 0 0; min-width: 0; }
+.mail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.mail-header h1 { margin: 0; font-size: 1.5rem; line-height: 1.2; }
+.mail-header p { margin: 8px 0 0; overflow-wrap: anywhere; }
+.test-mode { display: inline-block; margin-left: 8px; padding: 2px 6px; border-radius: 4px; background: #fff3cd; color: #664d03; font-size: .8rem; }
+.mail-shell { display: grid; grid-template-columns: 120px minmax(200px, 280px) minmax(0, 1fr); gap: 0; min-width: 0; border: 1px solid #d5dce5; border-radius: 8px; padding: 0; margin: 0; min-height: 65vh; background: #fff; }
+.mail-folders, .mail-list, .mail-detail { padding: 12px; min-width: 0; }
+.mail-folders, .mail-list { border-right: 1px solid #d5dce5; }
+.mail-folders { display: flex; flex-direction: column; gap: 8px; }
+.mail-folders button, .mail-preview { text-align: left; }
+.mail-list input, .mail-detail input, .mail-detail textarea { width: 100%; box-sizing: border-box; }
+.mail-preview { display: flex; flex-direction: column; width: 100%; gap: 6px; margin-top: 8px; padding: 10px; white-space: normal; overflow-wrap: anywhere; background: #f8fafc; color: #172b4d; border: 1px solid #d5dce5; border-radius: 6px; }
+.selected { background: #e8f0fe; color: #153e75; border-color: #4285d4; }
+.mail-preview small, .mail-hint { color: #536176; font-size: .8rem; }
+.mail-detail label { display: block; margin-bottom: 10px; }
+.mail-detail h2 { font-size: 1.1rem; margin: 0 0 10px; overflow-wrap: anywhere; }
+.mail-detail pre { font-family: inherit; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mail-actions, .mail-pagination { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+.mail-message { padding: 12px 0; border-bottom: 1px solid #d5dce5; overflow-wrap: anywhere; }
+.mail-message button { margin: 4px; }
+.mail-error { background: #fff0f0; color: #8b1a1a; padding: 10px; border-radius: 5px; }
+.mail-file { display: flex; justify-content: space-between; gap: 8px; margin: 6px 0; overflow-wrap: anywhere; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 1000px) {
+    .mail-shell { grid-template-columns: minmax(0, 1fr); }
+    .mail-folders { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid #d5dce5; }
+    .mail-list { border-right: 0; border-bottom: 1px solid #d5dce5; max-height: 300px; overflow-y: auto; }
+    .mail-header { flex-wrap: wrap; }
+}
+@media (max-width: 900px) {
+    .mail-workspace { margin: 0; padding: 0; }
+}

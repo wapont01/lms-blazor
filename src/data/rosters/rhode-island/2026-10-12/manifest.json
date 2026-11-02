@@ -1,0 +1,82 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Rhode Island",
+    "CaptureDate":  "2026-10-12",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Rhode Island Real Estate Development Data Notes 20261012.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "RHODE_ISLAND\\TXTS\\Rhode Island Real Estate Development Data Notes 20261012.txt",
+                      "Sha256":  "52006D0697ADEBFB2EE6DBAF618F17C18FC9D7C0AC5E1D717F44978E2F34992E",
+                      "Bytes":  4283,
+                      "OfficialSourceUrl":  "https://ridbrprod-search.state-reg-eastern.tylerapp.com/search",
+                      "Coverage":  "Source totals and capture scope notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Rhode_Island_Active_Entity_Development_Sample_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "RHODE_ISLAND\\XLXS\\Rhode_Island_Active_Entity_Development_Sample_20261012.csv",
+                      "Sha256":  "AA63647860F8E07763ED786286D1440FB8516BD2B0EB1FFDAA6BD626295D16E9",
+                      "Bytes":  4909,
+                      "OfficialSourceUrl":  "https://ridbrprod-search.state-reg-eastern.tylerapp.com/search",
+                      "Coverage":  "Active entity development sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Rhode_Island_Development_Data_20261012.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "RHODE_ISLAND\\XLXS\\Rhode_Island_Development_Data_20261012.json",
+                      "Sha256":  "1044382CBDDB71B560F2D215B82975E206DC9D4DB35DD05522D2A24FABD7687A",
+                      "Bytes":  2842,
+                      "OfficialSourceUrl":  "https://ridbrprod-search.state-reg-eastern.tylerapp.com/search",
+                      "Coverage":  "Capture totals type counts and provenance"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Rhode_Island_Exact_Active_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "RHODE_ISLAND\\XLXS\\Rhode_Island_Exact_Active_Entities_20261012.csv",
+                      "Sha256":  "ACEA73F328B4875C48DC47EE082352F7BB8279F08DC7135F5BDD421C2B7566E9",
+                      "Bytes":  70717,
+                      "OfficialSourceUrl":  "https://ridbrprod-search.state-reg-eastern.tylerapp.com/search",
+                      "Coverage":  "Exact active business entity subset"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Rhode_Island_Full_Captured_Business_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "RHODE_ISLAND\\XLXS\\Rhode_Island_Full_Captured_Business_Entities_20261012.csv",
+                      "Sha256":  "B59D3AC2FCFC6D81B84A2BC19E4E36B8598447D8433649F7BA2C33EBBA7C017D",
+                      "Bytes":  158636,
+                      "OfficialSourceUrl":  "https://ridbrprod-search.state-reg-eastern.tylerapp.com/search",
+                      "Coverage":  "Full captured business entities"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Rhode_Island_Full_Captured_Licensees_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "RHODE_ISLAND\\XLXS\\Rhode_Island_Full_Captured_Licensees_20261012.csv",
+                      "Sha256":  "C4B4A6943F2885AF2ED569DB3726C4BA17359D9148F7BC95E5F242466B55F749",
+                      "Bytes":  3585687,
+                      "OfficialSourceUrl":  "https://ridbrprod-search.state-reg-eastern.tylerapp.com/search",
+                      "Coverage":  "Full captured individual licensees"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Rhode_Island_Corporations_Search_Raw_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "RHODE_ISLAND\\XLXS\\Rhode_Island_Corporations_Search_Raw_20261012.json",
+                      "Sha256":  "B8DF71BDFD9DF98F3F2BBC1F8C02E43246FC3785A47FDA4E5BD315E473B428D4",
+                      "Bytes":  1039763,
+                      "OfficialSourceUrl":  "https://ridbrprod-search.state-reg-eastern.tylerapp.com/search",
+                      "Coverage":  "Raw corporation search results"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Rhode_Island_Real_Estate_Corporations_Detailed_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "RHODE_ISLAND\\XLXS\\Rhode_Island_Real_Estate_Corporations_Detailed_20261012.json",
+                      "Sha256":  "E308C6430ECB5D3BE5259BC5BDC6244691E9D9F7D223E1B1AC86BBCA92633248",
+                      "Bytes":  442604,
+                      "OfficialSourceUrl":  "https://ridbrprod-search.state-reg-eastern.tylerapp.com/search",
+                      "Coverage":  "Detailed corporation profiles"
+                  }
+              ]
+}

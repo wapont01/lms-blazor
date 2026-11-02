@@ -12,7 +12,7 @@ public sealed class AdminCreateUserModel
     public string DisplayName { get; set; } = string.Empty;
 
     [Required]
-    [MinLength(10)]
+    [MinLength(8)]
     public string Password { get; set; } = string.Empty;
 
     [Required]

@@ -1,0 +1,10 @@
+@baseUrl = http://localhost:5000
+
+### Requests require an authenticated Admin session.
+GET {{baseUrl}}/admin/florida-bulk/exports/manifest.json
+
+### Original real-estate license CSV from the last completed collection
+GET {{baseUrl}}/admin/florida-bulk/exports/REALESTATE2501LICENSE_1.csv
+
+### Unknown files are rejected with 404, not fetched remotely.
+GET {{baseUrl}}/admin/florida-bulk/exports/unknown.csv

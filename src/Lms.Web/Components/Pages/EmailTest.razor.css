@@ -1,0 +1,84 @@
+.email-test-page {
+    max-width: 620px;
+    overflow-wrap: anywhere;
+}
+
+.email-test-page h1 {
+    margin: 11px 0 8px;
+    font-size: 1.5rem;
+    line-height: normal;
+}
+
+.email-test-page .auth-help {
+    margin: 0 0 12px;
+}
+
+.email-test-page .auth-form {
+    padding: 10px;
+    margin-bottom: 12px;
+}
+
+.certificate-card {
+    padding: 16px;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    background: #eff6ff;
+}
+
+h2 {
+    font-size: 1.1rem;
+    margin: 8px 0;
+}
+
+p {
+    line-height: 1.5;
+}
+
+.download-certificate {
+    display: inline-block;
+    padding: 12px 18px;
+    border-radius: 8px;
+    background: #1d4ed8;
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.download-certificate:hover {
+    background: #1e40af;
+}
+
+.download-certificate:focus-visible {
+    outline: 3px solid #2563eb;
+    outline-offset: 3px;
+}
+
+.class-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin: 12px 0 16px;
+}
+
+.class-info dt {
+    font-size: .8rem;
+    color: #475569;
+}
+
+.class-info dd {
+    margin: 4px 0 0;
+    font-size: .9rem;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 12px;
+    font-size: .9rem;
+}
+
+@media (min-width: 901px) {
+    .email-test-page {
+        margin-left: -8px;
+        margin-right: -8px;
+    }
+}

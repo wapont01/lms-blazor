@@ -1,0 +1,64 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Texas",
+    "CaptureDate":  "2026-10-10",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Texas_Active_Broker_Company_Development_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "TEXAS\\LICENSING\\XLXS\\Texas_Active_Broker_Company_Development_Sample_20261010.csv",
+                      "Sha256":  "5D9453D1D296E65DE8462088B81200B3E7AFD1103CCEB1C2CF0DB3B9FA141001",
+                      "Bytes":  4337,
+                      "OfficialSourceUrl":  "https://www.trec.texas.gov/license-search/",
+                      "Coverage":  "Active broker company sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Texas_Active_Broker_Company_TREC_Profile_Verification_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "TEXAS\\LICENSING\\XLXS\\Texas_Active_Broker_Company_TREC_Profile_Verification_20261010.csv",
+                      "Sha256":  "DE8CC63E4AF23BCC870AC20BE28070B15B25E6FE39B0C82D9DAE24D47B222C42",
+                      "Bytes":  3053,
+                      "OfficialSourceUrl":  "https://www.trec.texas.gov/license-search/",
+                      "Coverage":  "Official company profile verification rows"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Texas_Active_Broker_Individual_Development_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "TEXAS\\LICENSING\\XLXS\\Texas_Active_Broker_Individual_Development_Sample_20261010.csv",
+                      "Sha256":  "A25DCD8E19398B1676BB5C54882E610C1D0A5070CA6175778CA2A839D21F204F",
+                      "Bytes":  3191,
+                      "OfficialSourceUrl":  "https://www.trec.texas.gov/license-search/",
+                      "Coverage":  "Active broker individual sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Texas_Active_Sales_Agent_Development_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "TEXAS\\LICENSING\\XLXS\\Texas_Active_Sales_Agent_Development_Sample_20261010.csv",
+                      "Sha256":  "7E3EE68F522E549A2E0081477E0E7CF7AF68F9AFDA9B68F5E348A95E86CDAD17",
+                      "Bytes":  4224,
+                      "OfficialSourceUrl":  "https://www.trec.texas.gov/license-search/",
+                      "Coverage":  "Active sales agent sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Texas_Real_Estate_Development_Samples_20261010.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "TEXAS\\LICENSING\\XLXS\\Texas_Real_Estate_Development_Samples_20261010.json",
+                      "Sha256":  "EE75040829DB1218ADE4AEEF0298C5A527C8E1DA092AC0A6D24A5894E8FF59B9",
+                      "Bytes":  8092,
+                      "OfficialSourceUrl":  "https://www.trec.texas.gov/license-search/",
+                      "Coverage":  "Sample manifest and source notes"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\Texas_TREC_Broker_and_Sales_Agent_License_Holder_Information_2026-10-10.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "TEXAS\\LICENSING\\XLXS\\Texas_TREC_Broker_and_Sales_Agent_License_Holder_Information_2026-10-10.csv",
+                      "Sha256":  "12BDF64227681F563E5416071D71BD61B84BEB1FA2AA68F8A4F47DBCFFD94752",
+                      "Bytes":  59047450,
+                      "OfficialSourceUrl":  "https://www.trec.texas.gov/license-search/",
+                      "Coverage":  "Statewide broker and sales-agent license-holder data"
+                  }
+              ]
+}

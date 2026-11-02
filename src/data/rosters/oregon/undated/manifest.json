@@ -1,0 +1,172 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Oregon",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\DERIVED\\oregon_active_businesses_all.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\oregon_active_businesses_all.csv",
+                      "Sha256":  "467C548C86A62622689B82D7004A49B3111864C6BB4825CF916D097B84E841E9",
+                      "Bytes":  832493,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Combined active business credentials"
+                  },
+                  {
+                      "Path":  "prepared\\DERIVED\\oregon_active_businesses_EA.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\oregon_active_businesses_EA.csv",
+                      "Sha256":  "0E0389D5EC67D70F36C23DD33929FB8358CF2FB27DDCC7F18CCD75BF14A38311",
+                      "Bytes":  16500,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Active entity administrator firms"
+                  },
+                  {
+                      "Path":  "prepared\\DERIVED\\oregon_active_businesses_RBN.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\oregon_active_businesses_RBN.csv",
+                      "Sha256":  "55FC942568DF9942504CC67A6246695396B870A6D07F42F85BED169686F2A6FA",
+                      "Bytes":  688122,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Active registered business names"
+                  },
+                  {
+                      "Path":  "prepared\\DERIVED\\oregon_active_businesses_RBO.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\oregon_active_businesses_RBO.csv",
+                      "Sha256":  "B17B7007E3D25F5B892730F1E203EF6FCC1A402BDE14C2C64F54E25601627BF4",
+                      "Bytes":  128279,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Active registered business offices"
+                  },
+                  {
+                      "Path":  "prepared\\DERIVED\\oregon_active_individuals_all.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\oregon_active_individuals_all.csv",
+                      "Sha256":  "422735B32C94F3BDED6DD76F0E3A35279F6EEA4D613971227428639B18193A2C",
+                      "Bytes":  5583790,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Combined active individual records"
+                  },
+                  {
+                      "Path":  "prepared\\DERIVED\\oregon_active_individuals_B.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\oregon_active_individuals_B.csv",
+                      "Sha256":  "8FF95A770C1CB6E9B2162A41314568A6341E421B5393806841374DD7339C77AF",
+                      "Bytes":  3793895,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Active broker individuals"
+                  },
+                  {
+                      "Path":  "prepared\\DERIVED\\oregon_active_individuals_PB.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\oregon_active_individuals_PB.csv",
+                      "Sha256":  "FD6975F30BD742857F225400A9AFFB6D57B206194E7F1A6CE4E9A83BF1B990D2",
+                      "Bytes":  1529370,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Active principal brokers"
+                  },
+                  {
+                      "Path":  "prepared\\DERIVED\\oregon_active_individuals_PM.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\oregon_active_individuals_PM.csv",
+                      "Sha256":  "588C2F8C47B63C5B75B2821D4ADFC81C0280EA28A35B15937EFEFDE6A89E9D53",
+                      "Bytes":  261159,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Active property managers"
+                  },
+                  {
+                      "Path":  "prepared\\DERIVED\\oregon_explicit_branch_records.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\oregon_explicit_branch_records.csv",
+                      "Sha256":  "7EEAA09C8C57E035D9DE7600AB6A1F226D579D4369A98578B7BBCF731239CDA9",
+                      "Bytes":  87,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Explicit branch records"
+                  },
+                  {
+                      "Path":  "prepared\\DERIVED\\oregon_roster_manifest.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\oregon_roster_manifest.json",
+                      "Sha256":  "2DEB9C47DEEF575C45C0B7918A9CF332AD205D454CFD0CFA7045DA36459CE26F",
+                      "Bytes":  4615,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Roster file hashes counts and coverage"
+                  },
+                  {
+                      "Path":  "prepared\\DERIVED\\README.md",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "OREGON\\DERIVED\\README.md",
+                      "Sha256":  "F55B77C35D3DA1FE11A856C7FA6DB3D5E2541EBBB78F7E2023CF90D89F3779A0",
+                      "Bytes":  6012,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Derived roster filenames processing and provenance notes"
+                  },
+                  {
+                      "Path":  "raw\\TXTS\\Available Rosters for Download PORTAL.txt",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OREGON\\TXTS\\Available Rosters for Download PORTAL.txt",
+                      "Sha256":  "BF8888551CE48EB88F9730F978EDB00562D94677548B70190A1F435424C3229D",
+                      "Bytes":  1271,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Official download portal capture"
+                  },
+                  {
+                      "Path":  "raw\\TXTS\\Available Rosters for Download.txt",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OREGON\\TXTS\\Available Rosters for Download.txt",
+                      "Sha256":  "BF8888551CE48EB88F9730F978EDB00562D94677548B70190A1F435424C3229D",
+                      "Bytes":  1271,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Portal roster retrieval instructions"
+                  },
+                  {
+                      "Path":  "raw\\TXTS\\Oregon OREA Active License Rosters Capture.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OREGON\\TXTS\\Oregon OREA Active License Rosters Capture.json",
+                      "Sha256":  "1047BCB188B64E7A1146AE55BF97A7278BE271F96926A4E88C46536B6DA93695",
+                      "Bytes":  3484,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Official roster retrieval evidence"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Active_Businesses.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OREGON\\XLXS\\Active_Businesses.csv",
+                      "Sha256":  "2614CC85003D324A1EF73D2FA6D0BA27B5884164E1185B04F7E0CD17F195CBEB",
+                      "Bytes":  567962,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Business roster source copy"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Inactive_Individuals.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OREGON\\XLXS\\Inactive_Individuals.csv",
+                      "Sha256":  "0957BEFA0EEFF7B619D8E7B4ED15362A1A0EE512BFE1AA3529DD9F60BD58E231",
+                      "Bytes":  224413,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Inactive individual roster source copy"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Recently_Licensed_Brokers_-_Principal_Brokers_and_Property_Managers.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OREGON\\XLXS\\Recently_Licensed_Brokers_-_Principal_Brokers_and_Property_Managers.csv",
+                      "Sha256":  "4153EF22A06B3E685B358CB2B6DB7A0F74EB955651F95548AEA0899720E8EB77",
+                      "Bytes":  12775,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Recently licensed broker supplementary roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Recently_Registered_Residential_Property_Wholesalers.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OREGON\\XLXS\\Recently_Registered_Residential_Property_Wholesalers.csv",
+                      "Sha256":  "9A0A0B65896D66B819A8E3128A85B90719764DC76EEB0E9122F758B167F7765D",
+                      "Bytes":  6461,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Recently registered wholesaler supplementary roster"
+                  }
+              ]
+}

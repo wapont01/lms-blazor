@@ -2,18 +2,17 @@
 @attribute [AllowAnonymous]
 @using Microsoft.AspNetCore.Authorization
 
-<PageTitle>Create account</PageTitle>
+<PageTitle>Create a Guest account</PageTitle>
 
 <div class="card auth-card">
-    <h1>Create your account</h1>
-    <p class="auth-help">Sign up and start purchasing courses immediately — no approval needed.</p>
-
+    <h1>Create a Guest account</h1>
     @if (_hasError)
     {
         <p class="auth-error">@GetErrorMessage()</p>
     }
 
     <form method="post" action="/auth/register" class="auth-form">
+        <AntiforgeryToken />
         <input type="hidden" name="returnUrl" value="@GetReturnUrl()" />
 
         <div class="form-field">
@@ -23,8 +22,8 @@
 
         <div class="form-field">
             <label>Password</label>
-            <input type="password" name="password" autocomplete="new-password" required minlength="10" />
-            <small>At least 10 characters with uppercase, lowercase, number, and special character.</small>
+            <input type="password" name="password" autocomplete="new-password" required minlength="8" />
+            <small>At least 8 characters.</small>
         </div>
 
         <div class="form-field">
@@ -40,10 +39,10 @@
             <small>You can change this anytime from your account page.</small>
         </div>
 
-        <button type="submit">Create account</button>
+        <button type="submit">Create a Guest account</button>
     </form>
 
-    <p class="auth-help">Already have an account? <a href="/login?returnUrl=@Uri.EscapeDataString(GetReturnUrl())">Sign in</a>.</p>
+    <p class="auth-help"><a href="/login?returnUrl=@Uri.EscapeDataString(GetReturnUrl())">Back to sign in</a></p>
 </div>
 
 @code {
@@ -63,8 +62,9 @@
         {
             "exists" => "An account with this email already exists. Try signing in instead.",
             "mismatch" => "Password and confirmation do not match.",
-            "password" => "Password must be at least 10 characters and include uppercase, lowercase, number, and special character.",
-            "missing" => "Name, email, and password are required.",
+            "password" => "Password must be at least 8 characters.",
+            "missing" => "Email, password, and password confirmation are required.",
+            "email" => "Enter a valid email address of no more than 120 characters.",
             _ => "Unable to create the account. Please review your details and try again."
         };
     }

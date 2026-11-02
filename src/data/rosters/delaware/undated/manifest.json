@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Delaware",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\TXTS\\License Rosters PORTAL.txt",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "DELAWARE\\TXTS\\License Rosters PORTAL.txt",
+                      "Sha256":  "60018A5630A8581707A5E10C45FB2C4551FCF1B48C21702BB02A4AE57D849836",
+                      "Bytes":  9002,
+                      "OfficialSourceUrl":  "https://delpros.delaware.gov/oh_verifylicense",
+                      "Coverage":  "Official roster lookup page capture"
+                  }
+              ]
+}

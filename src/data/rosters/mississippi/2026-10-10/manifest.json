@@ -1,0 +1,127 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Mississippi",
+    "CaptureDate":  "2026-10-10",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\TXTs\\Mississippi Real Estate License Lookup Notes 20261010.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\TXTs\\Mississippi Real Estate License Lookup Notes 20261010.txt",
+                      "Sha256":  "00A5F18EC880ED78E8551017242FD6E6B95E75E208096C76EDE5CDF987461847",
+                      "Bytes":  6306,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Search categories and capture scope notes"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Active_Branch_Office_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Active_Branch_Office_Sample_20261010.csv",
+                      "Sha256":  "9DDC37685C0A762D57565153266C29678D73DC5F75124F37273C391B1171BB77",
+                      "Bytes":  593,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Active branch-office sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Active_Company_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Active_Company_Sample_20261010.csv",
+                      "Sha256":  "3EE82CF6F4574EE654C8E6F9FF2FC4960046AFBC11A8B1C62FB56322712A013E",
+                      "Bytes":  3433,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Active company sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Active_Company_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Active_Company_Sample_20261010.csv",
+                      "Sha256":  "A4288A0945B194B590A1BEB36363F26F1E33F99AD8E194A859CE1963961F15F9",
+                      "Bytes":  3486,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Additional active company sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Broker_Relationships_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Broker_Relationships_20261010.csv",
+                      "Sha256":  "8C48AF8C02A931E243C67042B65C2D9D08AFE68EA30B72F584A5070515A63C16",
+                      "Bytes":  3403,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Additional broker relationship records"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Company_Relationships_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Company_Relationships_20261010.csv",
+                      "Sha256":  "5418F341B8E958E0EEEBAE111AB6CCF8D3F750F99674FF0F3911EB751E925008",
+                      "Bytes":  1727,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Additional company relationship records"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Resident_Brokers_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Resident_Brokers_20261010.csv",
+                      "Sha256":  "C04428762DDDB6DD5EA713B3B5356A122AE5D619742CCF9C74C590889B52C66B",
+                      "Bytes":  3419,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Additional resident broker sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Resident_Salespersons_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Resident_Salespersons_20261010.csv",
+                      "Sha256":  "8DEB0027E1F435441608C55357F81014FBBCC6634FF0C827EDA6D0680A152363",
+                      "Bytes":  3505,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Additional resident salesperson sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Salesperson_Relationships_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Additional_Salesperson_Relationships_20261010.csv",
+                      "Sha256":  "2A53183FD62ED4E4EA3E81511FC35B1BEB1D4E1E194A298D5EF270BE07809114",
+                      "Bytes":  3269,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Additional salesperson relationship records"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Resident_Broker_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Resident_Broker_Sample_20261010.csv",
+                      "Sha256":  "C4FD08F56BB78D5AC68D317826E8335C55FAF7697676DB468C3A292F1528F1ED",
+                      "Bytes":  3365,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Resident broker sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Resident_Salesperson_Sample_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Resident_Salesperson_Sample_20261010.csv",
+                      "Sha256":  "3E53736459DF52B79AC41C76C7866B3E6F944A2543C66C68D1CD5D4AD9A56653",
+                      "Bytes":  3515,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Resident salesperson sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Mississippi_Jackson_Sample_Relationships_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\XLXS\\Mississippi_Jackson_Sample_Relationships_20261010.csv",
+                      "Sha256":  "2246719246AED66274301DDDC7F2712A69B42779A27EEC3CD39ED7662F0C0CED",
+                      "Bytes":  8325,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Sample published affiliations"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\Mississippi Jackson License Capture 20261010.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "MISSISSIPPI\\LICENSING\\TXTs\\Mississippi Jackson License Capture 20261010.json",
+                      "Sha256":  "6EC688C0C7F200FAAF838B475675D845F07DD35ABD4FE507597705A8D552CD5A",
+                      "Bytes":  4252,
+                      "OfficialSourceUrl":  "https://www.mrec2.webapps.ms.gov/publicview/mrecPublicSelectLicenseType.aspx",
+                      "Coverage":  "Jackson public license search evidence"
+                  }
+              ]
+}

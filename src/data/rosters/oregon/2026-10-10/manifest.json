@@ -1,0 +1,37 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Oregon",
+    "CaptureDate":  "2026-10-10",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\Oregon_Portland_RBN_RBO_Campaign_Candidates_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ENTITY_CAMPAIGN\\Oregon_Portland_RBN_RBO_Campaign_Candidates_20261010.csv",
+                      "Sha256":  "8C8E4EAF07F9FC8D780178AF26D4FAA97383EBC2FCC834BBAFCB168754F0935B",
+                      "Bytes":  484844,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Portland RBN/RBO entity campaign candidates"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Oregon_Active_Businesses_20261010.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OREGON\\XLXS\\Oregon_Active_Businesses_20261010.csv",
+                      "Sha256":  "30EC59E5C243195000898A3CDD74BE63071B23064594BC232E906A333E7F5764",
+                      "Bytes":  562791,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Official active business roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Oregon_Active_Individuals_20261010.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "OREGON\\XLXS\\Oregon_Active_Individuals_20261010.csv",
+                      "Sha256":  "AA36350B24142CF1A0B5950A295C387EDFD6856DC027F8CD536A8F43F6FFB141",
+                      "Bytes":  4074591,
+                      "OfficialSourceUrl":  "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx",
+                      "Coverage":  "Official active individual roster"
+                  }
+              ]
+}

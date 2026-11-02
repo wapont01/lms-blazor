@@ -61,17 +61,22 @@ public class CourseService : ICourseService
     private static readonly string[] DeprecatedNavigationTitles = ["Navigation", "How to navigate this course"];
 
     private readonly ApplicationDbContext _dbContext;
+    private readonly bool _developmentCatalogEnabled;
 
-    public CourseService(ApplicationDbContext dbContext)
+    public CourseService(ApplicationDbContext dbContext, DevelopmentCatalogOptions? developmentCatalog = null)
     {
         _dbContext = dbContext;
+        _developmentCatalogEnabled = developmentCatalog?.Enabled == true;
     }
 
     public async Task<List<Course>> GetPublishedCoursesAsync()
     {
         return await _dbContext.Courses
             .AsNoTracking()
-            .Where(c => c.IsPublished && !c.IsArchived)
+            .Where(c => !c.IsArchived
+                && (c.Slug.StartsWith(DevelopmentCourseCatalog.SlugPrefix)
+                    ? _developmentCatalogEnabled
+                    : c.IsPublished))
             .OrderBy(c => c.Title)
             .ToListAsync();
     }
@@ -92,6 +97,7 @@ public class CourseService : ICourseService
             .AsNoTracking()
             .Include(course => course.Units)
                 .ThenInclude(unit => unit.Lessons)
+            .Where(course => _developmentCatalogEnabled || !course.Slug.StartsWith(DevelopmentCourseCatalog.SlugPrefix))
             .FirstOrDefaultAsync(course => course.Id == id);
     }
 
@@ -115,6 +121,11 @@ public class CourseService : ICourseService
             return;
         }
 
+        if (existingCourse.IsDevelopmentSample && course.IsPublished)
+        {
+            throw new InvalidOperationException("Development samples cannot be published or approved for credit.");
+        }
+
         _dbContext.Entry(existingCourse).CurrentValues.SetValues(course);
         existingCourse.UpdatedAt = DateTime.UtcNow;
 
@@ -135,7 +146,7 @@ public class CourseService : ICourseService
     public async Task<bool> SubmitForReviewAsync(Guid courseId, Guid instructorId)
     {
         var course = await GetCourseForPublishingAsync(courseId);
-        if (course is null || course.OwnerInstructorId != instructorId)
+        if (course is null || course.IsDevelopmentSample || course.OwnerInstructorId != instructorId)
         {
             return false;
         }
@@ -163,7 +174,7 @@ public class CourseService : ICourseService
     public async Task<bool> ApproveCourseAsync(Guid courseId, Guid adminUserId)
     {
         var course = await GetCourseForPublishingAsync(courseId);
-        if (course is null)
+        if (course is null || course.IsDevelopmentSample)
         {
             return false;
         }

@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "North Carolina",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\TXTs\\North Carolina Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\TXTs\\North Carolina Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "B7707D6E284CDDB73577DEC0249B075976EEEB8B41D676BA9AE5AAAB807C8240",
+                      "Bytes":  1604,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "Sample scope and source notes"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\North_Carolina_Charlotte_Active_Broker_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\XLXS\\North_Carolina_Charlotte_Active_Broker_Development_Sample_20261011.csv",
+                      "Sha256":  "EBA21099A98F8E4CD1E03B7AA36F89AED9B7D1A020805EC2742DEF6B23E84362",
+                      "Bytes":  4146,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "Charlotte active broker sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\North_Carolina_Charlotte_Active_Firm_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\XLXS\\North_Carolina_Charlotte_Active_Firm_Development_Sample_20261011.csv",
+                      "Sha256":  "0E4702F8450E8E31974665B47ABF4EB4570921C4FC9A59B4F65CDBC8E9CD4689",
+                      "Bytes":  4564,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "Charlotte active firm sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\North_Carolina_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NORTH CAROLINA\\LICENSING\\XLXS\\North_Carolina_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "6C14967CCBD21D6856A4D573B209C035FE3EABC701F9A716DC459D64D195E0EA",
+                      "Bytes":  2438,
+                      "OfficialSourceUrl":  "https://license.ncrec.gov/ncrec/oecgi3.exe/O4W_FIRM_SEARCH_NEW",
+                      "Coverage":  "Sample manifest and source coverage"
+                  }
+              ]
+}

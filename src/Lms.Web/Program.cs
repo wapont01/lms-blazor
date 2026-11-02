@@ -10,11 +10,15 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using System.Text;
 using System.Threading.RateLimiting;
 using System.Data.Common;
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (builder.Environment.IsEnvironment("Testing"))
+{
+    builder.WebHost.UseStaticWebAssets();
+}
 
 var appDataDirectory = Path.Combine(builder.Environment.ContentRootPath, "App_Data");
 Directory.CreateDirectory(appDataDirectory);
@@ -25,6 +29,11 @@ var databasePath = string.IsNullOrWhiteSpace(configuredDatabasePath)
         ? Path.Combine(appDataDirectory, "lms.db")
         : Path.GetFullPath(environmentDatabasePath)
     : Path.GetFullPath(configuredDatabasePath);
+var databasePathSource = !string.IsNullOrWhiteSpace(configuredDatabasePath)
+    ? "Lms:DatabasePath"
+    : !string.IsNullOrWhiteSpace(environmentDatabasePath)
+        ? "LMS_DATABASE_PATH"
+        : "default (App_Data under content root)";
 
 var databaseDirectory = Path.GetDirectoryName(databasePath);
 if (!string.IsNullOrWhiteSpace(databaseDirectory))
@@ -36,6 +45,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<IClaimsTransformation, InstructorRoleClaims>();
 builder.Services.AddAuthorization();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -61,6 +71,9 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 
+builder.AddMicrosoftSignIn();
+builder.AddGoogleSignIn();
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite($"Data Source={databasePath}"));
 
@@ -72,22 +85,198 @@ builder.Services.AddScoped<IExamService, ExamService>();
 builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<IDueDateReminderService, DueDateReminderService>();
 builder.Services.AddScoped<IRegulatoryDirectoryService, RegulatoryDirectoryService>();
+builder.Services.AddScoped<RegulatoryStatisticsService>();
+var regulatoryCollections = new RegulatoryCollectionOptions();
+builder.Configuration.GetSection("RegulatoryCollections").Bind(regulatoryCollections);
+regulatoryCollections.Validate();
+builder.Services.AddSingleton(regulatoryCollections);
+var scheduleFilePath = builder.Configuration["BulkCollectionSchedules:FilePath"];
+builder.Services.AddSingleton(_ => new BulkCollectionScheduleStore(string.IsNullOrWhiteSpace(scheduleFilePath)
+    ? Path.Combine(builder.Environment.ContentRootPath, "App_Data", "bulk-collection-schedules.json")
+    : Path.GetFullPath(scheduleFilePath)));
+builder.Services.AddSingleton<ColoradoDoraDisplaySelectionStore>();
+builder.Services.AddSingleton<IColoradoDoraLicenseTypeSelection>(services =>
+    services.GetRequiredService<ColoradoDoraDisplaySelectionStore>());
+builder.Services.AddHttpClient<IRegulatoryCollectionClient, RegulatoryCollectionClient>(client =>
+    client.Timeout = TimeSpan.FromSeconds(15))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+var floridaBulk = new FloridaBulkCollectionOptions();
+builder.Configuration.GetSection("FloridaBulk").Bind(floridaBulk);
+if (floridaBulk.RefreshDays is < 1 or > 365)
+    throw new InvalidOperationException("Florida bulk refresh days must be between 1 and 365.");
+builder.Services.AddSingleton(floridaBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<FloridaBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(floridaBulk));
+builder.Services.AddScoped<FloridaBulkImportService>();
+builder.Services.AddSingleton<FloridaBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<FloridaBulkCollectionService>());
+builder.Services.AddScoped<FloridaBulkBrowseService>();
+builder.Services.AddScoped<FloridaBulkAlertService>();
+var texasBulk = new TexasBulkCollectionOptions();
+builder.Configuration.GetSection("TexasBulk").Bind(texasBulk);
+builder.Services.AddSingleton(texasBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<TexasBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(texasBulk));
+builder.Services.AddScoped<TexasBulkImportService>();
+builder.Services.AddScoped<TexasBulkBrowseService>();
+builder.Services.AddScoped<NevadaNredBulkImportService>();
+builder.Services.AddScoped<NevadaBulkBrowseService>();
+var nevadaBulk = new NevadaBulkCollectionOptions { WeeklyEnabled = false, RefreshDays = 30, StaleAfterDays = 32 };
+builder.Configuration.GetSection("NevadaBulk").Bind(nevadaBulk);
+builder.Services.AddSingleton(nevadaBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<NevadaBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(nevadaBulk));
+builder.Services.AddSingleton<NevadaBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<NevadaBulkCollectionService>());
+builder.Services.AddHttpClient("NevadaBulk", client => client.Timeout = TimeSpan.FromMinutes(10))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<NevadaBulkRefreshBackgroundService>();
+builder.Services.AddSingleton<TexasBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<TexasBulkCollectionService>());
+builder.Services.AddHttpClient("TexasBulk", client => client.Timeout = TimeSpan.FromMinutes(10))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<TexasBulkRefreshBackgroundService>();
+var californiaBulk = new CaliforniaBulkCollectionOptions();
+builder.Configuration.GetSection("CaliforniaBulk").Bind(californiaBulk);
+builder.Services.AddSingleton(californiaBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<CaliforniaBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(californiaBulk));
+builder.Services.AddScoped<CaliforniaBulkImportService>();
+builder.Services.AddScoped<CaliforniaBulkBrowseService>();
+builder.Services.AddSingleton<CaliforniaBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<CaliforniaBulkCollectionService>());
+builder.Services.AddHttpClient("CaliforniaBulk", client => client.Timeout = TimeSpan.FromMinutes(10))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<CaliforniaBulkRefreshBackgroundService>();
+var coloradoDoraBulk = new ColoradoDoraBulkCollectionOptions();
+builder.Configuration.GetSection("ColoradoDoraBulk").Bind(coloradoDoraBulk);
+builder.Services.AddSingleton(coloradoDoraBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<ColoradoDoraBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(coloradoDoraBulk));
+builder.Services.AddScoped<ColoradoDoraBulkImportService>();
+builder.Services.AddSingleton<ColoradoDoraBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<ColoradoDoraBulkCollectionService>());
+builder.Services.AddHttpClient("ColoradoBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<ColoradoDoraBulkRefreshBackgroundService>();
+builder.Services.AddHostedService<ColoradoDoraBaselineBootstrapService>();
+builder.Services.AddHttpClient("FloridaBulk", client => client.Timeout = TimeSpan.FromMinutes(10))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<FloridaBulkRefreshBackgroundService>();
 builder.Services.AddScoped<IRegulatoryComplianceService, RegulatoryComplianceService>();
 builder.Services.AddSingleton<IBackgroundJobMonitor, BackgroundJobMonitor>();
 builder.Services.AddHostedService<DueDateReminderBackgroundService>();
 builder.Services.AddScoped<ILearnerDashboardService, LearnerDashboardService>();
 builder.Services.AddScoped<IUnitExamService, UnitExamService>();
-builder.Services.AddScoped<ICourseActivityService, CourseActivityService>();
 builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
+builder.Services.AddScoped<ICourseActivityService, CourseActivityService>();
 builder.Services.AddScoped<IPolicyDisclosureService, PolicyDisclosureService>();
 builder.Services.AddScoped<ISchoolProfileService, SchoolProfileService>();
+builder.Services.AddScoped<IInstructorRecordIdentity, Lms.Web.Services.InstructorRecordIdentity>();
+builder.Services.AddScoped<InstructorRecordService>();
 builder.Services.AddScoped<IComplianceReportingService, ComplianceReportingService>();
 builder.Services.AddHostedService<ComplianceReminderBackgroundService>();
+if (builder.Configuration.GetValue<bool>("MailSlurp:Enabled"))
+{
+    if (!builder.Environment.IsDevelopment())
+        throw new InvalidOperationException("MailSlurp test delivery may only be enabled in Development.");
+    var mailSlurp = new MailSlurpOptions();
+    builder.Configuration.GetSection("MailSlurp").Bind(mailSlurp);
+    mailSlurp.Validate();
+    builder.Services.AddSingleton(mailSlurp);
+    builder.Services.AddHttpClient<MailSlurpEmailTransport>(client => client.Timeout = TimeSpan.FromSeconds(30));
+}
 builder.Services.AddScoped<IEmailService, EmailService>();
+var instructorMailbox = new InstructorMailboxOptions();
+builder.Configuration.GetSection("InstructorMailbox").Bind(instructorMailbox);
+if (instructorMailbox.Enabled && !builder.Environment.IsDevelopment())
+    throw new InvalidOperationException("MailSlurp instructor test mailboxes may only be enabled in Development.");
+instructorMailbox.ApiKey = builder.Configuration["MailSlurp:ApiKey"] ?? "";
+instructorMailbox.Validate();
+if (instructorMailbox.Enabled && Guid.TryParse(builder.Configuration["MailSlurp:SenderInboxId"], out var systemInbox)
+    && instructorMailbox.Accounts.Any(a => a.InboxId == systemInbox))
+    throw new InvalidOperationException("Instructor mailboxes must not share the system notification sender inbox.");
+builder.Services.AddSingleton(instructorMailbox);
+builder.Services.AddScoped<IMailboxIdentity, Lms.Web.Services.MailboxIdentity>();
+builder.Services.AddHttpClient<IMailboxProvider, MailSlurpMailboxProvider>(client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddScoped<InstructorMailboxService>();
+var emailJourney = new EmailJourneyOptions();
+builder.Configuration.GetSection("EmailJourney").Bind(emailJourney);
+if (emailJourney.Enabled)
+{
+    if (!builder.Environment.IsDevelopment() || !builder.Configuration.GetValue<bool>("MailSlurp:Enabled")
+        || !Uri.TryCreate(emailJourney.PublicBaseUrl, UriKind.Absolute, out var emailBaseUrl)
+        || (emailBaseUrl.Scheme != "http" && emailBaseUrl.Scheme != "https")
+        || !builder.Configuration.GetSection("MailSlurp:AllowedRecipients").Get<string[]>()!
+            .Contains(emailJourney.TestRecipient, StringComparer.OrdinalIgnoreCase))
+        throw new InvalidOperationException("The email journey requires Development, MailSlurp, an allowlisted synthetic inbox, and an absolute public base URL.");
+}
+builder.Services.AddSingleton(emailJourney);
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<IEmailJourneyService, EmailJourneyService>();
+var passwordRecovery = new PasswordRecoveryOptions();
+builder.Configuration.GetSection("PasswordRecovery").Bind(passwordRecovery);
+if (passwordRecovery.Enabled)
+{
+    if (!Uri.TryCreate(passwordRecovery.PublicBaseUrl, UriKind.Absolute, out var recoveryUrl)
+        || !string.IsNullOrEmpty(recoveryUrl.UserInfo) || !string.IsNullOrEmpty(recoveryUrl.Query)
+        || !string.IsNullOrEmpty(recoveryUrl.Fragment) || recoveryUrl.AbsolutePath != "/"
+        || (recoveryUrl.Scheme != "https" && !(builder.Environment.IsDevelopment()
+            && recoveryUrl.Scheme == "http" && recoveryUrl.IsLoopback))
+        || (!builder.Configuration.GetValue<bool>("MailSlurp:Enabled")
+            && !string.Equals(Environment.GetEnvironmentVariable("EMAIL_DELIVERY_MODE"), "smtp", StringComparison.OrdinalIgnoreCase)))
+        throw new InvalidOperationException("Password recovery requires a trusted HTTPS public base URL and real email delivery (SMTP or the Development MailSlurp transport).");
+}
+builder.Services.AddSingleton(passwordRecovery);
+builder.Services.AddScoped<IPasswordRecoveryService, PasswordRecoveryService>();
+builder.Services.AddSingleton<RosterSearchProtection>();
+var turnstile = new TurnstileOptions();
+builder.Configuration.GetSection("Turnstile").Bind(turnstile);
+if (!builder.Environment.IsDevelopment() && (turnstile.UseTestKeys
+    || turnstile.SiteKey.Contains("x00000000000000000000", StringComparison.Ordinal)
+    || turnstile.SecretKey.Contains("x00000000000000000000", StringComparison.Ordinal)))
+    throw new InvalidOperationException("Turnstile test keys are allowed only in Development.");
+builder.Services.AddSingleton(turnstile);
+builder.Services.AddHttpClient<IRosterCaptchaVerifier, TurnstileVerifier>(client =>
+    client.Timeout = TimeSpan.FromSeconds(5));
+builder.Services.AddScoped<RosterSearchSession>();
+builder.Services.AddScoped<IRosterRegistrationService, RosterRegistrationService>();
 builder.Services.AddScoped<IPDFInvoiceService, PDFInvoiceService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
+builder.Services.AddScoped<StateLicensingEditorService>();
+var developmentCatalog = new DevelopmentCatalogOptions
+{
+    Enabled = builder.Configuration.GetValue<bool>("DevelopmentCatalog:Enabled")
+};
+builder.Services.AddSingleton(developmentCatalog);
+builder.Services.AddScoped<IDevelopmentCertificateService, DevelopmentCertificateService>();
+builder.Services.AddScoped<AdminCertificateService>();
+var developmentCertificatesEnabled = builder.Configuration.GetValue<bool>("DevelopmentCertificates:Enabled");
+if (developmentCertificatesEnabled && !builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException("Development certificates may only be enabled in the Development environment.");
+}
 
 var app = builder.Build();
+
+if (args.Contains("--mailslurp-smoke-test"))
+{
+    if (!app.Environment.IsDevelopment() || !builder.Configuration.GetValue<bool>("MailSlurp:Enabled"))
+        throw new InvalidOperationException("The email smoke test requires Development and MailSlurp:Enabled.");
+    using var scope = app.Services.CreateScope();
+    var options = scope.ServiceProvider.GetRequiredService<MailSlurpOptions>();
+    var email = scope.ServiceProvider.GetRequiredService<IEmailService>();
+    var subject = $"LMS email connection test {DateTime.UtcNow:yyyyMMdd-HHmmss}";
+    if (!await email.SendAsync(new EmailMessage(options.AllowedRecipients[0], subject,
+        "<h1>LMS email connection verified</h1><p>This synthetic message tests development email delivery only. No roster data is included.</p>")))
+        throw new InvalidOperationException("MailSlurp email smoke test failed. See the email service error.");
+    app.Logger.LogInformation("Smoke test sent: {Subject}. Confirm receipt in the MailSlurp inbox.", subject);
+    return;
+}
+
+app.Logger.LogInformation(
+    "LMS SQLite database: {DatabasePath}. Selection: {DatabasePathSource}. Content root: {ContentRoot}",
+    Path.GetFullPath(databasePath), databasePathSource, app.Environment.ContentRootPath);
 
 using (var scope = app.Services.CreateScope())
 {
@@ -95,47 +284,84 @@ using (var scope = app.Services.CreateScope())
     var userAccountService = scope.ServiceProvider.GetRequiredService<IUserAccountService>();
     await EnsureLegacyDatabaseMigrationBaselineAsync(dbContext);
     await EnsureEnrollmentProvenanceSchemaAsync(dbContext);
-    await EnsureRegulatoryAffiliationEmailSchemaAsync(dbContext);
     await EnsureUserLicenseTypeSchemaAsync(dbContext);
     await EnsureInstructorProfileSchemaAsync(dbContext);
     await EnsureSchoolProfileStateSchemaAsync(dbContext);
     await EnsureUserAndCourseStateSchemaAsync(dbContext);
+    await EnsureRegulatoryAffiliationEmailSchemaAsync(dbContext);
     await dbContext.Database.MigrateAsync();
+    // WAL lets pages keep reading while long roster imports hold the write transaction.
+    await dbContext.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
     await EnsureEnrollmentProvenanceSchemaAsync(dbContext);
-    await EnsureRegulatoryAffiliationEmailSchemaAsync(dbContext);
     await EnsureUserLicenseTypeSchemaAsync(dbContext);
     await EnsureInstructorProfileSchemaAsync(dbContext);
     await EnsureSchoolProfileStateSchemaAsync(dbContext);
     await EnsureUserAndCourseStateSchemaAsync(dbContext);
+    await EnsureRegulatoryAffiliationEmailSchemaAsync(dbContext);
     await userAccountService.EnsureSeedUsersAsync();
     await CourseSeed.SeedAsync(dbContext);
-    await FloridaDbprCaptureSeed.SeedAsync(dbContext);
-    await NcRecCaptureSeed.SeedAsync(dbContext);
-    await NcRecCharlotteCaptureSeed.SeedAsync(dbContext);
-    await NcRecNewLicenseCaptureSeed.SeedAsync(dbContext);
-    await StateRosterCaptureSeed.SeedAsync(dbContext);
-    await TexasTrecCaptureSeed.SeedAsync(dbContext);
-    await CaliforniaDreCaptureSeed.SeedAsync(dbContext);
-    await AlaskaCbplCaptureSeed.SeedAsync(dbContext);
-    await NevadaNredCaptureSeed.SeedAsync(dbContext);
-    await KansasKrecCaptureSeed.SeedAsync(dbContext);
-    await UtahDreCaptureSeed.SeedAsync(dbContext);
-    await NewHampshireOplcCaptureSeed.SeedAsync(dbContext);
-    await OregonOreaCaptureSeed.SeedAsync(dbContext);
-    await SouthDakotaCitySampleCaptureSeed.SeedAsync(dbContext);
-    await NorthDakotaFargoCaptureSeed.SeedAsync(dbContext);
-    await NorthDakotaBismarckCaptureSeed.SeedAsync(dbContext);
-    await IowaPlbCaptureSeed.SeedAsync(dbContext);
-    await MinnesotaPulseCaptureSeed.SeedAsync(dbContext);
-    await TennesseeCaptureSeed.SeedAsync(dbContext);
-    await CourseSeed.SeedEnrollmentsAsync(dbContext);
-    var floridaProfile = await dbContext.SchoolProfiles
-        .Include(profile => profile.StaffMembers)
-        .FirstOrDefaultAsync(profile => profile.State == "Florida");
-    if (floridaProfile is not null)
+    await StateLicensingEntrySeed.SeedAsync(dbContext);
+    if (developmentCatalog.Enabled)
     {
-        ProductionReadinessGuard.Validate(app.Environment.EnvironmentName, floridaProfile);
+        await DevelopmentStateCourseSeed.SeedAsync(dbContext);
     }
+    await CourseSeed.SeedEnrollmentsAsync(dbContext);
+    if (developmentCertificatesEnabled)
+    {
+        await scope.ServiceProvider.GetRequiredService<IDevelopmentCertificateService>().InitializeAsync(
+            builder.Configuration["DevelopmentCertificates:InitialPassword"],
+            Path.Combine(databaseDirectory!, "development-certificates"));
+    }
+}
+
+var archiveImportIndex = Array.IndexOf(args, "--florida-bulk-import-archive");
+if (args.Contains("--nevada-nred-import-all", StringComparer.Ordinal))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var result = await scope.ServiceProvider.GetRequiredService<NevadaNredBulkImportService>()
+        .ImportCaptureAsync();
+    app.Logger.LogInformation(
+        "Nevada NRED snapshot {SnapshotId} imported: {SourceRows} source rows, {NumberedLicenses} normalized licenses, {RowsWithoutLicenseNumber} rows without license numbers.",
+        result.SnapshotId, result.SourceRows, result.NumberedLicenses, result.RowsWithoutLicenseNumber);
+    return;
+}
+var californiaArchiveImportIndex = Array.IndexOf(args, "--california-bulk-import-archive");
+if (californiaArchiveImportIndex >= 0 || args.Contains("--california-bulk-collect", StringComparer.Ordinal))
+{
+    var collection = app.Services.GetRequiredService<CaliforniaBulkCollectionService>();
+    if (californiaArchiveImportIndex >= 0)
+    {
+        if (californiaArchiveImportIndex + 1 >= args.Length)
+            throw new ArgumentException("--california-bulk-import-archive requires a local validated archive directory.");
+        await collection.ImportArchiveAsync(args[californiaArchiveImportIndex + 1]);
+    }
+    else await collection.CollectAsync();
+    app.Logger.LogInformation("California bulk roster synchronized: {SnapshotId}", (await collection.GetStatusAsync()).SnapshotId);
+    return;
+}
+var texasArchiveImportIndex = Array.IndexOf(args, "--texas-bulk-import-archive");
+if (texasArchiveImportIndex >= 0 || args.Contains("--texas-bulk-collect", StringComparer.Ordinal))
+{
+    var collection = app.Services.GetRequiredService<TexasBulkCollectionService>();
+    if (texasArchiveImportIndex >= 0)
+    {
+        if (texasArchiveImportIndex + 1 >= args.Length)
+            throw new ArgumentException("--texas-bulk-import-archive requires a local validated archive directory.");
+        await collection.ImportArchiveAsync(args[texasArchiveImportIndex + 1]);
+    }
+    else await collection.CollectAsync();
+    app.Logger.LogInformation("Texas bulk roster synchronized: {SnapshotId}", (await collection.GetStatusAsync()).SnapshotId);
+    return;
+}
+if (archiveImportIndex >= 0)
+{
+    if (archiveImportIndex + 1 >= args.Length || string.IsNullOrWhiteSpace(args[archiveImportIndex + 1]))
+        throw new ArgumentException("--florida-bulk-import-archive requires a local validated archive directory.");
+    await app.Services.GetRequiredService<FloridaBulkCollectionService>().ImportArchiveAsync(
+        Path.GetFullPath(args[archiveImportIndex + 1]), CancellationToken.None);
+    var status = await app.Services.GetRequiredService<FloridaBulkCollectionService>().GetStatusAsync(CancellationToken.None);
+    app.Logger.LogInformation("Florida bulk archive synchronized as current roster: {SnapshotId}", status.SnapshotId);
+    return;
 }
 
 if (!app.Environment.IsDevelopment())
@@ -148,6 +374,18 @@ if (!app.Environment.IsEnvironment("Testing"))
 {
     app.UseHttpsRedirection();
 }
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/forgot-password")
+        || context.Request.Path.StartsWithSegments("/reset-password")
+        || context.Request.Path.StartsWithSegments("/auth/password"))
+    {
+        context.Response.Headers.CacheControl = "no-store";
+        context.Response.Headers["Referrer-Policy"] = "no-referrer";
+        context.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
+    }
+    await next();
+});
 app.UseStaticFiles();
 app.UseAntiforgery();
 app.UseAuthentication();
@@ -215,7 +453,52 @@ app.Use(async (httpContext, next) =>
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapPost("/auth/login", async (HttpContext httpContext, [FromForm] LoginForm form, IUserAccountService userAccountService, IAuditLogService auditLogService) =>
+app.MapEmailJourney();
+app.MapPasswordRecovery();
+app.MapRegulatoryCollectionExports();
+app.MapFloridaBulkCollectionExports();
+app.MapMicrosoftSignIn();
+
+app.MapPost("/auth/register", async Task<IResult> (HttpContext context, [FromForm] RegisterGuestRequest form,
+    IUserAccountService accounts, IAuditLogService audit, IEmailJourneyService journey,
+    EmailJourneyOptions journeyOptions, CancellationToken ct) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+        return TypedResults.LocalRedirect("/courses");
+
+    var returnUrl = string.IsNullOrWhiteSpace(form.ReturnUrl) ? "/courses" : form.ReturnUrl;
+    IResult Reject(string error) => TypedResults.LocalRedirect($"/register?error={error}&returnUrl={Uri.EscapeDataString(returnUrl)}");
+    if (string.IsNullOrWhiteSpace(form.Email) || string.IsNullOrWhiteSpace(form.Password)
+        || string.IsNullOrWhiteSpace(form.ConfirmPassword))
+        return Reject("missing");
+    if (form.Email.Trim().Length > 120 || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(form.Email.Trim()))
+        return Reject("email");
+    if (form.Password != form.ConfirmPassword)
+        return Reject("mismatch");
+
+    UserAccount user;
+    try
+    {
+        user = await accounts.RegisterLearnerAsync(form.Email, form.Password, form.MarketingEmails == "true");
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "A user with this email already exists."
+        || ex.Message == "Password must be at least 8 characters.")
+    {
+        app.Logger.LogWarning("Guest registration rejected: {Reason}", ex.Message);
+        return Reject(ex.Message.StartsWith("A user", StringComparison.Ordinal) ? "exists" : "password");
+    }
+
+    if (journeyOptions.AppliesTo(user.Email))
+    {
+        var verification = await journey.SendVerificationAsync(user, ct);
+        return TypedResults.LocalRedirect(verification.HasValue ? "/email-test?step=sent" : "/email-test?error=delivery");
+    }
+    return await EmailJourneyEndpoints.SignInAsync(context, user, returnUrl, audit);
+}).RequireRateLimiting("login").WithSummary("Create an individual Guest account and sign in, or start the configured test email verification.");
+
+app.MapPost("/auth/login", async (HttpContext httpContext, [FromForm] LoginForm form, IUserAccountService userAccountService,
+    IAuditLogService auditLogService, IEmailJourneyService journey, EmailJourneyOptions journeyOptions,
+    Microsoft.AspNetCore.DataProtection.IDataProtectionProvider protection, CancellationToken ct) =>
 {
     var loginResult = await userAccountService.AuthenticateAsync(form.Email, form.Password);
 
@@ -250,89 +533,21 @@ app.MapPost("/auth/login", async (HttpContext httpContext, [FromForm] LoginForm 
     }
 
     var authenticatedUser = loginResult.User;
-
-    var displayName = authenticatedUser.DisplayName ?? string.Empty;
-    if (displayName.EndsWith(" ADMIN", StringComparison.OrdinalIgnoreCase))
+    if (authenticatedUser.EmailTwoStepEnabled || journeyOptions.AppliesTo(authenticatedUser.Email))
     {
-        displayName = displayName[..^6].TrimEnd();
+        if (!journeyOptions.AppliesTo(authenticatedUser.Email))
+            return Results.LocalRedirect("/login?error=email-unavailable");
+        if (authenticatedUser.EmailVerifiedAtUtc is null)
+        {
+            var verification = await journey.SendVerificationAsync(authenticatedUser, ct);
+            return Results.LocalRedirect(verification.HasValue ? "/email-test?step=sent" : "/email-test?error=delivery");
+        }
+        var challenge = await journey.SendLoginCodeAsync(authenticatedUser, ct);
+        if (!challenge.HasValue) return Results.LocalRedirect("/email-test?error=delivery");
+        EmailJourneyEndpoints.SetPending(httpContext, protection, challenge.Value, form.ReturnUrl);
+        return Results.LocalRedirect("/email-test?step=code");
     }
-    else if (displayName.EndsWith(" BROKER", StringComparison.OrdinalIgnoreCase))
-    {
-        displayName = displayName[..^7].TrimEnd();
-    }
-    else if (displayName.EndsWith(" INSTRUCTOR", StringComparison.OrdinalIgnoreCase))
-    {
-        displayName = displayName[..^11].TrimEnd();
-    }
-    else if (displayName.EndsWith(" LEARNER", StringComparison.OrdinalIgnoreCase))
-    {
-        displayName = displayName[..^8].TrimEnd();
-    }
-
-    var claims = new List<Claim>
-    {
-        new(ClaimTypes.NameIdentifier, authenticatedUser.Id.ToString()),
-        new(ClaimTypes.Name, displayName),
-        new(ClaimTypes.Email, authenticatedUser.Email),
-        new(ClaimTypes.Role, authenticatedUser.Role)
-    };
-
-    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme, ClaimTypes.Name, ClaimTypes.Role);
-    var principal = new ClaimsPrincipal(identity);
-
-    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
-    await auditLogService.WriteAsync(authenticatedUser.Id, authenticatedUser.Email, "auth.login.succeeded", "UserAccount", authenticatedUser.Id);
-
-    if (authenticatedUser.ForcePasswordChange)
-    {
-        return Results.LocalRedirect("/account?forceChange=1");
-    }
-
-    var returnUrl = string.IsNullOrWhiteSpace(form.ReturnUrl) ? "/" : form.ReturnUrl;
-    return Results.LocalRedirect(returnUrl);
-}).DisableAntiforgery().RequireRateLimiting("login");
-
-app.MapPost("/auth/register", async (HttpContext httpContext, [FromForm] RegisterForm form, IUserAccountService userAccountService, IRegulatoryDirectoryService regulatoryDirectoryService, IAuditLogService auditLogService) =>
-{
-    string Fail(string code) => $"/register?error={Uri.EscapeDataString(code)}";
-
-    if (string.IsNullOrWhiteSpace(form.Email) || string.IsNullOrWhiteSpace(form.Password))
-    {
-        return Results.LocalRedirect(Fail("missing"));
-    }
-
-    if (!string.Equals(form.Password, form.ConfirmPassword, StringComparison.Ordinal))
-    {
-        return Results.LocalRedirect(Fail("mismatch"));
-    }
-
-    UserAccount newUser;
-    try
-    {
-        // unchecked checkboxes are absent from the form, which breaks record binding; read directly
-        var marketingOptIn = !string.IsNullOrEmpty(httpContext.Request.Form["marketingEmails"]);
-        newUser = await userAccountService.RegisterLearnerAsync(form.Email, form.Password, marketingOptIn);
-    }
-    catch (InvalidOperationException exception)
-    {
-        await auditLogService.WriteAsync(null, form.Email, "auth.register.failed", "UserAccount", null, exception.Message);
-        var code = exception.Message.Contains("already exists", StringComparison.OrdinalIgnoreCase) ? "exists" : "password";
-        return Results.LocalRedirect(Fail(code));
-    }
-
-    var claims = new List<Claim>
-    {
-        new(ClaimTypes.NameIdentifier, newUser.Id.ToString()),
-        new(ClaimTypes.Name, newUser.DisplayName),
-        new(ClaimTypes.Email, newUser.Email),
-        new(ClaimTypes.Role, newUser.Role)
-    };
-    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme, ClaimTypes.Name, ClaimTypes.Role);
-    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
-    await auditLogService.WriteAsync(newUser.Id, newUser.Email, "auth.login.succeeded", "UserAccount", newUser.Id, "Post-registration sign-in");
-
-    var registerReturnUrl = string.IsNullOrWhiteSpace(form.ReturnUrl) ? "/courses" : form.ReturnUrl;
-    return Results.LocalRedirect(registerReturnUrl);
+    return await EmailJourneyEndpoints.SignInAsync(httpContext, authenticatedUser, form.ReturnUrl, auditLogService);
 }).DisableAntiforgery().RequireRateLimiting("login");
 
 app.MapPost("/auth/logout", async (HttpContext httpContext, IAuditLogService auditLogService) =>
@@ -375,6 +590,32 @@ app.MapGet("/certificates/{certificateId:guid}/download", async (Guid certificat
     return Results.File(pdf, "application/pdf", $"{payload.CertificateNumber}.pdf");
 }).RequireAuthorization();
 
+if (developmentCertificatesEnabled)
+{
+    app.MapGet("/dev/certificates/{learnerId:guid}/download",
+        async Task<Microsoft.AspNetCore.Http.HttpResults.Results<Microsoft.AspNetCore.Http.HttpResults.FileContentHttpResult,
+            Microsoft.AspNetCore.Http.HttpResults.NotFound>> (
+            Guid learnerId, HttpContext context, IDevelopmentCertificateService certificates, CancellationToken cancellationToken) =>
+        {
+            if (!Guid.TryParse(context.User.FindFirstValue(ClaimTypes.NameIdentifier), out var requesterId))
+            {
+                return TypedResults.NotFound();
+            }
+            var certificate = (await certificates.GetAsync(requesterId, context.User.IsInRole("Admin"), cancellationToken))
+                .SingleOrDefault(item => item.UserId == learnerId);
+            if (certificate is null)
+            {
+                return TypedResults.NotFound();
+            }
+            context.Response.Headers.CacheControl = "no-store";
+            return TypedResults.File(DevelopmentCertificateService.GeneratePdf(certificate), "application/pdf", certificate.FileName);
+        })
+        .RequireAuthorization(policy => policy.RequireRole("Admin", "Learner"))
+        .WithName("DownloadDevelopmentCertificate")
+        .WithSummary("Download an owner-scoped development certificate specimen.")
+        .WithDescription("Development-only simulated certificate. No official credit, verification, or regulatory reporting.");
+}
+
 app.MapGet("/api/certificates/verify", async (string certificateNumber, string verificationCode, IEnrollmentService enrollmentService) =>
 {
     var payload = await enrollmentService.VerifyCertificateAsync(certificateNumber, verificationCode);
@@ -397,76 +638,6 @@ app.MapGet("/api/certificates/verify", async (string certificateNumber, string v
         payload.RevocationReason
     });
 });
-
-app.MapGet("/ops/background-jobs/status", (ClaimsPrincipal user, IBackgroundJobMonitor monitor) =>
-{
-    if (!user.IsInRole("Admin"))
-    {
-        return Results.Forbid();
-    }
-
-    return Results.Ok(monitor.GetStatus());
-}).RequireAuthorization();
-
-app.MapGet("/ops/background-jobs/health", async (ClaimsPrincipal user, IBackgroundJobMonitor monitor) =>
-{
-    if (!user.IsInRole("Admin"))
-    {
-        return Results.Forbid();
-    }
-
-    var health = await monitor.HealthCheckAsync();
-    return Results.Ok(health);
-}).RequireAuthorization();
-
-app.MapGet("/admin/campaign-targets.csv", async (ClaimsPrincipal user, string? state, IRegulatoryDirectoryService regulatoryDirectoryService) =>
-{
-    if (!user.IsInRole("Admin"))
-    {
-        return Results.Forbid();
-    }
-
-    var normalizedState = string.IsNullOrWhiteSpace(state) ? null : state.Trim();
-    var targets = await regulatoryDirectoryService.GetCampaignFirmTargetsAsync(normalizedState, take: 100_000);
-    var csv = new StringBuilder();
-    csv.AppendLine("State,Firm,TradeName,FirmLicense,Broker,Address,Licensees,NextRenewal,RenewalDateSource,RenewalsWithin12Months");
-    foreach (var target in targets)
-    {
-        csv.AppendLine(string.Join(',',
-            CsvField(target.State),
-            CsvField(target.FirmName),
-            CsvField(target.TradeName),
-            CsvField(target.FirmLicenseNumber),
-            CsvField(target.BrokerName),
-            CsvField(target.Address),
-            target.LicenseeCount,
-            CsvField(target.NextRenewalDate?.ToString("yyyy-MM-dd")),
-            CsvField(target.RenewalDateSource),
-            target.RenewalsWithinTwelveMonths));
-    }
-
-    var stateFileName = normalizedState is null
-        ? "all-states"
-        : string.Concat(normalizedState.Where(char.IsLetterOrDigit)).ToLowerInvariant();
-    if (string.IsNullOrWhiteSpace(stateFileName))
-    {
-        stateFileName = "selected-state";
-    }
-
-    return Results.File(Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", $"campaign-targets-{stateFileName}.csv");
-
-    static string CsvField(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
-
-        return value.Contains(',') || value.Contains('"') || value.Contains('\n')
-            ? $"\"{value.Replace("\"", "\"\"")}\""
-            : value;
-    }
-}).RequireAuthorization();
 
 app.Run();
 
@@ -545,18 +716,6 @@ static async Task EnsureUserLicenseTypeSchemaAsync(ApplicationDbContext dbContex
     await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE \"UserAccounts\" ADD COLUMN \"LicenseType\" TEXT NULL;");
 }
 
-static async Task EnsureRegulatoryAffiliationEmailSchemaAsync(ApplicationDbContext dbContext)
-{
-    const string tableName = "RegulatoryFirmLicenseeAffiliations";
-    if (!await SqliteTableExistsAsync(dbContext, tableName) ||
-        await SqliteColumnExistsAsync(dbContext, tableName, "ContactEmail"))
-    {
-        return;
-    }
-
-    await dbContext.Database.ExecuteSqlRawAsync($"ALTER TABLE \"{tableName}\" ADD COLUMN \"ContactEmail\" TEXT NULL;");
-}
-
 static async Task EnsureInstructorProfileSchemaAsync(ApplicationDbContext dbContext)
 {
     if (!await SqliteTableExistsAsync(dbContext, "UserAccounts"))
@@ -608,6 +767,18 @@ static async Task EnsureUserAndCourseStateSchemaAsync(ApplicationDbContext dbCon
     }
 }
 
+static async Task EnsureRegulatoryAffiliationEmailSchemaAsync(ApplicationDbContext dbContext)
+{
+    const string tableName = "RegulatoryFirmLicenseeAffiliations";
+    if (!await SqliteTableExistsAsync(dbContext, tableName)
+        || await SqliteColumnExistsAsync(dbContext, tableName, "ContactEmail"))
+    {
+        return;
+    }
+
+    await dbContext.Database.ExecuteSqlRawAsync($"ALTER TABLE \"{tableName}\" ADD COLUMN \"ContactEmail\" TEXT NULL;");
+}
+
 static async Task<bool> SqliteTableExistsAsync(ApplicationDbContext dbContext, string tableName)
 {
     var connection = dbContext.Database.GetDbConnection();
@@ -652,4 +823,13 @@ static async Task<bool> SqliteColumnExistsAsync(ApplicationDbContext dbContext, 
 }
 
 record LoginForm(string Email, string Password, string? ReturnUrl);
-record RegisterForm(string Email, string Password, string ConfirmPassword, string? ReturnUrl = null);
+
+/// <summary>Creates an individual Guest account using email and password.</summary>
+sealed record RegisterGuestRequest
+{
+    public string? Email { get; init; }
+    public string? Password { get; init; }
+    public string? ConfirmPassword { get; init; }
+    public string? ReturnUrl { get; init; }
+    public string? MarketingEmails { get; init; }
+}

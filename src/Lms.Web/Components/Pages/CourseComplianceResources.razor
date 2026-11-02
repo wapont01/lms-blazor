@@ -14,6 +14,14 @@
 else
 {
     <main class="compliance-resources-page">
+        @if (_course.IsDevelopmentSample)
+        {
+            <section class="card" role="status">
+                <strong>Development sample - not approved for credit.</strong>
+                <p>The course settings and copied materials below are test data, not verified licensing requirements for @_course.State.</p>
+                <a href="@($"/state-licensing?state={Uri.EscapeDataString(_course.State ?? string.Empty)}")">View state licensing references</a>
+            </section>
+        }
         <header class="compliance-resources-header">
             <p class="muted-text course-kicker">Distance education resources</p>
             <h1>Compliance Resources</h1>
@@ -115,7 +123,7 @@ else
                 <li>The lessons, referenced forms, and resources provided in each Unit.</li>
                 <li>The current Commission Broker Prelicensing Course Syllabus.</li>
                 <li>The Williams Land Realty LLC Policies and Procedures Disclosure below.</li>
-                <li>Continued access to the email address associated with your learner account.</li>
+                <li>Continued access to the email address associated with your account.</li>
             </ul>
         </section>
 

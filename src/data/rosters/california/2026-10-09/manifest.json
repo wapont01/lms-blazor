@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "California",
+    "CaptureDate":  "2026-10-09",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\DRE_CAPTURE_SUMMARY.md",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "CALIFORNIA\\LICENSING\\DRE_CAPTURE_SUMMARY.md",
+                      "Sha256":  "F18DBD00D7188F7BF5679858C76BDB60429BC20AC9A3ADC01B7DFEC1543773A3",
+                      "Bytes":  4366,
+                      "OfficialSourceUrl":  "https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html",
+                      "Coverage":  "Official source URLs archive names and capture summary"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\broker_associates_20261009.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "CALIFORNIA\\LICENSING\\XLXS\\broker_associates_20261009.csv",
+                      "Sha256":  "7A6E76883A438968B369B0617DB9E76943580CB5AC4D8F3A4D556BBDE288A6E1",
+                      "Bytes":  5049794,
+                      "OfficialSourceUrl":  "https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html",
+                      "Coverage":  "Broker-associate parsed roster"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\broker_associates_list_20261009.xls",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "CALIFORNIA\\LICENSING\\XLXS\\broker_associates_list_20261009.xls",
+                      "Sha256":  "83FC6498137380E900A23E2825A49BB4A736C3C055DA8FE9C805CA73F596F9F5",
+                      "Bytes":  9578070,
+                      "OfficialSourceUrl":  "https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html",
+                      "Coverage":  "Broker-associate source export"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\CurrList_20261009.zip",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "CALIFORNIA\\LICENSING\\XLXS\\CurrList_20261009.zip",
+                      "Sha256":  "D9548E819C62194921614E01666E9F4CEF581797608175EEA8F5EAE47261D766",
+                      "Bytes":  20587217,
+                      "OfficialSourceUrl":  "https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html",
+                      "Coverage":  "Source archive containing current license roster"
+                  }
+              ]
+}

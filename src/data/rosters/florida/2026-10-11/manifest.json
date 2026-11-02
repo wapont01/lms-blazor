@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Florida",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\TXTs\\Florida Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "FLORIDA\\LICENSING\\TXTs\\Florida Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "AD718ED42DA757282E8C490CC1B25FDDA2D057EBCDF934F6F679173D6ACAD2E8",
+                      "Bytes":  2377,
+                      "OfficialSourceUrl":  "https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv",
+                      "Coverage":  "Development-source selection and scope notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Florida_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "FLORIDA\\XLXS\\Florida_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "B1911CEB85E37CF3FC9F5EBDC97DFA7D39D70D9DF70752A6693779821BFED98E",
+                      "Bytes":  25024,
+                      "OfficialSourceUrl":  "https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv",
+                      "Coverage":  "Active entity sample from statewide export"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Florida_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "FLORIDA\\XLXS\\Florida_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "39CAE2ABC528181D9FEFC996CF28A37E681A0C890544C35C5DA088F601FA4710",
+                      "Bytes":  4227,
+                      "OfficialSourceUrl":  "https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv",
+                      "Coverage":  "State entity roster source and development sample manifest"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Florida_Real_Estate_Corporations_Partnerships_Branches_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "FLORIDA\\XLXS\\Florida_Real_Estate_Corporations_Partnerships_Branches_20261011.csv",
+                      "Sha256":  "5B9F835C08664C94C676D8905E210A2649B362654C02844570D6D90E4939A314",
+                      "Bytes":  8969879,
+                      "OfficialSourceUrl":  "https://www2.myfloridalicense.com/sto/file_download/extracts/RealEstateCorpLicense.csv",
+                      "Coverage":  "Statewide real-estate entity licenses and branches"
+                  }
+              ]
+}

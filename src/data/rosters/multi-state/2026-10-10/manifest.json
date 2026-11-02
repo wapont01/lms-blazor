@@ -1,0 +1,19 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "multi-state",
+    "CaptureDate":  "2026-10-10",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\Real_Estate_Entity_Campaign_Candidates_20261010.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "ENTITY_CAMPAIGN\\Real_Estate_Entity_Campaign_Candidates_20261010.csv",
+                      "Sha256":  "0E999ABFA6159066836EF0A49B9EB47A86E547F8C99519E7AA668B776E724D49",
+                      "Bytes":  20563209,
+                      "OfficialSourceUrl":  "",
+                      "Coverage":  "Cross-jurisdiction real-estate entity campaign candidates"
+                  }
+              ]
+}

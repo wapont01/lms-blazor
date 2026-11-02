@@ -1,0 +1,55 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "New Mexico",
+    "CaptureDate":  "2026-10-12",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\New Mexico Real Estate Development Data Notes 20261012.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW_MEXICO\\TXTS\\New Mexico Real Estate Development Data Notes 20261012.txt",
+                      "Sha256":  "C25011332E403FCA96EF15555CFBAD08A07EC53A8479125A09C971E77FD2BC5D",
+                      "Bytes":  4276,
+                      "OfficialSourceUrl":  "https://nmrldlpi.my.site.com/bcd/s/rld-public-search",
+                      "Coverage":  "Full active Trade Name coverage notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\New_Mexico_Active_Entity_Development_Sample_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW_MEXICO\\XLXS\\New_Mexico_Active_Entity_Development_Sample_20261012.csv",
+                      "Sha256":  "0A128CBEBDEC8444CF5B0C92B236007D084B59E47A63CDEA80F29B3A065435F8",
+                      "Bytes":  17753,
+                      "OfficialSourceUrl":  "https://nmrldlpi.my.site.com/bcd/s/rld-public-search",
+                      "Coverage":  "Active entity sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\New_Mexico_Development_Data_20261012.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW_MEXICO\\XLXS\\New_Mexico_Development_Data_20261012.json",
+                      "Sha256":  "C4040657949973679C75CA035E0F54E238146F6494C99A377CFB0BC501F24317",
+                      "Bytes":  1623,
+                      "OfficialSourceUrl":  "https://nmrldlpi.my.site.com/bcd/s/rld-public-search",
+                      "Coverage":  "Manifest for full Trade Name capture"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\New_Mexico_Full_Active_Entities_20261012.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "NEW_MEXICO\\XLXS\\New_Mexico_Full_Active_Entities_20261012.csv",
+                      "Sha256":  "A3B9D62B8C1F4053713C473E4CBE41674ABF951B1BAB3387B8BDB9B012BBAC20",
+                      "Bytes":  4429183,
+                      "OfficialSourceUrl":  "https://nmrldlpi.my.site.com/bcd/s/rld-public-search",
+                      "Coverage":  "Full active Trade Name brokerage entities"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\New_Mexico_Active_Trade_Names_Raw_20261012.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "NEW_MEXICO\\XLXS\\New_Mexico_Active_Trade_Names_Raw_20261012.json",
+                      "Sha256":  "F5A90FD0D5ADB2A3A824CA0FE258AFDA42EB1EC175210B9EE1503D164CCE331A",
+                      "Bytes":  1704889,
+                      "OfficialSourceUrl":  "https://nmrldlpi.my.site.com/bcd/s/rld-public-search",
+                      "Coverage":  "Raw active Trade Name records"
+                  }
+              ]
+}

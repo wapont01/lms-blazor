@@ -1,0 +1,277 @@
+@page "/admin/licensing-qa"
+@attribute [Authorize(Roles = "Admin")]
+@using System.Security.Claims
+@using Lms.Application.Services
+@using Lms.Domain.Entities
+@using Microsoft.EntityFrameworkCore
+@inject StateLicensingEditorService Editor
+@inject AuthenticationStateProvider Authentication
+@inject ILogger<AdminLicensingQa> Logger
+
+<PageTitle>Manage licensing Q&amp;A</PageTitle>
+<div class="licensing-page">
+<header>
+<h1>Licensing Q&amp;A</h1>
+<p>Save drafts before publishing. Source information is visible only to admins.</p>
+</header>
+<div class="licensing-state-selector">
+<select id="admin-qa-state" aria-label="Select a state" value="@_state" @onchange="ChangeStateAsync" disabled="@_busy">
+    <option value="">Select a state</option>
+    @foreach (var state in DevelopmentCourseCatalog.States)
+    {
+        <option value="@state">@state</option>
+    }
+</select>
+</div>
+@if (_error is not null)
+{
+    <p role="alert">@_error</p>
+}
+@if (_message is not null)
+{
+    <p role="status">@_message</p>
+}
+@if (!string.IsNullOrEmpty(_state))
+{
+<div class="licensing-admin-grid">
+    <section class="card">
+        <h2>@_state @(_showDeleted ? "deleted questions" : "questions")</h2>
+        <div class="course-actions">
+            <button type="button" @onclick="ToggleDeletedAsync" disabled="@_busy">@(_showDeleted ? "Show active" : "Deleted")</button>
+            @if (!_showDeleted)
+            {
+                <button type="button" @onclick="NewEntry" disabled="@_busy">New Q&amp;A</button>
+            }
+        </div>
+        @if (_showDeleted && _entries.Count == 0)
+        {
+            <p>No deleted Q&amp;As for this state.</p>
+        }
+        @foreach (var entry in _entries)
+        {
+            <div class="licensing-admin-item" @key="entry.Id">
+                <button type="button" @onclick="() => EditAsync(entry)" disabled="@_busy">@entry.Question</button>
+                <span>@Status(entry)</span>
+            </div>
+        }
+    </section>
+    <section class="card">
+        <h2>@(_showDeleted ? "Deleted Q&A" : "Edit Q&A")</h2>
+        @if (!_showDeleted || _saved is not null)
+        {
+        @if (_saved?.DeletedAtUtc is { } deletedAt)
+        {
+            <p>Deleted @deletedAt.ToString("u"). Retained for audit; not publicly visible.</p>
+        }
+        <fieldset disabled="@(_busy || _showDeleted)">
+            <label for="qa-question">Question</label>
+            <input id="qa-question" maxlength="500" @bind="_draft.Question" @bind:event="oninput" />
+            <label for="qa-answer">Answer</label>
+            <textarea id="qa-answer" rows="8" @bind="_draft.Answer" @bind:event="oninput"></textarea>
+            <label for="qa-sources">Source information (admin only)</label>
+            <textarea id="qa-sources" rows="7" placeholder="Source titles, URLs, saved documents, review dates, and notes"
+                      @bind="_draft.SourceNotes" @bind:event="oninput"></textarea>
+            <div class="course-actions">
+                <button type="button" @onclick="SaveAsync">Save draft</button>
+                <button type="button" @onclick="PublishAsync" disabled="@(!SavedWithoutChanges)">Publish saved draft</button>
+                <button type="button" @onclick="UnpublishAsync" disabled="@(_saved?.PublishedAtUtc is null)">Unpublish</button>
+                <button type="button" @onclick="RequestDelete" disabled="@(_saved is null)">Delete Q&amp;A</button>
+            </div>
+        </fieldset>
+        @if (_confirmDelete && !_showDeleted)
+        {
+            <div role="alert">
+                <p>Delete this Q&amp;A? It will be hidden publicly. Its saved content and audit history will be retained. Unsaved edits will not be saved.</p>
+                <div class="course-actions">
+                    <button type="button" @onclick="DeleteAsync" disabled="@_busy">Confirm delete</button>
+                    <button type="button" @onclick="CancelDelete" disabled="@_busy">Cancel</button>
+                </div>
+            </div>
+        }
+        @if (!_showDeleted)
+        {
+        <p>Draft edits do not change the currently published answer. Publishing requires source information.</p>
+        <a href="@($"/state-licensing?state={Uri.EscapeDataString(_state)}")">View published Q&amp;A</a>
+        }
+        @if (_saved is not null)
+        {
+            <section class="licensing-qa-history" aria-label="Q&A audit history">
+                <h2>Audit history</h2>
+                <p>The editor shows the current draft. Expand an event to see the saved version before that action. Times are UTC.</p>
+                @if (_history.Count == 0)
+                {
+                    <p>No audit events recorded for this Q&amp;A.</p>
+                }
+                @foreach (var item in _history)
+                {
+                    <details @key="item.Id">
+                        <summary>@item.CreatedAtUtc.ToString("u") — @ActionLabel(item.Action) — @item.ActorEmail</summary>
+                        @if (item.Change is null)
+                        {
+                            <p>Legacy event: no previous version was captured.</p>
+                        }
+                        else if (item.Change.Previous is not { } previous)
+                        {
+                            <p>Q&amp;A created. No previous version exists.</p>
+                        }
+                        else
+                        {
+                            <dl>
+                                <dt>Previous state</dt><dd>@previous.State</dd>
+                                <dt>Previous question</dt><dd>@previous.Question</dd>
+                                <dt>Previous answer</dt><dd>@previous.Answer</dd>
+                                <dt>Previous source information (admin only)</dt><dd>@previous.SourceNotes</dd>
+                                <dt>Previous publication status</dt>
+                                <dd>@(previous.PublishedAtUtc is null ? "Unpublished" : "Published")</dd>
+                                <dt>Previous publication date (UTC)</dt>
+                                <dd>@(previous.PublishedAtUtc?.ToString("u") ?? "Not published")</dd>
+                                <dt>Previous published question</dt><dd>@previous.PublishedQuestion</dd>
+                                <dt>Previous published answer</dt><dd>@previous.PublishedAnswer</dd>
+                                <dt>Previous draft updated (UTC)</dt><dd>@previous.UpdatedAtUtc.ToString("u")</dd>
+                                <dt>Previous deletion date (UTC)</dt><dd>@(previous.DeletedAtUtc?.ToString("u") ?? "Not deleted")</dd>
+                            </dl>
+                        }
+                    </details>
+                }
+            </section>
+        }
+        }
+    </section>
+</div>
+}
+</div>
+
+@code {
+    private ClaimsPrincipal _actor = new();
+    private string _state = string.Empty;
+    private List<StateLicensingEntry> _entries = [];
+    private StateLicensingEntry _draft = new();
+    private StateLicensingEntry? _saved;
+    private List<StateLicensingHistoryItem> _history = [];
+    private bool _busy;
+    private bool _showDeleted;
+    private bool _confirmDelete;
+    private string? _error;
+    private string? _message;
+    private bool SavedWithoutChanges => _saved is not null
+        && _draft.Question == _saved.Question && _draft.Answer == _saved.Answer
+        && _draft.SourceNotes == _saved.SourceNotes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _actor = (await Authentication.GetAuthenticationStateAsync()).User;
+        await RunAsync(async () => { await LoadAsync(); NewEntry(); }, null);
+    }
+
+    private async Task ChangeStateAsync(ChangeEventArgs args)
+    {
+        _state = args.Value?.ToString() ?? string.Empty;
+        _showDeleted = false;
+        await RunAsync(async () => { await LoadAsync(); NewEntry(); }, null);
+    }
+
+    private async Task LoadAsync() => _entries = string.IsNullOrEmpty(_state)
+        ? [] : await Editor.GetForAdminAsync(_actor, _state, _showDeleted);
+    private void NewEntry()
+    {
+        _saved = null;
+        _confirmDelete = false;
+        _history = [];
+        _draft = new StateLicensingEntry { State = _state };
+    }
+
+    private Task EditAsync(StateLicensingEntry entry) => RunAsync(() => SelectEntryAsync(entry), null);
+
+    private async Task SelectEntryAsync(StateLicensingEntry entry)
+    {
+        _history = [];
+        _confirmDelete = false;
+        _saved = entry;
+        _draft = new StateLicensingEntry
+        {
+            Id = entry.Id, State = entry.State, Question = entry.Question,
+            Answer = entry.Answer, SourceNotes = entry.SourceNotes
+        };
+        _message = null;
+        _history = await Editor.GetHistoryAsync(_actor, entry.Id);
+    }
+
+    private Task SaveAsync() => RunAsync(async () =>
+    {
+        var id = _draft.Id;
+        await Editor.SaveDraftAsync(_actor, _draft);
+        await LoadAsync();
+        await SelectEntryAsync(_entries.Single(entry => entry.Id == id));
+    }, "Draft saved. Published content is unchanged.");
+
+    private Task PublishAsync() => RunAsync(async () =>
+    {
+        await Editor.PublishAsync(_actor, _draft.Id);
+        await LoadAsync();
+        await SelectEntryAsync(_entries.Single(entry => entry.Id == _draft.Id));
+    }, "Q&A published.");
+
+    private Task UnpublishAsync() => RunAsync(async () =>
+    {
+        await Editor.UnpublishAsync(_actor, _draft.Id);
+        await LoadAsync();
+        await SelectEntryAsync(_entries.Single(entry => entry.Id == _draft.Id));
+    }, "Q&A unpublished. The draft and sources are retained.");
+
+    private Task ToggleDeletedAsync() => RunAsync(async () =>
+    {
+        _showDeleted = !_showDeleted;
+        await LoadAsync();
+        NewEntry();
+    }, null);
+
+    private void RequestDelete() => _confirmDelete = true;
+    private void CancelDelete() => _confirmDelete = false;
+
+    private Task DeleteAsync() => RunAsync(async () =>
+    {
+        var id = _saved?.Id ?? throw new InvalidOperationException("Select a saved Q&A to delete.");
+        await Editor.DeleteAsync(_actor, id);
+        _showDeleted = true;
+        await LoadAsync();
+        await SelectEntryAsync(_entries.Single(entry => entry.Id == id));
+    }, "Q&A deleted. Content and audit history are retained in Deleted.");
+
+    private async Task RunAsync(Func<Task> action, string? message)
+    {
+        if (_busy) return;
+        _busy = true;
+        _error = null;
+        _message = null;
+        try
+        {
+            await action();
+            _message = message;
+        }
+        catch (InvalidOperationException ex)
+        {
+            Logger.LogWarning(ex, "Licensing Q&A operation failed for {State}", _state);
+            _error = ex.Message;
+        }
+        catch (DbUpdateException ex)
+        {
+            Logger.LogError(ex, "Could not persist licensing Q&A for {State}", _state);
+            _error = "The Q&A could not be saved. Please reload and try again.";
+        }
+        finally { _busy = false; }
+    }
+
+    private static string Status(StateLicensingEntry entry) => entry.DeletedAtUtc is not null ? "Deleted"
+        : entry.PublishedAtUtc is null ? "Draft"
+        : entry.Question != entry.PublishedQuestion || entry.Answer != entry.PublishedAnswer
+            ? "Published - draft changes" : "Published";
+
+    private static string ActionLabel(string action) => action switch
+    {
+        "licensing.qa.draft" => "Draft saved",
+        "licensing.qa.publish" => "Published",
+        "licensing.qa.unpublish" => "Unpublished",
+        "licensing.qa.delete" => "Deleted",
+        _ => action
+    };
+}

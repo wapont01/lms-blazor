@@ -1,0 +1,37 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Virginia",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\VA DPOR Richmond Firm Capture 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\TXTs\\VA DPOR Richmond Firm Capture 01.json",
+                      "Sha256":  "9CEF995DB21EFECC75D774407814BEF366E7985732E2F1871750B60112F6318E",
+                      "Bytes":  1343,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Richmond firm public lookup capture"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\VA DPOR Richmond Firm Licensee CE Capture 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\TXTs\\VA DPOR Richmond Firm Licensee CE Capture 01.json",
+                      "Sha256":  "90EACB13E8EBA59D0C356012E0195D71D1B6D372C96E67A9007F26FB804EBB62",
+                      "Bytes":  3217,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Firm licensee relationship capture"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\VA DPOR Richmond Firm Licensee CE Capture 02.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\TXTs\\VA DPOR Richmond Firm Licensee CE Capture 02.json",
+                      "Sha256":  "0F5A059C78F7C7ED6067F942EEA7D357ADE1283CA3FD6E1880238251DE5FACA4",
+                      "Bytes":  3351,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Firm licensee relationship capture"
+                  }
+              ]
+}

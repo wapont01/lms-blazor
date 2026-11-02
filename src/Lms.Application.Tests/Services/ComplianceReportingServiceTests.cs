@@ -14,7 +14,7 @@ public class ComplianceReportingServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var instructor = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "jordan.lee@wlr.com");
 
         var course = new Course
@@ -77,7 +77,7 @@ public class ComplianceReportingServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
 
         var course = new Course
@@ -123,7 +123,7 @@ public class ComplianceReportingServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         var course = new Course
         {
@@ -188,7 +188,7 @@ public class ComplianceReportingServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         var course = new Course
         {
@@ -226,7 +226,20 @@ public class ComplianceReportingServiceTests
             ClosedBookConfirmed = true,
             ExpiresAtUtc = DateTime.UtcNow.AddMinutes(120)
         };
-        fixture.DbContext.ExamProctoringSessions.AddRange(incidentSession, cleanSession);
+        var sampleCourse = new Course
+        {
+            Title = "Development sample",
+            Slug = DevelopmentCourseCatalog.SlugPrefix + "incident-test"
+        };
+        fixture.DbContext.Courses.Add(sampleCourse);
+        var sampleIncident = new ExamProctoringSession
+        {
+            Course = sampleCourse,
+            UserAccountId = learner.Id,
+            ExpiresAtUtc = incidentAtUtc,
+            SecurityIncidentReported = true
+        };
+        fixture.DbContext.ExamProctoringSessions.AddRange(incidentSession, cleanSession, sampleIncident);
         await fixture.DbContext.SaveChangesAsync();
 
         var rows = await fixture.ComplianceReportingService.GetPendingCheatingIncidentReportsAsync();
@@ -243,7 +256,7 @@ public class ComplianceReportingServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
 
         var course = new Course
@@ -344,7 +357,7 @@ public class ComplianceReportingServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
 
         var course = new Course
         {

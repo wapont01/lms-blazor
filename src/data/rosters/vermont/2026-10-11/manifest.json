@@ -1,0 +1,91 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Vermont",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Vermont Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "VERMONT\\TXTS\\Vermont Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "3A546867E025D52BC8777FCD08988AD04E7F804ABFCFAC494E2B7987D7F36874",
+                      "Bytes":  2276,
+                      "OfficialSourceUrl":  "https://sos.vermont.gov/opr/find-a-professional/",
+                      "Coverage":  "Source roster parse and scope notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Vermont_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "VERMONT\\XLXS\\Vermont_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "92A77B1F50CC9446CAC574E9C46A48946CE41F4EDF1CC9CCFD6C83654832797E",
+                      "Bytes":  15774,
+                      "OfficialSourceUrl":  "https://sos.vermont.gov/opr/find-a-professional/",
+                      "Coverage":  "Active entity sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Vermont_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "VERMONT\\XLXS\\Vermont_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "C11D9D9547913FF39AB2D612D2BB2F1D87D63F5DFE98F4823FF18D3F627F7A47",
+                      "Bytes":  13640,
+                      "OfficialSourceUrl":  "https://sos.vermont.gov/opr/find-a-professional/",
+                      "Coverage":  "Active individual sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Vermont_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "VERMONT\\XLXS\\Vermont_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "D32281830FC20A6EBA564C36056AFF8D3B8500FF10F5D0336A6AEDE54C43DDB0",
+                      "Bytes":  7252,
+                      "OfficialSourceUrl":  "https://sos.vermont.gov/opr/find-a-professional/",
+                      "Coverage":  "Parsed row counts sample and provenance manifest"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Vermont_Active_Real_Estate_Brokers_20261011.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VERMONT\\XLXS\\Vermont_Active_Real_Estate_Brokers_20261011.xlsx",
+                      "Sha256":  "664465CC31D25E99232D04556F2910A00420FF9936659E02B182A97B96EB34DC",
+                      "Bytes":  109460,
+                      "OfficialSourceUrl":  "https://sos.vermont.gov/opr/find-a-professional/",
+                      "Coverage":  "Statewide active broker roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Vermont_Active_Real_Estate_Firms_Branch_Office_20261011.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VERMONT\\XLXS\\Vermont_Active_Real_Estate_Firms_Branch_Office_20261011.xlsx",
+                      "Sha256":  "91C663D4C58B0A7572398E529EF2C928EA98F2645FFE3891C4811E4718B49523",
+                      "Bytes":  16393,
+                      "OfficialSourceUrl":  "https://sos.vermont.gov/opr/find-a-professional/",
+                      "Coverage":  "Active branch-office firm roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Vermont_Active_Real_Estate_Firms_Main_Office_20261011.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VERMONT\\XLXS\\Vermont_Active_Real_Estate_Firms_Main_Office_20261011.xlsx",
+                      "Sha256":  "78E85FBB44A7883F401EE616AB1935905D0A3B09E020A9F9FCE99876625ECCF6",
+                      "Bytes":  62394,
+                      "OfficialSourceUrl":  "https://sos.vermont.gov/opr/find-a-professional/",
+                      "Coverage":  "Active main-office firm roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Vermont_Active_Real_Estate_Firms_Sole_Proprietorship_20261011.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VERMONT\\XLXS\\Vermont_Active_Real_Estate_Firms_Sole_Proprietorship_20261011.xlsx",
+                      "Sha256":  "AA02A7B234053BC1A9FE6AFE66BDCE0E6A676D64B73E989A8E765547312C8112",
+                      "Bytes":  7772,
+                      "OfficialSourceUrl":  "https://sos.vermont.gov/opr/find-a-professional/",
+                      "Coverage":  "Active sole-proprietor firm roster"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Vermont_Active_Real_Estate_Salespersons_20261011.xlsx",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VERMONT\\XLXS\\Vermont_Active_Real_Estate_Salespersons_20261011.xlsx",
+                      "Sha256":  "36709870EAB714DBD01DE03CAE9745E032FA66339DFA970DF7D5232DA99620CB",
+                      "Bytes":  148576,
+                      "OfficialSourceUrl":  "https://sos.vermont.gov/opr/find-a-professional/",
+                      "Coverage":  "Statewide active salesperson roster"
+                  }
+              ]
+}

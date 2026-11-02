@@ -260,10 +260,11 @@ public sealed class SchoolProfileService : ISchoolProfileService
 
         foreach (var account in instructorAccounts)
         {
-            var member = profile.StaffMembers.FirstOrDefault(existing =>
-                    string.Equals(existing.Email, account.Email, StringComparison.OrdinalIgnoreCase))
+            var member = profile.StaffMembers.FirstOrDefault(existing => existing.UserAccountId == account.Id)
                 ?? profile.StaffMembers.FirstOrDefault(existing =>
-                    string.Equals(existing.Name, account.DisplayName, StringComparison.OrdinalIgnoreCase));
+                    existing.UserAccountId is null && string.Equals(existing.Email, account.Email, StringComparison.OrdinalIgnoreCase))
+                ?? profile.StaffMembers.FirstOrDefault(existing =>
+                    existing.UserAccountId is null && string.Equals(existing.Name, account.DisplayName, StringComparison.OrdinalIgnoreCase));
             if (member is null)
             {
                 member = new SchoolStaffMember

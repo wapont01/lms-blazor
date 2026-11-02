@@ -1,0 +1,19 @@
+.collection-schedules { margin: -8px; padding-top: 20px; min-width: 0; }
+header { margin-bottom: 12px; }
+h1 { margin: 0; font-size: 1.5rem; line-height: 1.2; }
+header p { margin: 8px 0 0; }
+.collection-schedules > p { margin: 8px 0 12px; }
+.table-wrap { max-width: 100%; overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px; text-align: left; border-bottom: 1px solid var(--panel-border); }
+input, select { min-width: 88px; max-width: 180px; padding: 6px; }
+input[type="checkbox"] { min-width: 0; }
+.interval { white-space: nowrap; }
+.interval input { width: 72px; }
+.interval select { width: 100px; }
+small.auth-error { display: block; max-width: 200px; }
+.cadence-note { min-width: 120px; max-width: 300px; margin-top: 4px; font-size: 0.85rem; font-weight: normal; }
+.cadence-note summary { cursor: pointer; }
+.cadence-note p { margin: 8px 0; overflow-wrap: anywhere; }
+.cadence-guidance { min-width: 180px; max-width: 300px; margin: 6px 0 0; font-size: 0.85rem; font-weight: normal; }
+@media (max-width: 900px) { .collection-schedules { margin: 0; padding: 0; } }

@@ -1,0 +1,73 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Idaho",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Idaho Real Estate Development Data Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IDAHO\\TXTS\\Idaho Real Estate Development Data Notes 20261011.txt",
+                      "Sha256":  "790DECCB36E7D7A38086730869FA60F6DE1FDC701719F7482433825BA8DE2FC7",
+                      "Bytes":  5031,
+                      "OfficialSourceUrl":  "https://edopl.idaho.gov/OnlineServices/",
+                      "Coverage":  "Full active export selection and coverage notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Idaho_Active_Entity_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IDAHO\\XLXS\\Idaho_Active_Entity_Development_Sample_20261011.csv",
+                      "Sha256":  "A7BB6D7FD70C2451D78A5FFA09B4FE800C49CACF5ADD6519F07D62F37E7C442F",
+                      "Bytes":  20645,
+                      "OfficialSourceUrl":  "https://edopl.idaho.gov/OnlineServices/",
+                      "Coverage":  "Active entity sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Idaho_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IDAHO\\XLXS\\Idaho_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "B1E6D118967BCD49BF8550F4C22E11173528E7282B461DA6CE633BB14709705B",
+                      "Bytes":  33574,
+                      "OfficialSourceUrl":  "https://edopl.idaho.gov/OnlineServices/",
+                      "Coverage":  "Active individual sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Idaho_Development_Data_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IDAHO\\XLXS\\Idaho_Development_Data_20261011.json",
+                      "Sha256":  "C875332C19CBF029075DC730461355E2CFCCBAC9B34B287630D82837ACCF815A",
+                      "Bytes":  2819,
+                      "OfficialSourceUrl":  "https://edopl.idaho.gov/OnlineServices/",
+                      "Coverage":  "Manifest with row counts scope and source hashes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Idaho_Full_Development_Campaign_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "IDAHO\\XLXS\\Idaho_Full_Development_Campaign_20261011.csv",
+                      "Sha256":  "9C6CA73BCE68FCC76B0C2FF751507EF2FA768BE6E96CE4FF9CD23430E97FB659",
+                      "Bytes":  8337271,
+                      "OfficialSourceUrl":  "https://edopl.idaho.gov/OnlineServices/",
+                      "Coverage":  "Full normalized campaign; 15,206 included credentials"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Idaho_REC_Active_All_Types_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "IDAHO\\XLXS\\Idaho_REC_Active_All_Types_20261011.csv",
+                      "Sha256":  "5435D1374BC911B066E8112B1C10262F43AE54F3CB4139F74FA58A932321B162",
+                      "Bytes":  2528216,
+                      "OfficialSourceUrl":  "https://edopl.idaho.gov/OnlineServices/",
+                      "Coverage":  "Official active board export; all included license types"
+                  },
+                  {
+                      "Path":  "raw\\XLXS\\Idaho_REC_Active_All_Types_20261011.ods",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "IDAHO\\XLXS\\Idaho_REC_Active_All_Types_20261011.ods",
+                      "Sha256":  "1F85FF5984F823968973E986CE7CBCD1233B530840DC2C0A710688B93C1C28B4",
+                      "Bytes":  1498724,
+                      "OfficialSourceUrl":  "https://edopl.idaho.gov/OnlineServices/",
+                      "Coverage":  "Original spreadsheet version of active board export"
+                  }
+              ]
+}

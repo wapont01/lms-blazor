@@ -1,0 +1,119 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "test-seed-users",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"test",
+				"Lms.Application.Tests/Lms.Application.Tests.csproj",
+				"--filter",
+				"EnsureSeedUsersAsync_BackfillsAdditionalSeededUsers_WhenDatabaseAlreadyHasUsers",
+				"--nologo",
+				"-v",
+				"minimal"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "test-seed-enrollments",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"test",
+				"Lms.Application.Tests/Lms.Application.Tests.csproj",
+				"--filter",
+				"SeedEnrollmentsAsync_BackfillsMissingLearnerEnrollments_WithoutDuplicatingExistingRows",
+				"--nologo",
+				"-v",
+				"minimal"
+			],
+			"isBackground": false
+		},
+		{
+			"label": "run-lms-web-src-5001",
+			"type": "shell",
+			"command": "$conn = Get-NetTCPConnection -LocalPort 5001 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }; $env:ASPNETCORE_URLS='http://localhost:5001'; & 'C:\\Program Files\\dotnet\\dotnet.exe' run --project .\\Lms.Web\\Lms.Web.csproj --no-launch-profile",
+			"isBackground": true
+		},
+		{
+			"label": "kill-running-lms-web",
+			"type": "shell",
+			"command": "taskkill /IM Lms.Web.exe /F",
+			"isBackground": false
+		},
+		{
+			"label": "test-application-suite",
+			"type": "shell",
+			"command": "dotnet test .\\Lms.Application.Tests\\Lms.Application.Tests.csproj",
+			"isBackground": false
+		},
+		{
+			"label": "test-ui-suite",
+			"type": "shell",
+			"command": "dotnet test .\\Lms.Web.UITests\\Lms.Web.UITests.csproj",
+			"isBackground": false
+		},
+		{
+			"label": "test-ui-suite-rerun",
+			"type": "shell",
+			"command": "dotnet test .\\Lms.Web.UITests\\Lms.Web.UITests.csproj",
+			"isBackground": false
+		},
+		{
+			"label": "test-ui-suite-exec",
+			"type": "shell",
+			"command": "$env:RUN_UI_TESTS='1'; dotnet test .\\Lms.Web.UITests\\Lms.Web.UITests.csproj",
+			"isBackground": false
+		},
+		{
+			"label": "test-ui-broker-lifecycle-only",
+			"type": "shell",
+			"command": "$env:RUN_UI_TESTS='1'; dotnet test .\\Lms.Web.UITests\\Lms.Web.UITests.csproj --filter \"FullyQualifiedName~Broker_Lifecycle_LearnerSwitch_UsesValidTransferCourseSelections\"",
+			"isBackground": false
+		},
+		{
+			"label": "test-ui-broker-lifecycle-only-rerun",
+			"type": "shell",
+			"command": "$env:RUN_UI_TESTS='1'; dotnet test .\\Lms.Web.UITests\\Lms.Web.UITests.csproj --filter \"FullyQualifiedName~Broker_Lifecycle_LearnerSwitch_UsesValidTransferCourseSelections\"",
+			"isBackground": false
+		},
+		{
+			"label": "test-ui-broker-lifecycle-only-final",
+			"type": "shell",
+			"command": "$env:RUN_UI_TESTS='1'; dotnet test .\\Lms.Web.UITests\\Lms.Web.UITests.csproj --filter \"FullyQualifiedName~Broker_Lifecycle_LearnerSwitch_UsesValidTransferCourseSelections\"",
+			"isBackground": false
+		},
+		{
+			"label": "test-ui-suite-exec-rerun",
+			"type": "shell",
+			"command": "$env:RUN_UI_TESTS='1'; dotnet test .\\Lms.Web.UITests\\Lms.Web.UITests.csproj",
+			"isBackground": false
+		},
+		{
+			"label": "test-ui-suite-final-rerun",
+			"type": "shell",
+			"command": "$env:RUN_UI_TESTS='1'; dotnet test .\\Lms.Web.UITests\\Lms.Web.UITests.csproj",
+			"isBackground": false
+		},
+		{
+			"label": "test-ui-suite-final-rerun-2",
+			"type": "shell",
+			"command": "$env:RUN_UI_TESTS='1'; dotnet test .\\Lms.Web.UITests\\Lms.Web.UITests.csproj",
+			"isBackground": false
+		},
+		{
+			"label": "test-ui-suite-final-rerun-3",
+			"type": "shell",
+			"command": "$env:RUN_UI_TESTS='1'; dotnet test .\\Lms.Web.UITests\\Lms.Web.UITests.csproj",
+			"isBackground": false
+		},
+		{
+			"label": "run-lms-web-src-5001-live",
+			"type": "shell",
+			"command": "$conn = Get-NetTCPConnection -LocalPort 5001 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { Stop-Process -Id $conn.OwningProcess -Force }; $env:ASPNETCORE_URLS='http://localhost:5001'; & 'C:\\Program Files\\dotnet\\dotnet.exe' run --project .\\Lms.Web\\Lms.Web.csproj --no-launch-profile",
+			"isBackground": true
+		}
+	]
+}

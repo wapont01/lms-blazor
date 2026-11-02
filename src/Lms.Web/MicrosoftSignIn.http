@@ -1,0 +1,23 @@
+@baseUrl = http://localhost:5000
+
+### Microsoft button appears only when Authentication:Sso:Enabled is true.
+GET {{baseUrl}}/login
+
+### Returns a Microsoft authorization redirect with code + PKCE, state and nonce.
+### Complete this in a browser; keep the correlation/nonce cookies.
+GET {{baseUrl}}/auth/sso/login?returnUrl=%2Flearner
+
+### An external return URL is ignored; success returns to the local root.
+GET {{baseUrl}}/auth/sso/login?returnUrl=https%3A%2F%2Fexample.invalid
+
+### Forged callback must not create an LMS authentication session.
+GET {{baseUrl}}/signin-oidc?code=invalid&state=invalid
+
+### Disabled configuration: the challenge route is not mapped (404).
+# GET {{baseUrl}}/auth/sso/login
+
+### Google button is independently gated by Authentication:Google:Enabled.
+GET {{baseUrl}}/auth/google/login?returnUrl=%2Flearner
+
+### Forged Google callback must not issue an LMS authentication cookie.
+GET {{baseUrl}}/signin-google?code=invalid&state=invalid

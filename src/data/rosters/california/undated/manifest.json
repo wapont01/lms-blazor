@@ -1,0 +1,37 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "California",
+    "CaptureDate":  "undated",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\broker_associates_list.xls",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "CALIFORNIA\\LICENSING\\XLXS\\broker_associates_list.xls",
+                      "Sha256":  "69E0CD44B1469843F77F5C344D49B9E06ED8F587B6F095530BEF3F4A68EBD5A6",
+                      "Bytes":  9542332,
+                      "OfficialSourceUrl":  "https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html",
+                      "Coverage":  "Broker-associate source workbook"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\CurrList.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "CALIFORNIA\\LICENSING\\XLXS\\CurrList.csv",
+                      "Sha256":  "623ADC657C6EA6F322CE3BFD4D9DC4D3028A6762D6BCDF8BAE34965291911808",
+                      "Bytes":  71953661,
+                      "OfficialSourceUrl":  "https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html",
+                      "Coverage":  "Current license roster extracted from source archive"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\new_licensees.xls",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "CALIFORNIA\\LICENSING\\XLXS\\new_licensees.xls",
+                      "Sha256":  "B0A7DE270361FB19C64CBB7C31530AD7678FDC00DDA38E67EB98A1E3CD614F5D",
+                      "Bytes":  124220,
+                      "OfficialSourceUrl":  "https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html",
+                      "Coverage":  "New licensee source export"
+                  }
+              ]
+}

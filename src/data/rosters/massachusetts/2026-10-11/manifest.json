@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Massachusetts",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Massachusetts Real Estate License Search Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MASSACHUSETTS\\TXTS\\Massachusetts Real Estate License Search Notes 20261011.txt",
+                      "Sha256":  "5E337A8AD3D39A5360CF1C6979E70288CA6E34DB2B3ECCDEE376603FE44E40B3",
+                      "Bytes":  2529,
+                      "OfficialSourceUrl":  "https://occupationallicensingandpermitting.mass.gov/madol/s/license-search-page",
+                      "Coverage":  "Search scope and sample retrieval notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Massachusetts_Active_Entity_Campaign_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MASSACHUSETTS\\XLXS\\Massachusetts_Active_Entity_Campaign_Development_Sample_20261011.csv",
+                      "Sha256":  "84C12F2A5D40DAFF49C017D77F662E0CF37501BB5C8189816E3216975F795280",
+                      "Bytes":  11364,
+                      "OfficialSourceUrl":  "https://occupationallicensingandpermitting.mass.gov/madol/s/license-search-page",
+                      "Coverage":  "Entity campaign samples"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Massachusetts_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MASSACHUSETTS\\XLXS\\Massachusetts_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "20493953DBFEA1BA3B59BAD03432F1818646B2F2C75DAB71BC61733963B7A5B3",
+                      "Bytes":  7786,
+                      "OfficialSourceUrl":  "https://occupationallicensingandpermitting.mass.gov/madol/s/license-search-page",
+                      "Coverage":  "Boston active individual samples"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Massachusetts_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "MASSACHUSETTS\\XLXS\\Massachusetts_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "6F0DE47DE0AEE5713B4CD3F4027996471A2A9F7893C087920DB8AC4C1FF74AB8",
+                      "Bytes":  4540,
+                      "OfficialSourceUrl":  "https://occupationallicensingandpermitting.mass.gov/madol/s/license-search-page",
+                      "Coverage":  "Query counts sample scope and hashes"
+                  }
+              ]
+}

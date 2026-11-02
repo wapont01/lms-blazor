@@ -10,9 +10,9 @@
 @inject IDueDateReminderService DueDateReminderService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-<PageTitle>Learner Purchase Support</PageTitle>
+<PageTitle>Student Purchase Support</PageTitle>
 
-<h1>Learner Purchase Support</h1>
+<h1>Student Purchase Support</h1>
 
 <div class="dashboard-grid">
 	<section class="card support-action-card admin-support-card">
@@ -21,9 +21,9 @@
 
 		<div class="support-form-stack">
 			<div>
-				<label for="support-learner">Learner</label>
+				<label for="support-learner">Student</label>
 				<select id="support-learner" value="@(_selectedLearnerId?.ToString() ?? string.Empty)" @onchange="OnLearnerChanged">
-					<option value="">Select learner</option>
+					<option value="">Select student</option>
 					@foreach (var learner in _learners)
 					{
 						<option value="@learner.Id">@learner.DisplayName (@learner.Email)</option>
@@ -73,8 +73,8 @@
 	</section>
 
 	<section class="card support-ownership-card admin-support-card">
-		<h3>Learner enrolled courses</h3>
-		<p class="muted-text">Courses the selected learner is currently enrolled in.</p>
+		<h3>Student enrolled courses</h3>
+		<p class="muted-text">Courses the selected student is currently enrolled in.</p>
 
 		<p><strong>@GetSelectedLearnerLabel()</strong></p>
 
@@ -96,7 +96,7 @@
 		}
 		else
 		{
-			<p class="muted-text">This learner has no enrolled courses.</p>
+			<p class="muted-text">This student has no enrolled courses.</p>
 		}
 	</section>
 </div>
@@ -223,7 +223,7 @@
 
 		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue || !_actorUserId.HasValue)
 		{
-			_supportStatus = "Select learner and course.";
+			_supportStatus = "Select student and course.";
 			_supportSucceeded = false;
 			return;
 		}
@@ -242,7 +242,7 @@
 
 		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue || !_actorUserId.HasValue)
 		{
-			_supportStatus = "Select learner and course.";
+			_supportStatus = "Select student and course.";
 			_supportSucceeded = false;
 			return;
 		}
@@ -261,7 +261,7 @@
 
 		if (!_selectedLearnerId.HasValue || !_selectedCourseId.HasValue || !_actorUserId.HasValue)
 		{
-			_supportStatus = "Select learner and course.";
+			_supportStatus = "Select student and course.";
 			_supportSucceeded = false;
 			return;
 		}
@@ -277,7 +277,7 @@
 		var updated = await DueDateReminderService.SetDueDateAsync(_selectedLearnerId.Value, _selectedCourseId.Value, dueAtUtc, _actorUserId.Value, _actorEmail);
 
 		_supportSucceeded = updated;
-		_supportStatus = updated ? "Due date updated." : "Enrollment not found for the selected learner/course.";
+		_supportStatus = updated ? "Due date updated." : "Enrollment not found for the selected student/course.";
 		await RefreshLearnerEnrollmentsAsync();
 		SyncSelectedDueDateFromEnrollment();
 	}
@@ -296,7 +296,7 @@
 	private string GetSelectedLearnerLabel()
 	{
 		var learner = _learners.FirstOrDefault(item => item.Id == _selectedLearnerId) ?? _learners.FirstOrDefault();
-		return learner is null ? "Current learner" : $"{learner.DisplayName} ({learner.Email})";
+		return learner is null ? "Current student" : $"{learner.DisplayName} ({learner.Email})";
 	}
 
 	private List<SupportEnrollmentCourseDisplay> GetSelectedLearnerEnrolledCourses()
@@ -304,4 +304,3 @@
 		return SupportEnrollmentDisplay.BuildCourseDisplays(_learnerEnrollments);
 	}
 }
-

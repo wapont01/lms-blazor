@@ -27,6 +27,10 @@
 		<div class="instructor-hero-copy">
 			<a class="course-kicker back-to-library-link" href="/instructor">&larr; Back to course library</a>
 			<h1>@_editingCourse.Title</h1>
+			@if (_editingCourse.IsDevelopmentSample)
+			{
+				<p class="compliance-configuration-warning">Development sample for @_editingCourse.State. Not approved for credit; visible to students only when the development catalog is enabled.</p>
+			}
 			<p class="course-description">Editing course content, unit exams, and the final exam.</p>
 		</div>
 	</div>
@@ -95,6 +99,55 @@
 							<strong>@_editingCourse.ReviewStatus</strong>
 						</div>
 					</section>
+					<section class="card course-reading-analysis">
+						<div class="course-actions">
+							<div>
+								<h2>Course content analysis</h2>
+								<p class="muted-text">Estimate text reading time across lesson content before submitting the course for review.</p>
+							</div>
+							<button type="button" @onclick="AnalyzeCourseReadingTime">
+								@(_courseReadingTimeAnalysis is null ? "Analyze course" : "Refresh analysis")
+							</button>
+						</div>
+						@if (_courseReadingTimeAnalysis is not null)
+						{
+							<div class="course-reading-analysis-results" role="status">
+								<h3>Text reading estimate: @CourseReadingTimeEstimator.FormatEstimate(_courseReadingTimeAnalysis.TotalWordCount)</h3>
+								<p>@_courseReadingTimeAnalysis.TotalWordCount.ToString("N0") words at @CourseReadingTimeEstimator.WordsPerMinute WPM across @_courseReadingTimeAnalysis.Lessons.Count lessons.</p>
+								@if (_courseReadingTimeAnalysis.Lessons.Count > 0)
+								{
+									<div class="course-reading-analysis-table-wrap">
+										<table class="simple-table">
+											<thead>
+												<tr>
+													<th>Unit</th>
+													<th>Lesson</th>
+													<th>Words</th>
+													<th>Reading estimate</th>
+												</tr>
+											</thead>
+											<tbody>
+												@foreach (var lessonEstimate in _courseReadingTimeAnalysis.Lessons)
+												{
+													<tr>
+														<td>@lessonEstimate.UnitTitle</td>
+														<td>@lessonEstimate.LessonTitle</td>
+														<td>@lessonEstimate.WordCount.ToString("N0")</td>
+														<td>@CourseReadingTimeEstimator.FormatEstimate(lessonEstimate.WordCount)</td>
+													</tr>
+												}
+											</tbody>
+										</table>
+									</div>
+								}
+								else
+								{
+									<p>No lessons are available to analyze yet.</p>
+								}
+								<p class="muted-text">This estimate uses lesson text only at 255 words per minute. It excludes media, activities, and exams and does not verify instructional time or determine regulatory approval. Run the analysis again after editing course content.</p>
+							</div>
+						}
+					</section>
 
 					@if (readiness.Items.Any(item => !item.IsComplete))
 					{
@@ -147,7 +200,7 @@
 								<InputNumber @bind-Value="_editingCourse.Price" />
 								<ValidationMessage For="() => _editingCourse.Price" />
 							</div>
-							@if (_isAdmin)
+							@if (_isAdmin && !_editingCourse.IsDevelopmentSample)
 							{
 								<div class="form-field checkbox-field">
 									<label>
@@ -194,7 +247,7 @@
 						<div class="course-actions editor-step-actions">
 							<button type="submit">Save changes</button>
 							<button type="button" @onclick="@(() => NavigationManager.NavigateTo("/instructor"))">Cancel</button>
-							@if (!_isAdmin && CanSubmitForReview(_editingCourse))
+							@if (!_isAdmin && !_editingCourse.IsDevelopmentSample && CanSubmitForReview(_editingCourse))
 							{
 								<button type="button" @onclick="SubmitCourseForReviewAsync">Submit for review</button>
 							}
@@ -266,11 +319,11 @@
 					{
 						<div class="form-field">
 							<label>New lesson title</label>
-							<InputText @bind-Value="_newLessonTitle" />
+							<InputText @bind-Value="_newLessonTitle" @bind-Value:after="InvalidateCourseReadingAnalysis" />
 						</div>
 						<div class="form-field">
 							<label>Lesson content</label>
-							<InputTextArea @bind-Value="_newLessonText" />
+							<InputTextArea @bind-Value="_newLessonText" @bind-Value:after="InvalidateCourseReadingAnalysis" />
 						</div>
 						<div class="form-row">
 							<div class="form-field">
@@ -316,11 +369,11 @@
 								<ValidationSummary />
 								<div class="form-field">
 									<label>Title</label>
-									<InputText @bind-Value="_editingLesson.Title" />
+									<InputText @bind-Value="_editingLesson.Title" @bind-Value:after="InvalidateCourseReadingAnalysis" />
 								</div>
 								<div class="form-field">
 									<label>Lesson content</label>
-									<InputTextArea @bind-Value="_editingLesson.TextContent" />
+									<InputTextArea @bind-Value="_editingLesson.TextContent" @bind-Value:after="InvalidateCourseReadingAnalysis" />
 								</div>
 								<div class="form-field">
 									<label>Duration Minutes</label>
@@ -435,6 +488,15 @@
 						ActiveCourseTitle="@(_editingCourse?.Title ?? "Current course")"
 						OnLoadExamEditor="LoadExamEditorAsync"
 						ExamEditor="_examEditor"
+						SupplementalExams="_supplementalExams"
+						UnitExams="_courseExamSummaries"
+						IsEditingSupplementalExam="_isEditingSupplementalExam"
+						OnCreateSupplementalExam="CreateSupplementalExamAsync"
+						OnCreateUnitExam="CreateUnitExamAsync"
+						OnLoadUnitExamEditor="LoadSupplementalExamEditorAsync"
+						OnLoadSupplementalExamEditor="LoadSupplementalExamEditorAsync"
+						OnDeleteSupplementalExam="DeleteSupplementalExamAsync"
+						OnSaveSupplementalExam="SaveExamEditorAsync"
 						OnAddExamQuestion="AddExamQuestion"
 						OnRemoveExamQuestion="RemoveExamQuestion"
 						OnSaveExamEditor="SaveExamEditorAsync"
@@ -450,6 +512,7 @@
 						SetRetakeGrantDraft="SetRetakeGrantDraft"
 						OnUpdateRetakeGrant="UpdateRetakeGrantAsync"
 						OnRevokeRetakeGrant="RevokeRetakeGrantAsync" />
+					<ExamAttemptAuditPanel Courses="_courses" InitialCourseId="_editingCourse.Id" />
 
 					<div class="course-actions editor-step-actions">
 						<button type="button" @onclick="PreviousEditorStep">Previous</button>
@@ -465,7 +528,7 @@ else
 		<div class="instructor-hero-copy">
 			<p class="muted-text course-kicker">Instructor workspace</p>
 			<h1>Course authoring</h1>
-			<p class="course-description">Create, refine, and prepare a course for review with the same calm structure learners experience when they move through a course.</p>
+			<p class="course-description">Create, refine, and prepare a course for review with the same calm structure students experience when they move through a course.</p>
 		</div>
 		<div class="course-actions instructor-hero-actions">
 			<button type="button" @onclick="ShowCreateView" disabled="@_showCreateMode">Create course</button>
@@ -532,6 +595,13 @@ else
 			</div>
 			<div class="course-list-toolbar">
 				<input class="filter-input" placeholder="Search courses" @bind="_courseSearchText" @bind:event="oninput" />
+				<select aria-label="Filter editable courses by state" @bind="_courseStateFilter">
+					<option value="">All states</option>
+					@foreach (var state in _courses.Select(course => course.State).Where(state => !string.IsNullOrWhiteSpace(state)).Distinct().OrderBy(state => state))
+					{
+						<option value="@state">@state</option>
+					}
+				</select>
 				<select @bind="_courseStatusFilter">
 					<option value="all">All statuses</option>
 					<option value="draft">Draft</option>
@@ -563,6 +633,7 @@ else
 									<span class="status-pill @GetCourseStatusClass(course)">@GetCourseStatusLabel(course)</span>
 								</div>
 								<p>@course.Level | @(course.IsPublished ? "Published" : "Unpublished") | Review: @course.ReviewStatus</p>
+								<p><strong>@course.State</strong> @(course.IsDevelopmentSample ? "| Development sample - not for credit" : string.Empty)</p>
 								<p>@course.Description</p>
 								<p class="muted-text">Last updated: @(course.UpdatedAt?.ToLocalTime().ToString("MMM d, yyyy h:mm tt") ?? "Not yet saved")</p>
 							</div>
@@ -588,9 +659,11 @@ else
 	private Course? _editingCourse;
 	private string _courseSearchText = string.Empty;
 	private string _courseStatusFilter = "all";
+	private string _courseStateFilter = string.Empty;
 	private string _courseSortOption = "updated";
 	private Unit? _editingUnit;
 	private Lesson? _editingLesson;
+	private CourseReadingTimeEstimator.CourseAnalysis? _courseReadingTimeAnalysis;
 	private string _newUnitTitle = string.Empty;
 	private string _newLessonTitle = string.Empty;
 	private string? _newLessonText;
@@ -612,7 +685,7 @@ else
 	private bool _isAdmin;
 	private string? _reviewStatusMessage;
 	private CourseEditorStep _activeEditorStep = CourseEditorStep.Overview;
-	private readonly CourseEditorStep[] _editorSteps = { CourseEditorStep.Overview, CourseEditorStep.Units, CourseEditorStep.UnitExams, CourseEditorStep.Exam };
+	private readonly CourseEditorStep[] _editorSteps = { CourseEditorStep.Overview, CourseEditorStep.Units, CourseEditorStep.Exam };
 
 	private enum CourseEditorStep
 	{
@@ -628,6 +701,9 @@ else
 	private string? _unitExamMessage;
 
 	private ExamEditorModel? _examEditor;
+	private List<SupplementalExamInfo> _supplementalExams = new();
+	private List<CourseExamMenuInfo> _courseExamSummaries = new();
+	private bool _isEditingSupplementalExam;
 	private Guid? _examCourseId;
 	private string _examCourseIdText = string.Empty;
 	private string? _examError;
@@ -756,7 +832,7 @@ else
 		return step?.ToLowerInvariant() switch
 		{
 			"units" => CourseEditorStep.Units,
-			"unit exams" => CourseEditorStep.UnitExams,
+			"unit exams" => CourseEditorStep.Exam,
 			"exam" => CourseEditorStep.Exam,
 			_ => CourseEditorStep.Overview
 		};
@@ -781,29 +857,35 @@ else
 
 	private void NextEditorStep()
 	{
-		if (_editingCourse is not null && _activeEditorStep < CourseEditorStep.Exam)
+		var currentIndex = Array.IndexOf(_editorSteps, _activeEditorStep);
+		if (_editingCourse is not null && currentIndex >= 0 && currentIndex + 1 < _editorSteps.Length)
 		{
-			NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, _activeEditorStep + 1));
+			NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, _editorSteps[currentIndex + 1]));
 		}
 	}
 
 	private void PreviousEditorStep()
 	{
-		if (_editingCourse is not null && _activeEditorStep > CourseEditorStep.Overview)
+		var currentIndex = Array.IndexOf(_editorSteps, _activeEditorStep);
+		if (_editingCourse is not null && currentIndex > 0)
 		{
-			NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, _activeEditorStep - 1));
+			NavigationManager.NavigateTo(BuildEditorUri(_editingCourse.Id, _editorSteps[currentIndex - 1]));
 		}
 	}
 
 	private List<Course> GetVisibleCourses()
 	{
 		var visible = _courses.AsEnumerable();
+		if (!string.IsNullOrWhiteSpace(_courseStateFilter))
+		{
+			visible = visible.Where(course => string.Equals(course.State, _courseStateFilter, StringComparison.OrdinalIgnoreCase));
+		}
 
 		if (!string.IsNullOrWhiteSpace(_courseSearchText))
 		{
 			var search = _courseSearchText.Trim();
 			visible = visible.Where(course => course.Title.Contains(search, StringComparison.OrdinalIgnoreCase)
-				|| course.Description.Contains(search, StringComparison.OrdinalIgnoreCase));
+				|| (course.Description?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false));
 		}
 
 		visible = _courseStatusFilter switch
@@ -993,6 +1075,7 @@ else
 
 	private async Task BeginEditing(Course course)
 	{
+		_courseReadingTimeAnalysis = null;
 		await RestoreEditingDraftAsync(course);
 		ShowEditView();
 		_activeEditorStep = CourseEditorStep.Overview;
@@ -1023,16 +1106,22 @@ else
 
 		var refreshedCourse = _courses.FirstOrDefault(course => course.Id == editedCourseId);
 		_editingCourse = refreshedCourse is null ? null : CloneCourse(refreshedCourse);
+		_courseReadingTimeAnalysis = null;
 	}
 
 	private void ClearSelection()
 	{
 		_editingCourse = null;
+		_courseReadingTimeAnalysis = null;
 		_activeEditorStep = CourseEditorStep.Overview;
 		ShowEditView();
 		_examCourseId = null;
 		_examCourseIdText = string.Empty;
 		_examEditor = null;
+		_supplementalExams.Clear();
+		_unitExams.Clear();
+		_courseExamSummaries.Clear();
+		_isEditingSupplementalExam = false;
 		_retakeGrants.Clear();
 		_retakeGrantDraftAttempts.Clear();
 		ClearUnitSelection();
@@ -1302,6 +1391,9 @@ else
 		_examCourseIdText = args.Value?.ToString() ?? string.Empty;
 		_examCourseId = Guid.TryParse(_examCourseIdText, out var parsed) ? parsed : null;
 		_examEditor = null;
+		_supplementalExams.Clear();
+		_courseExamSummaries.Clear();
+		_isEditingSupplementalExam = false;
 		_examError = null;
 		_examMessage = null;
 		_retakeGrants.Clear();
@@ -1313,12 +1405,16 @@ else
 	{
 		_examError = null;
 		_examMessage = null;
+		_isEditingSupplementalExam = false;
 
 		if (_editingCourse is null)
 		{
 			_examCourseId = null;
 			_examCourseIdText = string.Empty;
 			_examEditor = null;
+			_supplementalExams.Clear();
+			_courseExamSummaries.Clear();
+			_isEditingSupplementalExam = false;
 			_retakeGrants.Clear();
 			_retakeGrantDraftAttempts.Clear();
 			_examMessage = "Select a course to manage its final exam.";
@@ -1328,6 +1424,8 @@ else
 		_examCourseId = _editingCourse.Id;
 		_examCourseIdText = _examCourseId.Value.ToString();
 		_examEditor = await ExamService.GetExamEditorAsync(_examCourseId.Value);
+		_supplementalExams = await ExamService.GetSupplementalExamsAsync(_examCourseId.Value);
+		_courseExamSummaries = await ExamService.GetCourseMenuExamsAsync(_examCourseId.Value);
 		_retakeGrants = await ExamService.GetRetakeGrantsAsync(_examCourseId.Value);
 		_retakeGrantDraftAttempts.Clear();
 		_examMessage = _examEditor is null
@@ -1337,6 +1435,86 @@ else
 		if (_retakeLearnerId is null && _users.Any(user => user.Role == "Learner"))
 		{
 			_retakeLearnerId = _users.First(user => user.Role == "Learner").Id;
+		}
+	}
+
+	private async Task LoadSupplementalExamEditorAsync(Guid examId)
+	{
+		_examError = null;
+		_examMessage = null;
+		_examEditor = await ExamService.GetExamEditorByIdAsync(examId);
+		_isEditingSupplementalExam = _examEditor is not null;
+		_examMessage = _examEditor is null ? "Exam not found." : "Exam loaded.";
+	}
+
+	private async Task CreateSupplementalExamAsync(SupplementalExamCreateRequest request)
+	{
+		if (!_examCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_examError = "Select a course and sign in before adding an exam.";
+			return;
+		}
+
+		_examError = null;
+		try
+		{
+			var exam = await ExamService.CreateSupplementalExamAsync(
+				_examCourseId.Value,
+				request.Kind,
+				request.UnitId,
+				null,
+				_actorUserId.Value,
+				_actorEmail);
+			await LoadSupplementalExamEditorAsync(exam.Id);
+			_examMessage = "Exam added. Add questions, then save it.";
+			_supplementalExams = await ExamService.GetSupplementalExamsAsync(_examCourseId.Value);
+		}
+		catch (InvalidOperationException exception)
+		{
+			_examError = exception.Message;
+		}
+	}
+
+	private async Task CreateUnitExamAsync(Guid unitId)
+	{
+		if (!_examCourseId.HasValue || !_actorUserId.HasValue)
+		{
+			_examError = "Select a course and sign in before adding a Unit Exam.";
+			return;
+		}
+
+		_examError = null;
+		try
+		{
+			var exam = await ExamService.CreateUnitExamAsync(_examCourseId.Value, unitId, _actorUserId.Value, _actorEmail);
+			_courseExamSummaries = await ExamService.GetCourseMenuExamsAsync(_examCourseId.Value);
+			await LoadSupplementalExamEditorAsync(exam.Id);
+			_examMessage = "Unit Exam added. Add questions, then save it.";
+		}
+		catch (InvalidOperationException exception)
+		{
+			_examError = exception.Message;
+		}
+	}
+
+	private async Task DeleteSupplementalExamAsync(Guid examId)
+	{
+		if (!_actorUserId.HasValue)
+		{
+			_examError = "Unable to identify the signed in account.";
+			return;
+		}
+
+		_examError = null;
+		try
+		{
+			await ExamService.DeleteSupplementalExamAsync(examId, _actorUserId.Value, _actorEmail);
+			await LoadExamEditorAsync();
+			_examMessage = "Supplemental exam deleted.";
+		}
+		catch (InvalidOperationException exception)
+		{
+			_examError = exception.Message;
 		}
 	}
 
@@ -1389,9 +1567,26 @@ else
 
 		try
 		{
-			await ExamService.SaveExamEditorAsync(_examCourseId.Value, _examEditor, _actorUserId.Value, _actorEmail);
-			_examMessage = "Exam saved. Existing attempts were reset for this course.";
-			await LoadExamEditorAsync();
+			if (_isEditingSupplementalExam)
+			{
+				if (!_examEditor.ExamId.HasValue)
+				{
+					throw new InvalidOperationException("Supplemental exam was not loaded.");
+				}
+
+				var examId = _examEditor.ExamId.Value;
+				await ExamService.SaveExamEditorByIdAsync(examId, _examEditor, _actorUserId.Value, _actorEmail);
+				_supplementalExams = await ExamService.GetSupplementalExamsAsync(_examCourseId.Value);
+				_courseExamSummaries = await ExamService.GetCourseMenuExamsAsync(_examCourseId.Value);
+				await LoadSupplementalExamEditorAsync(examId);
+				_examMessage = "Exam saved.";
+			}
+			else
+			{
+				await ExamService.SaveExamEditorAsync(_examCourseId.Value, _examEditor, _actorUserId.Value, _actorEmail);
+				_examMessage = "Exam saved. Previous attempts remain available in the audit history.";
+				await LoadExamEditorAsync();
+			}
 		}
 		catch (InvalidOperationException exception)
 		{
@@ -1429,7 +1624,7 @@ else
 
 		if (!_examCourseId.HasValue || !_retakeLearnerId.HasValue)
 		{
-			_examError = "Select both course and learner before granting retake.";
+			_examError = "Select both course and student before granting retake.";
 			return;
 		}
 
@@ -1620,7 +1815,28 @@ else
 
 		var refreshedCourse = await CourseService.GetByIdAsync(_editingCourse.Id);
 		_editingCourse = refreshedCourse is null ? null : CloneCourse(refreshedCourse);
+		_courseReadingTimeAnalysis = null;
 		await PersistEditingDraftAsync();
+	}
+
+	private void AnalyzeCourseReadingTime()
+	{
+		if (_editingCourse is null)
+		{
+			return;
+		}
+
+		_courseReadingTimeAnalysis = CourseReadingTimeEstimator.Analyze(
+			_editingCourse,
+			_editingLesson,
+			_editingUnit,
+			_newLessonTitle,
+			_newLessonText);
+	}
+
+	private void InvalidateCourseReadingAnalysis()
+	{
+		_courseReadingTimeAnalysis = null;
 	}
 
 	private static Course CloneCourse(Course course)

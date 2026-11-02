@@ -1,0 +1,55 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Kansas",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\TXTS\\Kansas Real Estate Development Sample Notes 20261011.txt",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "KANSAS\\TXTS\\Kansas Real Estate Development Sample Notes 20261011.txt",
+                      "Sha256":  "75300BA9952F2F4C0B7E0EA839DEE2ECF4F839C37006C50AED5B5557625813A7",
+                      "Bytes":  2508,
+                      "OfficialSourceUrl":  "https://krec.ks.gov/",
+                      "Coverage":  "Source capture and coverage notes"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Kansas_Active_Company_Affiliation_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "KANSAS\\XLXS\\Kansas_Active_Company_Affiliation_Development_Sample_20261011.csv",
+                      "Sha256":  "7E8858B027301C01B7C619154BB529DB3C6B0EA6F6DAAE801320FB1586B38942",
+                      "Bytes":  7185,
+                      "OfficialSourceUrl":  "https://krec.ks.gov/",
+                      "Coverage":  "Active company affiliation sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Kansas_Active_Individual_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "KANSAS\\XLXS\\Kansas_Active_Individual_Development_Sample_20261011.csv",
+                      "Sha256":  "38686FA45DC6B73462BBB1562178C6684424687EA41020EFD1EF00A4DBDFA0F8",
+                      "Bytes":  7261,
+                      "OfficialSourceUrl":  "https://krec.ks.gov/",
+                      "Coverage":  "Active individual sample"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Kansas_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "KANSAS\\XLXS\\Kansas_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "D06DF5EC83AFE9FDDECFFB9A421FD520E1F56828D0ED66FCDCABE6C862CA579A",
+                      "Bytes":  3948,
+                      "OfficialSourceUrl":  "https://krec.ks.gov/",
+                      "Coverage":  "Sample coverage manifest"
+                  },
+                  {
+                      "Path":  "prepared\\XLXS\\Kansas_Sampled_Licensee_Company_Affiliations_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "KANSAS\\XLXS\\Kansas_Sampled_Licensee_Company_Affiliations_20261011.csv",
+                      "Sha256":  "CF29D0527F320B07563F541B023BFE65AC8772DCEE7F5E035E43DBACA21CC244",
+                      "Bytes":  11503,
+                      "OfficialSourceUrl":  "https://krec.ks.gov/",
+                      "Coverage":  "Sampled licensee-company relationship edges"
+                  }
+              ]
+}

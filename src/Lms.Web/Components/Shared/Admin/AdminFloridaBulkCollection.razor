@@ -1,0 +1,299 @@
+@implements IAsyncDisposable
+@using Lms.Application.Services
+@using Lms.Web.Services
+@inject FloridaBulkCollectionService FloridaCollection
+@inject FloridaBulkCollectionOptions FloridaOptions
+@inject TexasBulkCollectionService TexasCollection
+@inject TexasBulkCollectionOptions TexasOptions
+@inject CaliforniaBulkCollectionService CaliforniaCollection
+@inject CaliforniaBulkCollectionOptions CaliforniaOptions
+@inject ColoradoDoraBulkCollectionService ColoradoDoraCollection
+@inject ColoradoDoraBulkCollectionOptions ColoradoDoraOptions
+@inject NevadaBulkCollectionService NevadaCollection
+@inject NevadaBulkCollectionOptions NevadaOptions
+@inject ILogger<AdminFloridaBulkCollection> Logger
+
+<section class="card bulk-collection" aria-label="@($"{State} bulk collection")">
+    <div class="bulk-actions">
+        <h2>@State bulk collection</h2>
+        <button type="button" class="secondary-btn" @onclick="ToggleCollectionAsync"
+                disabled="@(!_interactive || _starting || _stopping || _status?.State == "Stopping")">
+            @(_starting ? "Starting..." : _stopping || _status?.State == "Stopping" ? "Cancelling..." : IsRunning ? "Cancel collection" : State == "Nevada" ? "Collect data" : "Collect now")
+        </button>
+    </div>
+    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
+    @if (State == "Nevada")
+    {
+        <p class="muted-text">Collects the 12 supported active lists directly from NRED on the application server, not through this browser. NRED updates these lists monthly. Reserve Study Specialists is a separate historical workbook and is not included. Acquisition timestamps are recorded; no source publication date is inferred.</p>
+    }
+    @if (State == "California")
+    {
+        <p class="muted-text">This roster uses DRE's licensee ZIP and broker-associate workbook. The separate MLO workbook links DRE licenses to NMLS endorsements; it is not loaded as another license role. New licensees are a recent subset of the daily list. The examinee list is separate and excluded. License roles and relationships are not unique people.</p>
+    }
+    <nav class="sources commission-sources" aria-label="Commission download websites">
+        @if (State == "Florida")
+        {
+        <a href="https://www2.myfloridalicense.com/real-estate-commission/public-records/" target="_blank" rel="noopener noreferrer">Real Estate Commission - bulk downloads</a>
+        <a href="https://www2.myfloridalicense.com/real-estate-appraisal-board/public-records/" target="_blank" rel="noopener noreferrer">Real Estate Appraisal Board - bulk downloads</a>
+        }
+        else if (State == "Texas")
+        {
+            <a href="https://www.trec.texas.gov/public/high-value-data-sets" target="_blank" rel="noopener noreferrer">Texas Real Estate Commission - bulk downloads</a>
+            <a href="https://data.texas.gov/Permits-and-Licensing/Broker-and-Sales-Agent-License-Holder-Information/s7ft-44qi" target="_blank" rel="noopener noreferrer">Official Texas statewide dataset</a>
+        }
+        else if (State == "California")
+        {
+            <a href="https://dre.ca.gov/Licensees/ExamineeLicenseeListDataFiles.html" target="_blank" rel="noopener noreferrer">California Department of Real Estate - bulk downloads</a>
+            <a href="https://dre.ca.gov/files/pdf/forms/re776.pdf" target="_blank" rel="noopener noreferrer">DRE source field definitions</a>
+        }
+        else if (State == "Colorado")
+        {
+            <a href="https://data.colorado.gov/Regulations/Licensed-Real-Estate-Professionals-in-Colorado/4zse-6bnw/about_data" target="_blank" rel="noopener noreferrer">Colorado DORA licensed real-estate professionals dataset</a>
+        }
+        else if (State == "Nevada")
+        {
+            <a href="@NevadaNredBulkImportService.SourceUrl" target="_blank" rel="noopener noreferrer">Nevada NRED active licensee lists</a>
+        }
+    </nav>
+    @if (_error is not null)
+    {
+        <p class="auth-error" role="alert">@_error</p>
+    }
+    @if (_status is { } status)
+    {
+        <dl class="bulk-status">
+            <div><dt>Collection</dt><dd>@status.State</dd></div>
+            <div><dt>Last completion</dt><dd>@Utc(status.CompletedAtUtc)</dd></div>
+            <div><dt>Next automatic run</dt><dd>@(Options.WeeklyEnabled ? Utc(status.NextRunAtUtc) : "Disabled")</dd></div>
+            @if (status.StartedAtUtc is not null)
+            {
+                <div><dt>@(IsRunning ? "Elapsed time" : "Run duration")</dt><dd>@Duration(status)</dd></div>
+            }
+        </dl>
+        @if (IsRunning)
+        {
+            <div class="run-progress">
+                <label for="bulk-phase-progress">@status.State · @status.StagedRecords.ToString("N0") records staged in the current transaction</label>
+                <progress id="bulk-phase-progress" aria-label="Bulk collection phase progress"></progress>
+                <p class="muted-text">Updates every 5 seconds. Download bars show completion percentage when available. Validation reports checked rows; staging is not complete until the transaction commits. Remaining time is not yet known.</p>
+            </div>
+        }
+        @if (!string.IsNullOrWhiteSpace(status.Error))
+        {
+            <p class="auth-error" role="alert">@status.Error</p>
+        }
+        @if (status.Files.Count > 0)
+        {
+            <div class="table-wrap">
+                <table aria-label="@($"{State} bulk files")">
+                    <thead><tr><th>File</th><th>Use</th><th>Status / progress</th><th>Rows</th></tr></thead>
+                    <tbody>
+                        @foreach (var file in status.Files)
+                        {
+                            <tr>
+                                <th scope="row">@file.Name</th><td>@(State == "Texas" ? "Individuals and broker companies; all published statuses" : State == "California" ? file.Name == "CurrList.zip" ? "Published license roles, statuses and restrictions" : "Responsible-broker affiliations and dates" : State == "Colorado" ? "All published DORA records and statuses" : State == "Nevada" ? file.Name == "NRED-ACTIVE-HOA.xlsx" ? "Source evidence only" : "Numbered professional licenses" : FilePurpose(file.Name))</td>
+                                <td class="file-progress">
+                                    @file.State
+                                    @if (file.State.StartsWith("Validating", StringComparison.Ordinal) && file.ExpectedRows is > 0)
+                                    {
+                                        <progress aria-label="@($"{file.Name} validation progress")" max="@file.ExpectedRows" value="@file.Rows"></progress>
+                                        <small>@file.Rows.ToString("N0") / @file.ExpectedRows.Value.ToString("N0") rows checked</small>
+                                    }
+                                    else if (file.ExpectedBytes is > 0)
+                                    {
+                                        <progress aria-label="@($"{file.Name} download progress")" max="@file.ExpectedBytes" value="@file.Bytes"></progress>
+                                        <small>@((100d * file.Bytes / file.ExpectedBytes.Value).ToString("F1"))% complete</small>
+                                    }
+                                    else if (IsRunning && file.State != "Waiting")
+                                    {
+                                        <progress aria-label="@($"{file.Name} progress")"></progress>
+                                    }
+                                </td>
+                                <td>@file.Rows.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        @if (status.SnapshotId is { } snapshotId)
+        {
+            <p role="status">Last collected roster: @snapshotId. <a href="@($"/admin/regulatory-directory?state={State}")">Roster history and recovery</a></p>
+            <nav class="sources" aria-label="@($"{State} bulk archive downloads")">
+                @foreach (var file in status.Files)
+                {
+                    <a href="@($"/admin/{State.ToLowerInvariant()}-bulk/exports/{Uri.EscapeDataString(file.Name)}")">@file.Name</a>
+                }
+                <a href="@($"/admin/{State.ToLowerInvariant()}-bulk/exports/manifest.json")">Archive manifest</a>
+            </nav>
+        }
+    }
+    else
+    {
+        <p class="muted-text">Loading bulk collection status...</p>
+    }
+    <details>
+        <summary>Sources and coverage</summary>
+        @if (State == "Florida")
+        {
+        <p>Broker/sales, instructor, firm and appraisal licenses are staged together. Schools, additional locations and continuing-education records are archived separately; CE rows are completion events, not licensees. Regional downloads are not summed into statewide totals.</p>
+        <p>Bulk excludes Null &amp; Void licenses and is not a historical all-status roster. Addresses are mailing addresses. Acquisition time is not a verified DBPR publication date. Automatic collection runs only while the LMS is running; missed runs are checked on startup.</p>
+        }
+        else if (State == "Texas")
+        {
+            <p>Texas imports Broker Individual and Sales Agent credentials as people and Broker Company credentials as firms, preserving all published statuses and license suffixes. Missing names are explicitly marked not published. Only actual company/individual matches become affiliations; individual sponsors are not invented as firms. Instructor, appraisal and school rosters are outside this dataset. Missing records never imply revocation. Source acquisition is not a verified publication date; refresh runs only while the host is running.</p>
+        }
+        else if (State == "California")
+        {
+            <p>DRE publishes the current license ZIP and broker-associate XLS daily; LMS refreshes weekly. Eight-digit licenses, multiple-record indicators, broker/salesperson/officer/corporation roles, NBA statuses, restrictions and ethics/agency scope are preserved. Relationships require source-backed broker or corporation records. Broker-associate-only credentials have no inferred status; conflicting expiration or relationship dates stop import. Mailing addresses are not stored in the directory; original files remain Admin-only. Missing licenses do not imply revocation.</p>
+        }
+        else if (State == "Colorado")
+        {
+            <p>DORA provides the complete 4zse-6bnw dataset, including real-estate credentials and other DORA program types. Every source row is archived in the database; the admin-selected license types control which Colorado records appear in the roster UI. All published statuses are retained, and rows without a license number remain in the source-record archive.</p>
+        }
+        else if (State == "Nevada")
+        {
+            <p>All 12 supported workbooks must pass schema, row count and hash checks before automatic activation. Identical files reuse the existing snapshot without creating another comparison version. HOA rows are retained as source evidence; numbered licenses are deduplicated within each professional type. Company names are not inferred as licensed firms or affiliations. A license absent from a later active-only list is not classified as revoked.</p>
+        }
+        <p>Stop collection cancels only the current run. An uncommitted import is rolled back and the last completed archive is retained. You can collect again manually; automatic collection waits at least one refresh interval after an administrator stops a run.</p>
+    </details>
+</section>
+
+@code {
+    [Parameter] public string State { get; set; } = "Florida";
+    private BulkCollectionService Collection => State switch
+    {
+        "California" => CaliforniaCollection,
+        "Texas" => TexasCollection,
+        "Colorado" => ColoradoDoraCollection,
+        "Nevada" => NevadaCollection,
+        _ => FloridaCollection
+    };
+    private FloridaBulkCollectionOptions Options => State switch
+    {
+        "California" => CaliforniaOptions,
+        "Texas" => TexasOptions,
+        "Colorado" => ColoradoDoraOptions,
+        "Nevada" => NevadaOptions,
+        _ => FloridaOptions
+    };
+    [Parameter] public EventCallback<Guid> SnapshotCompleted { get; set; }
+    private readonly CancellationTokenSource _stop = new();
+    private FloridaBulkCollectionStatus? _status;
+    private string? _error;
+    private Task? _polling;
+    private bool _interactive;
+    private bool _starting;
+    private bool _stopping;
+    private Guid? _observedSnapshotId;
+    private bool _loaded;
+    private bool IsRunning => _status?.State is "Downloading" or "Validating" or "Importing" or "Running" or "Collecting" or "Stopping";
+
+    protected override async Task OnInitializedAsync() => await RefreshAsync();
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (!firstRender) return;
+        _interactive = true;
+        _polling = PollAsync();
+        StateHasChanged();
+    }
+
+    private async Task CollectAsync()
+    {
+        _starting = true;
+        _error = null;
+        try
+        {
+            await Collection.StartAsync(_stop.Token);
+            await RefreshAsync();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException)
+        {
+            Logger.LogError(exception, "Could not start Florida bulk collection");
+            _error = "Bulk collection could not be started: " + exception.Message;
+        }
+        finally { _starting = false; }
+    }
+
+    private Task ToggleCollectionAsync()
+    {
+        if (_starting) return Task.CompletedTask;
+        return IsRunning ? StopCollectionAsync() : CollectAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        try
+        {
+            _status = await Collection.GetStatusAsync(_stop.Token);
+            _error = null;
+            if (_status.SnapshotId is { } id && _observedSnapshotId != id)
+            {
+                _observedSnapshotId = id;
+                if (_loaded)
+                    await SnapshotCompleted.InvokeAsync(id);
+            }
+            _loaded = true;
+        }
+        catch (Exception exception) when (exception is IOException or System.Text.Json.JsonException or InvalidOperationException)
+        {
+            Logger.LogError(exception, "Could not read Florida bulk collection status");
+            _error = "Bulk collection status could not be read. " + exception.Message;
+        }
+    }
+
+    private async Task StopCollectionAsync()
+    {
+        _stopping = true;
+        _error = null;
+        try
+        {
+            await Collection.CancelCollectionAsync(_stop.Token);
+            await RefreshAsync();
+        }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
+        catch (Exception exception) when (exception is InvalidOperationException or IOException)
+        {
+            Logger.LogError(exception, "Could not stop Florida bulk collection");
+            _error = "Bulk collection could not be stopped: " + exception.Message;
+        }
+        finally { _stopping = false; }
+    }
+
+    private async Task PollAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(_stop.Token))
+                await InvokeAsync(async () => { await RefreshAsync(); StateHasChanged(); });
+        }
+        catch (OperationCanceledException) when (_stop.IsCancellationRequested) { }
+    }
+
+    private static string Utc(DateTime? value) => value?.ToString("yyyy-MM-dd HH:mm 'UTC'") ?? "Not yet available";
+    private static string Duration(FloridaBulkCollectionStatus status)
+    {
+        var end = status.FinishedAtUtc ?? (status.State == "Completed" ? status.CompletedAtUtc : null) ?? DateTime.UtcNow;
+        var elapsed = end - status.StartedAtUtc!.Value;
+        if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
+        return $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
+    }
+    private static string FilePurpose(string name) => name switch
+    {
+        "REALESTATE2501LICENSE_1.csv" => "Broker/sales licenses",
+        "RealEstateCorpLicense.csv" => "Firm licenses",
+        "RealEstateSchoolLicense.csv" => "Instructors staged; schools/locations archived",
+        "lic64appr.csv" => "Appraisal licenses",
+        "re_salesperson.csv" or "re_appraiser.csv" => "CE archive only",
+        _ => "Source archive"
+    };
+
+    public async ValueTask DisposeAsync()
+    {
+        await _stop.CancelAsync();
+        if (_polling is not null) await _polling;
+        _stop.Dispose();
+    }
+}

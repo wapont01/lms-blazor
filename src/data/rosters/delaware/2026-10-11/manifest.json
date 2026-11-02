@@ -1,0 +1,46 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Delaware",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Delaware_Wilmington_Active_Main_Office_Campaign_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "DELAWARE\\LICENSING\\XLXS\\Delaware_Wilmington_Active_Main_Office_Campaign_Sample_20261011.csv",
+                      "Sha256":  "552A3CC4118A67A3AFB54EBBDB16568BCC69653D5263D56D0775163244FCB944",
+                      "Bytes":  6293,
+                      "OfficialSourceUrl":  "https://delpros.delaware.gov/oh_verifylicense",
+                      "Coverage":  "Wilmington main-office business sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Delaware_Wilmington_Active_Real_Estate_Broker_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "DELAWARE\\LICENSING\\XLXS\\Delaware_Wilmington_Active_Real_Estate_Broker_Development_Sample_20261011.csv",
+                      "Sha256":  "89EF2976BC2B5343B018D109F6AB7AFE2CDE901548839A903566B7AFA7E1423B",
+                      "Bytes":  3625,
+                      "OfficialSourceUrl":  "https://delpros.delaware.gov/oh_verifylicense",
+                      "Coverage":  "Wilmington active broker sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Delaware_Wilmington_Active_Real_Estate_Salesperson_Development_Sample_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "DELAWARE\\LICENSING\\XLXS\\Delaware_Wilmington_Active_Real_Estate_Salesperson_Development_Sample_20261011.csv",
+                      "Sha256":  "FFCAE3859D4BB5B9C56D43E73079304622B47B8071914A7EDAD7A3959AFABEEF",
+                      "Bytes":  3692,
+                      "OfficialSourceUrl":  "https://delpros.delaware.gov/oh_verifylicense",
+                      "Coverage":  "Wilmington active salesperson sample"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Delaware_Wilmington_Real_Estate_Development_Samples_20261011.json",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "DELAWARE\\LICENSING\\XLXS\\Delaware_Wilmington_Real_Estate_Development_Samples_20261011.json",
+                      "Sha256":  "D2157D178AF96E31B5AB5D9A4A1EF9D610D9FCC31A189AE87A401F6F3C77F0A3",
+                      "Bytes":  3942,
+                      "OfficialSourceUrl":  "https://delpros.delaware.gov/oh_verifylicense",
+                      "Coverage":  "Query counts and sample provenance"
+                  }
+              ]
+}

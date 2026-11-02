@@ -9,12 +9,58 @@ namespace Lms.Application.Tests.Services;
 
 public class ExamServiceTests
 {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ConcurrentSubmission_EnforcesReplayAndAttemptLimits(bool sameSession)
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"lms-exam-{Guid.NewGuid():N}.db");
+        try
+        {
+            await using var fixture = await TestFixture.CreateAsync(path);
+            var user = await fixture.DbContext.UserAccounts.SingleAsync(x => x.Email == "william.guest@wlr.com");
+            var graph = await fixture.CreateCourseGraphWithEnrollmentAsync(user.Id, "Concurrent exam");
+            var exam = await fixture.ExamService.GetCourseExamAsync(graph.CourseId);
+            var storedExam = await fixture.DbContext.CourseExams.SingleAsync(x => x.Id == exam!.Id);
+            storedExam.MaxRetakesPerLearner = 0;
+            await fixture.DbContext.SaveChangesAsync();
+            var answers = await fixture.ExamService.GetCorrectAnswerMapAsync(graph.CourseId);
+            var startedAt = DateTime.UtcNow.AddMinutes(-1);
+            var start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var work = Enumerable.Range(0, 2).Select(index => Task.Run(async () =>
+            {
+                await start.Task;
+                await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                    .UseSqlite($"Data Source={path};Pooling=False;Default Timeout=5").Options);
+                try
+                {
+                    await new ExamService(db, new AuditLogService(db))
+                        .SubmitAttemptForExamAsync(exam!.Id, user.Id, answers,
+                            sameSession ? startedAt : startedAt.AddSeconds(index));
+                    return true;
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("already been submitted")
+                    || ex.Message.Contains("Retake limit reached"))
+                {
+                    return false;
+                }
+            })).ToArray();
+            start.SetResult();
+            var results = await Task.WhenAll(work);
+            Assert.Single(results, value => value);
+            Assert.Single(results, value => !value);
+            Assert.Equal(1, await fixture.DbContext.ExamAttempts.CountAsync(x => x.CourseExamId == exam!.Id));
+            Assert.Equal(answers.Count, await fixture.DbContext.ExamAnswers.CountAsync());
+        }
+        finally { File.Delete(path); }
+    }
+
     [Fact]
     public async Task EnsureDefaultExamForCourseAsync_CreatesTenQuestionFinalExam()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Ten Question Course");
 
         var exam = await fixture.ExamService.GetCourseExamAsync(seed.CourseId);
@@ -27,11 +73,243 @@ public class ExamServiceTests
     }
 
     [Fact]
+    public async Task GetCourseMenuExamsAsync_ReturnsExamSummariesForAllCourseExamTypes()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Course Menu Exam Summary Course");
+        var unit = await fixture.DbContext.Units.SingleAsync(existing => existing.CourseId == seed.CourseId);
+        await fixture.ExamService.GetCourseExamAsync(seed.CourseId);
+
+        fixture.DbContext.CourseExams.AddRange(
+            new CourseExam
+            {
+                CourseId = seed.CourseId,
+                UnitId = unit.Id,
+                Kind = CourseExamKinds.Standard,
+                Title = "Unit Exam"
+            },
+            new CourseExam
+            {
+                CourseId = seed.CourseId,
+                Kind = CourseExamKinds.Practice,
+                Title = "Practice Exam",
+                IsRequired = false
+            });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var exams = await fixture.ExamService.GetCourseMenuExamsAsync(seed.CourseId);
+
+        Assert.Contains(exams, exam => exam.Kind == CourseExamKinds.Standard && exam.UnitId == unit.Id);
+        Assert.Contains(exams, exam => exam.Kind == CourseExamKinds.Standard && exam.UnitId is null);
+        Assert.Contains(exams, exam => exam.Kind == CourseExamKinds.Practice && exam.UnitId is null);
+    }
+
+    [Fact]
+    public async Task CreateUnitExamAsync_CreatesEditableRequiredExamForSelectedUnit()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Editable Unit Exam Course");
+        var unit = await fixture.DbContext.Units.SingleAsync(existing => existing.CourseId == seed.CourseId);
+        await fixture.ExamService.GetCourseExamAsync(seed.CourseId);
+
+        var unitExam = await fixture.ExamService.CreateUnitExamAsync(seed.CourseId, unit.Id, admin.Id, admin.Email);
+        Assert.Equal(CourseExamKinds.Standard, unitExam.Kind);
+        Assert.Equal(unit.Id, unitExam.UnitId);
+
+        var editor = await fixture.ExamService.GetExamEditorByIdAsync(unitExam.Id);
+        Assert.NotNull(editor);
+        editor!.Questions.Add(new ExamQuestionEditorItem
+        {
+            Prompt = "Which answer is correct?",
+            OptionA = "A",
+            OptionB = "B",
+            OptionC = "C",
+            OptionD = "D",
+            CorrectOption = "C"
+        });
+        await fixture.ExamService.SaveExamEditorByIdAsync(unitExam.Id, editor, admin.Id, admin.Email);
+
+        var summaries = await fixture.ExamService.GetCourseMenuExamsAsync(seed.CourseId);
+        Assert.Contains(summaries, exam => exam.Id == unitExam.Id && exam.QuestionCount == 1);
+        Assert.NotNull(await fixture.ExamService.GetCourseExamAsync(seed.CourseId, unit.Id));
+    }
+
+    [Fact]
+    public async Task EnsureDefaultExamForCourseAsync_PreservesAuthoredFinalExamContent()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Authored Final Exam Course");
+        var exam = await fixture.DbContext.CourseExams
+            .Include(existing => existing.Questions)
+            .SingleAsync(existing => existing.CourseId == seed.CourseId && existing.UnitId == null);
+        exam.Questions.First().Prompt = "Course-specific authored question";
+        await fixture.DbContext.SaveChangesAsync();
+
+        await fixture.ExamService.EnsureDefaultExamForCourseAsync(seed.CourseId);
+
+        var persistedPrompt = await fixture.DbContext.CourseExams
+            .Where(existing => existing.Id == exam.Id)
+            .SelectMany(existing => existing.Questions.OrderBy(question => question.OrderIndex).Take(1))
+            .Select(question => question.Prompt)
+            .SingleAsync();
+        Assert.Equal("Course-specific authored question", persistedPrompt);
+    }
+
+    [Fact]
+    public async Task CourseExamContentSeed_CreatesPracticeAndIntermediateExams_IdempotentlyAndSupportsWrongThenCorrectAnswers()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Assistance Animals And Fair Housing");
+        var course = await fixture.DbContext.Courses.SingleAsync(existing => existing.Id == seed.CourseId);
+        course.DurationHours = 4;
+        var firstUnit = await fixture.DbContext.Units.SingleAsync(unit => unit.CourseId == seed.CourseId);
+        firstUnit.Title = "Course Introduction";
+        fixture.DbContext.Units.AddRange(
+            new Unit { CourseId = seed.CourseId, Title = "Unit 1", OrderIndex = 2 },
+            new Unit { CourseId = seed.CourseId, Title = "Unit 2", OrderIndex = 3 },
+            new Unit { CourseId = seed.CourseId, Title = "Unit 3", OrderIndex = 4 });
+        await fixture.DbContext.SaveChangesAsync();
+        var finalExam = await fixture.ExamService.GetCourseExamAsync(seed.CourseId);
+        Assert.NotNull(finalExam);
+
+        await CourseExamContentSeed.SeedAsync(fixture.DbContext);
+        await CourseExamContentSeed.SeedAsync(fixture.DbContext);
+
+        var seededExams = await fixture.DbContext.CourseExams
+            .Include(exam => exam.Questions)
+            .Where(exam => exam.CourseId == seed.CourseId && exam.Kind != CourseExamKinds.Standard)
+            .ToListAsync();
+        var practiceExam = Assert.Single(seededExams, exam => exam.Kind == CourseExamKinds.Practice);
+        var intermediateExam = Assert.Single(seededExams, exam => exam.Kind == CourseExamKinds.Intermediate);
+        Assert.False(practiceExam.IsRequired);
+        Assert.Equal(finalExam!.Questions.Select(question => question.Prompt),
+            practiceExam.Questions.OrderBy(question => question.OrderIndex).Select(question => question.Prompt));
+        Assert.True(intermediateExam.IsRequired);
+        Assert.True(intermediateExam.UnitId.HasValue);
+        Assert.NotEmpty(intermediateExam.Questions);
+
+        var wrongAnswers = intermediateExam.Questions.ToDictionary(
+            question => question.Id,
+            question => question.CorrectOption == "A" ? "B" : "A");
+        var failedAttempt = await fixture.ExamService.SubmitAttemptForExamAsync(intermediateExam.Id, learner.Id, wrongAnswers);
+        Assert.False(failedAttempt.Passed);
+        Assert.True(failedAttempt.CorrectAnswers < failedAttempt.TotalQuestions);
+
+        var correctAnswers = await fixture.ExamService.GetCorrectAnswerMapForExamAsync(intermediateExam.Id);
+        var passedAttempt = await fixture.ExamService.SubmitAttemptForExamAsync(intermediateExam.Id, learner.Id, correctAnswers);
+        Assert.True(passedAttempt.Passed);
+        Assert.Equal(passedAttempt.TotalQuestions, passedAttempt.CorrectAnswers);
+    }
+
+    [Fact]
+    public async Task CreatePracticeExamAsync_CopiesFinalQuestionsAndAllowsUnlimitedUnproctoredAttempts()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Practice Exam Course");
+        var course = await fixture.DbContext.Courses.SingleAsync(existing => existing.Id == seed.CourseId);
+        course.RequiresProctoredExam = true;
+        await fixture.DbContext.SaveChangesAsync();
+
+        var finalExam = await fixture.ExamService.GetCourseExamAsync(seed.CourseId);
+        var practice = await fixture.ExamService.CreateSupplementalExamAsync(
+            seed.CourseId,
+            CourseExamKinds.Practice,
+            null,
+            null,
+            admin.Id,
+            admin.Email);
+        var practiceExam = await fixture.ExamService.GetExamViewAsync(practice.Id);
+
+        Assert.NotNull(finalExam);
+        Assert.NotNull(practiceExam);
+        Assert.Equal(finalExam!.PassPercent, practiceExam!.PassPercent);
+        Assert.False(practiceExam.IsRequired);
+        Assert.Equal(finalExam!.Questions.Count, practiceExam!.Questions.Count);
+        Assert.Equal(
+            finalExam.Questions.Select(question => (question.Prompt, question.OptionA, question.OptionB, question.OptionC, question.OptionD, question.HintText)),
+            practiceExam.Questions.Select(question => (question.Prompt, question.OptionA, question.OptionB, question.OptionC, question.OptionD, question.HintText)));
+        var finalAnswers = await fixture.ExamService.GetCorrectAnswerMapAsync(seed.CourseId);
+        var practiceAnswers = await fixture.ExamService.GetCorrectAnswerMapForExamAsync(practice.Id);
+        Assert.Equal(
+            finalExam.Questions.OrderBy(question => question.OrderIndex).Select(question => finalAnswers[question.Id]),
+            practiceExam.Questions.OrderBy(question => question.OrderIndex).Select(question => practiceAnswers[question.Id]));
+
+        var eligibility = await fixture.ExamService.GetEligibilityForExamAsync(practice.Id, learner.Id);
+        Assert.True(eligibility.HasUnlimitedAttempts);
+        Assert.False(eligibility.RequiresProctorVerification);
+
+        var correctAnswers = await fixture.ExamService.GetCorrectAnswerMapForExamAsync(practice.Id);
+        Assert.True((await fixture.ExamService.SubmitAttemptForExamAsync(practice.Id, learner.Id, correctAnswers)).Passed);
+        Assert.True((await fixture.ExamService.SubmitAttemptForExamAsync(practice.Id, learner.Id, correctAnswers)).Passed);
+        Assert.False(await fixture.ExamService.HasPassedRequiredExamAsync(seed.CourseId, learner.Id));
+    }
+
+    [Fact]
+    public async Task IntermediateExam_IsUnitScopedAndRequiredForCourseCompletion()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Intermediate Exam Course");
+        var unit = new Unit
+        {
+            CourseId = seed.CourseId,
+            Title = "Middle Unit",
+            OrderIndex = 1
+        };
+        fixture.DbContext.Units.Add(unit);
+        await fixture.DbContext.SaveChangesAsync();
+
+        var exam = await fixture.ExamService.CreateSupplementalExamAsync(
+            seed.CourseId,
+            CourseExamKinds.Intermediate,
+            unit.Id,
+            null,
+            admin.Id,
+            admin.Email);
+        var editor = await fixture.ExamService.GetExamEditorByIdAsync(exam.Id);
+        Assert.NotNull(editor);
+        editor!.Questions.Add(new ExamQuestionEditorItem
+        {
+            Prompt = "Which answer is correct?",
+            OptionA = "A",
+            OptionB = "B",
+            OptionC = "C",
+            OptionD = "D",
+            CorrectOption = "C"
+        });
+        await fixture.ExamService.SaveExamEditorByIdAsync(exam.Id, editor, admin.Id, admin.Email);
+
+        var savedExam = await fixture.ExamService.GetExamViewAsync(exam.Id);
+        Assert.NotNull(savedExam);
+        var finalAnswers = await fixture.ExamService.GetCorrectAnswerMapAsync(seed.CourseId);
+        Assert.True((await fixture.ExamService.SubmitAttemptAsync(seed.CourseId, learner.Id, finalAnswers)).Passed);
+        Assert.False(await fixture.ExamService.HasPassedRequiredExamAsync(seed.CourseId, learner.Id));
+
+        var answer = savedExam!.Questions.ToDictionary(question => question.Id, _ => "C");
+        Assert.True((await fixture.ExamService.SubmitAttemptForExamAsync(exam.Id, learner.Id, answer)).Passed);
+        Assert.True(await fixture.ExamService.HasPassedRequiredExamAsync(seed.CourseId, learner.Id));
+    }
+
+    [Fact]
     public async Task UnitExamAttempts_AreIndependent_AndAllRequiredExamsMustPass()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Unit Exam Course");
         var unit = new Unit
         {
@@ -78,11 +356,11 @@ public class ExamServiceTests
     }
 
     [Fact]
-    public async Task SaveExamEditorAsync_ResetsAttempts_AndRevokesExistingCertificates()
+    public async Task SaveExamEditorAsync_PreservesAuditHistoryAndResetsCurrentVersionAttempts()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
 
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Editable Exam Course");
@@ -107,7 +385,15 @@ public class ExamServiceTests
 
         var attemptCount = await fixture.DbContext.ExamAttempts
             .CountAsync(attempt => attempt.UserAccountId == learner.Id);
-        Assert.Equal(0, attemptCount);
+        Assert.Equal(1, attemptCount);
+
+        var eligibility = await fixture.ExamService.GetEligibilityAsync(seed.CourseId, learner.Id);
+        Assert.Equal(0, eligibility.AttemptsUsed);
+        Assert.False(eligibility.HasPassed);
+        var auditHistory = await fixture.ExamService.GetAttemptHistoryForCourseAsync(seed.CourseId, learner.Id);
+        Assert.Single(auditHistory);
+        Assert.Equal("Editable Exam Course Final Exam", auditHistory[0].ExamTitle);
+        Assert.NotEqual("Updated prompt", auditHistory[0].Answers[0].Prompt);
 
         var afterCertificate = await fixture.DbContext.CompletionCertificates
             .AsNoTracking()
@@ -122,7 +408,7 @@ public class ExamServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
 
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Retake Limits Course");
@@ -153,7 +439,7 @@ public class ExamServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Prelicensing Retake Course");
         var course = await fixture.DbContext.Courses.SingleAsync(existing => existing.Id == seed.CourseId);
         course.ComplianceType = CourseComplianceTypes.Prelicensing;
@@ -174,7 +460,7 @@ public class ExamServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Postlicensing Retake Course");
         var course = await fixture.DbContext.Courses.SingleAsync(existing => existing.Id == seed.CourseId);
         course.ComplianceType = CourseComplianceTypes.Postlicensing;
@@ -198,7 +484,7 @@ public class ExamServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
 
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Cooldown Reset Course");
@@ -228,7 +514,7 @@ public class ExamServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Eligibility Retake Grant Course");
 
@@ -267,7 +553,7 @@ public class ExamServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Retake Override Course");
 
@@ -294,7 +580,7 @@ public class ExamServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "History Course");
 
         var view = await fixture.ExamService.GetCourseExamAsync(seed.CourseId);
@@ -311,11 +597,44 @@ public class ExamServiceTests
     }
 
     [Fact]
+    public async Task ExamAttemptAudit_RecordsElapsedTimeAndReturnsScopedCourseHistory()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
+        var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Attempt Audit Course");
+        var exam = await fixture.ExamService.GetCourseExamAsync(seed.CourseId);
+        Assert.NotNull(exam);
+        var answers = await fixture.ExamService.GetCorrectAnswerMapAsync(seed.CourseId);
+        var startedAt = DateTime.UtcNow.AddMinutes(-17);
+
+        var result = await fixture.ExamService.SubmitAttemptForExamAsync(exam!.Id, learner.Id, answers, startedAt);
+        var history = await fixture.ExamService.GetAttemptHistoryForCourseAsync(seed.CourseId, learner.Id);
+        var audit = await fixture.ExamService.GetAttemptAuditAsync(seed.CourseId, learner.Id);
+
+        Assert.True(result.Passed);
+        Assert.True(result.Duration.TotalMinutes >= 16);
+        var historyItem = Assert.Single(history);
+        Assert.Equal(exam.Id, historyItem.ExamId);
+        Assert.Equal(startedAt, historyItem.StartedAt);
+        Assert.Equal("Attempt Audit Course Final Exam", historyItem.ExamTitle);
+        Assert.Equal(1, historyItem.ExamVersion);
+        Assert.NotEqual("-", historyItem.Answers[0].CorrectOption);
+
+        var auditRow = Assert.Single(audit);
+        Assert.Equal(seed.CourseId, auditRow.CourseId);
+        Assert.Equal(learner.Id, auditRow.LearnerUserId);
+        Assert.True(auditRow.Passed);
+        Assert.Equal(1, auditRow.AttemptNumber);
+        Assert.True(auditRow.Duration.TotalMinutes >= 16);
+    }
+
+    [Fact]
     public async Task RetakeGrantSupport_CanListUpdateAndRevoke()
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Grant Support Course");
 
@@ -342,7 +661,7 @@ public class ExamServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.learner@wlr.com");
+        var learner = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "william.guest@wlr.com");
         var admin = await fixture.DbContext.UserAccounts.SingleAsync(user => user.Email == "admin@wlr.com");
         var seed = await fixture.CreateCourseGraphWithEnrollmentAsync(learner.Id, "Proctored Course");
         var course = await fixture.DbContext.Courses.SingleAsync(existing => existing.Id == seed.CourseId);
@@ -414,9 +733,10 @@ public class ExamServiceTests
             ExamService = examService;
         }
 
-        public static async Task<TestFixture> CreateAsync()
+        public static async Task<TestFixture> CreateAsync(string? databaseFile = null)
         {
-            var connection = new SqliteConnection("DataSource=:memory:");
+            var connection = new SqliteConnection(databaseFile is null ? "DataSource=:memory:"
+                : $"Data Source={databaseFile};Pooling=False;Default Timeout=5");
             await connection.OpenAsync();
 
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -530,4 +850,3 @@ public class ExamServiceTests
         }
     }
 }
-

@@ -11,8 +11,57 @@ public sealed class FloridaCourseSeedTests
 {
     private static readonly Guid FloridaCourseId = Guid.Parse("f1a6e7d8-c9b0-4a12-8e34-56789abcdef0");
 
-    [Fact]
-    public async Task SeedAsync_ImportsFloridaAndNorthCarolinaCoursesWithFinalExams_Idempotently()
+    [Theory]
+    [InlineData("O/L -")]
+    [InlineData("O/L")]
+    public async Task SeedAsync_RetiresLegacyFinalInExistingDevelopmentCopy_WithoutDeletingHistory(string legacyPrefix)
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseSqlite(connection).Options);
+        await db.Database.EnsureCreatedAsync();
+        await new UserAccountService(db, new AuditLogService(db)).EnsureSeedUsersAsync();
+        await CourseSeed.SeedAsync(db);
+
+        var sourceId = Guid.Parse("14a44b09-80fa-4f74-9aae-9d7b80910002");
+        var title = "Preparing a Market Analysis - Best Practices Final Exam";
+        var copy = new Course
+        {
+            Title = "Development copy", State = "Florida",
+            Slug = $"{DevelopmentCourseCatalog.SlugPrefix}{sourceId:N}-florida"
+        };
+        var current = new CourseExam { Title = title, IsRequired = true };
+        var legacy = new CourseExam { Title = $"{legacyPrefix} {title}", IsRequired = true };
+        copy.Exams.Add(current);
+        copy.Exams.Add(legacy);
+        db.Courses.Add(copy);
+        var learnerId = await db.UserAccounts.Select(user => user.Id).FirstAsync();
+        var attempt = new ExamAttempt
+        {
+            CourseExamId = legacy.Id, UserAccountId = learnerId,
+            CourseTitleSnapshot = copy.Title, ExamTitleSnapshot = legacy.Title,
+            ExamKindSnapshot = CourseExamKinds.Standard
+        };
+        db.ExamAttempts.Add(attempt);
+        await db.SaveChangesAsync();
+
+        await CourseSeed.SeedAsync(db);
+        await CourseSeed.SeedAsync(db);
+
+        var retained = await db.CourseExams.AsNoTracking().SingleAsync(exam => exam.Id == legacy.Id);
+        Assert.False(retained.IsRequired);
+        Assert.Equal(title, retained.Title);
+        Assert.Equal(current.Id, (await db.CourseExams.AsNoTracking()
+            .SingleAsync(exam => exam.CourseId == copy.Id && exam.IsRequired)).Id);
+        Assert.Equal(title, (await db.ExamAttempts.AsNoTracking()
+            .SingleAsync(existing => existing.Id == attempt.Id)).ExamTitleSnapshot);
+    }
+
+    [Theory]
+    [InlineData("O/L -")]
+    [InlineData("O/L")]
+    public async Task SeedAsync_ImportsFloridaAndNorthCarolinaCoursesWithFinalExams_Idempotently(string legacyPrefix)
     {
         await using var connection = new SqliteConnection("DataSource=:memory:");
         await connection.OpenAsync();
@@ -24,6 +73,43 @@ public sealed class FloridaCourseSeedTests
 
         await new UserAccountService(dbContext, new AuditLogService(dbContext)).EnsureSeedUsersAsync();
         await CourseSeed.SeedAsync(dbContext);
+        var marketAnalysisCourseId = Guid.Parse("14a44b09-80fa-4f74-9aae-9d7b80910002");
+        var marketAnalysisExamTitle = "Preparing a Market Analysis - Best Practices Final Exam";
+        var legacyMarketAnalysisExam = new CourseExam
+        {
+            CourseId = marketAnalysisCourseId,
+            Title = $"{legacyPrefix} {marketAnalysisExamTitle}",
+            PassPercent = 80m,
+            IsRequired = true
+        };
+        var previouslyNormalizedMarketAnalysisExam = new CourseExam
+        {
+            CourseId = marketAnalysisCourseId,
+            Title = $"{marketAnalysisExamTitle} (Historical attempt)",
+            PassPercent = 80m,
+            IsRequired = false
+        };
+        var seedUserId = await dbContext.UserAccounts.Select(user => user.Id).FirstAsync();
+        dbContext.CourseExams.AddRange(legacyMarketAnalysisExam, previouslyNormalizedMarketAnalysisExam);
+        dbContext.ExamAttempts.AddRange(
+            new ExamAttempt
+            {
+                CourseExamId = legacyMarketAnalysisExam.Id,
+                UserAccountId = seedUserId,
+                CourseTitleSnapshot = "Preparing a Market Analysis - Best Practices",
+                ExamTitleSnapshot = legacyMarketAnalysisExam.Title,
+                ExamKindSnapshot = CourseExamKinds.Standard
+            },
+            new ExamAttempt
+            {
+                CourseExamId = previouslyNormalizedMarketAnalysisExam.Id,
+                UserAccountId = seedUserId,
+                CourseTitleSnapshot = "Preparing a Market Analysis - Best Practices",
+                ExamTitleSnapshot = previouslyNormalizedMarketAnalysisExam.Title,
+                ExamKindSnapshot = CourseExamKinds.Standard
+            });
+        await dbContext.SaveChangesAsync();
+
         await CourseSeed.SeedEnrollmentsAsync(dbContext);
         await CourseSeed.SeedAsync(dbContext);
         await CourseSeed.SeedEnrollmentsAsync(dbContext);
@@ -54,10 +140,53 @@ public sealed class FloridaCourseSeedTests
             .Select(unit => unit.Title)
             .ToListAsync();
         Assert.True(floridaUnits.Count == 5, string.Join("; ", floridaUnits));
-        Assert.Equal(12, exams.Count);
-        Assert.Equal(5, floridaExams.Count);
-        Assert.Equal(4, floridaExams.Count(exam => exam.UnitId.HasValue));
-        Assert.Equal(15, Assert.Single(floridaExams, exam => exam.UnitId is null).Questions.Count);
+        Assert.Equal(33, exams.Count);
+        var retainedLegacyExams = await dbContext.CourseExams
+            .AsNoTracking()
+            .Where(exam => exam.Id == legacyMarketAnalysisExam.Id
+                || exam.Id == previouslyNormalizedMarketAnalysisExam.Id)
+            .ToListAsync();
+        Assert.Equal(2, retainedLegacyExams.Count);
+        Assert.All(retainedLegacyExams, exam =>
+        {
+            Assert.Equal(marketAnalysisExamTitle, exam.Title);
+            Assert.False(exam.IsRequired);
+        });
+        var retainedAttempts = await dbContext.ExamAttempts
+            .AsNoTracking()
+            .Where(attempt => attempt.CourseExamId == legacyMarketAnalysisExam.Id
+                || attempt.CourseExamId == previouslyNormalizedMarketAnalysisExam.Id)
+            .ToListAsync();
+        Assert.Equal(2, retainedAttempts.Count);
+        Assert.All(retainedAttempts, attempt => Assert.Equal(marketAnalysisExamTitle, attempt.ExamTitleSnapshot));
+        Assert.Equal(7, floridaExams.Count);
+        Assert.Equal(4, floridaExams.Count(exam => exam.Kind == CourseExamKinds.Standard && exam.UnitId.HasValue));
+        Assert.Equal(15, Assert.Single(floridaExams, exam =>
+            exam.Kind == CourseExamKinds.Standard && exam.UnitId is null).Questions.Count);
+        Assert.Single(floridaExams, exam => exam.Kind == CourseExamKinds.Practice);
+        Assert.Single(floridaExams, exam => exam.Kind == CourseExamKinds.Intermediate);
+        Assert.Equal(8, exams.Count(exam => exam.Kind == CourseExamKinds.Practice));
+        Assert.Equal(11, exams.Count(exam => exam.Kind == CourseExamKinds.Intermediate));
+        foreach (var seededCourse in courses)
+        {
+            var courseExams = exams.Where(exam => exam.CourseId == seededCourse.Id).ToList();
+            var finalExam = courseExams
+                .Where(exam => exam.Kind == CourseExamKinds.Standard && exam.UnitId is null && exam.IsRequired)
+                .OrderBy(exam => exam.Title)
+                .First();
+            var practiceExam = Assert.Single(courseExams, exam => exam.Kind == CourseExamKinds.Practice);
+            Assert.False(practiceExam.IsRequired);
+            Assert.Equal(
+                finalExam.Questions.OrderBy(question => question.OrderIndex)
+                    .Select(question => (question.Prompt, question.CorrectOption)),
+                practiceExam.Questions.OrderBy(question => question.OrderIndex)
+                    .Select(question => (question.Prompt, question.CorrectOption)));
+            Assert.Contains(courseExams, exam =>
+                exam.Kind == CourseExamKinds.Intermediate
+                && exam.IsRequired
+                && exam.UnitId.HasValue
+                && exam.Questions.Count > 0);
+        }
         var ethicsCourse = Assert.Single(courses, existing => existing.Title == "Ethics at Work");
         Assert.Equal("Florida", ethicsCourse.State);
         Assert.Equal(CourseIndustries.RealEstate, ethicsCourse.Industry);
@@ -140,7 +269,9 @@ public sealed class FloridaCourseSeedTests
         var practiceFinalLesson = Assert.Single(brokerageLessons, lesson => lesson.Title == "Practice Final Exam");
         Assert.Contains("Question 1", practiceFinalLesson.TextContent);
         Assert.Equal(brokerageCourse.Id, (await dbContext.CourseExams.SingleAsync(exam =>
-            exam.CourseId == brokerageCourse.Id && exam.UnitId == null)).CourseId);
+            exam.CourseId == brokerageCourse.Id
+            && exam.Kind == CourseExamKinds.Standard
+            && exam.UnitId == null)).CourseId);
         var financeCourse = Assert.Single(courses, existing =>
             existing.Title == "Florida Post-Licensing: Real Estate Finance"
             && existing.State == "Florida");
@@ -172,7 +303,10 @@ public sealed class FloridaCourseSeedTests
             Assert.Equal(CourseReviewStatuses.Draft, importedCourse.ReviewStatus);
             Assert.NotEmpty(await dbContext.Units.Where(unit => unit.CourseId == importedCourse.Id).ToListAsync());
             var finalExam = Assert.Single(exams, exam =>
-                exam.CourseId == importedCourse.Id && exam.UnitId is null);
+                exam.CourseId == importedCourse.Id
+                && exam.Kind == CourseExamKinds.Standard
+                && exam.UnitId is null
+                && exam.IsRequired);
             var expectedQuestionCount = importedCourse.Id == ncCourse.Id
                 ? 10
                 : importedCourse.Id == brokerageCourse.Id

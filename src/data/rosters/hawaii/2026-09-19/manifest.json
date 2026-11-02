@@ -1,0 +1,28 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Hawaii",
+    "CaptureDate":  "2026-09-19",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\HI MyPVL Business Employee Capture 01.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "HAWAII\\LICENSING\\TXTs\\HI MyPVL Business Employee Capture 01.json",
+                      "Sha256":  "3CD80B75AAAF8B98DBA4E828C1BE0C6F09CAD8EBEC30811035A29E060C1E90DD",
+                      "Bytes":  4893,
+                      "OfficialSourceUrl":  "https://mypvl.dcca.hawaii.gov/public-license-search/",
+                      "Coverage":  "Business employee/profile capture"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\TXTs\\HI MyPVL License Capture RB-22161.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "HAWAII\\LICENSING\\TXTs\\HI MyPVL License Capture RB-22161.json",
+                      "Sha256":  "BD661E0A0B3D150577563A667FAD93BCC1FF1C5E4668CA5F91B0365070BA4D4E",
+                      "Bytes":  2250,
+                      "OfficialSourceUrl":  "https://mypvl.dcca.hawaii.gov/public-license-search/",
+                      "Coverage":  "Real-estate broker license profile capture"
+                  }
+              ]
+}

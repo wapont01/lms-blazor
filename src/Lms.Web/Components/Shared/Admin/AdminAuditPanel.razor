@@ -57,7 +57,19 @@
                         <td>@log.ActorEmail</td>
                         <td>@log.Action</td>
                         <td>@log.TargetType</td>
-                        <td>@log.Details</td>
+                        <td>
+                            @if (log.TargetType == "StateLicensingEntry" && !string.IsNullOrWhiteSpace(log.Details))
+                            {
+                                <details>
+                                    <summary>Previous Q&amp;A version (JSON)</summary>
+                                    <pre style="white-space: pre-wrap; overflow-wrap: anywhere;">@log.Details</pre>
+                                </details>
+                            }
+                            else
+                            {
+                                @log.Details
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>

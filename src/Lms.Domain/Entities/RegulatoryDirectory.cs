@@ -28,6 +28,7 @@ public class RegulatoryDataSnapshot
     public decimal? AcquisitionCost { get; set; }
     public DateTime RetrievedAtUtc { get; set; }
     public DateTime ImportedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime? ActivatedAtUtc { get; set; }
 
     [Required, StringLength(30)]
     public string Status { get; set; } = RegulatorySnapshotStatuses.PendingReview;
@@ -37,6 +38,31 @@ public class RegulatoryDataSnapshot
 
     public ICollection<RegulatoryFirm> Firms { get; set; } = new List<RegulatoryFirm>();
     public ICollection<RegulatoryLicensee> Licensees { get; set; } = new List<RegulatoryLicensee>();
+    public ICollection<RegulatorySourceRecord> SourceRecords { get; set; } = new List<RegulatorySourceRecord>();
+}
+
+public class RegulatorySourceRecord
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid SnapshotId { get; set; }
+    public long SourceRowNumber { get; set; }
+
+    [StringLength(20)]
+    public string? LicensePrefix { get; set; }
+
+    [StringLength(40)]
+    public string? LicenseNumber { get; set; }
+
+    [StringLength(120)]
+    public string? LicenseType { get; set; }
+
+    [StringLength(40)]
+    public string? LicenseStatus { get; set; }
+
+    [Required]
+    public string SourceRecordJson { get; set; } = string.Empty;
+
+    public RegulatoryDataSnapshot? Snapshot { get; set; }
 }
 
 public class RegulatoryFirm
@@ -88,6 +114,9 @@ public class RegulatoryLicensee
 
     [StringLength(40)]
     public string? LicenseType { get; set; }
+
+    [StringLength(120)]
+    public string? SourceLicenseType { get; set; }
 
     [StringLength(20)]
     public string? LicenseLevel { get; set; }

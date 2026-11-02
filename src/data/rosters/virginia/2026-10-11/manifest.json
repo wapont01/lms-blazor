@@ -1,0 +1,91 @@
+{
+    "SchemaVersion":  1,
+    "Jurisdiction":  "Virginia",
+    "CaptureDate":  "2026-10-11",
+    "CaptureDateMeaning":  "Recorded source capture date; undated means not established, never the file-copy date.",
+    "Approval":  "Storage only. Import approval and license ownership are separate decisions.",
+    "LegacySourceRoot":  "src\\docs",
+    "Files":  [
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Virginia_Richmond_23224_Individual_Partial_Profiles_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\XLXS\\Virginia_Richmond_23224_Individual_Partial_Profiles_20261011.csv",
+                      "Sha256":  "3502DE2A186ED2BC45141E49C8A6E859D5F551DF707EF49AC4752ECB201FD7C2",
+                      "Bytes":  22682,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Partial profiles from bounded postal-code results"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Virginia_Richmond_Firm_Partial_Profiles_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\XLXS\\Virginia_Richmond_Firm_Partial_Profiles_20261011.csv",
+                      "Sha256":  "E07E860A24141DA89B784C16CE3094A2B8256DCFB91B5E78DE68B5939E2BECFD",
+                      "Bytes":  35391,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Partial firm profile data"
+                  },
+                  {
+                      "Path":  "prepared\\LICENSING\\XLXS\\Virginia_Richmond_Individual_Partial_Profiles_20261011.csv",
+                      "Role":  "prepared",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\XLXS\\Virginia_Richmond_Individual_Partial_Profiles_20261011.csv",
+                      "Sha256":  "A3BCE8154E125CE499CE9E9A489E1B085CF943DF09994E253E05C74A529A060B",
+                      "Bytes":  2660,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Partial individual profile data"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\Virginia_Richmond_23224_Individual_Capped_Query_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\XLXS\\Virginia_Richmond_23224_Individual_Capped_Query_20261011.csv",
+                      "Sha256":  "9B2BF4EEB188E06B0E0F8F5765EDBDDF7100BFE542A415A4E89AD084EF5936D9",
+                      "Bytes":  46309,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Richmond postal-code individual capped query results"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\Virginia_Richmond_23224_Individual_Partial_Profile_Captures_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\XLXS\\Virginia_Richmond_23224_Individual_Partial_Profile_Captures_20261011.json",
+                      "Sha256":  "C907E7D09FF3F00D41DAA33079D30B09C6332F50B36EB7CBFEE5BCCCF31D228C",
+                      "Bytes":  141061,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Profile capture evidence for postal-code query"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\Virginia_Richmond_Firm_Capped_Query_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\XLXS\\Virginia_Richmond_Firm_Capped_Query_20261011.csv",
+                      "Sha256":  "042A9FC30512E4CFD2C8ADF9DD5949F069119BDC4207E38021664258639AAFF4",
+                      "Bytes":  52166,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Richmond firm capped query results"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\Virginia_Richmond_Firm_Partial_Profile_Captures_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\XLXS\\Virginia_Richmond_Firm_Partial_Profile_Captures_20261011.json",
+                      "Sha256":  "75A7AF4EF4714D33DAAAD4A946BCCA03DD237FBA625197A7FF4B192F53D47B15",
+                      "Bytes":  192911,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Firm profile capture evidence"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\Virginia_Richmond_Individual_Capped_Query_20261011.csv",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\XLXS\\Virginia_Richmond_Individual_Capped_Query_20261011.csv",
+                      "Sha256":  "8669B54DC2C3BC0E9CC757D3073E76EE62D71C5FFD89490A9EBD41493339B178",
+                      "Bytes":  46566,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Richmond individual capped query results"
+                  },
+                  {
+                      "Path":  "raw\\LICENSING\\XLXS\\Virginia_Richmond_Individual_Partial_Profile_Captures_20261011.json",
+                      "Role":  "raw",
+                      "LegacyRelativePath":  "VIRGINIA\\LICENSING\\XLXS\\Virginia_Richmond_Individual_Partial_Profile_Captures_20261011.json",
+                      "Sha256":  "ACB019E2A28D70A8C85330E3BCB3CFC93328FEB97FD51A51DA5E1F32FE3E3B85",
+                      "Bytes":  15112,
+                      "OfficialSourceUrl":  "https://dporweb.dpor.virginia.gov/LicenseLookup/LicenseDetail",
+                      "Coverage":  "Individual profile capture evidence"
+                  }
+              ]
+}

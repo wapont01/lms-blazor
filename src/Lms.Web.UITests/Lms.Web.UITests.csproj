@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Razor">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -12,5 +12,9 @@
     <PackageReference Include="Microsoft.Playwright" Version="1.55.0" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Lms.Web\Lms.Web.csproj" />
+    <Compile Include="..\Lms.Application.Tests\Services\CaliforniaArchive.cs" Link="Tests\Fixtures\CaliforniaArchive.cs" />
   </ItemGroup>
 </Project>

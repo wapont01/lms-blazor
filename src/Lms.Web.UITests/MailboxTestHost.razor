@@ -1,0 +1,25 @@
+@page "/"
+@using Microsoft.AspNetCore.Components.Web
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@using Lms.Web.Components.Pages
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <base href="/" />
+    <link rel="stylesheet" href="/app.css" />
+    <link rel="stylesheet" href="/Lms.Web.styles.css" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+<body>
+    <div class="page">
+        <nav class="sidebar"><h3>LMS Starter</h3><ul><li>Instructor</li><li>Mail</li></ul></nav>
+        <main class="content">
+            <InstructorMail @rendermode="InteractiveServer" />
+            <p style="font-size:.8rem;color:#536176">Synthetic inbox preview. No real emails are sent.</p>
+        </main>
+    </div>
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>

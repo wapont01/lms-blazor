@@ -1,0 +1,28 @@
+@baseUrl = http://localhost:5000
+
+### Open the Guest registration form to obtain the antiforgery cookie and token.
+GET {{baseUrl}}/register?returnUrl=%2Fcourses
+
+### Copy both values from the GET response before sending.
+@antiforgeryCookie = REPLACE_WITH_COOKIE_NAME_AND_VALUE
+@antiforgeryToken = REPLACE_WITH_FORM_TOKEN
+
+### Missing required details returns to registration with error=missing.
+POST {{baseUrl}}/auth/register
+Cookie: {{antiforgeryCookie}}
+Content-Type: application/x-www-form-urlencoded
+
+__RequestVerificationToken={{antiforgeryToken}}&email=&password=&confirmPassword=&returnUrl=%2Fcourses
+
+### Creates an individual test account; use a unique email on each run.
+POST {{baseUrl}}/auth/register
+Cookie: {{antiforgeryCookie}}
+Content-Type: application/x-www-form-urlencoded
+
+__RequestVerificationToken={{antiforgeryToken}}&email=guest-registration-test%40example.com&password=GuestExample2026!&confirmPassword=GuestExample2026!&returnUrl=%2Fcourses
+
+### Missing antiforgery cookie/token must be rejected without creating an account.
+POST {{baseUrl}}/auth/register
+Content-Type: application/x-www-form-urlencoded
+
+email=untrusted-test%40example.com&password=GuestExample2026!&confirmPassword=GuestExample2026!
