@@ -1577,6 +1577,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         Path.GetFileNameWithoutExtension(DatabasePath) + "-california-bulk");
     private string NevadaArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
         Path.GetFileNameWithoutExtension(DatabasePath) + "-nevada-bulk");
+    private string ColoradoDoraArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-colorado-dora-bulk");
 
     internal void ImportCaliforniaArchiveBeforeStartup(string archivePath)
     {
@@ -1706,6 +1708,9 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["CaliforniaBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["NevadaBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["NevadaBulk__ArchiveDirectory"] = NevadaArchiveDirectory;
+        // A fresh test database triggers the Colorado baseline bootstrap; keep its archive out of the real App_Data.
+        process.StartInfo.Environment["ColoradoDoraBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["ColoradoDoraBulk__ArchiveDirectory"] = ColoradoDoraArchiveDirectory;
         process.StartInfo.Environment["BulkCollectionSchedules__FilePath"] = Path.Combine(
             Path.GetDirectoryName(DatabasePath)!, Path.GetFileNameWithoutExtension(DatabasePath) + "-schedules.json");
         process.StartInfo.Environment["CaliforniaBulk__ArchiveDirectory"] = CaliforniaArchiveDirectory;
@@ -1811,6 +1816,15 @@ public sealed class WebHostFixture : IAsyncLifetime
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             Console.Error.WriteLine($"Could not clean up Nevada test archive {NevadaArchiveDirectory}: {exception.Message}");
+        }
+        try
+        {
+            if (Directory.Exists(ColoradoDoraArchiveDirectory))
+                Directory.Delete(ColoradoDoraArchiveDirectory, recursive: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Could not clean up Colorado test archive {ColoradoDoraArchiveDirectory}: {exception.Message}");
         }
         var candidates = new[] { _databasePath, _databasePath + "-wal", _databasePath + "-shm" };
         foreach (var path in candidates)
