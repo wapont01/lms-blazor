@@ -302,6 +302,35 @@ public sealed class RegulatoryStatisticsServiceTests
         Assert.Equal(0, Assert.Single(current.Professions).New);
     }
 
+    [Fact]
+    public async Task CachedComparisonIsReusedUntilANewSnapshotIsSelected()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var cached = new RegulatoryStatisticsService(fixture.Db, new RegulatoryStatisticsCache());
+        var previous = fixture.Snapshot("Florida", RegulatorySnapshotStatuses.Approved, 1);
+        var current = fixture.Snapshot("Florida", RegulatorySnapshotStatuses.Approved, 2);
+        previous.ParserVersion = current.ParserVersion = FloridaBulkImportService.ParserVersion;
+        fixture.License(previous, "one");
+        fixture.License(current, "one");
+        await fixture.Db.SaveChangesAsync();
+
+        var first = await cached.GetAsync("Florida", bulkOnly: true);
+        var second = await cached.GetAsync("Florida", bulkOnly: true);
+        Assert.Same(first.Records, second.Records);
+
+        var next = fixture.Snapshot("Florida", RegulatorySnapshotStatuses.Approved, 3);
+        next.ParserVersion = FloridaBulkImportService.ParserVersion;
+        fixture.License(next, "one", status: "Inactive");
+        fixture.License(next, "two");
+        await fixture.Db.SaveChangesAsync();
+
+        var refreshed = await cached.GetAsync("Florida", bulkOnly: true);
+        Assert.Equal(next.Id, refreshed.Incoming!.Id);
+        Assert.Equal(current.Id, refreshed.Baseline!.Id);
+        Assert.Single(refreshed.Records, row => row.Classification == "Status changed");
+        Assert.Single(refreshed.Records, row => row.Classification == "New license");
+    }
+
     private sealed class Fixture(SqliteConnection connection, ApplicationDbContext db) : IAsyncDisposable
     {
         public ApplicationDbContext Db { get; } = db;

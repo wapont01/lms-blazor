@@ -148,7 +148,7 @@
             await Directory.RestoreFloridaRosterAsync(_selected.SnapshotId, _currentId, actorId, _reason, State);
             _page = 1;
             await LoadAsync();
-            _message = "Roster restored. Weekly synchronization remains enabled according to the host configuration.";
+            _message = "Roster restored. Scheduled synchronization remains enabled according to the host configuration.";
             await RosterRestored.InvokeAsync();
         }
         catch (Exception exception) when (exception is DbException or InvalidOperationException or ArgumentException)

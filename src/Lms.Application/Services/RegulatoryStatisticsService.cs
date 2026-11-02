@@ -31,7 +31,49 @@ public sealed record RegulatoryStateStatistics(
     DateTime CheckedAtUtc,
     IReadOnlyList<RegulatoryRecordComparison> Records);
 
-public sealed class RegulatoryStatisticsService(ApplicationDbContext db)
+/// <summary>
+/// Holds computed comparisons keyed by snapshot IDs. Snapshot rows are immutable once imported and every
+/// collection creates a new snapshot, so an entry stays valid until its snapshots are no longer selected.
+/// </summary>
+public sealed class RegulatoryStatisticsCache
+{
+    private const int Capacity = 8;
+    private readonly object _gate = new();
+    private readonly Dictionary<(Guid? Baseline, Guid? Incoming), Lazy<Task<RegulatoryComparisonResult>>> _entries = [];
+    private readonly LinkedList<(Guid? Baseline, Guid? Incoming)> _order = new();
+
+    internal Task<RegulatoryComparisonResult> GetOrAdd((Guid? Baseline, Guid? Incoming) key,
+        Func<Task<RegulatoryComparisonResult>> compute)
+    {
+        Lazy<Task<RegulatoryComparisonResult>> entry;
+        lock (_gate)
+        {
+            if (!_entries.TryGetValue(key, out entry!) || (entry.IsValueCreated
+                && (entry.Value.IsFaulted || entry.Value.IsCanceled)))
+            {
+                entry = new(compute);
+                _entries[key] = entry;
+            }
+            _order.Remove(key);
+            _order.AddFirst(key);
+            while (_order.Count > Capacity)
+            {
+                _entries.Remove(_order.Last!.Value);
+                _order.RemoveLast();
+            }
+        }
+        return entry.Value;
+    }
+}
+
+internal sealed record RegulatoryComparisonResult(
+    IReadOnlyList<RegulatoryStatisticsRow> Professions,
+    IReadOnlyList<RegulatoryStatusCount> Statuses,
+    int ExcludedCurrent,
+    int ExcludedCollected,
+    IReadOnlyList<RegulatoryRecordComparison> Records);
+
+public sealed class RegulatoryStatisticsService(ApplicationDbContext db, RegulatoryStatisticsCache? cache = null)
 {
     public async Task<List<string>> GetStatesAsync()
     {
@@ -74,8 +116,19 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db)
                     snapshot.Id != incoming.Id && snapshot.ParserVersion == NevadaNredBulkImportService.ParserVersion);
         }
 
-        var (current, excludedCurrent) = await ReadAsync(baseline?.Id);
-        var (collected, excludedCollected) = await ReadAsync(incoming?.Id);
+        var comparison = cache is null
+            ? await CompareAsync(baseline?.Id, incoming?.Id)
+            : await cache.GetOrAdd((baseline?.Id, incoming?.Id), () => CompareAsync(baseline?.Id, incoming?.Id));
+
+        return new(state, Describe(baseline), Describe(incoming), pending.Select(snapshot => Describe(snapshot)!).ToList(),
+            comparison.Professions, comparison.Statuses, comparison.ExcludedCurrent, comparison.ExcludedCollected,
+            DateTime.UtcNow, comparison.Records);
+    }
+
+    private async Task<RegulatoryComparisonResult> CompareAsync(Guid? baselineId, Guid? incomingId)
+    {
+        var (current, excludedCurrent) = await ReadAsync(baselineId);
+        var (collected, excludedCollected) = await ReadAsync(incomingId);
         var records = new List<RegulatoryRecordComparison>();
         foreach (var (identity, observed) in collected)
         {
@@ -92,38 +145,52 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db)
                 : changes.Count > 0 ? "Other updates" : "Unchanged";
             records.Add(new(identity.Kind, identity.Number, observed.Profession, classification, changes));
         }
-        if (incoming is not null)
+        if (incomingId.HasValue)
             records.AddRange(current.Where(pair => !collected.ContainsKey(pair.Key)).Select(pair =>
                 new RegulatoryRecordComparison(pair.Key.Kind, pair.Key.Number, pair.Value.Profession, "Not observed", [])));
-        var professions = current.Values.Concat(collected.Values)
-            .GroupBy(record => (record.Kind, Type: Normalize(record.Profession)))
-            .OrderBy(group => group.Key.Kind).ThenBy(group => group.Key.Type)
-            .Select(group =>
+        // Single pass per snapshot; groups are created current-first so display names match the first observation.
+        var professionTallies = new Dictionary<(string Kind, string Type), Tally>();
+        var statusTallies = new Dictionary<(string Kind, string Status), Tally>();
+        foreach (var (identity, previous) in current)
+        {
+            var status = Normalize(previous.Status);
+            GetTally(professionTallies, (previous.Kind, Normalize(previous.Profession)), previous.Profession).Current++;
+            var statusTally = GetTally(statusTallies, (previous.Kind, status), previous.Status);
+            statusTally.Current++;
+            if (collected.TryGetValue(identity, out var next) && Normalize(next.Status) != status)
+                statusTally.Left++;
+        }
+        foreach (var (identity, observed) in collected)
+        {
+            var status = Normalize(observed.Status);
+            var professionTally = GetTally(professionTallies, (observed.Kind, Normalize(observed.Profession)), observed.Profession);
+            var statusTally = GetTally(statusTallies, (observed.Kind, status), observed.Status);
+            professionTally.Collected++;
+            statusTally.Collected++;
+            if (!current.TryGetValue(identity, out var previous))
             {
-                var existing = current.Where(pair => pair.Value.Kind == group.Key.Kind && Normalize(pair.Value.Profession) == group.Key.Type).ToList();
-                var observed = collected.Where(pair => pair.Value.Kind == group.Key.Kind && Normalize(pair.Value.Profession) == group.Key.Type).ToList();
-                var added = observed.Count(pair => !current.ContainsKey(pair.Key));
-                var changed = observed.Count(pair => current.TryGetValue(pair.Key, out var previous)
-                    && !previous.Values.SequenceEqual(pair.Value.Values));
-                return new RegulatoryStatisticsRow(group.Key.Kind, group.First().Profession,
-                    existing.Count, observed.Count, added, changed, observed.Count - added - changed);
-            }).ToList();
-        var statuses = current.Values.Concat(collected.Values)
-            .GroupBy(record => (record.Kind, Status: Normalize(record.Status)))
-            .OrderBy(group => group.Key.Kind).ThenBy(group => group.Key.Status)
-            .Select(group => new RegulatoryStatusCount(group.Key.Kind, group.First().Status,
-                current.Values.Count(record => record.Kind == group.Key.Kind && Normalize(record.Status) == group.Key.Status),
-                collected.Values.Count(record => record.Kind == group.Key.Kind && Normalize(record.Status) == group.Key.Status),
-                collected.Count(pair => pair.Value.Kind == group.Key.Kind && Normalize(pair.Value.Status) == group.Key.Status
-                    && !current.ContainsKey(pair.Key)),
-                collected.Count(pair => pair.Value.Kind == group.Key.Kind && Normalize(pair.Value.Status) == group.Key.Status
-                    && current.TryGetValue(pair.Key, out var previous) && Normalize(previous.Status) != group.Key.Status),
-                current.Count(pair => pair.Value.Kind == group.Key.Kind && Normalize(pair.Value.Status) == group.Key.Status
-                    && collected.TryGetValue(pair.Key, out var next) && Normalize(next.Status) != group.Key.Status)))
+                professionTally.New++;
+                statusTally.New++;
+                continue;
+            }
+            if (!previous.Values.SequenceEqual(observed.Values))
+                professionTally.Changed++;
+            if (Normalize(previous.Status) != status)
+                statusTally.Entered++;
+        }
+        var professions = professionTallies
+            .OrderBy(pair => pair.Key.Kind).ThenBy(pair => pair.Key.Type)
+            .Select(pair => new RegulatoryStatisticsRow(pair.Key.Kind, pair.Value.Label, pair.Value.Current,
+                pair.Value.Collected, pair.Value.New, pair.Value.Changed,
+                pair.Value.Collected - pair.Value.New - pair.Value.Changed))
+            .ToList();
+        var statuses = statusTallies
+            .OrderBy(pair => pair.Key.Kind).ThenBy(pair => pair.Key.Status)
+            .Select(pair => new RegulatoryStatusCount(pair.Key.Kind, pair.Value.Label, pair.Value.Current,
+                pair.Value.Collected, pair.Value.New, pair.Value.Entered, pair.Value.Left))
             .ToList();
 
-        return new(state, Describe(baseline), Describe(incoming), pending.Select(snapshot => Describe(snapshot)!).ToList(),
-            professions, statuses, excludedCurrent, excludedCollected, DateTime.UtcNow, records);
+        return new(professions, statuses, excludedCurrent, excludedCollected, records);
     }
 
     private static RegulatoryStatisticsSnapshot? Describe(RegulatoryDataSnapshot? snapshot) => snapshot is null
@@ -215,6 +282,23 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db)
     private static DateTime ToUtc(DateTime value) => value.Kind == DateTimeKind.Unspecified
         ? DateTime.SpecifyKind(value, DateTimeKind.Utc) : value.ToUniversalTime();
     private static string Date(DateOnly? value) => value?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "";
+    private static Tally GetTally<TKey>(Dictionary<TKey, Tally> tallies, TKey key, string label) where TKey : notnull
+    {
+        if (!tallies.TryGetValue(key, out var tally))
+            tallies[key] = tally = new Tally(label);
+        return tally;
+    }
+
+    private sealed class Tally(string label)
+    {
+        public string Label { get; } = label;
+        public int Current;
+        public int Collected;
+        public int New;
+        public int Changed;
+        public int Entered;
+        public int Left;
+    }
     private sealed record Identity(string Kind, string Number, string Type);
     private sealed record Observation(string Kind, string Profession, string Status, string[] Values);
 }
