@@ -25,6 +25,10 @@ public sealed record RosterPublicationCadence(string Frequency, string Evidence,
             "https://red.nv.gov/Content/Administration/Active_Licensee_Lists/",
             "2026-11-02", "Recommended collection: 1 Month, not every 7 Days. Weekly collection usually downloads the same monthly roster; it only reduces the delay in detecting a new release when its date is unknown. Use 1 Month for a calendar-month interval rather than 30 Days. No publication day or time is specified, so the collection date is an administrator choice, not a confirmed NRED release date.",
             @"src\docs\NEVADA\TXTS\Active Licensee Lists PORTAL.txt (September 2026 capture, line 5)"),
+        "New York" => new("Daily",
+            "Dataset Summary - Posting Frequency: Daily. Data is only accurate as of the previous business day.",
+            "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
+            "2026-11-02", "Recommended collection: 1 Day. More frequent collection usually rechecks the same daily dataset; a weekly collection can leave the LMS several days behind the source. Publication time is not specified. The dataset lists active licenses only."),
         _ => new("Not verified", "No regulator publication cadence has been recorded for this state.",
             "", "", "Recommended collection: not established. Verify the official source before choosing an interval. More frequent collection may repeat unchanged data; less frequent collection may delay changes.")
     };

@@ -1579,6 +1579,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         Path.GetFileNameWithoutExtension(DatabasePath) + "-nevada-bulk");
     private string ColoradoDoraArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
         Path.GetFileNameWithoutExtension(DatabasePath) + "-colorado-dora-bulk");
+    private string NewYorkArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-new-york-bulk");
 
     internal void ImportCaliforniaArchiveBeforeStartup(string archivePath)
     {
@@ -1708,6 +1710,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["CaliforniaBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["NevadaBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["NevadaBulk__ArchiveDirectory"] = NevadaArchiveDirectory;
+        process.StartInfo.Environment["NewYorkBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["NewYorkBulk__ArchiveDirectory"] = NewYorkArchiveDirectory;
         // A fresh test database triggers the Colorado baseline bootstrap; keep its archive out of the real App_Data.
         // A fresh test database would otherwise download the full DORA dataset and hold SQLite's write lock for minutes.
         process.StartInfo.Environment["ColoradoDoraBulk__BaselineBootstrapEnabled"] = "false";
@@ -1810,6 +1814,15 @@ public sealed class WebHostFixture : IAsyncLifetime
         }
 
         var californiaArchiveDirectory = CaliforniaArchiveDirectory;
+        try
+        {
+            if (Directory.Exists(NewYorkArchiveDirectory))
+                Directory.Delete(NewYorkArchiveDirectory, recursive: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Could not clean up New York test archive {NewYorkArchiveDirectory}: {exception.Message}");
+        }
         try
         {
             if (Directory.Exists(NevadaArchiveDirectory))

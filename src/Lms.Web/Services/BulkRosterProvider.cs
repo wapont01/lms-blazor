@@ -124,20 +124,25 @@ public sealed class CaliforniaBulkRosterProvider : IBulkRosterProvider
         services.GetRequiredService<CaliforniaBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
 }
 
-public sealed class ColoradoDoraBulkRosterProvider : IBulkRosterProvider, IBulkRosterFileDownloader
+public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRosterFileDownloader
 {
     private const int PageSize = 50_000;
-    private const string OrderBy = "lastname,firstname,middlename,suffix,entityname,city,state,zipcode,licenseprefix,licensenumber,licensetype,licensefirstissuedate,licenselastreneweddate,licenseexpirationdate,licensestatus,casenumber,programaction,disciplineeffectivedate,disciplinecompletedate,verifylicense";
-    public string State => "Colorado";
-    public string ArchiveFolder => "colorado-dora-bulk";
-    public string ParserVersion => ColoradoDoraBulkImportService.ParserVersion;
-    public string Layout => "UTF-8 CSV with the 20-column DORA 4zse-6bnw schema; complete source rows retained";
-    public IReadOnlyList<FloridaBulkFileDefinition> Files => ColoradoDoraBulkImportService.Definitions;
-    public string? RowCountUrl => ColoradoDoraBulkImportService.RowCountUrl;
+    public abstract string State { get; }
+    public abstract string ArchiveFolder { get; }
+    public abstract string ParserVersion { get; }
+    public abstract string Layout { get; }
+    public abstract IReadOnlyList<FloridaBulkFileDefinition> Files { get; }
+    public abstract string? RowCountUrl { get; }
+    protected abstract string SourceLabel { get; }
+    // Matches the named client the collection service creates for downloads.
+    private string ClientName => State + "Bulk";
+    protected abstract string SourceUrl { get; }
+    protected abstract string OrderBy { get; }
+    protected abstract IReadOnlyList<string> Headers { get; }
 
     public async Task<long?> GetPublishedRowsAsync(IHttpClientFactory clients, CancellationToken ct)
     {
-        using var client = clients.CreateClient("ColoradoBulk");
+        using var client = clients.CreateClient(ClientName);
         return await GetPublishedRowsAsync(client, ct);
     }
 
@@ -145,26 +150,26 @@ public sealed class ColoradoDoraBulkRosterProvider : IBulkRosterProvider, IBulkR
     {
         using var response = await client.GetAsync(RowCountUrl, ct);
         if (response.RequestMessage?.RequestUri?.AbsoluteUri != RowCountUrl)
-            throw new InvalidDataException("DORA source-count request redirected away from its allowlisted URL.");
+            throw new InvalidDataException($"{SourceLabel} source-count request redirected away from its allowlisted URL.");
         response.EnsureSuccessStatusCode();
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
         if (document.RootElement.ValueKind != JsonValueKind.Array || document.RootElement.GetArrayLength() != 1
             || !document.RootElement[0].TryGetProperty("count", out var count))
-            throw new InvalidDataException("DORA source count response is invalid.");
+            throw new InvalidDataException($"{SourceLabel} source count response is invalid.");
         var value = count.ValueKind == JsonValueKind.String ? count.GetString()
             : count.ValueKind == JsonValueKind.Number ? count.GetRawText() : null;
         if (!long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var rows) || rows <= 0
             || rows > 1_000_000)
-            throw new InvalidDataException("DORA published source count is outside the supported range.");
+            throw new InvalidDataException($"{SourceLabel} published source count is outside the supported range.");
         return rows;
     }
 
     public async Task<BulkRosterDownloadResult> DownloadFileAsync(HttpClient client, string path,
         FloridaBulkFileDefinition file, CancellationToken ct, Action<long, long?> progress)
     {
-        if (file != Files[0]) throw new InvalidDataException("Unknown Colorado DORA source file.");
+        if (file != Files[0]) throw new InvalidDataException($"Unknown {SourceLabel} source file.");
         var rowCount = await GetPublishedRowsAsync(client, ct)
-            ?? throw new InvalidDataException("DORA did not publish a source row count.");
+            ?? throw new InvalidDataException($"{SourceLabel} did not publish a source row count.");
         DateTimeOffset? lastModified = null;
         string? eTag = null;
         long bytes = 0;
@@ -173,15 +178,15 @@ public sealed class ColoradoDoraBulkRosterProvider : IBulkRosterProvider, IBulkR
         for (long offset = 0; offset < rowCount; offset += PageSize)
         {
             ct.ThrowIfCancellationRequested();
-            var url = $"{ColoradoDoraBulkImportService.SourceUrl}?$limit={PageSize}&$offset={offset}&$order={OrderBy}";
+            var url = $"{SourceUrl}?$limit={PageSize}&$offset={offset}&$order={OrderBy}";
             using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
             if (response.RequestMessage?.RequestUri?.AbsoluteUri != url)
-                throw new InvalidDataException("DORA data request redirected away from its allowlisted URL.");
+                throw new InvalidDataException($"{SourceLabel} data request redirected away from its allowlisted URL.");
             response.EnsureSuccessStatusCode();
             if (!TryGetTruthLastModified(response, out var pageModified))
-                throw new InvalidDataException("DORA response omitted its source modification timestamp.");
+                throw new InvalidDataException($"{SourceLabel} response omitted its source modification timestamp.");
             if (lastModified is { } known && known != pageModified)
-                throw new InvalidDataException("DORA source changed while its paged export was being collected.");
+                throw new InvalidDataException($"{SourceLabel} source changed while its paged export was being collected.");
             lastModified = pageModified;
             eTag ??= response.Headers.ETag?.ToString();
 
@@ -199,31 +204,31 @@ public sealed class ColoradoDoraBulkRosterProvider : IBulkRosterProvider, IBulkR
                     TrimWhiteSpace = false
                 };
                 parser.SetDelimiters(",");
-                var headers = parser.ReadFields() ?? throw new InvalidDataException("DORA page has no CSV header.");
+                var headers = parser.ReadFields() ?? throw new InvalidDataException($"{SourceLabel} page has no CSV header.");
                 if (!headers.Select(value => value.TrimStart('\uFEFF'))
-                    .SequenceEqual(ColoradoDoraBulkImportService.Headers, StringComparer.OrdinalIgnoreCase))
-                    throw new InvalidDataException("DORA page schema changed during collection.");
+                    .SequenceEqual(Headers, StringComparer.OrdinalIgnoreCase))
+                    throw new InvalidDataException($"{SourceLabel} page schema changed during collection.");
 
                 var pageRows = 0;
                 while (!parser.EndOfData)
                 {
                     ct.ThrowIfCancellationRequested();
-                    var fields = parser.ReadFields() ?? throw new InvalidDataException("DORA page contains an empty row.");
-                    if (fields.Length != ColoradoDoraBulkImportService.Headers.Count)
-                        throw new InvalidDataException($"Invalid DORA page row shape near line {parser.LineNumber}.");
+                    var fields = parser.ReadFields() ?? throw new InvalidDataException($"{SourceLabel} page contains an empty row.");
+                    if (fields.Length != Headers.Count)
+                        throw new InvalidDataException($"Invalid {SourceLabel} page row shape near line {parser.LineNumber}.");
                     if (offset == 0 && pageRows == 0)
-                        await WriteCsvRowAsync(writer, ColoradoDoraBulkImportService.Headers, ct);
+                        await WriteCsvRowAsync(writer, Headers, ct);
                     await WriteCsvRowAsync(writer, fields, ct);
                     pageRows++;
                     if (pageRows > PageSize)
-                        throw new InvalidDataException("DORA page exceeded the requested row limit.");
+                        throw new InvalidDataException($"{SourceLabel} page exceeded the requested row limit.");
                 }
 
                 var expectedPageRows = (int)Math.Min(PageSize, rowCount - offset);
                 if (pageRows != expectedPageRows)
-                    throw new InvalidDataException($"DORA page at offset {offset} contained {pageRows} rows; expected {expectedPageRows}.");
+                    throw new InvalidDataException($"{SourceLabel} page at offset {offset} contained {pageRows} rows; expected {expectedPageRows}.");
                 if (offset == 0 && pageRows == 0)
-                    await WriteCsvRowAsync(writer, ColoradoDoraBulkImportService.Headers, ct);
+                    await WriteCsvRowAsync(writer, Headers, ct);
                 await writer.FlushAsync(ct);
                 bytes = destination.Length;
                 progress(bytes, null);
@@ -254,18 +259,68 @@ public sealed class ColoradoDoraBulkRosterProvider : IBulkRosterProvider, IBulkR
         await writer.WriteLineAsync(row.AsMemory(), ct);
     }
 
-    public Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct,
+    public abstract Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct,
+        Action<long>? progress = null);
+    public abstract Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct,
+        Action<string, long, long>? progress);
+    public abstract Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
+        Action<string, long, long>? progress, Action<long>? staged);
+}
+
+public sealed class ColoradoDoraBulkRosterProvider : SocrataBulkRosterProvider
+{
+    public override string State => "Colorado";
+    public override string ArchiveFolder => "colorado-dora-bulk";
+    public override string ParserVersion => ColoradoDoraBulkImportService.ParserVersion;
+    public override string Layout => "UTF-8 CSV with the 20-column DORA 4zse-6bnw schema; complete source rows retained";
+    public override IReadOnlyList<FloridaBulkFileDefinition> Files => ColoradoDoraBulkImportService.Definitions;
+    public override string? RowCountUrl => ColoradoDoraBulkImportService.RowCountUrl;
+    protected override string SourceLabel => "DORA";
+    protected override string SourceUrl => ColoradoDoraBulkImportService.SourceUrl;
+    protected override string OrderBy => "lastname,firstname,middlename,suffix,entityname,city,state,zipcode,licenseprefix,licensenumber,licensetype,licensefirstissuedate,licenselastreneweddate,licenseexpirationdate,licensestatus,casenumber,programaction,disciplineeffectivedate,disciplinecompletedate,verifylicense";
+    protected override IReadOnlyList<string> Headers => ColoradoDoraBulkImportService.Headers;
+
+    public override Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct,
         Action<long>? progress = null)
     {
         if (file != Files[0]) throw new InvalidDataException("Unknown Colorado DORA source file.");
         return Task.FromResult((long)ColoradoDoraBulkImportService.ReadRecords(path, ct, progress).Count);
     }
 
-    public Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct,
+    public override Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct,
         Action<string, long, long>? progress) =>
         ColoradoDoraBulkImportService.ValidateArchiveAsync(root, ct, progress);
 
-    public Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
+    public override Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
         Action<string, long, long>? progress, Action<long>? staged) =>
         services.GetRequiredService<ColoradoDoraBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
+}
+
+public sealed class NewYorkDosBulkRosterProvider : SocrataBulkRosterProvider
+{
+    public override string State => NewYorkDosBulkImportService.State;
+    public override string ArchiveFolder => "new-york-dos-bulk";
+    public override string ParserVersion => NewYorkDosBulkImportService.ParserVersion;
+    public override string Layout => "UTF-8 CSV with the 11-column NY DOS yg7h-zjbf schema; complete source rows retained";
+    public override IReadOnlyList<FloridaBulkFileDefinition> Files => NewYorkDosBulkImportService.Definitions;
+    public override string? RowCountUrl => NewYorkDosBulkImportService.RowCountUrl;
+    protected override string SourceLabel => "NY DOS";
+    protected override string SourceUrl => NewYorkDosBulkImportService.SourceUrl;
+    protected override string OrderBy => "license_type,license_number,license_holder_name,business_name,business_address_1,business_address_2,business_city,business_state,business_zip,county,license_expiration_date";
+    protected override IReadOnlyList<string> Headers => NewYorkDosBulkImportService.Headers;
+
+    public override Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct,
+        Action<long>? progress = null)
+    {
+        if (file != Files[0]) throw new InvalidDataException("Unknown New York DOS source file.");
+        return Task.FromResult((long)NewYorkDosBulkImportService.ReadRecords(path, ct, progress).Count);
+    }
+
+    public override Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct,
+        Action<string, long, long>? progress) =>
+        NewYorkDosBulkImportService.ValidateArchiveAsync(root, ct, progress);
+
+    public override Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
+        Action<string, long, long>? progress, Action<long>? staged) =>
+        services.GetRequiredService<NewYorkDosBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
 }

@@ -555,6 +555,7 @@ public class BulkRefreshBackgroundService(BulkCollectionService collection,
                                         "California" => scope.ServiceProvider.GetRequiredService<CaliforniaBulkCollectionOptions>(),
                                         "Colorado" => scope.ServiceProvider.GetRequiredService<ColoradoDoraBulkCollectionOptions>(),
                                         "Nevada" => scope.ServiceProvider.GetRequiredService<NevadaBulkCollectionOptions>(),
+                                        "New York" => scope.ServiceProvider.GetRequiredService<NewYorkBulkCollectionOptions>(),
                                         _ => throw new InvalidOperationException($"Unknown bulk collection alert state '{state}'.")
                                     },
                                     scope.ServiceProvider.GetRequiredService<ILogger<FloridaBulkAlertService>>(), state: state);
@@ -633,6 +634,17 @@ public sealed class NevadaBulkCollectionService(IServiceScopeFactory scopes, IHt
 public sealed class NevadaBulkRefreshBackgroundService(NevadaBulkCollectionService collection,
     ILogger<NevadaBulkRefreshBackgroundService> logger, IServiceScopeFactory scopes)
     : BulkRefreshBackgroundService(collection, logger, scopes, "Nevada");
+
+public sealed class NewYorkBulkCollectionOptions : FloridaBulkCollectionOptions;
+
+public sealed class NewYorkBulkCollectionService(IServiceScopeFactory scopes, IHttpClientFactory clients,
+    IHostApplicationLifetime lifetime, IWebHostEnvironment environment, IOptions<NewYorkBulkCollectionOptions> options,
+    ILogger<NewYorkBulkCollectionService> logger, BulkCollectionScheduleStore? schedules = null)
+    : BulkCollectionService(scopes, clients, lifetime, environment, options.Value, logger, new NewYorkDosBulkRosterProvider(), schedules);
+
+public sealed class NewYorkBulkRefreshBackgroundService(NewYorkBulkCollectionService collection,
+    ILogger<NewYorkBulkRefreshBackgroundService> logger, IServiceScopeFactory scopes)
+    : BulkRefreshBackgroundService(collection, logger, scopes, "New York");
 
 public sealed class ColoradoDoraBulkCollectionService(IServiceScopeFactory scopes, IHttpClientFactory clients,
     IHostApplicationLifetime lifetime, IWebHostEnvironment environment, IOptions<ColoradoDoraBulkCollectionOptions> options,

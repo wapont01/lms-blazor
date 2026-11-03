@@ -133,6 +133,17 @@ builder.Services.AddSingleton<BulkCollectionService>(services => services.GetReq
 builder.Services.AddHttpClient("NevadaBulk", client => client.Timeout = TimeSpan.FromMinutes(10))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHostedService<NevadaBulkRefreshBackgroundService>();
+var newYorkBulk = new NewYorkBulkCollectionOptions();
+builder.Configuration.GetSection("NewYorkBulk").Bind(newYorkBulk);
+builder.Services.AddSingleton(newYorkBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<NewYorkBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(newYorkBulk));
+builder.Services.AddScoped<NewYorkDosBulkImportService>();
+builder.Services.AddSingleton<NewYorkBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<NewYorkBulkCollectionService>());
+builder.Services.AddHttpClient("New YorkBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<NewYorkBulkRefreshBackgroundService>();
 builder.Services.AddSingleton<TexasBulkCollectionService>();
 builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<TexasBulkCollectionService>());
 builder.Services.AddHttpClient("TexasBulk", client => client.Timeout = TimeSpan.FromMinutes(10))

@@ -21,6 +21,7 @@ public sealed class BulkCollectionScheduleStore
             ["California"] = "America/Los_Angeles",
             ["Colorado"] = "America/Denver",
             ["Nevada"] = "America/Los_Angeles",
+            ["New York"] = "America/New_York",
             ["Florida"] = "America/New_York",
             ["Texas"] = "America/Chicago"
         };
