@@ -109,6 +109,7 @@ public static class RegulatoryIndustries
     public const string Escrow = "Escrow";
     public const string Appraisal = "Appraisal";
     public const string Settlement = "Settlement";
+    public const string Education = "Education";
 }
 
 public static class RegulatoryLocationMatchMethods

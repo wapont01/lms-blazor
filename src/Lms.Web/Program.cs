@@ -198,6 +198,18 @@ builder.Services.AddSingleton<BulkCollectionService>(services => services.GetReq
 builder.Services.AddHttpClient("DelawareBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHostedService<DelawareBulkRefreshBackgroundService>();
+// IL IDFPR's statewide professional licensing dataset is published daily; real estate and appraisal rows are requested, excluding course approvals.
+var illinoisBulk = new IllinoisBulkCollectionOptions { RefreshDays = 1, StaleAfterDays = 2 };
+builder.Configuration.GetSection("IllinoisBulk").Bind(illinoisBulk);
+builder.Services.AddSingleton(illinoisBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<IllinoisBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(illinoisBulk));
+builder.Services.AddScoped<IllinoisIdfprBulkImportService>();
+builder.Services.AddSingleton<IllinoisBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<IllinoisBulkCollectionService>());
+builder.Services.AddHttpClient("IllinoisBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<IllinoisBulkRefreshBackgroundService>();
 // DPOR updates its regulant lists every 5 business days (usually Mondays); the site rejects requests without a browser user agent.
 var virginiaBulk = new VirginiaBulkCollectionOptions { RefreshDays = 7, StaleAfterDays = 8 };
 builder.Configuration.GetSection("VirginiaBulk").Bind(virginiaBulk);

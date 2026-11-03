@@ -566,6 +566,7 @@ public class BulkRefreshBackgroundService(BulkCollectionService collection,
                                         "Connecticut" => scope.ServiceProvider.GetRequiredService<ConnecticutBulkCollectionOptions>(),
                                         "Oregon" => scope.ServiceProvider.GetRequiredService<OregonBulkCollectionOptions>(),
                                         "Delaware" => scope.ServiceProvider.GetRequiredService<DelawareBulkCollectionOptions>(),
+                                        "Illinois" => scope.ServiceProvider.GetRequiredService<IllinoisBulkCollectionOptions>(),
                                         "Virginia" => scope.ServiceProvider.GetRequiredService<VirginiaBulkCollectionOptions>(),
                                         _ => throw new InvalidOperationException($"Unknown bulk collection alert state '{state}'.")
                                     },
@@ -700,6 +701,17 @@ public sealed class DelawareBulkCollectionService(IServiceScopeFactory scopes, I
 public sealed class DelawareBulkRefreshBackgroundService(DelawareBulkCollectionService collection,
     ILogger<DelawareBulkRefreshBackgroundService> logger, IServiceScopeFactory scopes)
     : BulkRefreshBackgroundService(collection, logger, scopes, "Delaware");
+
+public sealed class IllinoisBulkCollectionOptions : FloridaBulkCollectionOptions;
+
+public sealed class IllinoisBulkCollectionService(IServiceScopeFactory scopes, IHttpClientFactory clients,
+    IHostApplicationLifetime lifetime, IWebHostEnvironment environment, IOptions<IllinoisBulkCollectionOptions> options,
+    ILogger<IllinoisBulkCollectionService> logger, BulkCollectionScheduleStore? schedules = null)
+    : BulkCollectionService(scopes, clients, lifetime, environment, options.Value, logger, new IllinoisIdfprBulkRosterProvider(), schedules);
+
+public sealed class IllinoisBulkRefreshBackgroundService(IllinoisBulkCollectionService collection,
+    ILogger<IllinoisBulkRefreshBackgroundService> logger, IServiceScopeFactory scopes)
+    : BulkRefreshBackgroundService(collection, logger, scopes, "Illinois");
 
 public sealed class VirginiaBulkCollectionOptions : FloridaBulkCollectionOptions;
 

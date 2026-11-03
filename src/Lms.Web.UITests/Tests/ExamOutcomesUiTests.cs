@@ -1595,6 +1595,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         Path.GetFileNameWithoutExtension(DatabasePath) + "-oregon-bulk");
     private string DelawareArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
         Path.GetFileNameWithoutExtension(DatabasePath) + "-delaware-bulk");
+    private string IllinoisArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-illinois-bulk");
     private string VirginiaArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
         Path.GetFileNameWithoutExtension(DatabasePath) + "-virginia-bulk");
 
@@ -1736,6 +1738,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["OregonBulk__ArchiveDirectory"] = OregonArchiveDirectory;
         process.StartInfo.Environment["DelawareBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["DelawareBulk__ArchiveDirectory"] = DelawareArchiveDirectory;
+        process.StartInfo.Environment["IllinoisBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["IllinoisBulk__ArchiveDirectory"] = IllinoisArchiveDirectory;
         process.StartInfo.Environment["VirginiaBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["VirginiaBulk__ArchiveDirectory"] = VirginiaArchiveDirectory;
         // A fresh test database triggers the Colorado baseline bootstrap; keep its archive out of the real App_Data.
@@ -1876,7 +1880,7 @@ public sealed class WebHostFixture : IAsyncLifetime
         {
             Console.Error.WriteLine($"Could not clean up Oregon test archive {OregonArchiveDirectory}: {exception.Message}");
         }
-        foreach (var directory in new[] { DelawareArchiveDirectory, VirginiaArchiveDirectory })
+        foreach (var directory in new[] { DelawareArchiveDirectory, VirginiaArchiveDirectory, IllinoisArchiveDirectory })
         {
             try
             {

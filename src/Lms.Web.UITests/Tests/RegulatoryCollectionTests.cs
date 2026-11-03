@@ -221,6 +221,10 @@ public sealed class RegulatoryCollectionTests
         builder.Services.AddSingleton(delawareOptions);
         builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<DelawareBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(delawareOptions));
         builder.Services.AddSingleton<DelawareBulkCollectionService>();
+        var illinoisOptions = new IllinoisBulkCollectionOptions { WeeklyEnabled = false, ArchiveDirectory = Path.Combine(testRoot, "illinois-stored") };
+        builder.Services.AddSingleton(illinoisOptions);
+        builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<IllinoisBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(illinoisOptions));
+        builder.Services.AddSingleton<IllinoisBulkCollectionService>();
         var virginiaOptions = new VirginiaBulkCollectionOptions { WeeklyEnabled = false, ArchiveDirectory = Path.Combine(testRoot, "virginia-stored") };
         builder.Services.AddSingleton(virginiaOptions);
         builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<VirginiaBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(virginiaOptions));

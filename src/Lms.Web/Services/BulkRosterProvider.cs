@@ -159,6 +159,7 @@ public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRost
     public IReadOnlyList<FloridaBulkFileDefinition> Files => Datasets.Select(dataset => dataset.File).ToList();
     protected abstract IReadOnlyList<SocrataDataset> Datasets { get; }
     protected abstract string SourceLabel { get; }
+    protected virtual long MaximumRows => 1_000_000;
     // Matches the named client the collection service creates for downloads.
     private string ClientName => State + "Bulk";
 
@@ -192,7 +193,7 @@ public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRost
         var value = count.ValueKind == JsonValueKind.String ? count.GetString()
             : count.ValueKind == JsonValueKind.Number ? count.GetRawText() : null;
         if (!long.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var rows) || rows <= 0
-            || rows > 1_000_000)
+            || rows > MaximumRows)
             throw new InvalidDataException($"{SourceLabel} published source count is outside the supported range.");
         return rows;
     }
@@ -425,6 +426,37 @@ public sealed class DelawareDprBulkRosterProvider : SocrataBulkRosterProvider
     public override Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
         Action<string, long, long>? progress, Action<long>? staged) =>
         services.GetRequiredService<DelawareDprBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
+}
+
+public sealed class IllinoisIdfprBulkRosterProvider : SocrataBulkRosterProvider
+{
+    public override string State => IllinoisIdfprBulkImportService.State;
+    public override string ArchiveFolder => "illinois-idfpr-bulk";
+    public override string ParserVersion => IllinoisIdfprBulkImportService.ParserVersion;
+    public override string Layout => "UTF-8 CSV export of IL IDFPR dataset pzzh-kp68 (30 columns) filtered to REAL ESTATE and APPRAISAL, excluding course approvals; all statuses and disciplinary source rows retained";
+    protected override IReadOnlyList<SocrataDataset> Datasets { get; } =
+    [
+        new(IllinoisIdfprBulkImportService.Definitions[0], IllinoisIdfprBulkImportService.SourceUrl,
+            IllinoisIdfprBulkImportService.RowCountUrl, IllinoisIdfprBulkImportService.OrderBy,
+            IllinoisIdfprBulkImportService.Headers, IllinoisIdfprBulkImportService.Where)
+    ];
+    protected override string SourceLabel => "IL IDFPR";
+    protected override long MaximumRows => 2_000_000;
+
+    public override Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct,
+        Action<long>? progress = null)
+    {
+        if (file != Files[0]) throw new InvalidDataException("Unknown Illinois IDFPR source file.");
+        return Task.FromResult(IllinoisIdfprBulkImportService.CheckFile(path, ct, progress));
+    }
+
+    public override Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct,
+        Action<string, long, long>? progress) =>
+        IllinoisIdfprBulkImportService.ValidateArchiveAsync(root, ct, progress);
+
+    public override Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
+        Action<string, long, long>? progress, Action<long>? staged) =>
+        services.GetRequiredService<IllinoisIdfprBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
 }
 
 /// <summary>DPOR publishes static tab-delimited regulant lists; each is fetched directly from its allowlisted URL.</summary>
