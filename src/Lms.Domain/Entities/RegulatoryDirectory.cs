@@ -107,6 +107,8 @@ public static class RegulatoryIndustries
 {
     public const string RealEstate = CourseIndustries.RealEstate;
     public const string Escrow = "Escrow";
+    public const string Appraisal = "Appraisal";
+    public const string Settlement = "Settlement";
 }
 
 public static class RegulatoryLocationMatchMethods
@@ -114,6 +116,7 @@ public static class RegulatoryLocationMatchMethods
     public const string ExactName = "Exact name";
     public const string NormalizedName = "Normalized name";
     public const string ClosestName = "Closest name - review";
+    public const string NoMatch = "No match - review";
 }
 
 /// <summary>An additional office (e.g., a registered branch office) belonging to a firm.</summary>

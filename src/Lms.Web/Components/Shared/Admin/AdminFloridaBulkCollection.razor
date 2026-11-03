@@ -19,6 +19,10 @@
 @inject ConnecticutBulkCollectionOptions ConnecticutOptions
 @inject OregonBulkCollectionService OregonCollection
 @inject OregonBulkCollectionOptions OregonOptions
+@inject DelawareBulkCollectionService DelawareCollection
+@inject DelawareBulkCollectionOptions DelawareOptions
+@inject VirginiaBulkCollectionService VirginiaCollection
+@inject VirginiaBulkCollectionOptions VirginiaOptions
 @inject ILogger<AdminFloridaBulkCollection> Logger
 
 <section class="card bulk-collection" aria-label="@($"{State} bulk collection")">
@@ -29,7 +33,7 @@
             @(_starting ? "Starting..." : _stopping || _status?.State == "Stopping" ? "Cancelling..." : IsRunning ? "Cancel collection" : State == "Nevada" ? "Collect data" : "Collect now")
         </button>
     </div>
-    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : State == "Oregon" ? "OREA active business and active and inactive individual rosters" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
+    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : State == "Oregon" ? "OREA active business and active and inactive individual rosters" : State == "Delaware" ? "DPR real estate and appraiser professional licensing dataset" : State == "Virginia" ? "DPOR Real Estate Board regulant lists" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
     @if (State == "Nevada")
     {
         <p class="muted-text">Collects the 12 supported active lists directly from NRED on the application server, not through this browser. NRED updates these lists monthly. Reserve Study Specialists is a separate historical workbook and is not included. Acquisition timestamps are recorded; no source publication date is inferred.</p>
@@ -80,6 +84,14 @@
         {
             <a href="@OregonOreaBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Oregon Real Estate Agency roster lists</a>
         }
+        else if (State == "Delaware")
+        {
+            <a href="@DelawareDprBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Delaware DPR professional and occupational licensing dataset</a>
+        }
+        else if (State == "Virginia")
+        {
+            <a href="@VirginiaDporBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Virginia DPOR regulant lists</a>
+        }
     </nav>
     @if (_error is not null)
     {
@@ -117,7 +129,7 @@
                         @foreach (var file in status.Files)
                         {
                             <tr>
-                                <th scope="row">@file.Name</th><td>@(State == "Texas" ? "Individuals and broker companies; all published statuses" : State == "California" ? file.Name == "CurrList.zip" ? "Published license roles, statuses and restrictions" : "Responsible-broker affiliations and dates" : State == "Colorado" ? "All published DORA records and statuses" : State == "Nevada" ? file.Name == "NRED-ACTIVE-HOA.xlsx" ? "Source evidence only" : "Numbered professional licenses" : State == "New York" ? "Active salespersons, brokers and offices" : State == "Arizona" ? file.Name == ArizonaAdreBulkImportService.IndividualsFile ? "Salespersons and brokers; all statuses; employing entity" : "Firms and branch offices; designated broker" : State == "Connecticut" ? file.Name == ConnecticutDcpBulkImportService.SalespersonsFile ? "Salespersons; all statuses" : file.Name == ConnecticutDcpBulkImportService.BrokersFile ? "Individual and company brokers; all statuses" : "Active salesperson to broker or team links" : State == "Oregon" ? file.Name == OregonOreaBulkImportService.BusinessesFile ? "Registered business names and escrow companies; branch offices as locations" : file.Name == OregonOreaBulkImportService.ActiveIndividualsFile ? "Active brokers, principal brokers and property managers; business associations and key managers" : "Inactive brokers, principal brokers and property managers" : FilePurpose(file.Name))</td>
+                                <th scope="row">@file.Name</th><td>@(State == "Texas" ? "Individuals and broker companies; all published statuses" : State == "California" ? file.Name == "CurrList.zip" ? "Published license roles, statuses and restrictions" : "Responsible-broker affiliations and dates" : State == "Colorado" ? "All published DORA records and statuses" : State == "Nevada" ? file.Name == "NRED-ACTIVE-HOA.xlsx" ? "Source evidence only" : "Numbered professional licenses" : State == "New York" ? "Active salespersons, brokers and offices" : State == "Arizona" ? file.Name == ArizonaAdreBulkImportService.IndividualsFile ? "Salespersons and brokers; all statuses; employing entity" : "Firms and branch offices; designated broker" : State == "Connecticut" ? file.Name == ConnecticutDcpBulkImportService.SalespersonsFile ? "Salespersons; all statuses" : file.Name == ConnecticutDcpBulkImportService.BrokersFile ? "Individual and company brokers; all statuses" : "Active salesperson to broker or team links" : State == "Oregon" ? file.Name == OregonOreaBulkImportService.BusinessesFile ? "Registered business names and escrow companies; branch offices as locations" : file.Name == OregonOreaBulkImportService.ActiveIndividualsFile ? "Active brokers, principal brokers and property managers; business associations and key managers" : "Inactive brokers, principal brokers and property managers" : State == "Delaware" ? "Salespersons, brokers, offices and appraisers; all statuses; branch offices as locations" : State == "Virginia" ? VirginiaFilePurpose(file.Name) : FilePurpose(file.Name))</td>
                                 <td class="file-progress">
                                     @file.State
                                     @if (file.State.StartsWith("Validating", StringComparison.Ordinal) && file.ExpectedRows is > 0)
@@ -197,6 +209,14 @@
                                 {
                                     <p>OREA generates its free rosters on request from the Generate List(s) page; the collector selects each roster, reads its id from the Download List(s) page and downloads the CSV. All three files must pass schema, row count and hash checks before automatic activation. OREA splits each header label across a value column and an empty spacer column, so values are read by position and any value in a spacer column stops the import. Registered business names (RBN) and registered branch offices (RBO) become firms; escrow agents (EA) stay in the source file only. The active individual roster lists a licensee once per business association, so each license appears once and is linked to every associated business with its association date; the key manager is marked broker in charge. Where a license appears on both rosters, the active row is kept. OREA publishes no business status or first-license date, so every firm is Active.</p>
                                 }
+                                else if (State == "Delaware")
+                                {
+                                    <p>DE DPR publishes one statewide professional licensing dataset (pjnv-eaih) daily on data.delaware.gov. Only the Real Estate and Real Estate Appraisers professions are requested, in every published status; the export must match the published row count and stay unchanged while it is paged. Main office permits become real estate firms and appraisal management companies become appraisal firms. Branch office permits are extra locations of a main office, linked by name (exact, normalized, then a closely matching name flagged for review; otherwise left unlinked) because DPR does not publish the owning permit. Everything else is a licensee; appraiser credentials are imported but not yet offered. DPR publishes no employing broker, so no affiliations are created. Where a license number appears twice, the latest term is kept. Only city, state and ZIP are published.</p>
+                                }
+                                else if (State == "Virginia")
+                                {
+                                    <p>DPOR replaces its regulant lists every 5 business days, usually on Mondays. All 13 Real Estate Board lists must pass schema, row count and hash checks before automatic activation; the settlement agent list may be empty. License numbers combine board, occupation and certificate (for example 0225250860). Active and inactive salespersons, associate brokers, principal brokers and sole proprietors become licensees; their status comes from the list they appear on. Current firms, business entities and sole proprietorships become real estate firms, settlement agents become settlement firms, and branch offices become firm locations linked by business name (exact, normalized, then a closely matching name flagged for review; otherwise left unlinked). Expired licenses and broker affiliations are not published. Business names that contain a literal tab are rejoined.</p>
+                                }
         <p>Stop collection cancels only the current run. An uncommitted import is rolled back and the last completed archive is retained. You can collect again manually; automatic collection waits at least one refresh interval after an administrator stops a run.</p>
     </details>
 </section>
@@ -213,6 +233,8 @@
         "Arizona" => ArizonaCollection,
         "Connecticut" => ConnecticutCollection,
         "Oregon" => OregonCollection,
+        "Delaware" => DelawareCollection,
+        "Virginia" => VirginiaCollection,
         _ => FloridaCollection
     };
     private FloridaBulkCollectionOptions Options => State switch
@@ -225,6 +247,8 @@
         "Arizona" => ArizonaOptions,
         "Connecticut" => ConnecticutOptions,
         "Oregon" => OregonOptions,
+        "Delaware" => DelawareOptions,
+        "Virginia" => VirginiaOptions,
         _ => FloridaOptions
     };
     [Parameter] public EventCallback<Guid> SnapshotCompleted { get; set; }
@@ -344,6 +368,18 @@
         "re_salesperson.csv" or "re_appraiser.csv" => "CE archive only",
         _ => "Source archive"
     };
+
+    private static string VirginiaFilePurpose(string name)
+    {
+        var list = VirginiaDporBulkImportService.List(name);
+        return list.Kind switch
+        {
+            VirginiaDporListKind.Individual => $"{list.LicenseStatus} {list.LicenseType.ToLowerInvariant()}s",
+            VirginiaDporListKind.BranchOffice => "Branch offices as firm locations",
+            VirginiaDporListKind.SettlementAgent => "Settlement agents (coming later); may be empty",
+            _ => $"Current {list.LicenseType.ToLowerInvariant()} licenses"
+        };
+    }
 
     public async ValueTask DisposeAsync()
     {

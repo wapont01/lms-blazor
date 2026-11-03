@@ -26,6 +26,10 @@ public static class FloridaBulkCollectionEndpoints
             .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
         MapExports(app, "Oregon", new(Lms.Application.Services.OregonOreaBulkImportService.Definitions
             .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
+        MapExports(app, "Delaware", new(Lms.Application.Services.DelawareDprBulkImportService.Definitions
+            .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
+        MapExports(app, "Virginia", new(Lms.Application.Services.VirginiaDporBulkImportService.Definitions
+            .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
     }
 
     private static void MapExports(WebApplication app, string state, HashSet<string> files)
@@ -47,6 +51,8 @@ public static class FloridaBulkCollectionEndpoints
                     "Arizona" => services.GetRequiredService<ArizonaBulkCollectionService>(),
                     "Connecticut" => services.GetRequiredService<ConnecticutBulkCollectionService>(),
                     "Oregon" => services.GetRequiredService<OregonBulkCollectionService>(),
+                    "Delaware" => services.GetRequiredService<DelawareBulkCollectionService>(),
+                    "Virginia" => services.GetRequiredService<VirginiaBulkCollectionService>(),
                     _ => services.GetRequiredService<FloridaBulkCollectionService>()
                 };
                 string? path;
@@ -69,6 +75,7 @@ public static class FloridaBulkCollectionEndpoints
                     Path.GetExtension(fileName) switch
                     {
                         ".csv" => "text/csv; charset=utf-8",
+                        ".txt" => "text/plain; charset=iso-8859-1",
                         ".zip" => "application/zip",
                         ".xls" => "application/vnd.ms-excel",
                         ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

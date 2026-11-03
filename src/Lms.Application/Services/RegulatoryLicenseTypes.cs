@@ -14,6 +14,7 @@ public static class RegulatoryLicenseTypes
             ["Arizona"] = new(StringComparer.OrdinalIgnoreCase) { "Candidate", "Unlicensed" },
             ["Colorado"] = new(ColoradoDoraLicenseTypes.All.Where(option => !option.IsRealEstate)
                 .Select(option => option.Name), StringComparer.OrdinalIgnoreCase),
+            ["Delaware"] = new(DelawareDprBulkImportService.AppraiserLicenseTypes, StringComparer.OrdinalIgnoreCase),
             ["Florida"] = new(StringComparer.OrdinalIgnoreCase)
             {
                 "Certified Residential Appraiser", "General Appraiser", "Licensed Appraiser", "Registered Trainee Appraiser"

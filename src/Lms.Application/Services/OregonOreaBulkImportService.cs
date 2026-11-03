@@ -278,64 +278,16 @@ public sealed class OregonOreaBulkImportService(ApplicationDbContext db)
     public static List<OregonOreaLocation> SelectLocations(IEnumerable<OregonOreaBusiness> records)
     {
         var list = records.ToList();
-        var brokerages = Distinct(list.Where(record => record.RegistrationType == RegisteredBusinessName));
-        var byName = brokerages.ToLookup(firm => firm.Name.Trim(), StringComparer.OrdinalIgnoreCase);
-        var normalized = brokerages.Select(firm => (Firm: firm, Key: NormalizeName(firm.Name))).ToList();
-        var byKey = normalized.Where(item => item.Key.Length > 0).ToLookup(item => item.Key, item => item.Firm, StringComparer.Ordinal);
-
-        OregonOreaBusiness Pick(IEnumerable<OregonOreaBusiness> candidates, OregonOreaBusiness branch) =>
-            candidates.OrderBy(firm => branch.City is not null && string.Equals(firm.City, branch.City, StringComparison.Ordinal) ? 0 : 1)
-                .ThenBy(firm => firm.LicenseNumber, StringComparer.Ordinal).First();
-
+        var matcher = new RegulatoryLocationMatcher(Distinct(list.Where(record => record.RegistrationType == RegisteredBusinessName))
+            .Select(firm => new RegulatoryLocationFirm(firm.LicenseNumber, firm.Name, firm.City)));
         return Distinct(list.Where(record => record.RegistrationType == RegisteredBranchOffice)).Select(branch =>
         {
-            if (byName.Contains(branch.Name.Trim()))
-                return new OregonOreaLocation(branch, Pick(byName[branch.Name.Trim()], branch).LicenseNumber,
-                    RegulatoryLocationMatchMethods.ExactName);
-            var key = NormalizeName(branch.Name);
-            if (key.Length > 0 && byKey.Contains(key))
-                return new OregonOreaLocation(branch, Pick(byKey[key], branch).LicenseNumber,
-                    RegulatoryLocationMatchMethods.NormalizedName);
-            if (normalized.Count == 0 || key.Length == 0)
-                return new OregonOreaLocation(branch, null, null);
-            var scored = normalized.Select(item => (item.Firm, Score: Similarity(key, item.Key))).ToList();
-            var best = scored.Max(item => item.Score);
-            var closest = Pick(scored.Where(item => item.Score == best).Select(item => item.Firm), branch);
-            return new OregonOreaLocation(branch, closest.LicenseNumber, RegulatoryLocationMatchMethods.ClosestName);
+            var match = matcher.Match(branch.Name, branch.City);
+            return new OregonOreaLocation(branch, match.FirmLicenseNumber, match.MatchMethod);
         }).ToList();
     }
 
-    private static readonly HashSet<string> NameNoise = new(StringComparer.Ordinal)
-    {
-        "LLC", "L", "C", "INC", "INCORPORATED", "CORP", "CORPORATION", "CO", "COMPANY", "LTD", "LLP", "PC", "PLLC", "THE", "RBO"
-    };
-
-    public static string NormalizeName(string name)
-    {
-        var builder = new StringBuilder(name.Length);
-        foreach (var character in name.ToUpperInvariant().Replace("&", " AND ", StringComparison.Ordinal))
-            builder.Append(char.IsLetterOrDigit(character) ? character : ' ');
-        return string.Join(' ', builder.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Where(token => !NameNoise.Contains(token)));
-    }
-
-    /// <summary>Levenshtein similarity in [0, 1] between two normalized names.</summary>
-    private static double Similarity(string left, string right)
-    {
-        if (left.Length == 0 || right.Length == 0) return 0;
-        var previous = new int[right.Length + 1];
-        var current = new int[right.Length + 1];
-        for (var j = 0; j <= right.Length; j++) previous[j] = j;
-        for (var i = 1; i <= left.Length; i++)
-        {
-            current[0] = i;
-            for (var j = 1; j <= right.Length; j++)
-                current[j] = Math.Min(Math.Min(current[j - 1] + 1, previous[j] + 1),
-                    previous[j - 1] + (left[i - 1] == right[j - 1] ? 0 : 1));
-            (previous, current) = (current, previous);
-        }
-        return 1 - (double)previous[right.Length] / Math.Max(left.Length, right.Length);
-    }
+    public static string NormalizeName(string name) => RegulatoryLocationMatcher.NormalizeName(name);
 
     private static List<OregonOreaBusiness> Distinct(IEnumerable<OregonOreaBusiness> records) =>
         records.GroupBy(record => record.LicenseNumber, StringComparer.OrdinalIgnoreCase)

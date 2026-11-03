@@ -147,7 +147,7 @@ public sealed class ArizonaAdreBulkRosterProvider : IBulkRosterProvider
 
 /// <summary>One Socrata dataset exported page by page into one archive file.</summary>
 public sealed record SocrataDataset(FloridaBulkFileDefinition File, string SourceUrl, string RowCountUrl, string OrderBy,
-    IReadOnlyList<string> Headers);
+    IReadOnlyList<string> Headers, string? Where = null);
 
 public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRosterFileDownloader
 {
@@ -212,7 +212,8 @@ public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRost
         for (long offset = 0; offset < rowCount; offset += PageSize)
         {
             ct.ThrowIfCancellationRequested();
-            var url = $"{dataset.SourceUrl}?$limit={PageSize}&$offset={offset}&$order={dataset.OrderBy}";
+            var url = $"{dataset.SourceUrl}?$limit={PageSize}&$offset={offset}&$order={dataset.OrderBy}"
+                + (dataset.Where is null ? "" : "&$where=" + dataset.Where);
             using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
             if (response.RequestMessage?.RequestUri?.AbsoluteUri != url)
                 throw new InvalidDataException($"{SourceLabel} data request redirected away from its allowlisted URL.");
@@ -394,6 +395,55 @@ public sealed class ConnecticutDcpBulkRosterProvider : SocrataBulkRosterProvider
     public override Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
         Action<string, long, long>? progress, Action<long>? staged) =>
         services.GetRequiredService<ConnecticutDcpBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
+}
+
+public sealed class DelawareDprBulkRosterProvider : SocrataBulkRosterProvider
+{
+    public override string State => DelawareDprBulkImportService.State;
+    public override string ArchiveFolder => "delaware-dpr-bulk";
+    public override string ParserVersion => DelawareDprBulkImportService.ParserVersion;
+    public override string Layout => "UTF-8 CSV export of DE DPR dataset pjnv-eaih (15 columns) filtered to the Real Estate and Real Estate Appraisers professions; complete source rows retained";
+    protected override IReadOnlyList<SocrataDataset> Datasets { get; } =
+    [
+        new(DelawareDprBulkImportService.Definitions[0], DelawareDprBulkImportService.SourceUrl,
+            DelawareDprBulkImportService.RowCountUrl, DelawareDprBulkImportService.OrderBy,
+            DelawareDprBulkImportService.Headers, DelawareDprBulkImportService.Where)
+    ];
+    protected override string SourceLabel => "DE DPR";
+
+    public override Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct,
+        Action<long>? progress = null)
+    {
+        if (file != Files[0]) throw new InvalidDataException("Unknown Delaware DPR source file.");
+        return Task.FromResult(DelawareDprBulkImportService.CheckFile(path, ct, progress));
+    }
+
+    public override Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct,
+        Action<string, long, long>? progress) =>
+        DelawareDprBulkImportService.ValidateArchiveAsync(root, ct, progress);
+
+    public override Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
+        Action<string, long, long>? progress, Action<long>? staged) =>
+        services.GetRequiredService<DelawareDprBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
+}
+
+/// <summary>DPOR publishes static tab-delimited regulant lists; each is fetched directly from its allowlisted URL.</summary>
+public sealed class VirginiaDporBulkRosterProvider : IBulkRosterProvider
+{
+    public string State => VirginiaDporBulkImportService.State;
+    public string ArchiveFolder => "virginia-dpor-bulk";
+    public string ParserVersion => VirginiaDporBulkImportService.ParserVersion;
+    public string Layout => "DPOR tab-delimited regulant lists (20 columns) for the Real Estate Board: active and inactive salespersons, associate brokers, principal brokers and sole proprietors; current firms, business entities, sole proprietorships, branch offices and settlement agents; complete source rows retained";
+    public IReadOnlyList<FloridaBulkFileDefinition> Files => VirginiaDporBulkImportService.Definitions;
+    public string? RowCountUrl => null;
+    public Task<long?> GetPublishedRowsAsync(IHttpClientFactory clients, CancellationToken ct) => Task.FromResult<long?>(null);
+    public Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct, Action<long>? progress = null) =>
+        Task.FromResult(VirginiaDporBulkImportService.CheckFile(path, file.Name, ct, progress));
+    public Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct, Action<string, long, long>? progress) =>
+        VirginiaDporBulkImportService.ValidateArchiveAsync(root, ct, progress);
+    public Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
+        Action<string, long, long>? progress, Action<long>? staged) =>
+        services.GetRequiredService<VirginiaDporBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
 }
 
 /// <summary>

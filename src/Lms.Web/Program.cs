@@ -186,6 +186,34 @@ builder.Services.AddHttpClient("OregonBulk", client =>
     })
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
 builder.Services.AddHostedService<OregonBulkRefreshBackgroundService>();
+// DE DPR's statewide professional licensing dataset is published daily; only real estate and appraiser rows are requested.
+var delawareBulk = new DelawareBulkCollectionOptions { RefreshDays = 1, StaleAfterDays = 2 };
+builder.Configuration.GetSection("DelawareBulk").Bind(delawareBulk);
+builder.Services.AddSingleton(delawareBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<DelawareBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(delawareBulk));
+builder.Services.AddScoped<DelawareDprBulkImportService>();
+builder.Services.AddSingleton<DelawareBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<DelawareBulkCollectionService>());
+builder.Services.AddHttpClient("DelawareBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<DelawareBulkRefreshBackgroundService>();
+// DPOR updates its regulant lists every 5 business days (usually Mondays); the site rejects requests without a browser user agent.
+var virginiaBulk = new VirginiaBulkCollectionOptions { RefreshDays = 7, StaleAfterDays = 8 };
+builder.Configuration.GetSection("VirginiaBulk").Bind(virginiaBulk);
+builder.Services.AddSingleton(virginiaBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<VirginiaBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(virginiaBulk));
+builder.Services.AddScoped<VirginiaDporBulkImportService>();
+builder.Services.AddSingleton<VirginiaBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<VirginiaBulkCollectionService>());
+builder.Services.AddHttpClient("VirginiaBulk", client =>
+    {
+        client.Timeout = TimeSpan.FromMinutes(20);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (compatible; LMS-RosterCollector/1.0)");
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<VirginiaBulkRefreshBackgroundService>();
 builder.Services.AddSingleton<TexasBulkCollectionService>();
 builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<TexasBulkCollectionService>());
 builder.Services.AddHttpClient("TexasBulk", client => client.Timeout = TimeSpan.FromMinutes(10))

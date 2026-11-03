@@ -1593,6 +1593,10 @@ public sealed class WebHostFixture : IAsyncLifetime
         Path.GetFileNameWithoutExtension(DatabasePath) + "-connecticut-bulk");
     private string OregonArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
         Path.GetFileNameWithoutExtension(DatabasePath) + "-oregon-bulk");
+    private string DelawareArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-delaware-bulk");
+    private string VirginiaArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-virginia-bulk");
 
     internal void ImportCaliforniaArchiveBeforeStartup(string archivePath)
     {
@@ -1730,6 +1734,10 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["ConnecticutBulk__ArchiveDirectory"] = ConnecticutArchiveDirectory;
         process.StartInfo.Environment["OregonBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["OregonBulk__ArchiveDirectory"] = OregonArchiveDirectory;
+        process.StartInfo.Environment["DelawareBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["DelawareBulk__ArchiveDirectory"] = DelawareArchiveDirectory;
+        process.StartInfo.Environment["VirginiaBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["VirginiaBulk__ArchiveDirectory"] = VirginiaArchiveDirectory;
         // A fresh test database triggers the Colorado baseline bootstrap; keep its archive out of the real App_Data.
         // A fresh test database would otherwise download the full DORA dataset and hold SQLite's write lock for minutes.
         process.StartInfo.Environment["ColoradoDoraBulk__BaselineBootstrapEnabled"] = "false";
@@ -1867,6 +1875,18 @@ public sealed class WebHostFixture : IAsyncLifetime
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             Console.Error.WriteLine($"Could not clean up Oregon test archive {OregonArchiveDirectory}: {exception.Message}");
+        }
+        foreach (var directory in new[] { DelawareArchiveDirectory, VirginiaArchiveDirectory })
+        {
+            try
+            {
+                if (Directory.Exists(directory))
+                    Directory.Delete(directory, recursive: true);
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                Console.Error.WriteLine($"Could not clean up test archive {directory}: {exception.Message}");
+            }
         }
         try
         {

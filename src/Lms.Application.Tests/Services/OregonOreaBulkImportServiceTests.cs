@@ -66,10 +66,10 @@ public sealed class OregonOreaBulkImportServiceTests
             Business(1, "100", "JOHN L SCOTT", "RBN", "PORTLAND"),
             Business(2, "101", "JOHN L SCOTT", "RBN", "BEND"),
             Business(3, "200", "Smith & Jones Realty, LLC", "RBN", "SALEM"),
-            Business(4, "300", "CASCADE HOMES GROUP", "RBN", "EUGENE"),
+            Business(4, "300", "CASCADE HIGHLANDS REALTY GROUP", "RBN", "EUGENE"),
             Business(5, "900", "JOHN L SCOTT", "RBO", "BEND"),
             Business(6, "901", "SMITH AND JONES REALTY RBO", "RBO", "SALEM"),
-            Business(7, "902", "CASCADE HOME GROUP", "RBO", "EUGENE")
+            Business(7, "902", "CASCADE HIGHLANDS HOMES", "RBO", "EUGENE")
         };
 
         var locations = OregonOreaBulkImportService.SelectLocations(records);
