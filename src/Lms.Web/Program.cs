@@ -169,6 +169,22 @@ builder.Services.AddSingleton<BulkCollectionService>(services => services.GetReq
 builder.Services.AddHttpClient("ConnecticutBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHostedService<ConnecticutBulkRefreshBackgroundService>();
+// OREA generates its free licensee rosters on request through an ASP.NET form; cookies are handled per download.
+var oregonBulk = new OregonBulkCollectionOptions { RefreshDays = 7, StaleAfterDays = 8 };
+builder.Configuration.GetSection("OregonBulk").Bind(oregonBulk);
+builder.Services.AddSingleton(oregonBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<OregonBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(oregonBulk));
+builder.Services.AddScoped<OregonOreaBulkImportService>();
+builder.Services.AddSingleton<OregonBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<OregonBulkCollectionService>());
+builder.Services.AddHttpClient("OregonBulk", client =>
+    {
+        client.Timeout = TimeSpan.FromMinutes(20);
+        client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (compatible; LMS-RosterCollector/1.0)");
+    })
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+builder.Services.AddHostedService<OregonBulkRefreshBackgroundService>();
 builder.Services.AddSingleton<TexasBulkCollectionService>();
 builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<TexasBulkCollectionService>());
 builder.Services.AddHttpClient("TexasBulk", client => client.Timeout = TimeSpan.FromMinutes(10))

@@ -395,3 +395,163 @@ public sealed class ConnecticutDcpBulkRosterProvider : SocrataBulkRosterProvider
         Action<string, long, long>? progress, Action<long>? staged) =>
         services.GetRequiredService<ConnecticutDcpBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
 }
+
+/// <summary>
+/// OREA generates rosters through an ASP.NET form: load the generator, post the free roster selection, read its
+/// download id from the download list, then fetch the CSV. Each file uses its own session; cookies are kept per call.
+/// </summary>
+public sealed class OregonOreaBulkRosterProvider : IBulkRosterProvider, IBulkRosterFileDownloader
+{
+    private const string Origin = "https://orea.elicense.micropact.com";
+    private const long MaxBytes = 200L * 1024 * 1024;
+    public string State => OregonOreaBulkImportService.State;
+    public string ArchiveFolder => "oregon-orea-bulk";
+    public string ParserVersion => OregonOreaBulkImportService.ParserVersion;
+    public string Layout => "OREA free roster CSV downloads: active businesses (19 columns), active individuals (32 columns, one row per business association) and inactive individuals (24 columns); spacer columns validated empty; complete source rows retained";
+    public IReadOnlyList<FloridaBulkFileDefinition> Files => OregonOreaBulkImportService.Definitions;
+    public string? RowCountUrl => null;
+    public Task<long?> GetPublishedRowsAsync(IHttpClientFactory clients, CancellationToken ct) => Task.FromResult<long?>(null);
+    public Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct, Action<long>? progress = null) =>
+        Task.FromResult(OregonOreaBulkImportService.CheckFile(path, file.Name, ct, progress));
+    public Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct, Action<string, long, long>? progress) =>
+        OregonOreaBulkImportService.ValidateArchiveAsync(root, ct, progress);
+    public Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
+        Action<string, long, long>? progress, Action<long>? staged) =>
+        services.GetRequiredService<OregonOreaBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
+
+    public async Task<BulkRosterDownloadResult> DownloadFileAsync(HttpClient client, string path,
+        FloridaBulkFileDefinition file, CancellationToken ct, Action<long, long?> progress)
+    {
+        var roster = OregonOreaBulkImportService.RosterName(file.Name);
+        var cookies = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        var generator = await SendAsync(client, HttpMethod.Get, OregonOreaBulkImportService.SourcePage, null, null, cookies, ct);
+        var form = await ReadPageAsync(generator, OregonOreaBulkImportService.SourcePage, ct);
+        var checkbox = FindRosterCheckbox(form, roster);
+        var fields = new List<KeyValuePair<string, string>>
+        {
+            new("__EVENTTARGET", ""), new("__EVENTARGUMENT", ""),
+            new("__VIEWSTATE", HiddenValue(form, "__VIEWSTATE") ?? throw new InvalidDataException("OREA roster form omitted its view state.")),
+            new("__VIEWSTATEGENERATOR", HiddenValue(form, "__VIEWSTATEGENERATOR") ?? ""),
+            new("__VIEWSTATEENCRYPTED", HiddenValue(form, "__VIEWSTATEENCRYPTED") ?? ""),
+            new(checkbox, "on"),
+            new("ctl00$MainContentPlaceHolder$btnRosterContinue", "Continue"),
+            new("ctl00$MainContentPlaceHolder$hfValidPage", "")
+        };
+        if (HiddenValue(form, "__EVENTVALIDATION") is { } validation) fields.Add(new("__EVENTVALIDATION", validation));
+
+        var posted = await SendAsync(client, HttpMethod.Post, OregonOreaBulkImportService.SourcePage,
+            new FormUrlEncodedContent(fields), OregonOreaBulkImportService.SourcePage, cookies, ct);
+        string downloads;
+        if (posted.StatusCode is System.Net.HttpStatusCode.Redirect or System.Net.HttpStatusCode.Found
+            or System.Net.HttpStatusCode.SeeOther or System.Net.HttpStatusCode.MovedPermanently)
+        {
+            var target = posted.Headers.Location is { } location ? new Uri(new Uri(OregonOreaBulkImportService.SourcePage), location) : null;
+            posted.Dispose();
+            if (target?.AbsoluteUri != OregonOreaBulkImportService.DownloadPage)
+                throw new InvalidDataException("OREA roster selection redirected away from its download list.");
+            downloads = await ReadPageAsync(await SendAsync(client, HttpMethod.Get, OregonOreaBulkImportService.DownloadPage,
+                null, OregonOreaBulkImportService.SourcePage, cookies, ct), OregonOreaBulkImportService.DownloadPage, ct);
+        }
+        else
+            downloads = await ReadPageAsync(posted, OregonOreaBulkImportService.SourcePage, ct);
+
+        // OREA usually generates a free roster immediately; allow a short wait if it is still being prepared.
+        string? rosterId = null;
+        for (var check = 0; ; check++)
+        {
+            var match = System.Text.RegularExpressions.Regex.Match(downloads,
+                "RosterIdnt=\"(\\d+)\"\\s*/>\\s*</td>\\s*<td>\\s*" + System.Text.RegularExpressions.Regex.Escape(roster)
+                + "\\s*</td>\\s*<td[^>]*>\\s*([^<]*?)\\s*</td>", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            if (!match.Success)
+                throw new InvalidDataException($"OREA download list did not include the {roster} roster.");
+            if (string.Equals(match.Groups[2].Value, "Ready for Download", StringComparison.OrdinalIgnoreCase))
+            {
+                rosterId = match.Groups[1].Value;
+                break;
+            }
+            if (check >= 11)
+                throw new InvalidDataException($"OREA did not finish preparing the {roster} roster ({match.Groups[2].Value}).");
+            await Task.Delay(TimeSpan.FromSeconds(5), ct);
+            downloads = await ReadPageAsync(await SendAsync(client, HttpMethod.Get, OregonOreaBulkImportService.DownloadPage,
+                null, OregonOreaBulkImportService.SourcePage, cookies, ct), OregonOreaBulkImportService.DownloadPage, ct);
+        }
+
+        var url = $"{OregonOreaBulkImportService.FileDownloadUrl}?Idnt={rosterId}&Type=Comma";
+        using var response = await SendAsync(client, HttpMethod.Get, url, null, OregonOreaBulkImportService.DownloadPage, cookies, ct);
+        if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            throw new HttpRequestException($"OREA roster download returned {(int)response.StatusCode}.", null, response.StatusCode);
+        var fileName = response.Content.Headers.ContentDisposition?.FileNameStar ?? response.Content.Headers.ContentDisposition?.FileName;
+        if (!string.Equals(fileName?.Trim('"'), file.Name, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"OREA returned an unexpected file for the {roster} roster.");
+        var expected = response.Content.Headers.ContentLength;
+        if (expected > MaxBytes) throw new InvalidDataException("OREA roster exceeds the 200 MiB safety limit.");
+        long bytes = 0;
+        await using (var destination = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true))
+        await using (var source = await response.Content.ReadAsStreamAsync(ct))
+        {
+            var buffer = new byte[81920];
+            int read;
+            while ((read = await source.ReadAsync(buffer, ct)) > 0)
+            {
+                bytes += read;
+                if (bytes > MaxBytes) throw new InvalidDataException("OREA roster exceeds the 200 MiB safety limit.");
+                await destination.WriteAsync(buffer.AsMemory(0, read), ct);
+                progress(bytes, expected);
+            }
+        }
+        if (expected is { } length && length != bytes)
+            throw new InvalidDataException("Incomplete OREA roster download.");
+        return new(bytes, response.Content.Headers.LastModified, response.Headers.ETag?.ToString());
+    }
+
+    public static string FindRosterCheckbox(string html, string roster)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(html,
+            "name=\"(ctl00\\$MainContentPlaceHolder\\$ckbRoster\\d+)\"[^>]*/>\\s*</span>\\s*" + System.Text.RegularExpressions.Regex.Escape(roster)
+            + "\\s*\\(No Fee Required\\)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        return match.Success
+            ? match.Groups[1].Value
+            : throw new InvalidDataException($"OREA no longer offers the free {roster} roster.");
+    }
+
+    private static string? HiddenValue(string html, string name)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(html,
+            "<input[^>]*name=\"" + System.Text.RegularExpressions.Regex.Escape(name) + "\"[^>]*value=\"([^\"]*)\"");
+        return match.Success ? System.Net.WebUtility.HtmlDecode(match.Groups[1].Value) : null;
+    }
+
+    private static async Task<string> ReadPageAsync(HttpResponseMessage response, string url, CancellationToken ct)
+    {
+        using (response)
+        {
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new HttpRequestException($"OREA page {url} returned {(int)response.StatusCode}.", null, response.StatusCode);
+            var html = await response.Content.ReadAsStringAsync(ct);
+            return html.Length > 2_000_000 ? throw new InvalidDataException("OREA page exceeded the expected size.") : html;
+        }
+    }
+
+    private static async Task<HttpResponseMessage> SendAsync(HttpClient client, HttpMethod method, string url, HttpContent? content,
+        string? referrer, Dictionary<string, string> cookies, CancellationToken ct)
+    {
+        if (!url.StartsWith(Origin + "/", StringComparison.Ordinal))
+            throw new InvalidDataException("OREA request left the allowlisted host.");
+        using var request = new HttpRequestMessage(method, url) { Content = content };
+        if (referrer is not null) request.Headers.Referrer = new Uri(referrer);
+        if (cookies.Count > 0)
+            request.Headers.Add("Cookie", string.Join("; ", cookies.Select(cookie => cookie.Key + "=" + cookie.Value)));
+        var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+        if (response.Headers.TryGetValues("Set-Cookie", out var values))
+        {
+            foreach (var value in values)
+            {
+                var pair = value.Split(';', 2)[0];
+                var separator = pair.IndexOf('=');
+                if (separator > 0) cookies[pair[..separator].Trim()] = pair[(separator + 1)..].Trim();
+            }
+        }
+        return response;
+    }
+}

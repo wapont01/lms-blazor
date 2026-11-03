@@ -1591,6 +1591,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         Path.GetFileNameWithoutExtension(DatabasePath) + "-arizona-bulk");
     private string ConnecticutArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
         Path.GetFileNameWithoutExtension(DatabasePath) + "-connecticut-bulk");
+    private string OregonArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-oregon-bulk");
 
     internal void ImportCaliforniaArchiveBeforeStartup(string archivePath)
     {
@@ -1726,6 +1728,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["ArizonaBulk__ArchiveDirectory"] = ArizonaArchiveDirectory;
         process.StartInfo.Environment["ConnecticutBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["ConnecticutBulk__ArchiveDirectory"] = ConnecticutArchiveDirectory;
+        process.StartInfo.Environment["OregonBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["OregonBulk__ArchiveDirectory"] = OregonArchiveDirectory;
         // A fresh test database triggers the Colorado baseline bootstrap; keep its archive out of the real App_Data.
         // A fresh test database would otherwise download the full DORA dataset and hold SQLite's write lock for minutes.
         process.StartInfo.Environment["ColoradoDoraBulk__BaselineBootstrapEnabled"] = "false";
@@ -1854,6 +1858,15 @@ public sealed class WebHostFixture : IAsyncLifetime
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             Console.Error.WriteLine($"Could not clean up Connecticut test archive {ConnecticutArchiveDirectory}: {exception.Message}");
+        }
+        try
+        {
+            if (Directory.Exists(OregonArchiveDirectory))
+                Directory.Delete(OregonArchiveDirectory, recursive: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Could not clean up Oregon test archive {OregonArchiveDirectory}: {exception.Message}");
         }
         try
         {

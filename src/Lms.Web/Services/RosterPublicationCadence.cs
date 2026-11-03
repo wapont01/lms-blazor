@@ -39,6 +39,11 @@ public sealed record RosterPublicationCadence(string Frequency, string Evidence,
             "Real Estate Salesperson Licenses and Real Estate Broker Licenses: \"Updated daily.\" All three datasets list Update Frequency: Daily.",
             ConnecticutDcpBulkImportService.SourcePage,
             "2026-11-03", "Recommended collection: 1 Day. More frequent collection usually rechecks the same daily datasets; a weekly collection can leave the LMS several days behind the source. Publication time is not specified. The salesperson and broker datasets include every status; the broker association dataset lists actively licensed salespersons only."),
+        "Oregon" => new("On demand",
+            "Select a FREE downloadable Roster from the list below, then click the Continue button. Each request generates a new list on the Download List(s) page.",
+            OregonOreaBulkImportService.SourcePage,
+            "2026-11-03", "Recommended collection: 1 Week. OREA does not state a publication frequency; it generates each roster when requested, so any interval returns current data. The three free rosters total about 5 MB and 23,000 licensees, so a daily interval is also affordable if faster detection is needed. Escrow agent registrations stay in the source file only.",
+            @"src\docs\OREGON\TXTS\Available Rosters for Download PORTAL.txt (line 11)"),
         _ => new("Not verified", "No regulator publication cadence has been recorded for this state.",
             "", "", "Recommended collection: not established. Verify the official source before choosing an interval. More frequent collection may repeat unchanged data; less frequent collection may delay changes.")
     };

@@ -213,6 +213,10 @@ public sealed class RegulatoryCollectionTests
         builder.Services.AddSingleton(connecticutOptions);
         builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<ConnecticutBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(connecticutOptions));
         builder.Services.AddSingleton<ConnecticutBulkCollectionService>();
+        var oregonOptions = new OregonBulkCollectionOptions { WeeklyEnabled = false, ArchiveDirectory = Path.Combine(testRoot, "oregon-stored") };
+        builder.Services.AddSingleton(oregonOptions);
+        builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<OregonBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(oregonOptions));
+        builder.Services.AddSingleton<OregonBulkCollectionService>();
         builder.Services.AddHostedService<FloridaBulkRefreshBackgroundService>();
         builder.Services.AddHttpClient("FloridaBulk").ConfigurePrimaryHttpMessageHandler(() => handler);
         await using var app = builder.Build();
