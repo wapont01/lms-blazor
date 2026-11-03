@@ -393,6 +393,9 @@ using (var scope = app.Services.CreateScope())
     await EnsureSchoolProfileStateSchemaAsync(dbContext);
     await EnsureUserAndCourseStateSchemaAsync(dbContext);
     await EnsureRegulatoryAffiliationEmailSchemaAsync(dbContext);
+    var nameIndexStarted = System.Diagnostics.Stopwatch.StartNew();
+    if (await RegulatoryLicenseeNameIndex.EnsureAsync(dbContext))
+        app.Logger.LogInformation("Built roster name search index in {Elapsed}.", nameIndexStarted.Elapsed);
     await userAccountService.EnsureSeedUsersAsync();
     await CourseSeed.SeedAsync(dbContext);
     await StateLicensingEntrySeed.SeedAsync(dbContext);

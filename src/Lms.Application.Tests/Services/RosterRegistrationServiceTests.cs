@@ -326,6 +326,47 @@ public sealed class RosterRegistrationServiceTests
     }
 
     [Fact]
+    public async Task NameSearch_UsesWordPrefixIndexKeptInSyncWithRoster()
+    {
+        await using var f = await Fixture.CreateAsync();
+        var nona = new RegulatoryLicensee { SnapshotId = f.Snapshot.Id, State = "Florida", LicenseNumber = "IX-1", Name = "LISITZA, NONA", LicenseType = "Broker" };
+        var jose = new RegulatoryLicensee { SnapshotId = f.Snapshot.Id, State = "Florida", LicenseNumber = "IX-2", Name = "José O'Brien-Núñez", LicenseType = "Broker" };
+        f.Db.RegulatoryLicensees.AddRange(nona, jose);
+        await f.Db.SaveChangesAsync();
+
+        async Task<int> Count(string name) =>
+            (await f.Service.SearchAsync(new RosterSearch("Florida", Name: name), captchaToken: "synthetic")).Total;
+
+        Assert.Equal(1, await Count("Nona Lisitza"));
+        Assert.Equal(1, await Count("lisit no"));
+        Assert.Equal(1, await Count("Lisitza, Nona"));
+        Assert.Equal(0, await Count("sitza"));
+        Assert.Equal(0, await Count("Nona Smith"));
+        Assert.Equal(1, await Count("jose brien"));
+        Assert.Equal(1, await Count("Jose O'Brien Nunez"));
+        Assert.Equal(0, await Count("\"nona\" OR*"));
+        Assert.Equal(0, await Count("Unapproved"));
+        Assert.Equal(0, await Count("Old Old"));
+
+        nona.Name = "LISITZA-SMITH, NONA";
+        await f.Db.SaveChangesAsync();
+        Assert.Equal(1, await Count("Nona Smith"));
+        f.Db.RegulatoryLicensees.Remove(nona);
+        await f.Db.SaveChangesAsync();
+        Assert.Equal(0, await Count("Nona"));
+    }
+
+    [Fact]
+    public void NameMatchExpression_KeepsOnlyQuotedWordPrefixes()
+    {
+        var id = Guid.Parse("0f8fad5b-d9cb-469f-a165-70867728950e");
+        Assert.Equal("Name:\"NONA\"* Name:\"LISITZA\"* Scope:\"S0F8FAD5BD9CB469FA16570867728950E\"",
+            RegulatoryLicenseeNameIndex.BuildMatchExpression("  nona, Lisitza ", id));
+        Assert.StartsWith("Name:\"O\"* Name:\"BRIEN\"* Scope:", RegulatoryLicenseeNameIndex.BuildMatchExpression("O'Brien \"*", id));
+        Assert.Null(RegulatoryLicenseeNameIndex.BuildMatchExpression("%%% -- ()", id));
+    }
+
+    [Fact]
     public async Task ExtendedSearch_IsStateGatedCombinedLiteralAndPaged()
     {
         await using var f = await Fixture.CreateAsync();
@@ -803,6 +844,7 @@ public sealed class RosterRegistrationServiceTests
             await connection.OpenAsync();
             var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlite(connection).Options);
             await db.Database.EnsureCreatedAsync();
+            await RegulatoryLicenseeNameIndex.EnsureAsync(db);
             var fixture = new Fixture(connection, db);
             db.UserAccounts.Add(fixture.Admin);
             db.RegulatoryDataSnapshots.Add(fixture.Snapshot);

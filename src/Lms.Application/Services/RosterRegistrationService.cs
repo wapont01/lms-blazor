@@ -143,8 +143,23 @@ public sealed class RosterRegistrationService(
                     : query.Where(item => item.LicenseNumber.ToUpper() == license);
             }
         }
+        var nameFiltered = false;
+        if (name.Length > 0 && license.Length == 0 && await RegulatoryLicenseeNameIndex.ExistsAsync(db, ct))
+        {
+            // Word-prefix match through the FTS index; a substring scan of a multi-million-row roster times out.
+            var match = RegulatoryLicenseeNameIndex.BuildMatchExpression(name, snapshotId.Value);
+            if (match is null) return new([], 0, 1, 20);
+            // CROSS JOIN keeps FTS as the driving table; otherwise SQLite walks the whole snapshot index.
+            query = db.RegulatoryLicensees.FromSqlInterpolated($"""
+                SELECT l.* FROM RegulatoryLicenseeNameSearch AS f
+                CROSS JOIN RegulatoryLicensees AS l ON l.rowid = f.rowid
+                WHERE f.RegulatoryLicenseeNameSearch MATCH {match}
+                """).AsNoTracking()
+                .Where(item => item.SnapshotId == snapshotId && item.State == search.State);
+            nameFiltered = true;
+        }
         query = await ApplyDisplaySelectionAsync(query, search.State, snapshotId.Value, ct);
-        if (name.Length > 0) query = query.Where(item => item.Name.ToUpper().Contains(name));
+        if (name.Length > 0 && !nameFiltered) query = query.Where(item => item.Name.ToUpper().Contains(name));
         if (type.Length > 0)
         {
             query = await IsColoradoDoraSnapshotAsync(snapshotId.Value, ct)
