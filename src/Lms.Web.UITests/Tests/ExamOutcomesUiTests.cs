@@ -1587,6 +1587,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         Path.GetFileNameWithoutExtension(DatabasePath) + "-colorado-dora-bulk");
     private string NewYorkArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
         Path.GetFileNameWithoutExtension(DatabasePath) + "-new-york-bulk");
+    private string ArizonaArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-arizona-bulk");
 
     internal void ImportCaliforniaArchiveBeforeStartup(string archivePath)
     {
@@ -1718,6 +1720,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["NevadaBulk__ArchiveDirectory"] = NevadaArchiveDirectory;
         process.StartInfo.Environment["NewYorkBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["NewYorkBulk__ArchiveDirectory"] = NewYorkArchiveDirectory;
+        process.StartInfo.Environment["ArizonaBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["ArizonaBulk__ArchiveDirectory"] = ArizonaArchiveDirectory;
         // A fresh test database triggers the Colorado baseline bootstrap; keep its archive out of the real App_Data.
         // A fresh test database would otherwise download the full DORA dataset and hold SQLite's write lock for minutes.
         process.StartInfo.Environment["ColoradoDoraBulk__BaselineBootstrapEnabled"] = "false";
@@ -1828,6 +1832,15 @@ public sealed class WebHostFixture : IAsyncLifetime
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
             Console.Error.WriteLine($"Could not clean up New York test archive {NewYorkArchiveDirectory}: {exception.Message}");
+        }
+        try
+        {
+            if (Directory.Exists(ArizonaArchiveDirectory))
+                Directory.Delete(ArizonaArchiveDirectory, recursive: true);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            Console.Error.WriteLine($"Could not clean up Arizona test archive {ArizonaArchiveDirectory}: {exception.Message}");
         }
         try
         {

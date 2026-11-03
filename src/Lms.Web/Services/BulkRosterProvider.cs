@@ -124,6 +124,24 @@ public sealed class CaliforniaBulkRosterProvider : IBulkRosterProvider
         services.GetRequiredService<CaliforniaBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
 }
 
+public sealed class ArizonaAdreBulkRosterProvider : IBulkRosterProvider
+{
+    public string State => ArizonaAdreBulkImportService.State;
+    public string ArchiveFolder => "arizona-adre-bulk";
+    public string ParserVersion => ArizonaAdreBulkImportService.ParserVersion;
+    public string Layout => "ADRE on-demand UTF-8 CSV lists (22-column individuals, 18-column entities); Real Estate category imported with all statuses; cemetery and campground rows retained only in the source files";
+    public IReadOnlyList<FloridaBulkFileDefinition> Files => ArizonaAdreBulkImportService.Definitions;
+    public string? RowCountUrl => null;
+    public Task<long?> GetPublishedRowsAsync(IHttpClientFactory clients, CancellationToken ct) => Task.FromResult<long?>(null);
+    public Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct, Action<long>? progress = null) =>
+        Task.FromResult(ArizonaAdreBulkImportService.CheckFile(path, file.Name, ct, progress));
+    public Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct, Action<string, long, long>? progress) =>
+        ArizonaAdreBulkImportService.ValidateArchiveAsync(root, ct, progress);
+    public Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
+        Action<string, long, long>? progress, Action<long>? staged) =>
+        services.GetRequiredService<ArizonaAdreBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
+}
+
 public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRosterFileDownloader
 {
     private const int PageSize = 50_000;

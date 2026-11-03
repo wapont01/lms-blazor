@@ -145,6 +145,18 @@ builder.Services.AddSingleton<BulkCollectionService>(services => services.GetReq
 builder.Services.AddHttpClient("New YorkBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHostedService<NewYorkBulkRefreshBackgroundService>();
+// ADRE generates its lists on demand from the live license database.
+var arizonaBulk = new ArizonaBulkCollectionOptions { RefreshDays = 7, StaleAfterDays = 8 };
+builder.Configuration.GetSection("ArizonaBulk").Bind(arizonaBulk);
+builder.Services.AddSingleton(arizonaBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<ArizonaBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(arizonaBulk));
+builder.Services.AddScoped<ArizonaAdreBulkImportService>();
+builder.Services.AddSingleton<ArizonaBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<ArizonaBulkCollectionService>());
+builder.Services.AddHttpClient("ArizonaBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<ArizonaBulkRefreshBackgroundService>();
 builder.Services.AddSingleton<TexasBulkCollectionService>();
 builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<TexasBulkCollectionService>());
 builder.Services.AddHttpClient("TexasBulk", client => client.Timeout = TimeSpan.FromMinutes(10))

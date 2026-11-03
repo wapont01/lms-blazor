@@ -111,8 +111,8 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db, Regulat
                 .ThenByDescending(snapshot => ToUtc(snapshot.ImportedAtUtc)).ThenBy(snapshot => snapshot.Id).ToList();
             incoming = published.FirstOrDefault(snapshot => snapshot.ParserVersion == RegulatoryRoster.BulkParser(state));
             baseline = incoming is null ? baseline : published.FirstOrDefault(snapshot => snapshot.Id != incoming.Id);
-            // Nevada and New York compare only against earlier bulk rosters, not small manual lookup captures.
-            if (state is "Nevada" or "New York")
+            // These states compare only against earlier bulk rosters, not manual or canonical captures with other fields.
+            if (state is "Nevada" or "New York" or "Arizona")
                 baseline = incoming is null ? null : published.FirstOrDefault(snapshot =>
                     snapshot.Id != incoming.Id && snapshot.ParserVersion == RegulatoryRoster.BulkParser(state));
         }

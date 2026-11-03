@@ -71,7 +71,7 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         await page.GotoAsync($"{fixture.BaseUrl}/admin/regulatory-schedules");
 
         var schedules = page.GetByRole(AriaRole.Table, new() { Name = "State collection schedules", Exact = true });
-        await Assertions.Expect(schedules.Locator("tbody tr")).ToHaveCountAsync(6);
+        await Assertions.Expect(schedules.Locator("tbody tr")).ToHaveCountAsync(7);
         var nevadaCadence = schedules.GetByLabel("Nevada publication cadence", new() { Exact = true });
         await nevadaCadence.Locator("summary").ClickAsync();
         await Assertions.Expect(nevadaCadence).ToContainTextAsync("Monthly");
@@ -100,6 +100,9 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         await Assertions.Expect(schedules.GetByLabel("New York time zone")).ToHaveValueAsync("America/New_York");
         await Assertions.Expect(schedules.Locator("tbody tr").Filter(new() { HasText = "New York" }))
             .ToContainTextAsync("Recommended collection: 1 Day");
+        await Assertions.Expect(schedules.GetByLabel("Arizona time zone")).ToHaveValueAsync("America/Phoenix");
+        await Assertions.Expect(schedules.Locator("tbody tr").Filter(new() { HasText = "Arizona" }))
+            .ToContainTextAsync("Recommended collection: 1 Week");
         await Assertions.Expect(schedules.GetByLabel("California time zone")).ToHaveValueAsync("America/Los_Angeles");
         await Assertions.Expect(schedules.GetByLabel("Florida time zone")).ToHaveValueAsync("America/New_York");
         await Assertions.Expect(page.Locator("body")).ToContainTextAsync("New state collectors appear here when implemented");

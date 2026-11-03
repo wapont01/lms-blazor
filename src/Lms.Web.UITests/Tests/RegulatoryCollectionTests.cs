@@ -205,6 +205,10 @@ public sealed class RegulatoryCollectionTests
         builder.Services.AddSingleton(newYorkOptions);
         builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<NewYorkBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(newYorkOptions));
         builder.Services.AddSingleton<NewYorkBulkCollectionService>();
+        var arizonaOptions = new ArizonaBulkCollectionOptions { WeeklyEnabled = false, ArchiveDirectory = Path.Combine(testRoot, "arizona-stored") };
+        builder.Services.AddSingleton(arizonaOptions);
+        builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<ArizonaBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(arizonaOptions));
+        builder.Services.AddSingleton<ArizonaBulkCollectionService>();
         builder.Services.AddHostedService<FloridaBulkRefreshBackgroundService>();
         builder.Services.AddHttpClient("FloridaBulk").ConfigurePrimaryHttpMessageHandler(() => handler);
         await using var app = builder.Build();

@@ -13,6 +13,8 @@
 @inject NevadaBulkCollectionOptions NevadaOptions
 @inject NewYorkBulkCollectionService NewYorkCollection
 @inject NewYorkBulkCollectionOptions NewYorkOptions
+@inject ArizonaBulkCollectionService ArizonaCollection
+@inject ArizonaBulkCollectionOptions ArizonaOptions
 @inject ILogger<AdminFloridaBulkCollection> Logger
 
 <section class="card bulk-collection" aria-label="@($"{State} bulk collection")">
@@ -23,7 +25,7 @@
             @(_starting ? "Starting..." : _stopping || _status?.State == "Stopping" ? "Cancelling..." : IsRunning ? "Cancel collection" : State == "Nevada" ? "Collect data" : "Collect now")
         </button>
     </div>
-    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
+    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
     @if (State == "Nevada")
     {
         <p class="muted-text">Collects the 12 supported active lists directly from NRED on the application server, not through this browser. NRED updates these lists monthly. Reserve Study Specialists is a separate historical workbook and is not included. Acquisition timestamps are recorded; no source publication date is inferred.</p>
@@ -59,6 +61,10 @@
         else if (State == "New York")
         {
             <a href="@NewYorkDosBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">New York DOS active real estate salespersons and brokers dataset</a>
+        }
+        else if (State == "Arizona")
+        {
+            <a href="@ArizonaAdreBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Arizona ADRE public database lists</a>
         }
     </nav>
     @if (_error is not null)
@@ -97,7 +103,7 @@
                         @foreach (var file in status.Files)
                         {
                             <tr>
-                                <th scope="row">@file.Name</th><td>@(State == "Texas" ? "Individuals and broker companies; all published statuses" : State == "California" ? file.Name == "CurrList.zip" ? "Published license roles, statuses and restrictions" : "Responsible-broker affiliations and dates" : State == "Colorado" ? "All published DORA records and statuses" : State == "Nevada" ? file.Name == "NRED-ACTIVE-HOA.xlsx" ? "Source evidence only" : "Numbered professional licenses" : State == "New York" ? "Active salespersons, brokers and offices" : FilePurpose(file.Name))</td>
+                                <th scope="row">@file.Name</th><td>@(State == "Texas" ? "Individuals and broker companies; all published statuses" : State == "California" ? file.Name == "CurrList.zip" ? "Published license roles, statuses and restrictions" : "Responsible-broker affiliations and dates" : State == "Colorado" ? "All published DORA records and statuses" : State == "Nevada" ? file.Name == "NRED-ACTIVE-HOA.xlsx" ? "Source evidence only" : "Numbered professional licenses" : State == "New York" ? "Active salespersons, brokers and offices" : State == "Arizona" ? file.Name == ArizonaAdreBulkImportService.IndividualsFile ? "Salespersons and brokers; all statuses; employing entity" : "Firms and branch offices; designated broker" : FilePurpose(file.Name))</td>
                                 <td class="file-progress">
                                     @file.State
                                     @if (file.State.StartsWith("Validating", StringComparison.Ordinal) && file.ExpectedRows is > 0)
@@ -165,6 +171,10 @@
         {
             <p>NY DOS publishes dataset yg7h-zjbf daily on data.ny.gov. It lists active licenses only (salespersons, associate and individual brokers, corporate, LLC, partnership and trade-name brokers, and principal and branch offices); there is no status column, so every record is Active and a license missing from a later collection is not classified as revoked. Every source row is archived; licensees listed at more than one business address appear once per license type. The business name is kept as the employing company, not as an inferred affiliation. The expiration date is stored; offices have none.</p>
         }
+                    else if (State == "Arizona")
+                    {
+                        <p>ADRE generates the individuals and entities lists on demand from its live license database. Both files must pass schema, row count and hash checks before automatic activation. Only the Real Estate category is imported (cemetery and campground licenses stay in the source files), with every published status, including terminated and expired. Entities become firms and branch offices; each person is linked to the employing entity on the list, and the entity's designated broker is marked broker in charge. Where ADRE lists one license number twice, the most recently modified row is kept. Mailing addresses are not stored in the directory; the original files remain Admin-only.</p>
+                    }
         <p>Stop collection cancels only the current run. An uncommitted import is rolled back and the last completed archive is retained. You can collect again manually; automatic collection waits at least one refresh interval after an administrator stops a run.</p>
     </details>
 </section>
@@ -178,6 +188,7 @@
         "Colorado" => ColoradoDoraCollection,
         "Nevada" => NevadaCollection,
         "New York" => NewYorkCollection,
+        "Arizona" => ArizonaCollection,
         _ => FloridaCollection
     };
     private FloridaBulkCollectionOptions Options => State switch
@@ -187,6 +198,7 @@
         "Colorado" => ColoradoDoraOptions,
         "Nevada" => NevadaOptions,
         "New York" => NewYorkOptions,
+        "Arizona" => ArizonaOptions,
         _ => FloridaOptions
     };
     [Parameter] public EventCallback<Guid> SnapshotCompleted { get; set; }

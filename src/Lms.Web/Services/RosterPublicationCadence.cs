@@ -1,5 +1,7 @@
 namespace Lms.Web.Services;
 
+using Lms.Application.Services;
+
 public sealed record RosterPublicationCadence(string Frequency, string Evidence, string SourceUrl,
     string ReviewedOn, string SchedulingNote, string? SavedEvidence = null)
 {
@@ -29,6 +31,10 @@ public sealed record RosterPublicationCadence(string Frequency, string Evidence,
             "Dataset Summary - Posting Frequency: Daily. Data is only accurate as of the previous business day.",
             "https://data.ny.gov/Economic-Development/Active-Real-Estate-Salespersons-and-Brokers/yg7h-zjbf",
             "2026-11-02", "Recommended collection: 1 Day. More frequent collection usually rechecks the same daily dataset; a weekly collection can leave the LMS several days behind the source. Publication time is not specified. The dataset lists active licenses only."),
+        "Arizona" => new("On demand",
+            "The lists are generated on demand and can take a few seconds to generate.",
+            ArizonaAdreBulkImportService.SourcePage,
+            "2026-11-03", "Recommended collection: 1 Week. ADRE builds each list from its live license database when it is downloaded, so any interval returns current data; daily collection adds a 50 MB download and a 225,000-row snapshot each day, while longer intervals delay changes. Only the Real Estate category is imported; cemetery and campground licenses are excluded."),
         _ => new("Not verified", "No regulator publication cadence has been recorded for this state.",
             "", "", "Recommended collection: not established. Verify the official source before choosing an interval. More frequent collection may repeat unchanged data; less frequent collection may delay changes.")
     };
