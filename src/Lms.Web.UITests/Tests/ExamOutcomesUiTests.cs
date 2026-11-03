@@ -1599,6 +1599,10 @@ public sealed class WebHostFixture : IAsyncLifetime
         Path.GetFileNameWithoutExtension(DatabasePath) + "-illinois-bulk");
     private string VirginiaArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
         Path.GetFileNameWithoutExtension(DatabasePath) + "-virginia-bulk");
+    private string MichiganArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-michigan-bulk");
+    private string WestVirginiaArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-west-virginia-bulk");
 
     internal void ImportCaliforniaArchiveBeforeStartup(string archivePath)
     {
@@ -1742,6 +1746,10 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["IllinoisBulk__ArchiveDirectory"] = IllinoisArchiveDirectory;
         process.StartInfo.Environment["VirginiaBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["VirginiaBulk__ArchiveDirectory"] = VirginiaArchiveDirectory;
+        process.StartInfo.Environment["MichiganBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["MichiganBulk__ArchiveDirectory"] = MichiganArchiveDirectory;
+        process.StartInfo.Environment["WestVirginiaBulk__WeeklyEnabled"] = "false";
+        process.StartInfo.Environment["WestVirginiaBulk__ArchiveDirectory"] = WestVirginiaArchiveDirectory;
         // A fresh test database triggers the Colorado baseline bootstrap; keep its archive out of the real App_Data.
         // A fresh test database would otherwise download the full DORA dataset and hold SQLite's write lock for minutes.
         process.StartInfo.Environment["ColoradoDoraBulk__BaselineBootstrapEnabled"] = "false";
@@ -1880,7 +1888,7 @@ public sealed class WebHostFixture : IAsyncLifetime
         {
             Console.Error.WriteLine($"Could not clean up Oregon test archive {OregonArchiveDirectory}: {exception.Message}");
         }
-        foreach (var directory in new[] { DelawareArchiveDirectory, VirginiaArchiveDirectory, IllinoisArchiveDirectory })
+        foreach (var directory in new[] { DelawareArchiveDirectory, VirginiaArchiveDirectory, IllinoisArchiveDirectory, MichiganArchiveDirectory, WestVirginiaArchiveDirectory })
         {
             try
             {

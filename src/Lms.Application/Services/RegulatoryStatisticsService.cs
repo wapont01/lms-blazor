@@ -121,7 +121,7 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db, Regulat
             incoming = published.FirstOrDefault(snapshot => snapshot.ParserVersion == RegulatoryRoster.BulkParser(state));
             baseline = incoming is null ? baseline : published.FirstOrDefault(snapshot => snapshot.Id != incoming.Id);
             // These states compare only against earlier bulk rosters, not manual or canonical captures with other fields.
-            var sameParserOnly = state is "Nevada" or "New York" or "Arizona" or "Connecticut" or "Oregon" or "Delaware" or "Virginia" or "Illinois";
+            var sameParserOnly = state is "Nevada" or "New York" or "Arizona" or "Connecticut" or "Oregon" or "Delaware" or "Virginia" or "Illinois" or "Michigan" or "West Virginia";
             if (sameParserOnly)
                 baseline = incoming is null ? null : published.FirstOrDefault(snapshot =>
                     snapshot.Id != incoming.Id && snapshot.ParserVersion == RegulatoryRoster.BulkParser(state));

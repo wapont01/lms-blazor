@@ -1,0 +1,34 @@
+@baseUrl = http://localhost:5000
+@adminCookie = replace-with-authenticated-admin-cookie
+
+### Michigan original license report (404 before a completed collection)
+GET {{baseUrl}}/admin/michigan-bulk/exports/real-estate-licenses.xlsx
+Cookie: {{adminCookie}}
+
+### Michigan original employer report
+GET {{baseUrl}}/admin/michigan-bulk/exports/real-estate-employers.xlsx
+Cookie: {{adminCookie}}
+
+### Michigan acquisition manifest
+GET {{baseUrl}}/admin/michigan-bulk/exports/manifest.json
+Cookie: {{adminCookie}}
+
+### West Virginia acquisition manifest
+GET {{baseUrl}}/admin/west%20virginia-bulk/exports/manifest.json
+Cookie: {{adminCookie}}
+
+### West Virginia original active salesperson roster
+GET {{baseUrl}}/admin/west%20virginia-bulk/exports/SalespersonRoster.xlsx
+Cookie: {{adminCookie}}
+
+### West Virginia original active associate-broker roster
+GET {{baseUrl}}/admin/west%20virginia-bulk/exports/AssociateBrokerRoster.xlsx
+Cookie: {{adminCookie}}
+
+### West Virginia original active broker roster
+GET {{baseUrl}}/admin/west%20virginia-bulk/exports/BrokerRoster.xlsx
+Cookie: {{adminCookie}}
+
+### Unknown export returns 404 for an authenticated administrator
+GET {{baseUrl}}/admin/michigan-bulk/exports/unknown.xlsx
+Cookie: {{adminCookie}}

@@ -229,6 +229,16 @@ public sealed class RegulatoryCollectionTests
         builder.Services.AddSingleton(virginiaOptions);
         builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<VirginiaBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(virginiaOptions));
         builder.Services.AddSingleton<VirginiaBulkCollectionService>();
+        var michiganOptions = new MichiganBulkCollectionOptions { WeeklyEnabled = false, ArchiveDirectory = Path.Combine(testRoot, "michigan-stored") };
+        builder.Services.AddSingleton(michiganOptions);
+        builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<MichiganBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(michiganOptions));
+        builder.Services.AddScoped<MichiganLaraBulkImportService>();
+        builder.Services.AddSingleton<MichiganBulkCollectionService>();
+        var westVirginiaOptions = new WestVirginiaBulkCollectionOptions { WeeklyEnabled = false, ArchiveDirectory = Path.Combine(testRoot, "west-virginia-stored") };
+        builder.Services.AddSingleton(westVirginiaOptions);
+        builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<WestVirginiaBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(westVirginiaOptions));
+        builder.Services.AddScoped<WestVirginiaRecBulkImportService>();
+        builder.Services.AddSingleton<WestVirginiaBulkCollectionService>();
         builder.Services.AddHostedService<FloridaBulkRefreshBackgroundService>();
         builder.Services.AddHttpClient("FloridaBulk").ConfigurePrimaryHttpMessageHandler(() => handler);
         await using var app = builder.Build();

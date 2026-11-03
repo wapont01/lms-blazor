@@ -226,6 +226,28 @@ builder.Services.AddHttpClient("VirginiaBulk", client =>
     })
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHostedService<VirginiaBulkRefreshBackgroundService>();
+var michiganBulk = new MichiganBulkCollectionOptions { WeeklyEnabled = false, RefreshDays = 1, StaleAfterDays = 2 };
+builder.Configuration.GetSection("MichiganBulk").Bind(michiganBulk);
+builder.Services.AddSingleton(michiganBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<MichiganBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(michiganBulk));
+builder.Services.AddScoped<MichiganLaraBulkImportService>();
+builder.Services.AddSingleton<MichiganBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<MichiganBulkCollectionService>());
+builder.Services.AddHttpClient("MichiganBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+builder.Services.AddHostedService<MichiganBulkRefreshBackgroundService>();
+var westVirginiaBulk = new WestVirginiaBulkCollectionOptions { WeeklyEnabled = false, RefreshDays = 30, StaleAfterDays = 35 };
+builder.Configuration.GetSection("WestVirginiaBulk").Bind(westVirginiaBulk);
+builder.Services.AddSingleton(westVirginiaBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<WestVirginiaBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(westVirginiaBulk));
+builder.Services.AddScoped<WestVirginiaRecBulkImportService>();
+builder.Services.AddSingleton<WestVirginiaBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<WestVirginiaBulkCollectionService>());
+builder.Services.AddHttpClient("West VirginiaBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<WestVirginiaBulkRefreshBackgroundService>();
 builder.Services.AddSingleton<TexasBulkCollectionService>();
 builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<TexasBulkCollectionService>());
 builder.Services.AddHttpClient("TexasBulk", client => client.Timeout = TimeSpan.FromMinutes(10))

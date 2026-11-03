@@ -25,6 +25,10 @@
 @inject IllinoisBulkCollectionOptions IllinoisOptions
 @inject VirginiaBulkCollectionService VirginiaCollection
 @inject VirginiaBulkCollectionOptions VirginiaOptions
+@inject MichiganBulkCollectionService MichiganCollection
+@inject MichiganBulkCollectionOptions MichiganOptions
+@inject WestVirginiaBulkCollectionService WestVirginiaCollection
+@inject WestVirginiaBulkCollectionOptions WestVirginiaOptions
 @inject ILogger<AdminFloridaBulkCollection> Logger
 
 <section class="card bulk-collection" aria-label="@($"{State} bulk collection")">
@@ -35,7 +39,7 @@
             @(_starting ? "Starting..." : _stopping || _status?.State == "Stopping" ? "Cancelling..." : IsRunning ? "Cancel collection" : State == "Nevada" ? "Collect data" : "Collect now")
         </button>
     </div>
-    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : State == "Oregon" ? "OREA active business and active and inactive individual rosters" : State == "Delaware" ? "DPR real estate and appraiser professional licensing dataset" : State == "Illinois" ? "IDFPR real estate and appraisal professional licensing dataset" : State == "Virginia" ? "DPOR Real Estate Board regulant lists" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
+    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : State == "Oregon" ? "OREA active business and active and inactive individual rosters" : State == "Delaware" ? "DPR real estate and appraiser professional licensing dataset" : State == "Illinois" ? "IDFPR real estate and appraisal professional licensing dataset" : State == "Virginia" ? "DPOR Real Estate Board regulant lists" : State == "Michigan" ? "LARA current real-estate license and employer reports" : State == "West Virginia" ? "WVREC active licensee workbooks" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
     @if (State == "Nevada")
     {
         <p class="muted-text">Collects the 12 supported active lists directly from NRED on the application server, not through this browser. NRED updates these lists monthly. Reserve Study Specialists is a separate historical workbook and is not included. Acquisition timestamps are recorded; no source publication date is inferred.</p>
@@ -97,6 +101,14 @@
         else if (State == "Virginia")
         {
             <a href="@VirginiaDporBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Virginia DPOR regulant lists</a>
+        }
+        else if (State == "Michigan")
+        {
+            <a href="@MichiganLaraBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Michigan LARA license and employer reports</a>
+        }
+        else if (State == "West Virginia")
+        {
+            <a href="@WestVirginiaRecBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">West Virginia REC active licensee rosters</a>
         }
     </nav>
     @if (_error is not null)
@@ -227,6 +239,14 @@
                                 {
                                     <p>DPOR replaces its regulant lists every 5 business days, usually on Mondays. All 13 Real Estate Board lists must pass schema, row count and hash checks before automatic activation; the settlement agent list may be empty. License numbers combine board, occupation and certificate (for example 0225250860). Active and inactive salespersons, associate brokers, principal brokers and sole proprietors become licensees; their status comes from the list they appear on. Current firms, business entities and sole proprietorships become real estate firms, settlement agents become settlement firms, and branch offices become firm locations linked by business name (exact, normalized, then a closely matching name flagged for review; otherwise left unlinked). Expired licenses and broker affiliations are not published. Business names that contain a literal tab are rejoined.</p>
                                 }
+        else if (State == "Michigan")
+        {
+            <p>MiPLUS generates both Excel reports on demand. The license report covers current real-estate credentials, including any suspended or late-renewal statuses it publishes, not historical expired licenses. Broker companies and individual brokers become firms; individual brokers also remain searchable licensees. Branch offices become additional locations. The active-employer report links people and branches only by published broker license numbers present in the license report; unmatched relationships remain in the archive. No relationships are guessed from names. Both reports must pass schema, row count and hash checks before activation. Report acquisition times may differ because each report queries the live database separately.</p>
+        }
+        else if (State == "West Virginia")
+        {
+            <p>WVREC publishes separate active salesperson, associate-broker and broker Excel rosters. All files must pass schema, row count and hash checks before activation. Only published active licenses are covered, not a historical all-status roster. Companies use published CompanyNumber identifiers, not verified firm license numbers; company status and license dates remain unknown. Branch locations use CompanyNumber and BranchNumber together because branch numbers repeat across companies. Affiliations use published company IDs only; broker-in-charge status and relationship dates are not inferred. The original workbooks remain Admin-only. Missing licenses never imply revocation.</p>
+        }
         <p>Stop collection cancels only the current run. An uncommitted import is rolled back and the last completed archive is retained. You can collect again manually; automatic collection waits at least one refresh interval after an administrator stops a run.</p>
     </details>
 </section>
@@ -246,6 +266,8 @@
         "Delaware" => DelawareCollection,
         "Illinois" => IllinoisCollection,
         "Virginia" => VirginiaCollection,
+        "Michigan" => MichiganCollection,
+        "West Virginia" => WestVirginiaCollection,
         _ => FloridaCollection
     };
     private FloridaBulkCollectionOptions Options => State switch
@@ -261,6 +283,8 @@
         "Delaware" => DelawareOptions,
         "Illinois" => IllinoisOptions,
         "Virginia" => VirginiaOptions,
+        "Michigan" => MichiganOptions,
+        "West Virginia" => WestVirginiaOptions,
         _ => FloridaOptions
     };
     [Parameter] public EventCallback<Guid> SnapshotCompleted { get; set; }
@@ -373,6 +397,11 @@
     }
     private static string FilePurpose(string name) => name switch
     {
+        MichiganLaraBulkImportService.LicenseFile => "Current real-estate licenses, broker firms and branch offices",
+        MichiganLaraBulkImportService.EmployerFile => "Active licensee and branch to broker links by published license number",
+        "SalespersonRoster.xlsx" => "Active salespersons; published company and branch IDs",
+        "AssociateBrokerRoster.xlsx" => "Active associate brokers; published company and branch IDs",
+        "BrokerRoster.xlsx" => "Active brokers; published company and branch IDs",
         "REALESTATE2501LICENSE_1.csv" => "Broker/sales licenses",
         "RealEstateCorpLicense.csv" => "Firm licenses",
         "RealEstateSchoolLicense.csv" => "Instructors staged; schools/locations archived",

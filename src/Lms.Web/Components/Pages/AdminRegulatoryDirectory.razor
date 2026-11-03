@@ -32,7 +32,7 @@
 
 <section class="card">
     <select aria-label="Bulk roster state" @bind="_bulkState">
-        <option>Florida</option><option>Texas</option><option>California</option><option>Colorado</option><option>Nevada</option><option>New York</option><option>Arizona</option><option>Connecticut</option><option>Oregon</option><option>Delaware</option><option>Virginia</option><option>Illinois</option>
+        <option>Florida</option><option>Texas</option><option>California</option><option>Colorado</option><option>Nevada</option><option>New York</option><option>Arizona</option><option>Connecticut</option><option>Oregon</option><option>Delaware</option><option>Virginia</option><option>Illinois</option><option>Michigan</option><option>West Virginia</option>
     </select>
 </section>
 <Lms.Web.Components.Shared.Admin.AdminFloridaBulkCollection @key="_bulkState" State="@_bulkState" SnapshotCompleted="OnBulkSnapshotCompletedAsync" />
@@ -73,7 +73,7 @@
 
 <section class="card">
     <h2>Other sources: import normalized snapshot</h2>
-    <p class="muted-text">Florida, Texas, California, Colorado, Nevada, New York, Arizona, Connecticut, Oregon, Delaware, Virginia and Illinois use the official bulk collection above. This import remains available for other states and historical sources.</p>
+    <p class="muted-text">Florida, Texas, California, Colorado, Nevada, New York, Arizona, Connecticut, Oregon, Delaware, Virginia, Illinois, Michigan and West Virginia use the official bulk collection above. This import remains available for other states and historical sources.</p>
     <div class="form-field">
         <label for="regulatory-snapshot-json">Normalized snapshot JSON</label>
         <textarea id="regulatory-snapshot-json" rows="14" @bind="_snapshotJson" disabled="@_isWorking"></textarea>
@@ -299,7 +299,7 @@
 @code {
     private string _bulkState = "Florida";
     [SupplyParameterFromQuery(Name = "state")] public string? RequestedState { get; set; }
-    private static bool IsBulk(string? parser) => parser is FloridaBulkImportService.ParserVersion or TexasBulkImportService.ParserVersion or CaliforniaBulkImportService.ParserVersion or ColoradoDoraBulkImportService.ParserVersion or NevadaNredBulkImportService.ParserVersion or NewYorkDosBulkImportService.ParserVersion or ArizonaAdreBulkImportService.ParserVersion or ConnecticutDcpBulkImportService.ParserVersion or OregonOreaBulkImportService.ParserVersion or DelawareDprBulkImportService.ParserVersion or VirginiaDporBulkImportService.ParserVersion or IllinoisIdfprBulkImportService.ParserVersion;
+    private static bool IsBulk(string? parser) => parser is FloridaBulkImportService.ParserVersion or TexasBulkImportService.ParserVersion or CaliforniaBulkImportService.ParserVersion or ColoradoDoraBulkImportService.ParserVersion or NevadaNredBulkImportService.ParserVersion or NewYorkDosBulkImportService.ParserVersion or ArizonaAdreBulkImportService.ParserVersion or ConnecticutDcpBulkImportService.ParserVersion or OregonOreaBulkImportService.ParserVersion or DelawareDprBulkImportService.ParserVersion or VirginiaDporBulkImportService.ParserVersion or IllinoisIdfprBulkImportService.ParserVersion or MichiganLaraBulkImportService.ParserVersion or WestVirginiaRecBulkImportService.ParserVersion;
     private int _rosterHistoryVersion;
     private async Task OnRosterRestoredAsync()
     {
@@ -335,7 +335,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (RequestedState is "Florida" or "Texas" or "California" or "Colorado" or "Nevada" or "New York" or "Arizona" or "Connecticut" or "Oregon" or "Delaware" or "Virginia" or "Illinois") _bulkState = RequestedState;
+        if (RequestedState is "Florida" or "Texas" or "California" or "Colorado" or "Nevada" or "New York" or "Arizona" or "Connecticut" or "Oregon" or "Delaware" or "Virginia" or "Illinois" or "Michigan" or "West Virginia") _bulkState = RequestedState;
         _selectedColoradoTypes = ColoradoDoraSelectionStore.GetSelected().ToHashSet(StringComparer.Ordinal);
         _users = (await UserAccountService.GetAllAsync()).Where(user => user.IsActive).OrderBy(user => user.DisplayName).ToList();
         await RefreshSnapshotsAsync();

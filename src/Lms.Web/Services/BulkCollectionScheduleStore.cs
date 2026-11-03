@@ -28,6 +28,8 @@ public sealed class BulkCollectionScheduleStore
             ["Delaware"] = "America/New_York",
             ["Illinois"] = "America/Chicago",
             ["Virginia"] = "America/New_York",
+            ["Michigan"] = "America/Detroit",
+            ["West Virginia"] = "America/New_York",
             ["Florida"] = "America/New_York",
             ["Texas"] = "America/Chicago"
         };

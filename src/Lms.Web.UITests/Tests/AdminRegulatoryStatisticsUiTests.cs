@@ -9,6 +9,57 @@ namespace Lms.Web.UITests.Tests;
 
 public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : IClassFixture<WebHostFixture>
 {
+    [UiFact]
+    public async Task MichiganAndWestVirginiaHaveOneCollectionButtonAndEnabledRealEstateTypes()
+    {
+        foreach (var state in new[] { "Michigan", "West Virginia" })
+        {
+            await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseSqlite($"Data Source={fixture.DatabasePath}").Options);
+            var snapshot = new RegulatoryDataSnapshot
+            {
+                State = state, SourceName = "Synthetic full roster",
+                ParserVersion = RegulatoryRoster.BulkParser(state),
+                Status = RegulatorySnapshotStatuses.Approved, RetrievedAtUtc = DateTime.UtcNow, ActivatedAtUtc = DateTime.UtcNow
+            };
+            db.RegulatoryDataSnapshots.Add(snapshot);
+            var types = state == "Michigan"
+                ? new[] { "Salesperson", "Prin Associate Broker", "Non Prin Associate Broker", "Broker Individual" }
+                : new[] { "Salesperson", "Associate Broker", "Broker" };
+            foreach (var type in types)
+                db.RegulatoryLicensees.Add(new()
+                {
+                    SnapshotId = snapshot.Id, State = state, Name = "Synthetic " + type,
+                    LicenseNumber = "UI-" + type, LicenseType = type, LicenseStatus = "Active"
+                });
+            await db.SaveChangesAsync();
+            try
+            {
+                await using var context = await fixture.CreateBrowserContextAsync();
+                var page = await context.NewPageAsync();
+                await LoginAsync(page, "admin@wlr.com", "Admin123!");
+                await page.GotoAsync($"{fixture.BaseUrl}/admin/regulatory-directory?state={Uri.EscapeDataString(state)}");
+                await Assertions.Expect(page.GetByLabel("Bulk roster state", new() { Exact = true })).ToHaveValueAsync(state);
+                var collector = page.GetByRole(AriaRole.Region, new() { Name = state + " bulk collection", Exact = true });
+                await Assertions.Expect(collector.GetByRole(AriaRole.Button)).ToHaveCountAsync(1);
+                await Assertions.Expect(collector.GetByRole(AriaRole.Button, new() { Name = "Collect now", Exact = true })).ToBeEnabledAsync();
+                await Assertions.Expect(collector).ToContainTextAsync("Disabled");
+                var audit = new AuditLogService(db);
+                var roster = new RosterRegistrationService(db, new UserAccountService(db, audit),
+                    new EmailJourneyOptions { Enabled = true }, audit);
+                var searchOptions = await roster.GetSearchOptionsAsync(state);
+                Assert.Equal(types.Order(StringComparer.Ordinal), searchOptions.LicenseTypes);
+                Assert.Empty(searchOptions.ComingLaterLicenseTypes);
+            }
+            finally
+            {
+                db.RegulatoryLicensees.RemoveRange(db.RegulatoryLicensees.Where(row => row.SnapshotId == snapshot.Id));
+                db.RegulatoryDataSnapshots.Remove(snapshot);
+                await db.SaveChangesAsync();
+            }
+        }
+    }
+
     // Statistics for manual collections reload automatically every 15 seconds.
     private static readonly LocatorAssertionsToHaveTextOptions AutoUpdate = new() { Timeout = 25_000 };
 
@@ -71,7 +122,7 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         await page.GotoAsync($"{fixture.BaseUrl}/admin/regulatory-schedules");
 
         var schedules = page.GetByRole(AriaRole.Table, new() { Name = "State collection schedules", Exact = true });
-        await Assertions.Expect(schedules.Locator("tbody tr")).ToHaveCountAsync(12);
+        await Assertions.Expect(schedules.Locator("tbody tr")).ToHaveCountAsync(14);
         var nevadaCadence = schedules.GetByLabel("Nevada publication cadence", new() { Exact = true });
         await nevadaCadence.Locator("summary").ClickAsync();
         await Assertions.Expect(nevadaCadence).ToContainTextAsync("Monthly");
@@ -109,8 +160,10 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         await Assertions.Expect(schedules.GetByLabel("Oregon time zone")).ToHaveValueAsync("America/Los_Angeles");
         await Assertions.Expect(schedules.GetByLabel("Delaware time zone")).ToHaveValueAsync("America/New_York");
         await Assertions.Expect(schedules.GetByLabel("Illinois time zone")).ToHaveValueAsync("America/Chicago");
-        await Assertions.Expect(schedules.GetByLabel("Virginia time zone")).ToHaveValueAsync("America/New_York");
-        await Assertions.Expect(schedules.Locator("tbody tr").Filter(new() { HasText = "Virginia" }))
+        await Assertions.Expect(schedules.GetByLabel("Virginia time zone", new() { Exact = true })).ToHaveValueAsync("America/New_York");
+        await Assertions.Expect(schedules.GetByLabel("Michigan time zone")).ToHaveValueAsync("America/Detroit");
+        await Assertions.Expect(schedules.GetByLabel("West Virginia time zone")).ToHaveValueAsync("America/New_York");
+        await Assertions.Expect(schedules.Locator("tbody tr").Filter(new() { Has = page.GetByLabel("Virginia time zone", new() { Exact = true }) }))
             .ToContainTextAsync("Recommended collection: 1 Week");
         await Assertions.Expect(schedules.Locator("tbody tr").Filter(new() { HasText = "Oregon" }))
             .ToContainTextAsync("Recommended collection: 1 Week");
