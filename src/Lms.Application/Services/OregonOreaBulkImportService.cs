@@ -39,7 +39,7 @@ public sealed record OregonOreaLicensee(
 public sealed class OregonOreaBulkImportService(ApplicationDbContext db)
 {
     public const string State = "Oregon";
-    public const string ParserVersion = "oregon-orea-roster-v1";
+    public const string ParserVersion = "oregon-orea-roster-v2";
     public const string SourcePage = "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx";
     public const string DownloadPage = "https://orea.elicense.micropact.com/Lookup/DownloadRoster.aspx";
     public const string FileDownloadUrl = "https://orea.elicense.micropact.com/Lookup/FileDownload.aspx";
