@@ -86,6 +86,7 @@ builder.Services.AddScoped<IEnrollmentService, EnrollmentService>();
 builder.Services.AddScoped<IDueDateReminderService, DueDateReminderService>();
 builder.Services.AddScoped<IRegulatoryDirectoryService, RegulatoryDirectoryService>();
 builder.Services.AddSingleton<RegulatoryStatisticsCache>();
+builder.Services.AddSingleton<IRegulatoryLastRunSource, BulkCollectionLastRunSource>();
 builder.Services.AddScoped<RegulatoryStatisticsService>();
 builder.Services.AddHostedService<RegulatoryStatisticsWarmupService>();
 var regulatoryCollections = new RegulatoryCollectionOptions();

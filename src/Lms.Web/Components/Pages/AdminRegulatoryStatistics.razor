@@ -111,6 +111,10 @@
             {
                 <p><strong>@(IsBulkState ? "Initial synchronization; no previous roster." : "Initial collection; no approved baseline.")</strong> Newly collected does not mean newly issued.</p>
             }
+            @if (IsBulkState && stats.Incoming is not null && stats.Baseline?.Id == stats.Incoming.Id)
+            {
+                <p role="status"><strong>The last collection downloaded the same roster; nothing changed.</strong> Previous and current roster are identical.</p>
+            }
             @if (!IsBulkState && stats.Incoming is not null && stats.Baseline is not null && stats.Incoming.RetrievedAtUtc < stats.Baseline.RetrievedAtUtc)
             {
                 <p role="status"><strong>Pending collection predates the approved baseline.</strong> Differences are not necessarily newer updates.</p>

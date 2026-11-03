@@ -31,6 +31,8 @@ public sealed record FloridaBulkCollectionStatus(string State, string? Error, Da
     public DateTime? LastScheduledFailureAtUtc { get; init; }
     public DateTime? LastScheduledSuccessAtUtc { get; init; }
     public Guid? LastScheduledSuccessSnapshotId { get; init; }
+    /// <summary>The roster that was current before the run that produced <see cref="SnapshotId"/>.</summary>
+    public Guid? PreviousSnapshotId { get; init; }
 }
 
 public class BulkCollectionService : IAsyncDisposable
@@ -51,6 +53,7 @@ public class BulkCollectionService : IAsyncDisposable
     private Task? running;
     private CancellationTokenSource? currentRun;
     private bool cancelRequested;
+    private Guid? runPreviousSnapshotId;
     private SavedStatus saved;
 
     public BulkCollectionService(IServiceScopeFactory scopes, IHttpClientFactory clients,
@@ -243,13 +246,15 @@ public class BulkCollectionService : IAsyncDisposable
         currentRun?.Dispose();
         currentRun = CancellationTokenSource.CreateLinkedTokenSource(stopping.Token);
         cancelRequested = false;
+        runPreviousSnapshotId = saved.Status.SnapshotId;
         saved = saved with { Status = WithSchedule(new("Running", null, DateTime.UtcNow, saved.LastSuccessUtc, null, saved.Status.SnapshotId,
             Array.AsReadOnly(provider.Files.Select(d => new FloridaBulkFileStatus(d.Name, "Waiting", 0, 0)).ToArray()))
             {
                 ScheduledRun = scheduled,
                 LastScheduledFailureAtUtc = saved.Status.LastScheduledFailureAtUtc,
                 LastScheduledSuccessAtUtc = saved.Status.LastScheduledSuccessAtUtc,
-                LastScheduledSuccessSnapshotId = saved.Status.LastScheduledSuccessSnapshotId
+                LastScheduledSuccessSnapshotId = saved.Status.LastScheduledSuccessSnapshotId,
+                PreviousSnapshotId = saved.Status.PreviousSnapshotId
             }) };
         Persist();
     }
@@ -385,6 +390,7 @@ public class BulkCollectionService : IAsyncDisposable
             try
             {
                 saved = new(saved.Status with { State = "Completed", Error = null, CompletedAtUtc = completed, FinishedAtUtc = completed, SnapshotId = id,
+                    PreviousSnapshotId = runPreviousSnapshotId,
                     LastScheduledSuccessAtUtc = saved.Status.ScheduledRun ? completed : saved.Status.LastScheduledSuccessAtUtc,
                     LastScheduledSuccessSnapshotId = saved.Status.ScheduledRun ? id : saved.Status.LastScheduledSuccessSnapshotId,
                     NextRunAtUtc = nextRunAtUtc,

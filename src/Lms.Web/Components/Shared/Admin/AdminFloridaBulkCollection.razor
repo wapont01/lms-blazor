@@ -117,7 +117,7 @@
                         @foreach (var file in status.Files)
                         {
                             <tr>
-                                <th scope="row">@file.Name</th><td>@(State == "Texas" ? "Individuals and broker companies; all published statuses" : State == "California" ? file.Name == "CurrList.zip" ? "Published license roles, statuses and restrictions" : "Responsible-broker affiliations and dates" : State == "Colorado" ? "All published DORA records and statuses" : State == "Nevada" ? file.Name == "NRED-ACTIVE-HOA.xlsx" ? "Source evidence only" : "Numbered professional licenses" : State == "New York" ? "Active salespersons, brokers and offices" : State == "Arizona" ? file.Name == ArizonaAdreBulkImportService.IndividualsFile ? "Salespersons and brokers; all statuses; employing entity" : "Firms and branch offices; designated broker" : State == "Connecticut" ? file.Name == ConnecticutDcpBulkImportService.SalespersonsFile ? "Salespersons; all statuses" : file.Name == ConnecticutDcpBulkImportService.BrokersFile ? "Individual and company brokers; all statuses" : "Active salesperson to broker or team links" : State == "Oregon" ? file.Name == OregonOreaBulkImportService.BusinessesFile ? "Registered business names and branch offices; escrow agents kept as source only" : file.Name == OregonOreaBulkImportService.ActiveIndividualsFile ? "Active brokers, principal brokers and property managers; business associations and key managers" : "Inactive brokers, principal brokers and property managers" : FilePurpose(file.Name))</td>
+                                <th scope="row">@file.Name</th><td>@(State == "Texas" ? "Individuals and broker companies; all published statuses" : State == "California" ? file.Name == "CurrList.zip" ? "Published license roles, statuses and restrictions" : "Responsible-broker affiliations and dates" : State == "Colorado" ? "All published DORA records and statuses" : State == "Nevada" ? file.Name == "NRED-ACTIVE-HOA.xlsx" ? "Source evidence only" : "Numbered professional licenses" : State == "New York" ? "Active salespersons, brokers and offices" : State == "Arizona" ? file.Name == ArizonaAdreBulkImportService.IndividualsFile ? "Salespersons and brokers; all statuses; employing entity" : "Firms and branch offices; designated broker" : State == "Connecticut" ? file.Name == ConnecticutDcpBulkImportService.SalespersonsFile ? "Salespersons; all statuses" : file.Name == ConnecticutDcpBulkImportService.BrokersFile ? "Individual and company brokers; all statuses" : "Active salesperson to broker or team links" : State == "Oregon" ? file.Name == OregonOreaBulkImportService.BusinessesFile ? "Registered business names and escrow companies; branch offices as locations" : file.Name == OregonOreaBulkImportService.ActiveIndividualsFile ? "Active brokers, principal brokers and property managers; business associations and key managers" : "Inactive brokers, principal brokers and property managers" : FilePurpose(file.Name))</td>
                                 <td class="file-progress">
                                     @file.State
                                     @if (file.State.StartsWith("Validating", StringComparison.Ordinal) && file.ExpectedRows is > 0)
@@ -236,6 +236,7 @@
     private bool _starting;
     private bool _stopping;
     private Guid? _observedSnapshotId;
+    private DateTime? _observedCompletedAtUtc;
     private bool _loaded;
     private bool IsRunning => _status?.State is "Downloading" or "Validating" or "Importing" or "Running" or "Collecting" or "Stopping";
 
@@ -278,9 +279,10 @@
         {
             _status = await Collection.GetStatusAsync(_stop.Token);
             _error = null;
-            if (_status.SnapshotId is { } id && _observedSnapshotId != id)
+            if (_status.SnapshotId is { } id && (_observedSnapshotId != id || _observedCompletedAtUtc != _status.CompletedAtUtc))
             {
                 _observedSnapshotId = id;
+                _observedCompletedAtUtc = _status.CompletedAtUtc;
                 if (_loaded)
                     await SnapshotCompleted.InvokeAsync(id);
             }

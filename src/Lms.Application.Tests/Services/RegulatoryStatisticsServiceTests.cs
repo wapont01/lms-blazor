@@ -350,6 +350,44 @@ public sealed class RegulatoryStatisticsServiceTests
         Assert.Equal(2, Assert.Single(refreshed.Professions).Collected);
     }
 
+    [Fact]
+    public async Task LastCollectionRunComparesAgainstRosterCurrentBeforeItIncludingIdenticalDownload()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var older = fixture.Snapshot("Oregon", RegulatorySnapshotStatuses.Approved, 1);
+        var current = fixture.Snapshot("Oregon", RegulatorySnapshotStatuses.Approved, 2);
+        older.ParserVersion = current.ParserVersion = OregonOreaBulkImportService.ParserVersion;
+        fixture.License(older, "one", status: "Active");
+        fixture.License(current, "one", status: "Inactive");
+        fixture.License(current, "two");
+        await fixture.Db.SaveChangesAsync();
+
+        var same = await new RegulatoryStatisticsService(fixture.Db, lastRuns: new LastRuns(new(current.Id, current.Id)))
+            .GetAsync("Oregon", bulkOnly: true);
+        Assert.Equal(current.Id, same.Baseline!.Id);
+        Assert.Equal(current.Id, same.Incoming!.Id);
+        Assert.All(same.Records, row => Assert.Equal("Unchanged", row.Classification));
+        Assert.Equal(2, same.Professions.Sum(row => row.Current));
+        Assert.Equal(2, same.Professions.Sum(row => row.Collected));
+
+        var changed = await new RegulatoryStatisticsService(fixture.Db, lastRuns: new LastRuns(new(older.Id, current.Id)))
+            .GetAsync("Oregon", bulkOnly: true);
+        Assert.Equal(older.Id, changed.Baseline!.Id);
+        Assert.Single(changed.Records, row => row.Classification == "Status changed");
+        Assert.Single(changed.Records, row => row.Classification == "New license");
+
+        // A run record for another snapshot is stale, so the previous-version rule applies.
+        var stale = await new RegulatoryStatisticsService(fixture.Db, lastRuns: new LastRuns(new(current.Id, older.Id)))
+            .GetAsync("Oregon", bulkOnly: true);
+        Assert.Equal(older.Id, stale.Baseline!.Id);
+    }
+
+    private sealed class LastRuns(RegulatoryLastRun run) : IRegulatoryLastRunSource
+    {
+        public Task<RegulatoryLastRun?> GetAsync(string state, CancellationToken cancellationToken = default) =>
+            Task.FromResult<RegulatoryLastRun?>(run);
+    }
+
     private sealed class Fixture(SqliteConnection connection, ApplicationDbContext db) : IAsyncDisposable
     {
         public ApplicationDbContext Db { get; } = db;

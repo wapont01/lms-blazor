@@ -73,7 +73,16 @@ internal sealed record RegulatoryComparisonResult(
     int ExcludedCollected,
     IReadOnlyList<RegulatoryRecordComparison> Records);
 
-public sealed class RegulatoryStatisticsService(ApplicationDbContext db, RegulatoryStatisticsCache? cache = null)
+/// <summary>The roster that was current before the last completed bulk collection run, and the roster it produced.</summary>
+public sealed record RegulatoryLastRun(Guid? PreviousSnapshotId, Guid SnapshotId);
+
+public interface IRegulatoryLastRunSource
+{
+    Task<RegulatoryLastRun?> GetAsync(string state, CancellationToken cancellationToken = default);
+}
+
+public sealed class RegulatoryStatisticsService(ApplicationDbContext db, RegulatoryStatisticsCache? cache = null,
+    IRegulatoryLastRunSource? lastRuns = null)
 {
     public async Task<List<string>> GetStatesAsync()
     {
@@ -112,9 +121,18 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db, Regulat
             incoming = published.FirstOrDefault(snapshot => snapshot.ParserVersion == RegulatoryRoster.BulkParser(state));
             baseline = incoming is null ? baseline : published.FirstOrDefault(snapshot => snapshot.Id != incoming.Id);
             // These states compare only against earlier bulk rosters, not manual or canonical captures with other fields.
-            if (state is "Nevada" or "New York" or "Arizona" or "Connecticut" or "Oregon")
+            var sameParserOnly = state is "Nevada" or "New York" or "Arizona" or "Connecticut" or "Oregon";
+            if (sameParserOnly)
                 baseline = incoming is null ? null : published.FirstOrDefault(snapshot =>
                     snapshot.Id != incoming.Id && snapshot.ParserVersion == RegulatoryRoster.BulkParser(state));
+            // Compare the last collection run with the roster current before it; an identical download reuses
+            // the same snapshot, so previous and current are then the same roster.
+            if (incoming is not null && lastRuns is not null
+                && await lastRuns.GetAsync(state) is { PreviousSnapshotId: { } previousId } lastRun
+                && lastRun.SnapshotId == incoming.Id
+                && published.FirstOrDefault(snapshot => snapshot.Id == previousId) is { } previous
+                && (!sameParserOnly || previous.ParserVersion == incoming.ParserVersion))
+                baseline = previous;
         }
 
         // Only bulk rosters are written once in a single transaction; manual collections keep appending
