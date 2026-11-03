@@ -29,7 +29,10 @@ public sealed record OregonOreaBusiness(
     string Name,
     string RegistrationType,
     DateOnly? ExpirationDate,
-    string? Address);
+    string? Address,
+    string? City = null);
+
+public sealed record OregonOreaLocation(OregonOreaBusiness Branch, string? FirmLicenseNumber, string? MatchMethod);
 
 public sealed record OregonOreaLicensee(
     OregonOreaIndividual Record,
@@ -39,7 +42,8 @@ public sealed record OregonOreaLicensee(
 public sealed class OregonOreaBulkImportService(ApplicationDbContext db)
 {
     public const string State = "Oregon";
-    public const string ParserVersion = "oregon-orea-roster-v2";
+    public const string ParserVersion = "oregon-orea-roster-v3";
+    public const string BranchOfficeKind = "Registered branch office";
     public const string SourcePage = "https://orea.elicense.micropact.com/Lookup/GenerateRoster.aspx";
     public const string DownloadPage = "https://orea.elicense.micropact.com/Lookup/DownloadRoster.aspx";
     public const string FileDownloadUrl = "https://orea.elicense.micropact.com/Lookup/FileDownload.aspx";
@@ -129,7 +133,8 @@ public sealed class OregonOreaBulkImportService(ApplicationDbContext db)
             var cityLine = string.Join(' ', new[] { fields[8], fields[9] }.Select(part => part.Trim()).Where(part => part.Length > 0));
             var address = string.Join(", ", new[] { fields[2], fields[4], fields[6], cityLine }
                 .Select(part => part.Trim()).Where(part => part.Length > 0));
-            records.Add(new(line, number, name, type, Date(fields[17]), Truncate(address.Length == 0 ? null : address, 500)));
+            records.Add(new(line, number, name, type, Date(fields[17]), Truncate(address.Length == 0 ? null : address, 500),
+                Optional(fields[6])?.ToUpperInvariant()));
         });
         return records;
     }
@@ -256,12 +261,84 @@ public sealed class OregonOreaBulkImportService(ApplicationDbContext db)
             .ToList();
 
     /// <summary>
-    /// Registered business names and their registered branch offices are firms. Escrow agents (EA) are licensed
-    /// escrow companies, not brokerages, so they stay in the source file only.
+    /// Registered business names (brokerages) and escrow agents (licensed escrow companies, a non-real-estate industry)
+    /// are firms. Registered branch offices are extra locations of a brokerage, see <see cref="SelectLocations"/>.
     /// </summary>
     public static List<OregonOreaBusiness> SelectFirms(IEnumerable<OregonOreaBusiness> records) =>
-        records.Where(record => record.RegistrationType is RegisteredBusinessName or RegisteredBranchOffice)
-            .GroupBy(record => record.LicenseNumber, StringComparer.OrdinalIgnoreCase)
+        Distinct(records.Where(record => record.RegistrationType is RegisteredBusinessName or EscrowAgent));
+
+    public static string FirmIndustry(OregonOreaBusiness firm) =>
+        firm.RegistrationType == EscrowAgent ? RegulatoryIndustries.Escrow : RegulatoryIndustries.RealEstate;
+
+    /// <summary>
+    /// OREA does not publish which brokerage owns a branch office, so branches are linked by name: exact name, then
+    /// normalized name (legal suffixes and punctuation ignored), then the closest name, which is flagged for review.
+    /// Several brokerages can share a name; the one in the branch's city wins, then the lowest license number.
+    /// </summary>
+    public static List<OregonOreaLocation> SelectLocations(IEnumerable<OregonOreaBusiness> records)
+    {
+        var list = records.ToList();
+        var brokerages = Distinct(list.Where(record => record.RegistrationType == RegisteredBusinessName));
+        var byName = brokerages.ToLookup(firm => firm.Name.Trim(), StringComparer.OrdinalIgnoreCase);
+        var normalized = brokerages.Select(firm => (Firm: firm, Key: NormalizeName(firm.Name))).ToList();
+        var byKey = normalized.Where(item => item.Key.Length > 0).ToLookup(item => item.Key, item => item.Firm, StringComparer.Ordinal);
+
+        OregonOreaBusiness Pick(IEnumerable<OregonOreaBusiness> candidates, OregonOreaBusiness branch) =>
+            candidates.OrderBy(firm => branch.City is not null && string.Equals(firm.City, branch.City, StringComparison.Ordinal) ? 0 : 1)
+                .ThenBy(firm => firm.LicenseNumber, StringComparer.Ordinal).First();
+
+        return Distinct(list.Where(record => record.RegistrationType == RegisteredBranchOffice)).Select(branch =>
+        {
+            if (byName.Contains(branch.Name.Trim()))
+                return new OregonOreaLocation(branch, Pick(byName[branch.Name.Trim()], branch).LicenseNumber,
+                    RegulatoryLocationMatchMethods.ExactName);
+            var key = NormalizeName(branch.Name);
+            if (key.Length > 0 && byKey.Contains(key))
+                return new OregonOreaLocation(branch, Pick(byKey[key], branch).LicenseNumber,
+                    RegulatoryLocationMatchMethods.NormalizedName);
+            if (normalized.Count == 0 || key.Length == 0)
+                return new OregonOreaLocation(branch, null, null);
+            var scored = normalized.Select(item => (item.Firm, Score: Similarity(key, item.Key))).ToList();
+            var best = scored.Max(item => item.Score);
+            var closest = Pick(scored.Where(item => item.Score == best).Select(item => item.Firm), branch);
+            return new OregonOreaLocation(branch, closest.LicenseNumber, RegulatoryLocationMatchMethods.ClosestName);
+        }).ToList();
+    }
+
+    private static readonly HashSet<string> NameNoise = new(StringComparer.Ordinal)
+    {
+        "LLC", "L", "C", "INC", "INCORPORATED", "CORP", "CORPORATION", "CO", "COMPANY", "LTD", "LLP", "PC", "PLLC", "THE", "RBO"
+    };
+
+    public static string NormalizeName(string name)
+    {
+        var builder = new StringBuilder(name.Length);
+        foreach (var character in name.ToUpperInvariant().Replace("&", " AND ", StringComparison.Ordinal))
+            builder.Append(char.IsLetterOrDigit(character) ? character : ' ');
+        return string.Join(' ', builder.ToString().Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(token => !NameNoise.Contains(token)));
+    }
+
+    /// <summary>Levenshtein similarity in [0, 1] between two normalized names.</summary>
+    private static double Similarity(string left, string right)
+    {
+        if (left.Length == 0 || right.Length == 0) return 0;
+        var previous = new int[right.Length + 1];
+        var current = new int[right.Length + 1];
+        for (var j = 0; j <= right.Length; j++) previous[j] = j;
+        for (var i = 1; i <= left.Length; i++)
+        {
+            current[0] = i;
+            for (var j = 1; j <= right.Length; j++)
+                current[j] = Math.Min(Math.Min(current[j - 1] + 1, previous[j] + 1),
+                    previous[j - 1] + (left[i - 1] == right[j - 1] ? 0 : 1));
+            (previous, current) = (current, previous);
+        }
+        return 1 - (double)previous[right.Length] / Math.Max(left.Length, right.Length);
+    }
+
+    private static List<OregonOreaBusiness> Distinct(IEnumerable<OregonOreaBusiness> records) =>
+        records.GroupBy(record => record.LicenseNumber, StringComparer.OrdinalIgnoreCase)
             .Select(group => group.OrderBy(record => record.Name, StringComparer.Ordinal)
                 .ThenBy(record => record.Address, StringComparer.Ordinal)
                 .ThenBy(record => record.SourceRowNumber).First())
@@ -277,6 +354,7 @@ public sealed class OregonOreaBulkImportService(ApplicationDbContext db)
         var inactive = ReadIndividuals(FloridaBulkImportService.ArchiveFile(root, entries[2].File), false, ct);
         var people = SelectLicensees(active, inactive);
         var firms = SelectFirms(businesses);
+        var locations = SelectLocations(businesses);
         var digest = SHA256.HashData(Encoding.UTF8.GetBytes(ParserVersion
             + string.Concat(entries.Select(entry => RowSetDigest(FloridaBulkImportService.ArchiveFile(root, entry.File), ct)))));
         var id = new Guid(digest.AsSpan(0, 16));
@@ -288,7 +366,8 @@ public sealed class OregonOreaBulkImportService(ApplicationDbContext db)
             if (existing.State != State || existing.ParserVersion != ParserVersion || existing.Status != RegulatorySnapshotStatuses.Approved)
                 throw new InvalidDataException("Oregon OREA archive conflicts with an existing snapshot.");
             if (await db.RegulatoryLicensees.CountAsync(record => record.SnapshotId == id, ct) != people.Count
-                || await db.RegulatoryFirms.CountAsync(record => record.SnapshotId == id, ct) != firms.Count)
+                || await db.RegulatoryFirms.CountAsync(record => record.SnapshotId == id, ct) != firms.Count
+                || await db.RegulatoryFirmLocations.CountAsync(record => record.SnapshotId == id, ct) != locations.Count)
                 throw new InvalidDataException("Existing Oregon OREA snapshot coverage does not match the validated archive.");
             var current = await RegulatoryRoster.Published(db.RegulatoryDataSnapshots.Where(snapshot => snapshot.State == State))
                 .Select(snapshot => snapshot.Id).FirstAsync(ct);
@@ -320,13 +399,28 @@ public sealed class OregonOreaBulkImportService(ApplicationDbContext db)
             ct.ThrowIfCancellationRequested();
             var rows = group.Select(firm => new object?[]
             {
-                firmIds[firm.LicenseNumber], id, State, firm.LicenseNumber, firm.Name,
-                firm.RegistrationType == RegisteredBranchOffice ? "Registered branch office" : null, "Active",
-                null, firm.ExpirationDate, firm.Address, keyManagers.GetValueOrDefault(firm.LicenseNumber)
+                firmIds[firm.LicenseNumber], id, State, firm.LicenseNumber, firm.Name, null, "Active",
+                null, firm.ExpirationDate, firm.Address, keyManagers.GetValueOrDefault(firm.LicenseNumber), FirmIndustry(firm)
             }).ToList();
             await FloridaBulkImportService.InsertBatch(connection, sqlTransaction, "RegulatoryFirms",
                 ["Id", "SnapshotId", "State", "LicenseNumber", "LegalName", "TradeName", "LicenseStatus",
-                    "LicenseIssuedDate", "LicenseRenewalDate", "Address", "QualifyingBrokerName"], rows, ct);
+                    "LicenseIssuedDate", "LicenseRenewalDate", "Address", "QualifyingBrokerName", "Industry"], rows, ct);
+            total += group.Length;
+            staged?.Invoke(total);
+        }
+
+        foreach (var group in locations.Chunk(100))
+        {
+            ct.ThrowIfCancellationRequested();
+            var rows = group.Select(location => new object?[]
+            {
+                Guid.NewGuid(), id,
+                location.FirmLicenseNumber is { } owner ? firmIds[owner] : null,
+                State, location.Branch.LicenseNumber, location.Branch.Name, location.Branch.Address,
+                BranchOfficeKind, location.MatchMethod
+            }).ToList();
+            await FloridaBulkImportService.InsertBatch(connection, sqlTransaction, "RegulatoryFirmLocations",
+                ["Id", "SnapshotId", "FirmId", "State", "RegistrationNumber", "Name", "Address", "Kind", "MatchMethod"], rows, ct);
             total += group.Length;
             staged?.Invoke(total);
         }

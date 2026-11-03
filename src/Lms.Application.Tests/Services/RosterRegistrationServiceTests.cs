@@ -41,9 +41,11 @@ public sealed class RosterRegistrationServiceTests
                 "Associate Level Real Estate Broker", "Real Estate Company - Employing", "Mortgage Loan Originator"));
 
         var results = await service.SearchAsync(new RosterSearch("Colorado", Name: "Synthetic"));
-        Assert.Equal("FA-001", Assert.Single(results.Items).LicenseNumber);
-        Assert.Equal(new[] { "Associate Level Real Estate Broker" },
-            (await service.GetSearchOptionsAsync("Colorado")).LicenseTypes);
+        Assert.Equal(new[] { "EC-002", "FA-001" }, results.Items.Select(item => item.LicenseNumber).Order());
+        var coloradoOptions = await service.GetSearchOptionsAsync("Colorado");
+        Assert.Equal(new[] { "Associate Level Real Estate Broker", "Real Estate Company - Employing" },
+            coloradoOptions.LicenseTypes);
+        Assert.Equal(new[] { "Mortgage Loan Originator" }, coloradoOptions.ComingLaterLicenseTypes);
         Assert.Single((await service.SearchAsync(new RosterSearch("Colorado", Name: "Synthetic",
             LicenseType: "Associate Level Real Estate Broker"))).Items);
         Assert.Empty((await service.SearchAsync(new RosterSearch("Colorado", Name: "Synthetic",
@@ -76,6 +78,7 @@ public sealed class RosterRegistrationServiceTests
 
         var options = await f.Service.GetSearchOptionsAsync("Nevada");
         Assert.Equal(new[] { "Broker" }, options.LicenseTypes);
+        Assert.Equal(new[] { "Appraiser" }, options.ComingLaterLicenseTypes);
         Assert.Equal("B.1001", Assert.Single((await f.Service.SearchAsync(
             new RosterSearch("Nevada", Name: "Synthetic"), captchaToken: "synthetic")).Items).LicenseNumber);
         Assert.Empty((await f.Service.SearchAsync(new RosterSearch("Nevada", Name: "Synthetic",

@@ -254,7 +254,8 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         await page.GetByLabel("Bulk county", new() { Exact = true }).FillAsync("Dade");
         await page.GetByRole(AriaRole.Button, new() { Name = "Search bulk licenses", Exact = true }).ClickAsync();
         await Assertions.Expect(browse).ToContainTextAsync("No completed bulk collection is available.");
-        await page.GetByLabel("Bulk license type", new() { Exact = true }).SelectOptionAsync("appraisal");
+        await Assertions.Expect(page.Locator("select[aria-label='Bulk license type'] option[value='appraisal']")).ToHaveAttributeAsync("disabled", "");
+        await page.GetByLabel("Bulk license type", new() { Exact = true }).SelectOptionAsync("2505");
         await Assertions.Expect(page.GetByLabel("Bulk special qualification", new() { Exact = true })).ToBeDisabledAsync();
         await Assertions.Expect(page.GetByLabel("Bulk special qualification", new() { Exact = true })).ToHaveValueAsync("");
         Assert.Equal(404, (await context.APIRequest.GetAsync($"{fixture.BaseUrl}/admin/florida-bulk/exports/unknown.csv")).Status);

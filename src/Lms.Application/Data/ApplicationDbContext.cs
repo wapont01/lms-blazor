@@ -36,6 +36,7 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<RegulatoryDataSnapshot> RegulatoryDataSnapshots => Set<RegulatoryDataSnapshot>();
     public DbSet<RegulatorySourceRecord> RegulatorySourceRecords => Set<RegulatorySourceRecord>();
     public DbSet<RegulatoryFirm> RegulatoryFirms => Set<RegulatoryFirm>();
+    public DbSet<RegulatoryFirmLocation> RegulatoryFirmLocations => Set<RegulatoryFirmLocation>();
     public DbSet<RegulatoryLicensee> RegulatoryLicensees => Set<RegulatoryLicensee>();
     public DbSet<RegulatoryFirmLicenseeAffiliation> RegulatoryFirmLicenseeAffiliations => Set<RegulatoryFirmLicenseeAffiliation>();
     public DbSet<UserRegulatoryLicenseLink> UserRegulatoryLicenseLinks => Set<UserRegulatoryLicenseLink>();
@@ -213,10 +214,33 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             entity.Property(firm => firm.LicenseStatus).HasMaxLength(40);
             entity.Property(firm => firm.Address).HasMaxLength(500);
             entity.Property(firm => firm.QualifyingBrokerName).HasMaxLength(160);
+            entity.Property(firm => firm.Industry).HasMaxLength(40).IsRequired()
+                .HasDefaultValue(RegulatoryIndustries.RealEstate);
             entity.HasIndex(firm => new { firm.SnapshotId, firm.State, firm.LicenseNumber }).IsUnique();
             entity.HasOne(firm => firm.Snapshot)
                 .WithMany(snapshot => snapshot.Firms)
                 .HasForeignKey(firm => firm.SnapshotId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RegulatoryFirmLocation>(entity =>
+        {
+            entity.HasKey(location => location.Id);
+            entity.Property(location => location.State).HasMaxLength(40).IsRequired();
+            entity.Property(location => location.RegistrationNumber).HasMaxLength(40).IsRequired();
+            entity.Property(location => location.Name).HasMaxLength(200).IsRequired();
+            entity.Property(location => location.Address).HasMaxLength(500);
+            entity.Property(location => location.Kind).HasMaxLength(60).IsRequired();
+            entity.Property(location => location.MatchMethod).HasMaxLength(40);
+            entity.HasIndex(location => new { location.SnapshotId, location.State, location.RegistrationNumber }).IsUnique();
+            entity.HasIndex(location => location.FirmId);
+            entity.HasOne(location => location.Snapshot)
+                .WithMany()
+                .HasForeignKey(location => location.SnapshotId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(location => location.Firm)
+                .WithMany(firm => firm.Locations)
+                .HasForeignKey(location => location.FirmId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

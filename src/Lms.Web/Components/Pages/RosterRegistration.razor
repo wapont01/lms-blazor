@@ -88,6 +88,10 @@
                                 {
                                     <option value="@type">@LicenseTypeLabel(type)</option>
                                 }
+                                @foreach (var type in _searchOptions.ComingLaterLicenseTypes)
+                                {
+                                    <option value="@type" disabled>@(LicenseTypeLabel(type) + RegulatoryLicenseTypes.ComingLaterSuffix)</option>
+                                }
                             </select>
                         </label>
                         @if (_searchOptions.HasFirmAffiliations)

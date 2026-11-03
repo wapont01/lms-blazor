@@ -14,7 +14,14 @@
                 <option value="">All imported license types</option>
                 @foreach (var type in NevadaNredBulkImportService.AllLicenseTypes.Where(type => type != "Homeowners Association"))
                 {
-                    <option>@type</option>
+                    @if (RegulatoryLicenseTypes.IsRealEstate("Nevada", type))
+                    {
+                        <option>@type</option>
+                    }
+                    else
+                    {
+                        <option value="@type" disabled>@(type + RegulatoryLicenseTypes.ComingLaterSuffix)</option>
+                    }
                 }
             </select>
         </label>

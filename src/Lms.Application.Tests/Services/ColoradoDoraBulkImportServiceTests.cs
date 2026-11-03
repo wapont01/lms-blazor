@@ -50,7 +50,7 @@ public sealed class ColoradoDoraBulkImportServiceTests
     public void LicenseTypeOptionsIncludeAllPublishedCategoriesAndDefaultToRealEstate()
     {
         Assert.Equal(23, ColoradoDoraLicenseTypes.All.Count);
-        Assert.Equal(9, ColoradoDoraLicenseTypes.DefaultEnabled.Count);
+        Assert.Equal(10, ColoradoDoraLicenseTypes.DefaultEnabled.Count);
         Assert.All(ColoradoDoraLicenseTypes.DefaultEnabled, type =>
             Assert.True(ColoradoDoraLicenseTypes.All.Single(option => option.Name == type).IsRealEstate));
     }

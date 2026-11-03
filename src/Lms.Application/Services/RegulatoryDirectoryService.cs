@@ -468,6 +468,7 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             .Include(firm => firm.LicenseeAffiliations)
                 .ThenInclude(affiliation => affiliation.Licensee)
             .Where(firm => firm.Snapshot!.Status == RegulatorySnapshotStatuses.Approved
+                && firm.Industry == RegulatoryIndustries.RealEstate
                 && (firm.State != "Florida" && firm.State != "Texas" && firm.State != "California" && firm.State != "Colorado" && firm.State != "Nevada" && firm.State != "New York" && firm.State != "Arizona" && firm.State != "Connecticut" && firm.State != "Oregon" || firm.SnapshotId == _dbContext.RegulatoryDataSnapshots
                     .Where(snapshot => snapshot.State == firm.State && snapshot.Status == RegulatorySnapshotStatuses.Approved)
                     .OrderByDescending(snapshot => snapshot.ActivatedAtUtc ?? snapshot.RetrievedAtUtc).ThenByDescending(snapshot => snapshot.ImportedAtUtc).ThenBy(snapshot => snapshot.Id)

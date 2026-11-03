@@ -24,7 +24,11 @@ public sealed class NevadaNredBulkImportService(ApplicationDbContext db)
     public static readonly DateTime CaptureDateUtc = new(2026, 9, 26, 0, 0, 0, DateTimeKind.Utc);
 
     public static IReadOnlyList<string> RealEstateLicenseTypes { get; } =
-        Array.AsReadOnly(new[] { "Broker", "Broker-Salesperson", "Salesperson" });
+        Array.AsReadOnly(new[]
+        {
+            "Broker", "Broker-Salesperson", "Business Broker", "Community Association Manager",
+            "Property Manager", "Salesperson", "Timeshare Agent"
+        });
 
     public static IReadOnlyList<string> AllLicenseTypes { get; } =
         Array.AsReadOnly(new[]

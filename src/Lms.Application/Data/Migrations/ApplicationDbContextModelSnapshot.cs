@@ -1580,6 +1580,13 @@ namespace Lms.Application.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Industry")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Real Estate");
+
                     b.Property<string>("LegalName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1663,6 +1670,56 @@ namespace Lms.Application.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("RegulatoryFirmLicenseeAffiliations");
+                });
+
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryFirmLocation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("FirmId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MatchMethod")
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RegistrationNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("SnapshotId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FirmId");
+
+                    b.HasIndex("SnapshotId", "State", "RegistrationNumber")
+                        .IsUnique();
+
+                    b.ToTable("RegulatoryFirmLocations");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.RegulatoryLicensee", b =>
@@ -2918,6 +2975,24 @@ namespace Lms.Application.Data.Migrations
                     b.Navigation("Snapshot");
                 });
 
+            modelBuilder.Entity("Lms.Domain.Entities.RegulatoryFirmLocation", b =>
+                {
+                    b.HasOne("Lms.Domain.Entities.RegulatoryFirm", "Firm")
+                        .WithMany("Locations")
+                        .HasForeignKey("FirmId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("Lms.Domain.Entities.RegulatoryDataSnapshot", "Snapshot")
+                        .WithMany()
+                        .HasForeignKey("SnapshotId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Firm");
+
+                    b.Navigation("Snapshot");
+                });
+
             modelBuilder.Entity("Lms.Domain.Entities.RegulatoryLicensee", b =>
                 {
                     b.HasOne("Lms.Domain.Entities.RegulatoryDataSnapshot", "Snapshot")
@@ -3210,6 +3285,8 @@ namespace Lms.Application.Data.Migrations
             modelBuilder.Entity("Lms.Domain.Entities.RegulatoryFirm", b =>
                 {
                     b.Navigation("LicenseeAffiliations");
+
+                    b.Navigation("Locations");
                 });
 
             modelBuilder.Entity("Lms.Domain.Entities.RegulatoryLicensee", b =>

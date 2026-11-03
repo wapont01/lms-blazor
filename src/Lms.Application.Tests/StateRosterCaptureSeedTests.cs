@@ -224,7 +224,7 @@ public class StateRosterCaptureSeedTests
             record.SnapshotId == snapshot.Id));
         Assert.Equal(result.NumberedLicenses, await fixture.DbContext.RegulatoryLicensees.CountAsync(record =>
             record.SnapshotId == snapshot.Id));
-        Assert.Equal(new[] { "Broker", "Broker-Salesperson", "Salesperson" },
+        Assert.Equal(NevadaNredBulkImportService.RealEstateLicenseTypes.Order(StringComparer.Ordinal),
             await fixture.DbContext.RegulatoryLicensees.Where(record => record.SnapshotId == snapshot.Id
                     && NevadaNredBulkImportService.RealEstateLicenseTypes.Contains(record.LicenseType!))
                 .Select(record => record.LicenseType!).Distinct().OrderBy(type => type).ToArrayAsync());

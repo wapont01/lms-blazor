@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Lms.Application.Data;
 using Lms.Application.Services;
+using Lms.Domain.Entities;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -47,7 +48,37 @@ public sealed class OregonOreaBulkImportServiceTests
         Assert.Equal(new DateOnly(2027, 2, 28), records[0].ExpirationDate);
         Assert.Equal("6827 NE 33RD ST, PO BOX 64, REDMOND, OR 97756", records[1].Address);
         Assert.Null(records[2].ExpirationDate);
-        Assert.Equal(["RBN", "RBN", "RBO"], OregonOreaBulkImportService.SelectFirms(records).Select(firm => firm.RegistrationType));
+        Assert.Equal("BEND", records[2].City);
+        Assert.Equal(["RBN", "RBN", "EA"], OregonOreaBulkImportService.SelectFirms(records).Select(firm => firm.RegistrationType));
+        Assert.Equal(RegulatoryIndustries.Escrow, OregonOreaBulkImportService.FirmIndustry(records[3]));
+        var location = Assert.Single(OregonOreaBulkImportService.SelectLocations(records));
+        Assert.Equal(("201300001", "200312244", RegulatoryLocationMatchMethods.ExactName),
+            (location.Branch.LicenseNumber, location.FirmLicenseNumber, location.MatchMethod));
+    }
+
+    [Fact]
+    public void SelectLocations_MatchesBranchesByExactThenNormalizedThenClosestNamePreferringSameCity()
+    {
+        static OregonOreaBusiness Business(long row, string number, string name, string type, string city) =>
+            new(row, number, name, type, null, null, city);
+        var records = new[]
+        {
+            Business(1, "100", "JOHN L SCOTT", "RBN", "PORTLAND"),
+            Business(2, "101", "JOHN L SCOTT", "RBN", "BEND"),
+            Business(3, "200", "Smith & Jones Realty, LLC", "RBN", "SALEM"),
+            Business(4, "300", "CASCADE HOMES GROUP", "RBN", "EUGENE"),
+            Business(5, "900", "JOHN L SCOTT", "RBO", "BEND"),
+            Business(6, "901", "SMITH AND JONES REALTY RBO", "RBO", "SALEM"),
+            Business(7, "902", "CASCADE HOME GROUP", "RBO", "EUGENE")
+        };
+
+        var locations = OregonOreaBulkImportService.SelectLocations(records);
+
+        Assert.Equal(
+            [("900", "101", RegulatoryLocationMatchMethods.ExactName),
+                ("901", "200", RegulatoryLocationMatchMethods.NormalizedName),
+                ("902", "300", RegulatoryLocationMatchMethods.ClosestName)],
+            locations.Select(item => (item.Branch.LicenseNumber, item.FirmLicenseNumber, item.MatchMethod)));
     }
 
     [Fact]
@@ -100,13 +131,19 @@ public sealed class OregonOreaBulkImportServiceTests
         Assert.NotNull(snapshot.ActivatedAtUtc);
 
         var firms = await db.RegulatoryFirms.OrderBy(firm => firm.LicenseNumber).ToListAsync();
-        Assert.Equal(["200312244", "201259724", "201300001"], firms.Select(firm => firm.LicenseNumber));
+        Assert.Equal(["200312244", "201259724", "201400001"], firms.Select(firm => firm.LicenseNumber));
         Assert.Equal("LINDA S ABBAS", firms[0].QualifyingBrokerName);
         Assert.Equal("JOE KEY", firms[1].QualifyingBrokerName);
         Assert.Equal("Active", firms[1].LicenseStatus);
         Assert.Null(firms[1].TradeName);
-        Assert.Equal("Registered branch office", firms[2].TradeName);
-        Assert.Null(firms[2].LicenseRenewalDate);
+        Assert.Equal(RegulatoryIndustries.RealEstate, firms[1].Industry);
+        Assert.Equal(RegulatoryIndustries.Escrow, firms[2].Industry);
+        Assert.Equal(new DateOnly(2027, 6, 30), firms[2].LicenseRenewalDate);
+
+        var branch = await db.RegulatoryFirmLocations.SingleAsync();
+        Assert.Equal(("201300001", firms[0].Id, OregonOreaBulkImportService.BranchOfficeKind, RegulatoryLocationMatchMethods.ExactName),
+            (branch.RegistrationNumber, branch.FirmId, branch.Kind, branch.MatchMethod));
+        Assert.Equal("100 MAIN ST, BEND, OR 97701", branch.Address);
 
         var people = await db.RegulatoryLicensees.ToListAsync();
         Assert.Equal(4, people.Count);
@@ -166,9 +203,11 @@ public sealed class OregonOreaBulkImportServiceTests
     private static async Task<string> Content(ApplicationDbContext db)
     {
         var people = await db.RegulatoryLicensees.Select(person => $"{person.LicenseNumber}|{person.Name}|{person.LicenseType}|{person.SourceLicenseType}|{person.LicenseStatus}|{person.LicenseRenewalDate}|{person.RelatedLicenseNumber}|{person.RelatedLicenseName}").ToListAsync();
-        var firms = await db.RegulatoryFirms.Select(firm => $"{firm.LicenseNumber}|{firm.LegalName}|{firm.TradeName}|{firm.Address}|{firm.LicenseRenewalDate}|{firm.QualifyingBrokerName}").ToListAsync();
+        var firms = await db.RegulatoryFirms.Select(firm => $"{firm.LicenseNumber}|{firm.LegalName}|{firm.TradeName}|{firm.Address}|{firm.LicenseRenewalDate}|{firm.QualifyingBrokerName}|{firm.Industry}").ToListAsync();
+        var locations = await db.RegulatoryFirmLocations.Select(location => $"{location.RegistrationNumber}|{location.Name}|{location.Address}|{location.Firm!.LicenseNumber}|{location.MatchMethod}").ToListAsync();
         var edges = await db.RegulatoryFirmLicenseeAffiliations.Select(edge => $"{edge.Firm!.LicenseNumber}|{edge.Licensee!.LicenseNumber}|{edge.RelationshipEffectiveDate}|{edge.IsBrokerInCharge}").ToListAsync();
-        return string.Join("\n", people.Order(StringComparer.Ordinal).Concat(firms.Order(StringComparer.Ordinal)).Concat(edges.Order(StringComparer.Ordinal)));
+        return string.Join("\n", people.Order(StringComparer.Ordinal).Concat(firms.Order(StringComparer.Ordinal))
+            .Concat(locations.Order(StringComparer.Ordinal)).Concat(edges.Order(StringComparer.Ordinal)));
     }
 
     [Fact]

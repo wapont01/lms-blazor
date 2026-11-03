@@ -94,8 +94,55 @@ public class RegulatoryFirm
     [StringLength(160)]
     public string? QualifyingBrokerName { get; set; }
 
+    [Required, StringLength(40)]
+    public string Industry { get; set; } = RegulatoryIndustries.RealEstate;
+
     public RegulatoryDataSnapshot? Snapshot { get; set; }
     public ICollection<RegulatoryFirmLicenseeAffiliation> LicenseeAffiliations { get; set; } = new List<RegulatoryFirmLicenseeAffiliation>();
+    public ICollection<RegulatoryFirmLocation> Locations { get; set; } = new List<RegulatoryFirmLocation>();
+}
+
+/// <summary>Industry of a regulator-published firm; only real estate is offered in the LMS today.</summary>
+public static class RegulatoryIndustries
+{
+    public const string RealEstate = CourseIndustries.RealEstate;
+    public const string Escrow = "Escrow";
+}
+
+public static class RegulatoryLocationMatchMethods
+{
+    public const string ExactName = "Exact name";
+    public const string NormalizedName = "Normalized name";
+    public const string ClosestName = "Closest name - review";
+}
+
+/// <summary>An additional office (e.g., a registered branch office) belonging to a firm.</summary>
+public class RegulatoryFirmLocation
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid SnapshotId { get; set; }
+    public Guid? FirmId { get; set; }
+
+    [Required, StringLength(40)]
+    public string State { get; set; } = string.Empty;
+
+    [Required, StringLength(40)]
+    public string RegistrationNumber { get; set; } = string.Empty;
+
+    [Required, StringLength(200)]
+    public string Name { get; set; } = string.Empty;
+
+    [StringLength(500)]
+    public string? Address { get; set; }
+
+    [Required, StringLength(60)]
+    public string Kind { get; set; } = string.Empty;
+
+    [StringLength(40)]
+    public string? MatchMethod { get; set; }
+
+    public RegulatoryDataSnapshot? Snapshot { get; set; }
+    public RegulatoryFirm? Firm { get; set; }
 }
 
 public class RegulatoryLicensee

@@ -15,7 +15,11 @@ public sealed record RosterDetail(string Label, string Value);
 
 public sealed record RosterSearch(string State, string LicenseNumber = "", string Name = "",
     string LicenseType = "", string Firm = "", int Page = 1);
-public sealed record RosterSearchOptions(IReadOnlyList<string> LicenseTypes, bool HasFirmAffiliations);
+public sealed record RosterSearchOptions(IReadOnlyList<string> LicenseTypes, bool HasFirmAffiliations)
+{
+    /// <summary>Imported non-real-estate types, listed but not selectable until those products launch.</summary>
+    public IReadOnlyList<string> ComingLaterLicenseTypes { get; init; } = [];
+}
 
 public sealed record RosterRequestRow(
     Guid Id, Guid LearnerId, string LearnerEmail, RosterSelection Selection,
@@ -69,19 +73,28 @@ public sealed class RosterRegistrationService(
             return new([], false);
         var snapshotId = await LatestSnapshotIdAsync(state, ct);
         if (!snapshotId.HasValue) return new([], false);
-        var typeQuery = await ApplyDisplaySelectionAsync(db.RegulatoryLicensees.AsNoTracking()
-            .Where(item => item.SnapshotId == snapshotId && item.State == state), state, snapshotId.Value, ct);
+        var snapshotQuery = db.RegulatoryLicensees.AsNoTracking()
+            .Where(item => item.SnapshotId == snapshotId && item.State == state);
         var isColoradoDora = await IsColoradoDoraSnapshotAsync(snapshotId.Value, ct);
-        var types = isColoradoDora
-            ? await typeQuery
+        var allTypes = isColoradoDora
+            ? await snapshotQuery
                 .Where(item => item.SourceLicenseType != null && item.SourceLicenseType != "")
-                .Select(item => item.SourceLicenseType!).Distinct().OrderBy(item => item).ToListAsync(ct)
-            : await typeQuery
+                .Select(item => item.SourceLicenseType!).Distinct().ToListAsync(ct)
+            : await snapshotQuery
             .Where(item => item.LicenseType != null && item.LicenseType != "")
-            .Select(item => item.LicenseType!).Distinct().OrderBy(item => item).ToListAsync(ct);
+            .Select(item => item.LicenseType!).Distinct().ToListAsync(ct);
+        var coloradoSelection = isColoradoDora && _coloradoDoraTypeSelection is not null
+            ? ColoradoDoraLicenseTypes.EnabledRealEstateTypes(_coloradoDoraTypeSelection.GetSelected()).ToHashSet(StringComparer.Ordinal)
+            : null;
+        var types = allTypes
+            .Where(type => RegulatoryLicenseTypes.IsRealEstate(state, type)
+                && (coloradoSelection is null || coloradoSelection.Contains(type)))
+            .Order(StringComparer.Ordinal).ToList();
+        var comingLater = allTypes.Where(type => !RegulatoryLicenseTypes.IsRealEstate(state, type))
+            .Order(StringComparer.Ordinal).ToList();
         var hasFirms = await db.RegulatoryFirmLicenseeAffiliations.AnyAsync(item =>
             item.SnapshotId == snapshotId && item.Firm != null && item.Firm.State == state, ct);
-        return new(types, hasFirms);
+        return new(types, hasFirms) { ComingLaterLicenseTypes = comingLater };
     }
 
     public async Task<CertificatePage<RosterSelection>> SearchAsync(RosterSearch search, CancellationToken ct = default, string? captchaToken = null)
@@ -346,10 +359,10 @@ public sealed class RosterRegistrationService(
             if (option is not { IsRealEstate: true, IsIndividual: true })
                 throw new RosterRequestException("Select an individual professional license record for registration.");
         }
-        if (record.State == "Nevada"
-            && await IsNevadaNredSnapshotAsync(record.SnapshotId, ct)
-            && !NevadaNredBulkImportService.RealEstateLicenseTypes.Contains(record.LicenseType ?? string.Empty, StringComparer.Ordinal))
-            throw new RosterRequestException("This Nevada professional type is not enabled for LMS registration.");
+        if (!RegulatoryLicenseTypes.IsRealEstate(record.State, record.LicenseType)
+            || (record.SourceLicenseType is not null && record.State == "Colorado"
+                && !RegulatoryLicenseTypes.IsRealEstate(record.State, record.SourceLicenseType)))
+            throw new RosterRequestException($"This {record.State} professional type is not enabled for LMS registration.");
         if (record.IsRestricted || string.IsNullOrWhiteSpace(record.LicenseType)
             || new[] { "corporation", "corporate broker", "limited liability company broker", "trade name broker" }
                 .Contains(record.LicenseType.Trim().ToLowerInvariant()))
@@ -368,28 +381,18 @@ public sealed class RosterRegistrationService(
             .Select(snapshot => snapshot.ParserVersion == ColoradoDoraBulkImportService.ParserVersion)
             .FirstOrDefaultAsync(ct);
 
-    private Task<bool> IsNevadaNredSnapshotAsync(Guid snapshotId, CancellationToken ct) =>
-        db.RegulatoryDataSnapshots.AsNoTracking().Where(snapshot => snapshot.Id == snapshotId)
-            .Select(snapshot => snapshot.ParserVersion == NevadaNredBulkImportService.ParserVersion)
-            .FirstOrDefaultAsync(ct);
-
     private async Task<IQueryable<RegulatoryLicensee>> ApplyDisplaySelectionAsync(
         IQueryable<RegulatoryLicensee> query, string state, Guid snapshotId, CancellationToken ct)
     {
-        if (state == "Nevada" && await IsNevadaNredSnapshotAsync(snapshotId, ct))
-        {
-            var realEstateTypes = NevadaNredBulkImportService.RealEstateLicenseTypes.ToArray();
-            return query.Where(item => item.LicenseType != null && realEstateTypes.Contains(item.LicenseType));
-        }
+        var excluded = RegulatoryLicenseTypes.NonRealEstateTypes(state).ToArray();
+        if (state != "Colorado" || !await IsColoradoDoraSnapshotAsync(snapshotId, ct))
+            return excluded.Length == 0
+                ? query
+                : query.Where(item => item.LicenseType == null || !excluded.Contains(item.LicenseType));
 
-        if (state != "Colorado" || _coloradoDoraTypeSelection is null
-            || !await IsColoradoDoraSnapshotAsync(snapshotId, ct))
-            return query;
-
-        var selectedTypes = ColoradoDoraLicenseTypes.EnabledRealEstateTypes(_coloradoDoraTypeSelection.GetSelected())
-            .Intersect(ColoradoDoraLicenseTypes.All.Where(option => option.IsIndividual).Select(option => option.Name),
-                StringComparer.Ordinal)
-            .ToArray();
+        if (_coloradoDoraTypeSelection is null)
+            return query.Where(item => item.SourceLicenseType != null && !excluded.Contains(item.SourceLicenseType));
+        var selectedTypes = ColoradoDoraLicenseTypes.EnabledRealEstateTypes(_coloradoDoraTypeSelection.GetSelected());
         return selectedTypes.Length == 0
             ? query.Where(_ => false)
             : query.Where(item => item.SourceLicenseType != null && selectedTypes.Contains(item.SourceLicenseType));

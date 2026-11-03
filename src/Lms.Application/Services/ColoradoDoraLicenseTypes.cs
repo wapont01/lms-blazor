@@ -22,7 +22,7 @@ public static class ColoradoDoraLicenseTypes
         new("Real Estate Company - Independent", "IC", true, false),
         new("Mortgage Loan Originator", "MLO", false, true),
         new("Home Owner's Association", "HOA", false, false),
-        new("HOA Designated Agent", "DA", false, true),
+        new("HOA Designated Agent", "DA", true, true),
         new("Natural Person", "NP", false, true),
         new("Certified Residential Appraiser", "CR", false, true),
         new("Certified General Appraiser", "CG", false, true),
