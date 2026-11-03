@@ -239,6 +239,16 @@ public sealed class RegulatoryCollectionTests
         builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<WestVirginiaBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(westVirginiaOptions));
         builder.Services.AddScoped<WestVirginiaRecBulkImportService>();
         builder.Services.AddSingleton<WestVirginiaBulkCollectionService>();
+        var maineOptions = new MaineBulkCollectionOptions { WeeklyEnabled = false, ArchiveDirectory = Path.Combine(testRoot, "maine-stored") };
+        builder.Services.AddSingleton(maineOptions);
+        builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<MaineBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(maineOptions));
+        builder.Services.AddScoped<MaineAlmsBulkImportService>();
+        builder.Services.AddSingleton<MaineBulkCollectionService>();
+        var vermontOptions = new VermontBulkCollectionOptions { WeeklyEnabled = false, ArchiveDirectory = Path.Combine(testRoot, "vermont-stored") };
+        builder.Services.AddSingleton(vermontOptions);
+        builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<VermontBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(vermontOptions));
+        builder.Services.AddScoped<VermontOprBulkImportService>();
+        builder.Services.AddSingleton<VermontBulkCollectionService>();
         builder.Services.AddHostedService<FloridaBulkRefreshBackgroundService>();
         builder.Services.AddHttpClient("FloridaBulk").ConfigurePrimaryHttpMessageHandler(() => handler);
         await using var app = builder.Build();

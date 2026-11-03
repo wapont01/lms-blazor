@@ -10,9 +10,9 @@ namespace Lms.Web.UITests.Tests;
 public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : IClassFixture<WebHostFixture>
 {
     [UiFact]
-    public async Task MichiganAndWestVirginiaHaveOneCollectionButtonAndEnabledRealEstateTypes()
+    public async Task NewBulkStatesHaveOneCollectionButtonAndEnabledRealEstateTypes()
     {
-        foreach (var state in new[] { "Michigan", "West Virginia" })
+        foreach (var state in new[] { "Michigan", "West Virginia", "Maine", "Vermont" })
         {
             await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseSqlite($"Data Source={fixture.DatabasePath}").Options);
@@ -23,9 +23,15 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
                 Status = RegulatorySnapshotStatuses.Approved, RetrievedAtUtc = DateTime.UtcNow, ActivatedAtUtc = DateTime.UtcNow
             };
             db.RegulatoryDataSnapshots.Add(snapshot);
-            var types = state == "Michigan"
-                ? new[] { "Salesperson", "Prin Associate Broker", "Non Prin Associate Broker", "Broker Individual" }
-                : new[] { "Salesperson", "Associate Broker", "Broker" };
+            var types = state switch
+            {
+                "Michigan" => new[] { "Salesperson", "Prin Associate Broker", "Non Prin Associate Broker", "Broker Individual" },
+                "Maine" => new[] { "Sales Agent", "Associate Broker", "Broker", "Designated Broker" },
+                "Vermont" => new[] { "Real Estate Broker", "Real Estate Broker - Emergency Temporary License",
+                    "Real Estate Broker - Temporary License", "Real Estate Salesperson",
+                    "Real Estate Salesperson - Emergency Temporary License", "Real Estate Salesperson - Temporary" },
+                _ => new[] { "Salesperson", "Associate Broker", "Broker" }
+            };
             foreach (var type in types)
                 db.RegulatoryLicensees.Add(new()
                 {
@@ -122,7 +128,7 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         await page.GotoAsync($"{fixture.BaseUrl}/admin/regulatory-schedules");
 
         var schedules = page.GetByRole(AriaRole.Table, new() { Name = "State collection schedules", Exact = true });
-        await Assertions.Expect(schedules.Locator("tbody tr")).ToHaveCountAsync(14);
+        await Assertions.Expect(schedules.Locator("tbody tr")).ToHaveCountAsync(16);
         var nevadaCadence = schedules.GetByLabel("Nevada publication cadence", new() { Exact = true });
         await nevadaCadence.Locator("summary").ClickAsync();
         await Assertions.Expect(nevadaCadence).ToContainTextAsync("Monthly");
@@ -162,6 +168,8 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         await Assertions.Expect(schedules.GetByLabel("Illinois time zone")).ToHaveValueAsync("America/Chicago");
         await Assertions.Expect(schedules.GetByLabel("Virginia time zone", new() { Exact = true })).ToHaveValueAsync("America/New_York");
         await Assertions.Expect(schedules.GetByLabel("Michigan time zone")).ToHaveValueAsync("America/Detroit");
+        await Assertions.Expect(schedules.GetByLabel("Maine time zone", new() { Exact = true })).ToHaveValueAsync("America/New_York");
+        await Assertions.Expect(schedules.GetByLabel("Vermont time zone", new() { Exact = true })).ToHaveValueAsync("America/New_York");
         await Assertions.Expect(schedules.GetByLabel("West Virginia time zone")).ToHaveValueAsync("America/New_York");
         await Assertions.Expect(schedules.Locator("tbody tr").Filter(new() { Has = page.GetByLabel("Virginia time zone", new() { Exact = true }) }))
             .ToContainTextAsync("Recommended collection: 1 Week");

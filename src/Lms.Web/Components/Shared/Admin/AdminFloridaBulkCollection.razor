@@ -29,6 +29,10 @@
 @inject MichiganBulkCollectionOptions MichiganOptions
 @inject WestVirginiaBulkCollectionService WestVirginiaCollection
 @inject WestVirginiaBulkCollectionOptions WestVirginiaOptions
+@inject MaineBulkCollectionService MaineCollection
+@inject MaineBulkCollectionOptions MaineOptions
+@inject VermontBulkCollectionService VermontCollection
+@inject VermontBulkCollectionOptions VermontOptions
 @inject ILogger<AdminFloridaBulkCollection> Logger
 
 <section class="card bulk-collection" aria-label="@($"{State} bulk collection")">
@@ -39,7 +43,7 @@
             @(_starting ? "Starting..." : _stopping || _status?.State == "Stopping" ? "Cancelling..." : IsRunning ? "Cancel collection" : State == "Nevada" ? "Collect data" : "Collect now")
         </button>
     </div>
-    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : State == "Oregon" ? "OREA active business and active and inactive individual rosters" : State == "Delaware" ? "DPR real estate and appraiser professional licensing dataset" : State == "Illinois" ? "IDFPR real estate and appraisal professional licensing dataset" : State == "Virginia" ? "DPOR Real Estate Board regulant lists" : State == "Michigan" ? "LARA current real-estate license and employer reports" : State == "West Virginia" ? "WVREC active licensee workbooks" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
+    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : State == "Oregon" ? "OREA active business and active and inactive individual rosters" : State == "Delaware" ? "DPR real estate and appraiser professional licensing dataset" : State == "Illinois" ? "IDFPR real estate and appraisal professional licensing dataset" : State == "Virginia" ? "DPOR Real Estate Board regulant lists" : State == "Michigan" ? "LARA current real-estate license and employer reports" : State == "West Virginia" ? "WVREC active licensee workbooks" : State == "Maine" ? "ALMS active individual and company exports" : State == "Vermont" ? "OPR real-estate profession exports in all statuses" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
     @if (State == "Nevada")
     {
         <p class="muted-text">Collects the 12 supported active lists directly from NRED on the application server, not through this browser. NRED updates these lists monthly. Reserve Study Specialists is a separate historical workbook and is not included. Acquisition timestamps are recorded; no source publication date is inferred.</p>
@@ -105,6 +109,14 @@
         else if (State == "Michigan")
         {
             <a href="@MichiganLaraBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Michigan LARA license and employer reports</a>
+        }
+        else if (State == "Maine")
+        {
+            <a href="@MaineAlmsBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Maine ALMS real estate license search and exports</a>
+        }
+        else if (State == "Vermont")
+        {
+            <a href="@VermontOprBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Vermont OPR profession roster downloads</a>
         }
         else if (State == "West Virginia")
         {
@@ -247,6 +259,14 @@
         {
             <p>WVREC publishes separate active salesperson, associate-broker and broker Excel rosters. All files must pass schema, row count and hash checks before activation. Only published active licenses are covered, not a historical all-status roster. Companies use published CompanyNumber identifiers, not verified firm license numbers; company status and license dates remain unknown. Branch locations use CompanyNumber and BranchNumber together because branch numbers repeat across companies. Affiliations use published company IDs only; broker-in-charge status and relationship dates are not inferred. The original workbooks remain Admin-only. Missing licenses never imply revocation.</p>
         }
+        else if (State == "Maine")
+        {
+            <p>ALMS generates separate individual and company CSV exports from unrestricted Real Estate Commission active-license searches. Both files must pass schema, row count and hash checks before activation. Published alias rows remain in the original archives and are not counted as additional licenses. Branch ownership and employment relationships are not guessed from names or addresses. License issue dates are not published in these exports. Missing licenses never imply revocation; the original files remain Admin-only.</p>
+        }
+        else if (State == "Vermont")
+        {
+            <p>OPR generates Excel exports through its public guest profession-roster workflow. All nine real-estate license types are requested with every portal status filter: Active, Inactive per Request, Expired and Disciplined. This is not comprehensive discipline history or a guarantee of every historical status. All files must pass schema, row count and hash checks before activation; a published header-only category is valid. Where a credential has multiple terms, the latest published effective term is kept. Firms and branches retain their published identities, including missing historical names, without inferred ownership or broker-in-charge relationships. The original files remain Admin-only.</p>
+        }
         <p>Stop collection cancels only the current run. An uncommitted import is rolled back and the last completed archive is retained. You can collect again manually; automatic collection waits at least one refresh interval after an administrator stops a run.</p>
     </details>
 </section>
@@ -268,6 +288,8 @@
         "Virginia" => VirginiaCollection,
         "Michigan" => MichiganCollection,
         "West Virginia" => WestVirginiaCollection,
+        "Maine" => MaineCollection,
+        "Vermont" => VermontCollection,
         _ => FloridaCollection
     };
     private FloridaBulkCollectionOptions Options => State switch
@@ -285,6 +307,8 @@
         "Virginia" => VirginiaOptions,
         "Michigan" => MichiganOptions,
         "West Virginia" => WestVirginiaOptions,
+        "Maine" => MaineOptions,
+        "Vermont" => VermontOptions,
         _ => FloridaOptions
     };
     [Parameter] public EventCallback<Guid> SnapshotCompleted { get; set; }
@@ -397,6 +421,17 @@
     }
     private static string FilePurpose(string name) => name switch
     {
+        "active-individuals.csv" => "Active sales agents and brokers; all locations",
+        "active-companies.csv" => "Active firms and branch locations; published responsible individuals",
+        "NGLP083-MAIN.xlsx" => "Brokerage firms - main offices; all portal status filters",
+        "NGLP083-SOLE.xlsx" => "Brokerage firms - sole proprietorships; all portal status filters",
+        "NGLP083-BRCH.xlsx" => "Brokerage branch locations; all portal status filters",
+        "NGLP081.xlsx" => "Real estate brokers; all portal status filters",
+        "NGLP081-EMGY.xlsx" => "Emergency temporary brokers; all portal status filters",
+        "NGLP081-TEMP.xlsx" => "Temporary brokers; all portal status filters",
+        "NGLP082.xlsx" => "Real estate salespersons; all portal status filters",
+        "NGLP082-EMGY.xlsx" => "Emergency temporary salespersons; all portal status filters",
+        "NGLP082-TEMP.xlsx" => "Temporary salespersons; all portal status filters",
         MichiganLaraBulkImportService.LicenseFile => "Current real-estate licenses, broker firms and branch offices",
         MichiganLaraBulkImportService.EmployerFile => "Active licensee and branch to broker links by published license number",
         "SalespersonRoster.xlsx" => "Active salespersons; published company and branch IDs",

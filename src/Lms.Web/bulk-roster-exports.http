@@ -32,3 +32,35 @@ Cookie: {{adminCookie}}
 ### Unknown export returns 404 for an authenticated administrator
 GET {{baseUrl}}/admin/michigan-bulk/exports/unknown.xlsx
 Cookie: {{adminCookie}}
+
+### Maine original active individual export
+GET {{baseUrl}}/admin/maine-bulk/exports/active-individuals.csv
+Cookie: {{adminCookie}}
+
+### Maine original active company export
+GET {{baseUrl}}/admin/maine-bulk/exports/active-companies.csv
+Cookie: {{adminCookie}}
+
+### Maine acquisition manifest
+GET {{baseUrl}}/admin/maine-bulk/exports/manifest.json
+Cookie: {{adminCookie}}
+
+### Vermont original broker roster (all portal status filters)
+GET {{baseUrl}}/admin/vermont-bulk/exports/NGLP081.xlsx
+Cookie: {{adminCookie}}
+
+### Vermont original salesperson roster
+GET {{baseUrl}}/admin/vermont-bulk/exports/NGLP082.xlsx
+Cookie: {{adminCookie}}
+
+### Vermont original main-office roster
+GET {{baseUrl}}/admin/vermont-bulk/exports/NGLP083-MAIN.xlsx
+Cookie: {{adminCookie}}
+
+### Vermont original branch-office roster
+GET {{baseUrl}}/admin/vermont-bulk/exports/NGLP083-BRCH.xlsx
+Cookie: {{adminCookie}}
+
+### Vermont acquisition manifest (all nine original export filenames)
+GET {{baseUrl}}/admin/vermont-bulk/exports/manifest.json
+Cookie: {{adminCookie}}

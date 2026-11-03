@@ -248,6 +248,28 @@ builder.Services.AddSingleton<BulkCollectionService>(services => services.GetReq
 builder.Services.AddHttpClient("West VirginiaBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHostedService<WestVirginiaBulkRefreshBackgroundService>();
+var maineBulk = new MaineBulkCollectionOptions { WeeklyEnabled = false, RefreshDays = 1, StaleAfterDays = 2 };
+builder.Configuration.GetSection("MaineBulk").Bind(maineBulk);
+builder.Services.AddSingleton(maineBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<MaineBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(maineBulk));
+builder.Services.AddScoped<MaineAlmsBulkImportService>();
+builder.Services.AddSingleton<MaineBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<MaineBulkCollectionService>());
+builder.Services.AddHttpClient("MaineBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+builder.Services.AddHostedService<MaineBulkRefreshBackgroundService>();
+var vermontBulk = new VermontBulkCollectionOptions { WeeklyEnabled = false, RefreshDays = 1, StaleAfterDays = 2 };
+builder.Configuration.GetSection("VermontBulk").Bind(vermontBulk);
+builder.Services.AddSingleton(vermontBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<VermontBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(vermontBulk));
+builder.Services.AddScoped<VermontOprBulkImportService>();
+builder.Services.AddSingleton<VermontBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<VermontBulkCollectionService>());
+builder.Services.AddHttpClient("VermontBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+builder.Services.AddHostedService<VermontBulkRefreshBackgroundService>();
 builder.Services.AddSingleton<TexasBulkCollectionService>();
 builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<TexasBulkCollectionService>());
 builder.Services.AddHttpClient("TexasBulk", client => client.Timeout = TimeSpan.FromMinutes(10))

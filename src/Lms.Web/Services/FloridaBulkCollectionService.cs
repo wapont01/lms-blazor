@@ -570,6 +570,8 @@ public class BulkRefreshBackgroundService(BulkCollectionService collection,
                                         "Virginia" => scope.ServiceProvider.GetRequiredService<VirginiaBulkCollectionOptions>(),
                                         "Michigan" => scope.ServiceProvider.GetRequiredService<MichiganBulkCollectionOptions>(),
                                         "West Virginia" => scope.ServiceProvider.GetRequiredService<WestVirginiaBulkCollectionOptions>(),
+                                        "Maine" => scope.ServiceProvider.GetRequiredService<MaineBulkCollectionOptions>(),
+                                        "Vermont" => scope.ServiceProvider.GetRequiredService<VermontBulkCollectionOptions>(),
                                         _ => throw new InvalidOperationException($"Unknown bulk collection alert state '{state}'.")
                                     },
                                     scope.ServiceProvider.GetRequiredService<ILogger<FloridaBulkAlertService>>(), state: state);
@@ -707,6 +709,23 @@ public sealed class DelawareBulkRefreshBackgroundService(DelawareBulkCollectionS
 public sealed class IllinoisBulkCollectionOptions : FloridaBulkCollectionOptions;
 
 public sealed class MichiganBulkCollectionOptions : FloridaBulkCollectionOptions;
+
+public sealed class MaineBulkCollectionOptions : FloridaBulkCollectionOptions;
+public sealed class VermontBulkCollectionOptions : FloridaBulkCollectionOptions;
+public sealed class VermontBulkCollectionService(IServiceScopeFactory scopes, IHttpClientFactory clients,
+    IHostApplicationLifetime lifetime, IWebHostEnvironment environment, IOptions<VermontBulkCollectionOptions> options,
+    ILogger<VermontBulkCollectionService> logger, BulkCollectionScheduleStore? schedules = null)
+    : BulkCollectionService(scopes, clients, lifetime, environment, options.Value, logger, new VermontOprBulkRosterProvider(), schedules);
+public sealed class VermontBulkRefreshBackgroundService(VermontBulkCollectionService collection,
+    ILogger<VermontBulkRefreshBackgroundService> logger, IServiceScopeFactory scopes)
+    : BulkRefreshBackgroundService(collection, logger, scopes, "Vermont");
+public sealed class MaineBulkCollectionService(IServiceScopeFactory scopes, IHttpClientFactory clients,
+    IHostApplicationLifetime lifetime, IWebHostEnvironment environment, IOptions<MaineBulkCollectionOptions> options,
+    ILogger<MaineBulkCollectionService> logger, BulkCollectionScheduleStore? schedules = null)
+    : BulkCollectionService(scopes, clients, lifetime, environment, options.Value, logger, new MaineAlmsBulkRosterProvider(), schedules);
+public sealed class MaineBulkRefreshBackgroundService(MaineBulkCollectionService collection,
+    ILogger<MaineBulkRefreshBackgroundService> logger, IServiceScopeFactory scopes)
+    : BulkRefreshBackgroundService(collection, logger, scopes, "Maine");
 public sealed class MichiganBulkCollectionService(IServiceScopeFactory scopes, IHttpClientFactory clients,
     IHostApplicationLifetime lifetime, IWebHostEnvironment environment, IOptions<MichiganBulkCollectionOptions> options,
     ILogger<MichiganBulkCollectionService> logger, BulkCollectionScheduleStore? schedules = null)
