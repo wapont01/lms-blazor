@@ -331,6 +331,25 @@ public sealed class RegulatoryStatisticsServiceTests
         Assert.Single(refreshed.Records, row => row.Classification == "New license");
     }
 
+    [Fact]
+    public async Task ManualCollectionComparisonIsNotCachedWhileRecordsAreStillArriving()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var cached = new RegulatoryStatisticsService(fixture.Db, new RegulatoryStatisticsCache());
+        var baseline = fixture.Snapshot("Idaho", RegulatorySnapshotStatuses.Approved, 1);
+        var incoming = fixture.Snapshot("Idaho", RegulatorySnapshotStatuses.PendingReview, 2);
+        fixture.License(baseline, "one");
+        fixture.License(incoming, "one");
+        await fixture.Db.SaveChangesAsync();
+        Assert.Single((await cached.GetAsync("Idaho")).Records);
+
+        fixture.License(incoming, "two");
+        await fixture.Db.SaveChangesAsync();
+        var refreshed = await cached.GetAsync("Idaho");
+        Assert.Equal(2, refreshed.Records.Count);
+        Assert.Equal(2, Assert.Single(refreshed.Professions).Collected);
+    }
+
     private sealed class Fixture(SqliteConnection connection, ApplicationDbContext db) : IAsyncDisposable
     {
         public ApplicationDbContext Db { get; } = db;

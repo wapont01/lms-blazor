@@ -9,6 +9,9 @@ namespace Lms.Web.UITests.Tests;
 
 public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : IClassFixture<WebHostFixture>
 {
+    // Statistics for manual collections reload automatically every 15 seconds.
+    private static readonly LocatorAssertionsToHaveTextOptions AutoUpdate = new() { Timeout = 25_000 };
+
     [UiFact]
     public async Task NevadaShowsCollectDataAndSearchesCurrentImportedLicensesWithoutApproval()
     {
@@ -83,7 +86,8 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         await Assertions.Expect(schedules.Locator("tbody tr").Filter(new() { HasText = "Colorado" }))
             .ToContainTextAsync("Recommended collection: not established");
         await Assertions.Expect(nevadaCadence).ToContainTextAsync("Active Licensee Lists PORTAL.txt");
-        await Assertions.Expect(nevadaCadence.GetByRole(AriaRole.Link)).ToHaveAttributeAsync("href",
+        // The link is inside <details>; an interactive re-render can collapse it, so check the anchor directly.
+        await Assertions.Expect(nevadaCadence.Locator("a")).ToHaveAttributeAsync("href",
             "https://red.nv.gov/Content/Administration/Active_Licensee_Lists/");
         await Assertions.Expect(schedules.GetByLabel("Colorado publication cadence", new() { Exact = true }).Locator("summary"))
             .ToContainTextAsync("Not verified");
@@ -126,7 +130,8 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
             .ToHaveAttributeAsync("href", "https://data.colorado.gov/Regulations/Licensed-Real-Estate-Professionals-in-Colorado/4zse-6bnw/about_data");
         await Assertions.Expect(notice.GetByRole(AriaRole.Link, new() { Name = "Open Colorado DRE eLicense roster generator" }))
             .ToHaveAttributeAsync("href", "https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx");
-        await Assertions.Expect(page.GetByRole(AriaRole.Region, new() { Name = "Colorado bulk collection", Exact = true })).ToHaveCountAsync(0);
+        await Assertions.Expect(page.GetByRole(AriaRole.Region, new() { Name = "Colorado bulk collection", Exact = true })).ToHaveCountAsync(1);
+        await Assertions.Expect(notice).ToContainTextAsync("Colorado's existing eLicense snapshot is retained.");
     }
 
     [UiFact]
@@ -323,22 +328,20 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         Assert.True(stylesheet.Ok);
         Assert.Contains(".state-statistics", await stylesheet.TextAsync());
 
+        await Assertions.Expect(page.GetByRole(AriaRole.Button, new() { Name = "Refresh statistics", Exact = true })).ToHaveCountAsync(0);
         db.RegulatoryLicensees.Add(License(incoming, "new-batch"));
         await db.SaveChangesAsync();
-        await page.GetByRole(AriaRole.Button, new() { Name = "Refresh statistics", Exact = true }).ClickAsync();
-        await Assertions.Expect(row.Locator("td, th")).ToHaveTextAsync(["Licensees", "Salesperson", "3", "4", "2", "1", "1"]);
+        await Assertions.Expect(row.Locator("td, th")).ToHaveTextAsync(["Licensees", "Salesperson", "3", "4", "2", "1", "1"], AutoUpdate);
         db.RegulatoryLicensees.AddRange(License(baseline, "baseline-only-1"), License(baseline, "baseline-only-2"));
         await db.SaveChangesAsync();
-        await page.GetByRole(AriaRole.Button, new() { Name = "Refresh statistics", Exact = true }).ClickAsync();
-        await Assertions.Expect(row.Locator("td, th")).ToHaveTextAsync(["Licensees", "Salesperson", "5", "4", "2", "1", "1"]);
+        await Assertions.Expect(row.Locator("td, th")).ToHaveTextAsync(["Licensees", "Salesperson", "5", "4", "2", "1", "1"], AutoUpdate);
         await Assertions.Expect(active.Locator(".increment-negative")).ToHaveTextAsync("- 1");
         Assert.Equal(RegulatorySnapshotStatuses.PendingReview,
             await db.RegulatoryDataSnapshots.Where(snapshot => snapshot.Id == incoming.Id).Select(snapshot => snapshot.Status).SingleAsync());
         for (var index = 0; index < 51; index++)
             db.RegulatoryLicensees.Add(License(incoming, $"page-test-{index:D2}"));
         await db.SaveChangesAsync();
-        await page.GetByRole(AriaRole.Button, new() { Name = "Refresh statistics", Exact = true }).ClickAsync();
-        await Assertions.Expect(details.Locator("tbody tr")).ToHaveCountAsync(50);
+        await Assertions.Expect(details.Locator("tbody tr")).ToHaveCountAsync(50, new() { Timeout = AutoUpdate.Timeout });
         await page.GetByRole(AriaRole.Button, new() { Name = "Next records", Exact = true }).ClickAsync();
         await Assertions.Expect(details.Locator("tbody tr")).ToHaveCountAsync(3);
         await page.GetByLabel("Reconciliation classification").SelectOptionAsync("Status changed");

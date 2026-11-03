@@ -231,7 +231,11 @@ public class UserAccountServiceTests
         await CourseSeed.SeedEnrollmentsAsync(fixture.DbContext);
 
         Assert.Empty(await fixture.DbContext.Enrollments.ToListAsync());
-        Assert.Equal("Florida Core Law", await fixture.DbContext.Courses.Select(course => course.Title).SingleAsync());
+        var titles = await fixture.DbContext.Courses.Select(course => course.Title).ToListAsync();
+        Assert.Contains("Florida Core Law", titles);
+        Assert.DoesNotContain(titles, title => title is "Real Estate Licensing Basics" or "Advanced Brokerage Compliance"
+            or "Draft Course Outline" or "Property Marketing and Lead Conversion"
+            or "Transaction Coordination Mastery" or "Client Communication and Negotiation Strategies");
     }
 
     [Fact]

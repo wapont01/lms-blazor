@@ -32,8 +32,8 @@ public sealed record RegulatoryStateStatistics(
     IReadOnlyList<RegulatoryRecordComparison> Records);
 
 /// <summary>
-/// Holds computed comparisons keyed by snapshot IDs. Snapshot rows are immutable once imported and every
-/// collection creates a new snapshot, so an entry stays valid until its snapshots are no longer selected.
+/// Holds computed bulk-roster comparisons keyed by snapshot IDs. Bulk snapshots are written once in a single
+/// transaction and every collection creates a new snapshot, so an entry stays valid until it is evicted.
 /// </summary>
 public sealed class RegulatoryStatisticsCache
 {
@@ -116,7 +116,9 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db, Regulat
                     snapshot.Id != incoming.Id && snapshot.ParserVersion == NevadaNredBulkImportService.ParserVersion);
         }
 
-        var comparison = cache is null
+        // Only bulk rosters are written once in a single transaction; manual collections keep appending
+        // records to the same pending snapshot, so their comparisons must always be recomputed.
+        var comparison = cache is null || !bulkOnly
             ? await CompareAsync(baseline?.Id, incoming?.Id)
             : await cache.GetOrAdd((baseline?.Id, incoming?.Id), () => CompareAsync(baseline?.Id, incoming?.Id));
 
@@ -127,9 +129,11 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db, Regulat
 
     private async Task<RegulatoryComparisonResult> CompareAsync(Guid? baselineId, Guid? incomingId)
     {
-        var (current, excludedCurrent) = await ReadAsync(baselineId);
-        var (collected, excludedCollected) = await ReadAsync(incomingId);
-        var records = new List<RegulatoryRecordComparison>();
+        // Cached results hold one entry per license, so repeated profession names share one string instance.
+        var professionNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        var (current, excludedCurrent) = await ReadAsync(baselineId, professionNames);
+        var (collected, excludedCollected) = await ReadAsync(incomingId, professionNames);
+        var records = new List<RegulatoryRecordComparison>(collected.Count + (incomingId.HasValue ? current.Count : 0));
         foreach (var (identity, observed) in collected)
         {
             if (!current.TryGetValue(identity, out var previous))
@@ -138,12 +142,14 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db, Regulat
                 continue;
             }
             var labels = identity.Kind == "Licensees" ? LicenseFields : FirmFields;
-            var changes = labels.Select((label, index) => new RegulatoryFieldChange(label,
-                    previous.Values[index], observed.Values[index]))
-                .Where(change => change.Previous != change.Incoming).ToList();
+            List<RegulatoryFieldChange>? changes = null;
+            for (var index = 0; index < labels.Length; index++)
+                if (previous.Values[index] != observed.Values[index])
+                    (changes ??= []).Add(new(labels[index], previous.Values[index], observed.Values[index]));
             var classification = Normalize(previous.Status) != Normalize(observed.Status) ? "Status changed"
-                : changes.Count > 0 ? "Other updates" : "Unchanged";
-            records.Add(new(identity.Kind, identity.Number, observed.Profession, classification, changes));
+                : changes is not null ? "Other updates" : "Unchanged";
+            records.Add(new(identity.Kind, identity.Number, observed.Profession, classification,
+                changes is null ? [] : changes.ToArray()));
         }
         if (incomingId.HasValue)
             records.AddRange(current.Where(pair => !collected.ContainsKey(pair.Key)).Select(pair =>
@@ -196,18 +202,17 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db, Regulat
     private static RegulatoryStatisticsSnapshot? Describe(RegulatoryDataSnapshot? snapshot) => snapshot is null
         ? null : new(snapshot.Id, snapshot.SourceName, ToUtc(snapshot.RetrievedAtUtc), ToUtc(snapshot.ImportedAtUtc));
 
-    private async Task<(Dictionary<Identity, Observation> Records, int Excluded)> ReadAsync(Guid? snapshotId)
+    private async Task<(Dictionary<Identity, Observation> Records, int Excluded)> ReadAsync(Guid? snapshotId,
+        Dictionary<string, string> professionNames)
     {
         var records = new Dictionary<Identity, Observation>();
         if (!snapshotId.HasValue)
             return (records, 0);
 
-        var licensees = await db.RegulatoryLicensees.AsNoTracking()
-            .Where(record => record.SnapshotId == snapshotId.Value).ToListAsync();
-        var firms = await db.RegulatoryFirms.AsNoTracking()
-            .Where(record => record.SnapshotId == snapshotId.Value).ToListAsync();
         var excluded = 0;
-        foreach (var record in licensees)
+        // Streamed so a large roster is not held twice (as entities and as observations).
+        await foreach (var record in db.RegulatoryLicensees.AsNoTracking()
+            .Where(record => record.SnapshotId == snapshotId.Value).AsAsyncEnumerable())
         {
             var profession = Profession(record.State, record.LicenseType);
             Add("Licensees", record.State == "Texas" ? TexasBulkImportService.CredentialKey(record.LicenseNumber) : record.LicenseNumber, profession, record.LicenseStatus,
@@ -224,7 +229,8 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db, Regulat
                 record.PostlicensingHours?.ToString(CultureInfo.InvariantCulture) ?? "", record.IsBicEligible.ToString()
             ]);
         }
-        foreach (var record in firms)
+        await foreach (var record in db.RegulatoryFirms.AsNoTracking()
+            .Where(record => record.SnapshotId == snapshotId.Value).AsAsyncEnumerable())
         {
             Add("Firms / offices", record.State == "Texas" ? TexasBulkImportService.CredentialKey(record.LicenseNumber) : record.LicenseNumber, "Firm / office", record.LicenseStatus, "Firm / office",
             [
@@ -243,6 +249,9 @@ public sealed class RegulatoryStatisticsService(ApplicationDbContext db, Regulat
                 return;
             }
             profession = string.IsNullOrWhiteSpace(profession) ? "Type not reported" : profession.Trim();
+            if (!professionNames.TryGetValue(profession, out var sharedProfession))
+                professionNames[profession] = sharedProfession = profession;
+            profession = sharedProfession;
             var key = new Identity(kind, Normalize(number), Normalize(identityType));
             var observation = new Observation(kind, profession,
                 string.IsNullOrWhiteSpace(status) ? "Not reported" : status.Trim(), values);

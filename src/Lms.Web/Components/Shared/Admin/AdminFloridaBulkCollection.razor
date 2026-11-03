@@ -67,7 +67,7 @@
             <div><dt>Next automatic run</dt><dd>@(Options.WeeklyEnabled ? Utc(status.NextRunAtUtc) : "Disabled")</dd></div>
             @if (status.StartedAtUtc is not null)
             {
-                <div><dt>@(IsRunning ? "Elapsed time" : "Run duration")</dt><dd>@Duration(status)</dd></div>
+                <div><dt>@(IsRunning ? "Elapsed time" : "Run duration")</dt><dd>@(Duration(status, IsRunning) ?? "Not recorded")</dd></div>
             }
         </dl>
         @if (IsRunning)
@@ -273,10 +273,13 @@
     }
 
     private static string Utc(DateTime? value) => value?.ToString("yyyy-MM-dd HH:mm 'UTC'") ?? "Not yet available";
-    private static string Duration(FloridaBulkCollectionStatus status)
+    // A run interrupted by an application stop has no recorded end, so its duration is unknown.
+    private static string? Duration(FloridaBulkCollectionStatus status, bool running)
     {
-        var end = status.FinishedAtUtc ?? (status.State == "Completed" ? status.CompletedAtUtc : null) ?? DateTime.UtcNow;
-        var elapsed = end - status.StartedAtUtc!.Value;
+        var end = running ? DateTime.UtcNow
+            : status.FinishedAtUtc ?? (status.State == "Completed" ? status.CompletedAtUtc : null);
+        if (end is null) return null;
+        var elapsed = end.Value - status.StartedAtUtc!.Value;
         if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
         return $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
     }

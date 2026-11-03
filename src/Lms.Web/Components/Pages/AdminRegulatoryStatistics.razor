@@ -6,6 +6,8 @@
 @inject RegulatoryStatisticsService Statistics
 @inject ILogger<AdminRegulatoryStatistics> Logger
 @inject IConfiguration Configuration
+@inject IServiceScopeFactory ScopeFactory
+@implements IDisposable
 
 <PageTitle>State Collection Statistics</PageTitle>
 
@@ -31,7 +33,16 @@
             <p><a href="https://data.colorado.gov/Regulations/Licensed-Real-Estate-Professionals-in-Colorado/4zse-6bnw/about_data" target="_blank" rel="noopener noreferrer">Open the DORA real-estate license dataset</a></p>
             <p><strong>eLicense imports:</strong> The DRE roster generator provides the Active Associate Broker, Responsible Broker, Individual Proprietor, and Real Estate Company CSVs. CAPTCHA prevents automated retrieval, so an admin must provide the files for import.</p>
             <p><a href="https://apps2.colorado.gov/dre/licensing/Lookup/GenerateRoster.aspx" target="_blank" rel="noopener noreferrer">Open Colorado DRE eLicense roster generator</a></p>
-            <p class="muted-text">Colorado's existing eLicense snapshot is retained. The selected DORA real-estate dataset has not yet been imported.</p>
+            <p class="muted-text">Colorado's existing eLicense snapshot is retained.
+                @if (_statistics?.Incoming is { } doraRoster)
+                {
+                    <text>The selected DORA real-estate dataset is imported; the current roster was retrieved @Utc(doraRoster.RetrievedAtUtc).</text>
+                }
+                else if (_statistics is not null)
+                {
+                    <text>The selected DORA real-estate dataset has not yet been imported.</text>
+                }
+            </p>
         </section>
     }
 
@@ -63,7 +74,6 @@
     @if (_error is not null)
     {
         <p role="alert" class="auth-error">@_error</p>
-        <button type="button" class="secondary-btn" @onclick="RefreshAsync" disabled="@(_loading || !_interactive)">Retry statistics</button>
     }
     else if (_statistics is { } stats)
     {
@@ -81,7 +91,7 @@
                         }
                     </select>
                 }
-                <button type="button" class="secondary-btn" @onclick="RefreshAsync" disabled="@(_loading || !_interactive)">Refresh statistics</button>
+                <span class="muted-text">Updates automatically every @AutoRefreshSeconds seconds.</span>
                 <a href="/admin/regulatory-directory">Review snapshots</a>
             </div>
             }
@@ -260,12 +270,74 @@
     private int _recordPage;
     private void ResetRecordPage() => _recordPage = 0;
 
+    private const int AutoRefreshSeconds = 15;
+    private readonly CancellationTokenSource _disposed = new();
+
     protected override Task OnInitializedAsync() => RefreshAsync();
 
     protected override void OnAfterRender(bool firstRender)
     {
-        if (firstRender) { _interactive = true; StateHasChanged(); }
+        if (!firstRender) return;
+        _interactive = true;
+        StateHasChanged();
+        _ = AutoRefreshLoopAsync();
     }
+
+    // Manual collections append records over time, and failed loads retry, so reload in place without
+    // clearing the page; bulk rosters reload through SnapshotCompleted instead.
+    private async Task AutoRefreshLoopAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(AutoRefreshSeconds));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(_disposed.Token))
+            {
+                await InvokeAsync(async () =>
+                {
+                    if (_loading || (IsBulkState && _error is null)) return;
+                    await ReloadInPlaceAsync();
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private async Task ReloadInPlaceAsync()
+    {
+        _loading = true;
+        try
+        {
+            await using var scope = ScopeFactory.CreateAsyncScope();
+            var statistics = scope.ServiceProvider.GetRequiredService<RegulatoryStatisticsService>();
+            var reloaded = await statistics.GetAsync(_state, _incomingId, bulkOnly: IsBulkState);
+            _statistics = reloaded;
+            _incomingId = reloaded.Incoming?.Id;
+            _error = null;
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or DbException)
+        {
+            Logger.LogWarning(exception, "Automatic statistics reload failed for {State}", _state);
+            if (_statistics is null)
+            {
+                _error = exception is InvalidOperationException ? exception.Message : AutoRetryError;
+            }
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed.Cancel();
+        _disposed.Dispose();
+    }
+
+    private static readonly string AutoRetryError = $"Statistics could not be loaded. Retrying automatically every {AutoRefreshSeconds} seconds.";
 
     private async Task ChangeStateAsync(ChangeEventArgs args)
     {
@@ -302,7 +374,7 @@
         catch (Exception exception) when (exception is InvalidOperationException or DbException)
         {
             Logger.LogError(exception, "Could not load regulatory statistics for {State}", _state);
-            _error = exception is InvalidOperationException ? exception.Message : "Statistics could not be loaded. Please try Refresh statistics again.";
+            _error = exception is InvalidOperationException ? exception.Message : AutoRetryError;
             _incomingId = null;
         }
         finally

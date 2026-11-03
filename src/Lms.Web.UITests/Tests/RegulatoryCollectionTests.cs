@@ -193,6 +193,14 @@ public sealed class RegulatoryCollectionTests
         builder.Services.AddScoped<CaliforniaBulkImportService>();
         builder.Services.AddSingleton<CaliforniaBulkCollectionService>();
         builder.Services.AddScoped<CaliforniaBulkBrowseService>();
+        var coloradoOptions = new ColoradoDoraBulkCollectionOptions { WeeklyEnabled = false, ArchiveDirectory = Path.Combine(testRoot, "colorado-stored") };
+        builder.Services.AddSingleton(coloradoOptions);
+        builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<ColoradoDoraBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(coloradoOptions));
+        builder.Services.AddSingleton<ColoradoDoraBulkCollectionService>();
+        var nevadaOptions = new NevadaBulkCollectionOptions { WeeklyEnabled = false, ArchiveDirectory = Path.Combine(testRoot, "nevada-stored") };
+        builder.Services.AddSingleton(nevadaOptions);
+        builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<NevadaBulkCollectionOptions>>(Microsoft.Extensions.Options.Options.Create(nevadaOptions));
+        builder.Services.AddSingleton<NevadaBulkCollectionService>();
         builder.Services.AddHostedService<FloridaBulkRefreshBackgroundService>();
         builder.Services.AddHttpClient("FloridaBulk").ConfigurePrimaryHttpMessageHandler(() => handler);
         await using var app = builder.Build();

@@ -617,7 +617,11 @@ public sealed class CaliforniaBulkRefreshBackgroundService(CaliforniaBulkCollect
     ILogger<CaliforniaBulkRefreshBackgroundService> logger, IServiceScopeFactory scopes)
     : BulkRefreshBackgroundService(collection, logger, scopes, "California");
 
-public sealed class ColoradoDoraBulkCollectionOptions : FloridaBulkCollectionOptions;
+public sealed class ColoradoDoraBulkCollectionOptions : FloridaBulkCollectionOptions
+{
+    // Downloads and imports the full DORA dataset when no Colorado baseline exists; tests turn this off.
+    public bool BaselineBootstrapEnabled { get; set; } = true;
+}
 
 public sealed class NevadaBulkCollectionOptions : FloridaBulkCollectionOptions;
 
@@ -640,10 +644,12 @@ public sealed class ColoradoDoraBulkRefreshBackgroundService(ColoradoDoraBulkCol
     : BulkRefreshBackgroundService(collection, logger, scopes, "Colorado");
 
 public sealed class ColoradoDoraBaselineBootstrapService(ColoradoDoraBulkCollectionService collection,
-    IServiceScopeFactory scopes, ILogger<ColoradoDoraBaselineBootstrapService> logger) : BackgroundService
+    IServiceScopeFactory scopes, IOptions<ColoradoDoraBulkCollectionOptions> options,
+    ILogger<ColoradoDoraBaselineBootstrapService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!options.Value.BaselineBootstrapEnabled) return;
         await Task.Yield();
         try
         {

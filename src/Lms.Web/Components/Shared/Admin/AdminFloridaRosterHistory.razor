@@ -4,13 +4,13 @@
 @inject IRegulatoryDirectoryService Directory
 @inject AuthenticationStateProvider Authentication
 @inject ILogger<AdminFloridaRosterHistory> Logger
+@implements IDisposable
 
 <section class="card" aria-label="@($"{State} roster history")">
     <h2>@State roster history and recovery</h2>
     <p class="muted-text">Restore a validated version without deleting history or changing account links. The next successful synchronization becomes current. Source downloads still show the last collected archive, not the restored version.</p>
     @if (_error is not null) { <p role="alert" class="auth-error">@_error</p> }
     @if (_message is not null) { <p role="status">@_message</p> }
-    <button type="button" class="secondary-btn" @onclick="LoadAsync" disabled="@Disabled">Refresh roster history</button>
     <div class="table-wrap">
         <table>
             <thead><tr><th>Version / source acquired UTC</th><th>Last activated UTC</th><th>Records</th><th>Roster</th><th></th></tr></thead>
@@ -93,8 +93,38 @@
     protected override Task OnInitializedAsync() => LoadAsync();
     protected override void OnAfterRender(bool firstRender)
     {
-        if (firstRender) { _interactive = true; StateHasChanged(); }
+        if (!firstRender) return;
+        _interactive = true;
+        StateHasChanged();
+        _ = RetryFailedLoadsAsync();
     }
+    // History reloads after synchronization or restore; only failed loads need retrying.
+    private async Task RetryFailedLoadsAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(_disposed.Token))
+            {
+                await InvokeAsync(async () =>
+                {
+                    if (!_historyLoadFailed || _busy) return;
+                    await LoadAsync();
+                    StateHasChanged();
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+    public void Dispose()
+    {
+        _disposed.Cancel();
+        _disposed.Dispose();
+    }
+    private readonly CancellationTokenSource _disposed = new();
+    private bool _historyLoadFailed;
     private async Task SelectAsync(RegulatorySnapshotSummary row)
     {
         _selected = row; _confirmed = false; _reason = ""; _message = null; _recordPage = 1;
@@ -127,11 +157,13 @@
         {
             _currentId = (await Directory.GetLatestApprovedSnapshotAsync(State))?.Id ?? Guid.Empty;
             _rows = await Directory.GetFloridaRosterHistoryAsync(_page, State);
+            _historyLoadFailed = false;
         }
         catch (Exception exception) when (exception is DbException or InvalidOperationException)
         {
             Logger.LogError(exception, "Could not load Florida roster history");
-            _error = "Roster history could not be loaded. Refresh to try again.";
+            _error = "Roster history could not be loaded. Retrying automatically every 30 seconds.";
+            _historyLoadFailed = true;
         }
         finally { _busy = false; }
     }
@@ -154,7 +186,7 @@
         catch (Exception exception) when (exception is DbException or InvalidOperationException or ArgumentException)
         {
             Logger.LogError(exception, "Could not restore Florida roster");
-            _error = exception is DbException ? "Restore failed. Refresh history and try again." : exception.Message;
+            _error = exception is DbException ? "Restore failed. Try again." : exception.Message;
         }
         finally { _busy = false; }
     }

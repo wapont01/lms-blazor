@@ -9,14 +9,16 @@
 @inject ColoradoDoraDisplaySelectionStore ColoradoDoraSelectionStore
 @inject IUserAccountService UserAccountService
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IServiceScopeFactory ScopeFactory
+@inject ILogger<AdminRegulatoryDirectory> Logger
+@implements IDisposable
 
 <PageTitle>Regulatory Directory</PageTitle>
 
 <div class="page-header-row">
     <div>
         <h1>Regulatory Directory</h1>
-        <p class="muted-text">Licensing snapshots</p>
-            <button type="button" class="secondary-btn" @onclick="RefreshAsync" disabled="@_isWorking">Refresh records</button>
+        <p class="muted-text">Licensing snapshots · updates automatically</p>
             <a class="secondary-btn" href="/admin/regulatory-statistics">State collection statistics</a>
     </div>
 </div>
@@ -139,13 +141,13 @@
 <section class="card">
     <h2>Roster licensees</h2>
     <p class="muted-text">Review captured state records before linking them to local user accounts.</p>
-    <div class="course-actions">
-        <button type="button" class="secondary-btn" @onclick="RefreshLicenseesAsync" disabled="@(_isWorking || _isLoadingLicensees)">
-            @(_isLoadingLicensees ? "Loading roster licensees..." : _licenseesLoaded ? "Refresh roster licensees" : "Load roster licensees")
-        </button>
-    </div>
     @if (!_licenseesLoaded)
     {
+        <div class="course-actions">
+            <button type="button" class="secondary-btn" @onclick="RefreshLicenseesAsync" disabled="@(_isWorking || _isLoadingLicensees)">
+                @(_isLoadingLicensees ? "Loading roster licensees..." : "Load roster licensees")
+            </button>
+        </div>
         <p class="muted-text">Roster licensees are not loaded.</p>
     }
     else if (_licensees.Count == 0)
@@ -426,21 +428,56 @@
         if (_campaignTargetsLoaded) await RefreshCampaignTargetsAsync();
     }
 
-    private async Task RefreshAsync()
+    private const int AutoRefreshSeconds = 30;
+    private readonly CancellationTokenSource _disposed = new();
+
+    protected override void OnAfterRender(bool firstRender)
     {
-        _isWorking = true;
-        await RefreshSnapshotsAsync();
-        if (_licenseesLoaded)
+        if (firstRender) _ = AutoRefreshLoopAsync();
+    }
+
+    // Polls in its own scope so it never shares the circuit DbContext with child components mid-query.
+    private async Task AutoRefreshLoopAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(AutoRefreshSeconds));
+        try
         {
-            await RefreshLicenseesAsync();
+            while (await timer.WaitForNextTickAsync(_disposed.Token))
+            {
+                await InvokeAsync(async () =>
+                {
+                    if (_isWorking || _isLoadingLicensees || _isLoadingCampaignTargets) return;
+                    try
+                    {
+                        await using var scope = ScopeFactory.CreateAsyncScope();
+                        var directory = scope.ServiceProvider.GetRequiredService<IRegulatoryDirectoryService>();
+                        var snapshots = await directory.GetRecentSnapshotsAsync();
+                        if (snapshots.SequenceEqual(_snapshots)) return;
+                        _snapshots = snapshots;
+                        if (_licenseesLoaded) _licensees = await directory.GetApprovedLicenseesAsync();
+                        if (_campaignTargetsLoaded)
+                        {
+                            _campaignTargets = await directory.GetCampaignFirmTargetsAsync(
+                                string.IsNullOrWhiteSpace(_campaignState) ? null : _campaignState);
+                        }
+                        StateHasChanged();
+                    }
+                    catch (Exception exception) when (exception is not OperationCanceledException)
+                    {
+                        Logger.LogWarning(exception, "Automatic regulatory directory reload failed");
+                    }
+                });
+            }
         }
-        if (_campaignTargetsLoaded)
+        catch (OperationCanceledException)
         {
-            await RefreshCampaignTargetsAsync();
         }
-        _message = "Regulatory records refreshed.";
-        _hasError = false;
-        _isWorking = false;
+    }
+
+    public void Dispose()
+    {
+        _disposed.Cancel();
+        _disposed.Dispose();
     }
 
     private async Task RefreshLicenseesAsync()

@@ -1709,6 +1709,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["NevadaBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["NevadaBulk__ArchiveDirectory"] = NevadaArchiveDirectory;
         // A fresh test database triggers the Colorado baseline bootstrap; keep its archive out of the real App_Data.
+        // A fresh test database would otherwise download the full DORA dataset and hold SQLite's write lock for minutes.
+        process.StartInfo.Environment["ColoradoDoraBulk__BaselineBootstrapEnabled"] = "false";
         process.StartInfo.Environment["ColoradoDoraBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["ColoradoDoraBulk__ArchiveDirectory"] = ColoradoDoraArchiveDirectory;
         process.StartInfo.Environment["BulkCollectionSchedules__FilePath"] = Path.Combine(

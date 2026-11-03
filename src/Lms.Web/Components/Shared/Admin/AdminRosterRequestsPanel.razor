@@ -6,6 +6,8 @@
 @inject EmailJourneyOptions Options
 @inject IWebHostEnvironment Environment
 @inject ILogger<AdminRosterRequestsPanel> Logger
+@inject IServiceScopeFactory ScopeFactory
+@implements IDisposable
 
 @if (Options.Enabled && Environment.IsDevelopment() && _adminId.HasValue)
 {
@@ -29,7 +31,6 @@
                     <option value="">All statuses</option>
                 </select>
             </label>
-            <button type="button" @onclick="ResetAsync" disabled="@(_busy || _state.Length == 0)">Refresh requests</button>
         </div>
         @if (_message is not null) { <p role="alert">@_message</p> }
         @if (_state.Length == 0) { <p>Select a state to load requests.</p> }
@@ -75,10 +76,49 @@
     private bool _busy;
     private CertificatePage<RosterRequestRow> _page = new([], 0, 1, 20);
     private readonly Dictionary<Guid, string> _notes = [];
+    private readonly CancellationTokenSource _disposed = new();
     protected override async Task OnInitializedAsync()
     {
         var user = (await Authentication.GetAuthenticationStateAsync()).User;
         if (user.IsInRole("Admin") && Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier), out var id)) _adminId = id;
+    }
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && _adminId.HasValue) _ = AutoRefreshLoopAsync();
+    }
+    // Keeps the selected page current; uses its own scope so it never overlaps the panel's DbContext.
+    private async Task AutoRefreshLoopAsync()
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        try
+        {
+            while (await timer.WaitForNextTickAsync(_disposed.Token))
+            {
+                await InvokeAsync(async () =>
+                {
+                    if (_busy || _state.Length == 0) return;
+                    try
+                    {
+                        await using var scope = ScopeFactory.CreateAsyncScope();
+                        var roster = scope.ServiceProvider.GetRequiredService<IRosterRegistrationService>();
+                        _page = await roster.GetReviewPageAsync(_adminId!.Value, _state, _status, _page.Page);
+                        StateHasChanged();
+                    }
+                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    {
+                        Logger.LogWarning(ex, "Automatic roster request reload failed.");
+                    }
+                });
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+    public void Dispose()
+    {
+        _disposed.Cancel();
+        _disposed.Dispose();
     }
     private async Task ResetAsync()
     {
@@ -112,7 +152,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Roster account review failed.");
-            _message = "The review could not be saved. Please refresh and try again.";
+            _message = "The review could not be saved. Please try again.";
         }
         finally { _busy = false; }
     }
