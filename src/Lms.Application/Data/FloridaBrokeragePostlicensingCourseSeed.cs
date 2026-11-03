@@ -115,6 +115,12 @@ internal static class FloridaBrokeragePostlicensingCourseSeed
             root,
             "docs",
             CourseRelativePath.Replace('/', Path.DirectorySeparatorChar));
+        // Course sources are gitignored, so checkouts without them (e.g., CI) skip this course.
+        if (!Directory.Exists(textDirectory))
+        {
+            return;
+        }
+
         var units = new List<AdditionalCourseSeed.UnitDefinition>();
         foreach (var unitDefinition in Units.Select((unit, index) => (unit, index)))
         {
