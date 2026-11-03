@@ -484,6 +484,56 @@ public class RegulatoryDirectoryServiceTests
     }
 
     [Fact]
+    public async Task GetSnapshotPageAsync_FiltersByStateAndRetrievedDatesAndPages()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        for (var day = 1; day <= 25; day++)
+        {
+            fixture.DbContext.RegulatoryDataSnapshots.Add(new RegulatoryDataSnapshot
+            {
+                State = "Oregon",
+                SourceName = $"Oregon capture {day}",
+                SourceUrl = "https://example.test/oregon",
+                RetrievedAtUtc = new DateTime(2026, 10, day, 23, 30, 0, DateTimeKind.Utc),
+                Status = RegulatorySnapshotStatuses.PendingReview
+            });
+        }
+        fixture.DbContext.RegulatoryDataSnapshots.Add(new RegulatoryDataSnapshot
+        {
+            State = "Utah",
+            SourceName = "Utah capture",
+            SourceUrl = "https://example.test/utah",
+            RetrievedAtUtc = new DateTime(2026, 10, 5, 0, 0, 0, DateTimeKind.Utc),
+            Status = RegulatorySnapshotStatuses.PendingReview
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        Assert.Equal(["Oregon", "Utah"], await fixture.Service.GetSnapshotStatesAsync());
+
+        var first = await fixture.Service.GetSnapshotPageAsync("Oregon");
+        Assert.Equal(25, first.TotalCount);
+        Assert.Equal(2, first.PageCount);
+        Assert.Equal(20, first.Items.Count);
+        Assert.Equal("Oregon capture 25", first.Items[0].SourceName);
+        Assert.All(first.Items, item => Assert.Equal("Oregon", item.State));
+
+        var second = await fixture.Service.GetSnapshotPageAsync("Oregon", page: 2);
+        Assert.Equal(["Oregon capture 5", "Oregon capture 4", "Oregon capture 3", "Oregon capture 2", "Oregon capture 1"],
+            second.Items.Select(item => item.SourceName));
+
+        var clamped = await fixture.Service.GetSnapshotPageAsync("Oregon", page: 99);
+        Assert.Equal(2, clamped.Page);
+
+        var ranged = await fixture.Service.GetSnapshotPageAsync("Oregon", new DateOnly(2026, 10, 10), new DateOnly(2026, 10, 12));
+        Assert.Equal(["Oregon capture 12", "Oregon capture 11", "Oregon capture 10"], ranged.Items.Select(item => item.SourceName));
+        Assert.Equal(1, ranged.PageCount);
+
+        var none = await fixture.Service.GetSnapshotPageAsync("Nevada");
+        Assert.Empty(none.Items);
+        Assert.Equal(1, none.PageCount);
+    }
+
+    [Fact]
     public async Task ApproveAsync_AllowsLicenseeOnlySnapshotsButRejectsEmptySnapshots()
     {
         await using var fixture = await TestFixture.CreateAsync();

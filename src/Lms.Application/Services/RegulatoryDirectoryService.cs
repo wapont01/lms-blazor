@@ -11,6 +11,8 @@ public interface IRegulatoryDirectoryService
     Task<bool> ApproveAsync(Guid snapshotId, Guid actorUserId, string actorEmail);
     Task<RegulatoryDataSnapshot?> GetLatestApprovedSnapshotAsync(string state);
     Task<List<RegulatorySnapshotSummary>> GetRecentSnapshotsAsync(int take = 25);
+    Task<List<string>> GetSnapshotStatesAsync();
+    Task<RegulatorySnapshotPage> GetSnapshotPageAsync(string state, DateOnly? fromDate = null, DateOnly? toDate = null, int page = 1, int pageSize = 20);
     Task<List<RegulatorySnapshotSummary>> GetFloridaRosterHistoryAsync(int page = 1, string state = "Florida");
     Task<List<RosterSelection>> GetFloridaRosterRecordsAsync(Guid snapshotId, int page = 1, string state = "Florida");
     Task RestoreFloridaRosterAsync(Guid snapshotId, Guid expectedCurrentId, Guid actorUserId, string reason, string state = "Florida");
@@ -67,6 +69,15 @@ public sealed record RegulatorySnapshotSummary(
     DateTime? ReviewedAtUtc,
     string? ParserVersion = null,
     DateTime? ActivatedAtUtc = null);
+
+public sealed record RegulatorySnapshotPage(
+    IReadOnlyList<RegulatorySnapshotSummary> Items,
+    int TotalCount,
+    int Page,
+    int PageSize)
+{
+    public int PageCount => Math.Max(1, (TotalCount + PageSize - 1) / PageSize);
+}
 
 public sealed record RegulatoryLicenseeSummary(
     Guid LicenseeId,
@@ -260,6 +271,36 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             .OrderByDescending(snapshot => snapshot.RetrievedAtUtc)
             .ThenByDescending(snapshot => snapshot.ImportedAtUtc)
             .Take(Math.Clamp(take, 1, 100)));
+
+    public Task<List<string>> GetSnapshotStatesAsync() =>
+        _dbContext.RegulatoryDataSnapshots.AsNoTracking()
+            .Select(snapshot => snapshot.State).Distinct().OrderBy(state => state).ToListAsync();
+
+    public async Task<RegulatorySnapshotPage> GetSnapshotPageAsync(string state, DateOnly? fromDate = null, DateOnly? toDate = null, int page = 1, int pageSize = 20)
+    {
+        pageSize = Math.Clamp(pageSize, 1, 100);
+        var query = _dbContext.RegulatoryDataSnapshots.AsNoTracking().Where(snapshot => snapshot.State == state);
+        if (fromDate is DateOnly from)
+        {
+            var fromUtc = from.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(snapshot => snapshot.RetrievedAtUtc >= fromUtc);
+        }
+        if (toDate is DateOnly to)
+        {
+            var beforeUtc = to.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            query = query.Where(snapshot => snapshot.RetrievedAtUtc < beforeUtc);
+        }
+
+        var total = await query.CountAsync();
+        var pageCount = Math.Max(1, (total + pageSize - 1) / pageSize);
+        page = Math.Clamp(page, 1, pageCount);
+        var items = await WithCountsAsync(query
+            .OrderByDescending(snapshot => snapshot.RetrievedAtUtc)
+            .ThenByDescending(snapshot => snapshot.ImportedAtUtc)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize));
+        return new RegulatorySnapshotPage(items, total, page, pageSize);
+    }
 
     public Task<List<RegulatorySnapshotSummary>> GetFloridaRosterHistoryAsync(int page = 1, string state = "Florida") =>
         WithCountsAsync(RegulatoryRoster.Published(_dbContext.RegulatoryDataSnapshots.AsNoTracking().Where(snapshot =>

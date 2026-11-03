@@ -1,1 +1,4 @@
 .table-wrap { max-width: 100%; overflow-x: auto; }
+.snapshot-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-bottom: 12px; }
+.snapshot-filters label { display: inline-flex; align-items: center; gap: 6px; margin: 0; }
+.snapshot-filters select { width: auto; min-width: 12rem; max-width: 100%; }

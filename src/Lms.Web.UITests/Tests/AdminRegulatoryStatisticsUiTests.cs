@@ -174,7 +174,11 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
             await Assertions.Expect(page.GetByRole(AriaRole.Region, new() { Name = "Record comparison", Exact = true }))
                 .ToContainTextAsync("Previous and current roster");
             await page.GotoAsync($"{fixture.BaseUrl}/admin/regulatory-directory");
-            var row = page.Locator("tr").Filter(new() { HasText = "Current synthetic roster" });
+            var snapshotsCard = page.GetByRole(AriaRole.Region, new() { Name = "Regulatory snapshots", Exact = true });
+            await Assertions.Expect(snapshotsCard).ToContainTextAsync("Select a state to view its snapshots.");
+            await Assertions.Expect(snapshotsCard.Locator("tbody tr")).ToHaveCountAsync(0);
+            await snapshotsCard.GetByLabel("Snapshot state").SelectOptionAsync("Florida");
+            var row = snapshotsCard.Locator("tr").Filter(new() { HasText = "Current synthetic roster" });
             await Assertions.Expect(row).ToContainTextAsync("Synchronized");
             await Assertions.Expect(row.GetByRole(AriaRole.Button, new() { Name = "Approve", Exact = true })).ToHaveCountAsync(0);
             var history = page.GetByRole(AriaRole.Region, new() { Name = "Florida roster history", Exact = true });

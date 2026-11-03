@@ -83,11 +83,30 @@
     </div>
 </section>
 
-<section class="card">
-    <h2>Recent Snapshots</h2>
-    @if (_snapshots.Count == 0)
+<section class="card" aria-label="Regulatory snapshots">
+    <h2>Snapshots</h2>
+    <div class="snapshot-filters">
+        <select aria-label="Snapshot state" value="@_snapshotState" @onchange="OnSnapshotStateChangedAsync">
+            <option value="">Select state</option>
+            @foreach (var state in _snapshotStates)
+            {
+                <option value="@state">@state</option>
+            }
+        </select>
+        <label>From <input type="date" aria-label="Snapshots retrieved from (UTC)" value="@_snapshotFrom?.ToString("yyyy-MM-dd")" @onchange="OnSnapshotFromChangedAsync" disabled="@string.IsNullOrEmpty(_snapshotState)" /></label>
+        <label>To <input type="date" aria-label="Snapshots retrieved to (UTC)" value="@_snapshotTo?.ToString("yyyy-MM-dd")" @onchange="OnSnapshotToChangedAsync" disabled="@string.IsNullOrEmpty(_snapshotState)" /></label>
+        @if (_snapshotFrom.HasValue || _snapshotTo.HasValue)
+        {
+            <button type="button" class="secondary-btn" @onclick="ClearSnapshotDatesAsync">Clear dates</button>
+        }
+    </div>
+    @if (string.IsNullOrEmpty(_snapshotState))
     {
-        <p class="muted-text">No regulatory snapshots have been imported.</p>
+        <p class="muted-text">Select a state to view its snapshots.</p>
+    }
+    else if (_snapshots.Count == 0)
+    {
+        <p class="muted-text">No @_snapshotState snapshots match these filters.</p>
     }
     else
     {
@@ -95,7 +114,6 @@
             <table>
                 <thead>
                     <tr>
-                        <th>State</th>
                         <th>Source</th>
                         <th>Retrieved</th>
                         <th>Cost</th>
@@ -108,7 +126,6 @@
                     @foreach (var snapshot in _snapshots)
                     {
                         <tr>
-                            <td>@snapshot.State</td>
                             <td>
                                 <strong>@snapshot.SourceName</strong>
                                 @if (GetSafeExternalUrl(snapshot.SourceUrl) is string sourceUrl)
@@ -122,7 +139,7 @@
                             </td>
                             <td>@snapshot.RetrievedAtUtc.ToString("yyyy-MM-dd HH:mm 'UTC'")</td>
                             <td>@(snapshot.AcquisitionCost.HasValue ? $"${snapshot.AcquisitionCost.Value:F2}" : "Not recorded")</td>
-                            <td>@snapshot.FirmCount firms, @snapshot.LicenseeCount licensees</td>
+                            <td>@snapshot.FirmCount.ToString("N0") firms, @snapshot.LicenseeCount.ToString("N0") licensees</td>
                             <td><span class="status-pill @GetStatusClass(snapshot.Status)">@(IsBulk(snapshot.ParserVersion) && snapshot.Status == RegulatorySnapshotStatuses.Approved ? "Synchronized" : GetStatusText(snapshot.Status))</span></td>
                             <td>
                                 @if (snapshot.Status == RegulatorySnapshotStatuses.PendingReview && !IsBulk(snapshot.ParserVersion))
@@ -134,6 +151,14 @@
                     }
                 </tbody>
             </table>
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(_snapshotState) && _snapshotTotal > 0)
+    {
+        <div class="course-actions">
+            <button type="button" class="secondary-btn" @onclick="() => GoToSnapshotPageAsync(_snapshotPage - 1)" disabled="@(_snapshotPage <= 1)">Previous snapshots</button>
+            <span>Page @_snapshotPage of @_snapshotPageCount · @_snapshotTotal.ToString("N0") snapshot@(_snapshotTotal == 1 ? string.Empty : "s")</span>
+            <button type="button" class="secondary-btn" @onclick="() => GoToSnapshotPageAsync(_snapshotPage + 1)" disabled="@(_snapshotPage >= _snapshotPageCount)">Next snapshots</button>
         </div>
     }
 </section>
@@ -284,6 +309,14 @@
     }
     private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
     private List<RegulatorySnapshotSummary> _snapshots = new();
+    private List<RegulatorySnapshotSummary> _latestSnapshots = new();
+    private List<string> _snapshotStates = new();
+    private string _snapshotState = string.Empty;
+    private DateOnly? _snapshotFrom;
+    private DateOnly? _snapshotTo;
+    private int _snapshotPage = 1;
+    private int _snapshotPageCount = 1;
+    private int _snapshotTotal;
     private List<RegulatoryLicenseeSummary> _licensees = new();
     private List<CampaignFirmTarget> _campaignTargets = new();
     private List<string> _campaignStates = new();
@@ -353,6 +386,8 @@
             _snapshotJson = string.Empty;
             _hasError = false;
             _message = "Snapshot imported and ready for review.";
+            _snapshotState = snapshot.State;
+            _snapshotPage = 1;
             await RefreshSnapshotsAsync();
         }
         catch (JsonException)
@@ -415,7 +450,56 @@
 
     private async Task RefreshSnapshotsAsync()
     {
-        _snapshots = await RegulatoryDirectoryService.GetRecentSnapshotsAsync();
+        _snapshotStates = await RegulatoryDirectoryService.GetSnapshotStatesAsync();
+        ApplySnapshotPage(await LoadSnapshotPageAsync(RegulatoryDirectoryService));
+    }
+
+    private async Task<RegulatorySnapshotPage?> LoadSnapshotPageAsync(IRegulatoryDirectoryService directory) =>
+        string.IsNullOrEmpty(_snapshotState)
+            ? null
+            : await directory.GetSnapshotPageAsync(_snapshotState, _snapshotFrom, _snapshotTo, _snapshotPage);
+
+    private void ApplySnapshotPage(RegulatorySnapshotPage? page)
+    {
+        _snapshots = page?.Items.ToList() ?? new();
+        _snapshotTotal = page?.TotalCount ?? 0;
+        _snapshotPage = page?.Page ?? 1;
+        _snapshotPageCount = page?.PageCount ?? 1;
+    }
+
+    private async Task OnSnapshotStateChangedAsync(ChangeEventArgs args)
+    {
+        _snapshotState = args.Value?.ToString() ?? string.Empty;
+        _snapshotPage = 1;
+        await RefreshSnapshotsAsync();
+    }
+
+    private async Task OnSnapshotFromChangedAsync(ChangeEventArgs args)
+    {
+        _snapshotFrom = DateOnly.TryParse(args.Value?.ToString(), out var date) ? date : null;
+        _snapshotPage = 1;
+        await RefreshSnapshotsAsync();
+    }
+
+    private async Task OnSnapshotToChangedAsync(ChangeEventArgs args)
+    {
+        _snapshotTo = DateOnly.TryParse(args.Value?.ToString(), out var date) ? date : null;
+        _snapshotPage = 1;
+        await RefreshSnapshotsAsync();
+    }
+
+    private async Task ClearSnapshotDatesAsync()
+    {
+        _snapshotFrom = null;
+        _snapshotTo = null;
+        _snapshotPage = 1;
+        await RefreshSnapshotsAsync();
+    }
+
+    private async Task GoToSnapshotPageAsync(int page)
+    {
+        _snapshotPage = page;
+        await RefreshSnapshotsAsync();
     }
 
     private async Task OnBulkSnapshotCompletedAsync(Guid snapshotId)
@@ -452,8 +536,10 @@
                         await using var scope = ScopeFactory.CreateAsyncScope();
                         var directory = scope.ServiceProvider.GetRequiredService<IRegulatoryDirectoryService>();
                         var snapshots = await directory.GetRecentSnapshotsAsync();
-                        if (snapshots.SequenceEqual(_snapshots)) return;
-                        _snapshots = snapshots;
+                        if (snapshots.SequenceEqual(_latestSnapshots)) return;
+                        _latestSnapshots = snapshots;
+                        _snapshotStates = await directory.GetSnapshotStatesAsync();
+                        ApplySnapshotPage(await LoadSnapshotPageAsync(directory));
                         if (_licenseesLoaded) _licensees = await directory.GetApprovedLicenseesAsync();
                         if (_campaignTargetsLoaded)
                         {
