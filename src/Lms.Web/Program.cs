@@ -157,6 +157,18 @@ builder.Services.AddSingleton<BulkCollectionService>(services => services.GetReq
 builder.Services.AddHttpClient("ArizonaBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHostedService<ArizonaBulkRefreshBackgroundService>();
+// CT DCP posts its open-data license datasets daily.
+var connecticutBulk = new ConnecticutBulkCollectionOptions { RefreshDays = 1, StaleAfterDays = 2 };
+builder.Configuration.GetSection("ConnecticutBulk").Bind(connecticutBulk);
+builder.Services.AddSingleton(connecticutBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<ConnecticutBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(connecticutBulk));
+builder.Services.AddScoped<ConnecticutDcpBulkImportService>();
+builder.Services.AddSingleton<ConnecticutBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<ConnecticutBulkCollectionService>());
+builder.Services.AddHttpClient("ConnecticutBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+builder.Services.AddHostedService<ConnecticutBulkRefreshBackgroundService>();
 builder.Services.AddSingleton<TexasBulkCollectionService>();
 builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<TexasBulkCollectionService>());
 builder.Services.AddHttpClient("TexasBulk", client => client.Timeout = TimeSpan.FromMinutes(10))

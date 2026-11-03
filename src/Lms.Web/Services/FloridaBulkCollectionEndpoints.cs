@@ -22,6 +22,8 @@ public static class FloridaBulkCollectionEndpoints
             { Lms.Application.Services.NewYorkDosBulkImportService.FileName, "manifest.json" });
         MapExports(app, "Arizona", new(Lms.Application.Services.ArizonaAdreBulkImportService.Definitions
             .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
+        MapExports(app, "Connecticut", new(Lms.Application.Services.ConnecticutDcpBulkImportService.Definitions
+            .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
     }
 
     private static void MapExports(WebApplication app, string state, HashSet<string> files)
@@ -41,6 +43,7 @@ public static class FloridaBulkCollectionEndpoints
                     "Nevada" => services.GetRequiredService<NevadaBulkCollectionService>(),
                     "New York" => services.GetRequiredService<NewYorkBulkCollectionService>(),
                     "Arizona" => services.GetRequiredService<ArizonaBulkCollectionService>(),
+                    "Connecticut" => services.GetRequiredService<ConnecticutBulkCollectionService>(),
                     _ => services.GetRequiredService<FloridaBulkCollectionService>()
                 };
                 string? path;

@@ -15,6 +15,8 @@
 @inject NewYorkBulkCollectionOptions NewYorkOptions
 @inject ArizonaBulkCollectionService ArizonaCollection
 @inject ArizonaBulkCollectionOptions ArizonaOptions
+@inject ConnecticutBulkCollectionService ConnecticutCollection
+@inject ConnecticutBulkCollectionOptions ConnecticutOptions
 @inject ILogger<AdminFloridaBulkCollection> Logger
 
 <section class="card bulk-collection" aria-label="@($"{State} bulk collection")">
@@ -25,7 +27,7 @@
             @(_starting ? "Starting..." : _stopping || _status?.State == "Stopping" ? "Cancelling..." : IsRunning ? "Cancel collection" : State == "Nevada" ? "Collect data" : "Collect now")
         </button>
     </div>
-    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
+    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
     @if (State == "Nevada")
     {
         <p class="muted-text">Collects the 12 supported active lists directly from NRED on the application server, not through this browser. NRED updates these lists monthly. Reserve Study Specialists is a separate historical workbook and is not included. Acquisition timestamps are recorded; no source publication date is inferred.</p>
@@ -66,6 +68,12 @@
         {
             <a href="@ArizonaAdreBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Arizona ADRE public database lists</a>
         }
+        else if (State == "Connecticut")
+        {
+            <a href="@ConnecticutDcpBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Connecticut DCP real estate salesperson licenses</a>
+            <a href="https://data.ct.gov/Business/Real-Estate-Broker-Licenses/fwpc-pgqj" target="_blank" rel="noopener noreferrer">Connecticut DCP real estate broker licenses</a>
+            <a href="https://data.ct.gov/Business/Real-Estate-Salespersons-with-Associated-Broker/6tja-6vdt" target="_blank" rel="noopener noreferrer">Connecticut DCP salespersons with associated broker</a>
+        }
     </nav>
     @if (_error is not null)
     {
@@ -103,7 +111,7 @@
                         @foreach (var file in status.Files)
                         {
                             <tr>
-                                <th scope="row">@file.Name</th><td>@(State == "Texas" ? "Individuals and broker companies; all published statuses" : State == "California" ? file.Name == "CurrList.zip" ? "Published license roles, statuses and restrictions" : "Responsible-broker affiliations and dates" : State == "Colorado" ? "All published DORA records and statuses" : State == "Nevada" ? file.Name == "NRED-ACTIVE-HOA.xlsx" ? "Source evidence only" : "Numbered professional licenses" : State == "New York" ? "Active salespersons, brokers and offices" : State == "Arizona" ? file.Name == ArizonaAdreBulkImportService.IndividualsFile ? "Salespersons and brokers; all statuses; employing entity" : "Firms and branch offices; designated broker" : FilePurpose(file.Name))</td>
+                                <th scope="row">@file.Name</th><td>@(State == "Texas" ? "Individuals and broker companies; all published statuses" : State == "California" ? file.Name == "CurrList.zip" ? "Published license roles, statuses and restrictions" : "Responsible-broker affiliations and dates" : State == "Colorado" ? "All published DORA records and statuses" : State == "Nevada" ? file.Name == "NRED-ACTIVE-HOA.xlsx" ? "Source evidence only" : "Numbered professional licenses" : State == "New York" ? "Active salespersons, brokers and offices" : State == "Arizona" ? file.Name == ArizonaAdreBulkImportService.IndividualsFile ? "Salespersons and brokers; all statuses; employing entity" : "Firms and branch offices; designated broker" : State == "Connecticut" ? file.Name == ConnecticutDcpBulkImportService.SalespersonsFile ? "Salespersons; all statuses" : file.Name == ConnecticutDcpBulkImportService.BrokersFile ? "Individual and company brokers; all statuses" : "Active salesperson to broker or team links" : FilePurpose(file.Name))</td>
                                 <td class="file-progress">
                                     @file.State
                                     @if (file.State.StartsWith("Validating", StringComparison.Ordinal) && file.ExpectedRows is > 0)
@@ -175,6 +183,10 @@
                     {
                         <p>ADRE generates the individuals and entities lists on demand from its live license database. Both files must pass schema, row count and hash checks before automatic activation. Only the Real Estate category is imported (cemetery and campground licenses stay in the source files), with every published status, including terminated and expired. Entities become firms and branch offices; each person is linked to the employing entity on the list, and the entity's designated broker is marked broker in charge. Where ADRE lists one license number twice, the most recently modified row is kept. Mailing addresses are not stored in the directory; the original files remain Admin-only.</p>
                     }
+                                else if (State == "Connecticut")
+                                {
+                                    <p>CT DCP updates the salesperson, broker and salesperson-with-associated-broker datasets daily on data.ct.gov. All three must pass schema, row count and hash checks, and each must be unchanged while it is paged, before automatic activation. Salesperson and broker credentials keep every published status; application rows without a credential number stay in the source files only. Company brokers become firms. Individual brokers are licensees, and those with associated salespersons also become firms with themselves as broker in charge. Real estate teams (RTM credentials) appear only in the association dataset, so they become firms without a published status. The association dataset lists actively licensed salespersons only, so a salesperson without a broker there is not classified as unaffiliated. Only city, state and ZIP are published.</p>
+                                }
         <p>Stop collection cancels only the current run. An uncommitted import is rolled back and the last completed archive is retained. You can collect again manually; automatic collection waits at least one refresh interval after an administrator stops a run.</p>
     </details>
 </section>
@@ -189,6 +201,7 @@
         "Nevada" => NevadaCollection,
         "New York" => NewYorkCollection,
         "Arizona" => ArizonaCollection,
+        "Connecticut" => ConnecticutCollection,
         _ => FloridaCollection
     };
     private FloridaBulkCollectionOptions Options => State switch
@@ -199,6 +212,7 @@
         "Nevada" => NevadaOptions,
         "New York" => NewYorkOptions,
         "Arizona" => ArizonaOptions,
+        "Connecticut" => ConnecticutOptions,
         _ => FloridaOptions
     };
     [Parameter] public EventCallback<Guid> SnapshotCompleted { get; set; }

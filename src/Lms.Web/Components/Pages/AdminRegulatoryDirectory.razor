@@ -32,7 +32,7 @@
 
 <section class="card">
     <select aria-label="Bulk roster state" @bind="_bulkState">
-        <option>Florida</option><option>Texas</option><option>California</option><option>Colorado</option><option>Nevada</option><option>New York</option><option>Arizona</option>
+        <option>Florida</option><option>Texas</option><option>California</option><option>Colorado</option><option>Nevada</option><option>New York</option><option>Arizona</option><option>Connecticut</option>
     </select>
 </section>
 <Lms.Web.Components.Shared.Admin.AdminFloridaBulkCollection @key="_bulkState" State="@_bulkState" SnapshotCompleted="OnBulkSnapshotCompletedAsync" />
@@ -73,7 +73,7 @@
 
 <section class="card">
     <h2>Other sources: import normalized snapshot</h2>
-    <p class="muted-text">Florida, Texas, California, Colorado, Nevada, New York and Arizona use the official bulk collection above. This import remains available for other states and historical sources.</p>
+    <p class="muted-text">Florida, Texas, California, Colorado, Nevada, New York, Arizona and Connecticut use the official bulk collection above. This import remains available for other states and historical sources.</p>
     <div class="form-field">
         <label for="regulatory-snapshot-json">Normalized snapshot JSON</label>
         <textarea id="regulatory-snapshot-json" rows="14" @bind="_snapshotJson" disabled="@_isWorking"></textarea>
@@ -86,7 +86,7 @@
 <section class="card" aria-label="Regulatory snapshots">
     <h2>Snapshots</h2>
     <div class="snapshot-filters">
-        <select aria-label="Snapshot state" value="@_snapshotState" @onchange="OnSnapshotStateChangedAsync">
+        <select aria-label="Snapshot state" value="@_snapshotState" @onchange="OnSnapshotStateChangedAsync" disabled="@(!_interactive)">
             <option value="">Select state</option>
             @foreach (var state in _snapshotStates)
             {
@@ -299,7 +299,7 @@
 @code {
     private string _bulkState = "Florida";
     [SupplyParameterFromQuery(Name = "state")] public string? RequestedState { get; set; }
-    private static bool IsBulk(string? parser) => parser is FloridaBulkImportService.ParserVersion or TexasBulkImportService.ParserVersion or CaliforniaBulkImportService.ParserVersion or ColoradoDoraBulkImportService.ParserVersion or NevadaNredBulkImportService.ParserVersion or NewYorkDosBulkImportService.ParserVersion or ArizonaAdreBulkImportService.ParserVersion;
+    private static bool IsBulk(string? parser) => parser is FloridaBulkImportService.ParserVersion or TexasBulkImportService.ParserVersion or CaliforniaBulkImportService.ParserVersion or ColoradoDoraBulkImportService.ParserVersion or NevadaNredBulkImportService.ParserVersion or NewYorkDosBulkImportService.ParserVersion or ArizonaAdreBulkImportService.ParserVersion or ConnecticutDcpBulkImportService.ParserVersion;
     private int _rosterHistoryVersion;
     private async Task OnRosterRestoredAsync()
     {
@@ -335,7 +335,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        if (RequestedState is "Florida" or "Texas" or "California" or "Colorado" or "Nevada" or "New York" or "Arizona") _bulkState = RequestedState;
+        if (RequestedState is "Florida" or "Texas" or "California" or "Colorado" or "Nevada" or "New York" or "Arizona" or "Connecticut") _bulkState = RequestedState;
         _selectedColoradoTypes = ColoradoDoraSelectionStore.GetSelected().ToHashSet(StringComparer.Ordinal);
         _users = (await UserAccountService.GetAllAsync()).Where(user => user.IsActive).OrderBy(user => user.DisplayName).ToList();
         await RefreshSnapshotsAsync();
@@ -514,10 +514,15 @@
 
     private const int AutoRefreshSeconds = 30;
     private readonly CancellationTokenSource _disposed = new();
+    // Controls wait for the interactive circuit; a change made during prerender would be lost.
+    private bool _interactive;
 
     protected override void OnAfterRender(bool firstRender)
     {
-        if (firstRender) _ = AutoRefreshLoopAsync();
+        if (!firstRender) return;
+        _interactive = true;
+        StateHasChanged();
+        _ = AutoRefreshLoopAsync();
     }
 
     // Polls in its own scope so it never shares the circuit DbContext with child components mid-query.

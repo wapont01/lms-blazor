@@ -15,6 +15,9 @@ public interface IBulkRosterProvider
     IReadOnlyList<FloridaBulkFileDefinition> Files { get; }
     string? RowCountUrl { get; }
     Task<long?> GetPublishedRowsAsync(IHttpClientFactory clients, CancellationToken ct);
+    string? GetRowCountUrl(FloridaBulkFileDefinition file) => RowCountUrl;
+    Task<long?> GetPublishedRowsAsync(IHttpClientFactory clients, FloridaBulkFileDefinition file, CancellationToken ct) =>
+        GetPublishedRowsAsync(clients, ct);
     Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct, Action<long>? progress = null);
     Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct, Action<string, long, long>? progress);
     Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
@@ -142,6 +145,10 @@ public sealed class ArizonaAdreBulkRosterProvider : IBulkRosterProvider
         services.GetRequiredService<ArizonaAdreBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
 }
 
+/// <summary>One Socrata dataset exported page by page into one archive file.</summary>
+public sealed record SocrataDataset(FloridaBulkFileDefinition File, string SourceUrl, string RowCountUrl, string OrderBy,
+    IReadOnlyList<string> Headers);
+
 public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRosterFileDownloader
 {
     private const int PageSize = 50_000;
@@ -149,25 +156,33 @@ public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRost
     public abstract string ArchiveFolder { get; }
     public abstract string ParserVersion { get; }
     public abstract string Layout { get; }
-    public abstract IReadOnlyList<FloridaBulkFileDefinition> Files { get; }
-    public abstract string? RowCountUrl { get; }
+    public IReadOnlyList<FloridaBulkFileDefinition> Files => Datasets.Select(dataset => dataset.File).ToList();
+    protected abstract IReadOnlyList<SocrataDataset> Datasets { get; }
     protected abstract string SourceLabel { get; }
     // Matches the named client the collection service creates for downloads.
     private string ClientName => State + "Bulk";
-    protected abstract string SourceUrl { get; }
-    protected abstract string OrderBy { get; }
-    protected abstract IReadOnlyList<string> Headers { get; }
 
-    public async Task<long?> GetPublishedRowsAsync(IHttpClientFactory clients, CancellationToken ct)
+    public string? RowCountUrl => Datasets.Count == 1 ? Datasets[0].RowCountUrl : null;
+    public string? GetRowCountUrl(FloridaBulkFileDefinition file) => Dataset(file).RowCountUrl;
+
+    private SocrataDataset Dataset(FloridaBulkFileDefinition file) =>
+        Datasets.SingleOrDefault(dataset => dataset.File == file)
+            ?? throw new InvalidDataException($"Unknown {SourceLabel} source file.");
+
+    public Task<long?> GetPublishedRowsAsync(IHttpClientFactory clients, CancellationToken ct) =>
+        Datasets.Count == 1 ? GetPublishedRowsAsync(clients, Datasets[0].File, ct) : Task.FromResult<long?>(null);
+
+    public async Task<long?> GetPublishedRowsAsync(IHttpClientFactory clients, FloridaBulkFileDefinition file, CancellationToken ct)
     {
         using var client = clients.CreateClient(ClientName);
-        return await GetPublishedRowsAsync(client, ct);
+        return await GetPublishedRowsAsync(client, Dataset(file), ct);
     }
 
-    private async Task<long?> GetPublishedRowsAsync(HttpClient client, CancellationToken ct)
+    private async Task<long?> GetPublishedRowsAsync(HttpClient client, SocrataDataset dataset, CancellationToken ct)
     {
-        using var response = await client.GetAsync(RowCountUrl, ct);
-        if (response.RequestMessage?.RequestUri?.AbsoluteUri != RowCountUrl)
+        var rowCountUrl = dataset.RowCountUrl;
+        using var response = await client.GetAsync(rowCountUrl, ct);
+        if (response.RequestMessage?.RequestUri?.AbsoluteUri != rowCountUrl)
             throw new InvalidDataException($"{SourceLabel} source-count request redirected away from its allowlisted URL.");
         response.EnsureSuccessStatusCode();
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
@@ -185,8 +200,9 @@ public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRost
     public async Task<BulkRosterDownloadResult> DownloadFileAsync(HttpClient client, string path,
         FloridaBulkFileDefinition file, CancellationToken ct, Action<long, long?> progress)
     {
-        if (file != Files[0]) throw new InvalidDataException($"Unknown {SourceLabel} source file.");
-        var rowCount = await GetPublishedRowsAsync(client, ct)
+        var dataset = Dataset(file);
+        var headers = dataset.Headers;
+        var rowCount = await GetPublishedRowsAsync(client, dataset, ct)
             ?? throw new InvalidDataException($"{SourceLabel} did not publish a source row count.");
         DateTimeOffset? lastModified = null;
         string? eTag = null;
@@ -196,7 +212,7 @@ public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRost
         for (long offset = 0; offset < rowCount; offset += PageSize)
         {
             ct.ThrowIfCancellationRequested();
-            var url = $"{SourceUrl}?$limit={PageSize}&$offset={offset}&$order={OrderBy}";
+            var url = $"{dataset.SourceUrl}?$limit={PageSize}&$offset={offset}&$order={dataset.OrderBy}";
             using var response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
             if (response.RequestMessage?.RequestUri?.AbsoluteUri != url)
                 throw new InvalidDataException($"{SourceLabel} data request redirected away from its allowlisted URL.");
@@ -222,9 +238,9 @@ public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRost
                     TrimWhiteSpace = false
                 };
                 parser.SetDelimiters(",");
-                var headers = parser.ReadFields() ?? throw new InvalidDataException($"{SourceLabel} page has no CSV header.");
-                if (!headers.Select(value => value.TrimStart('\uFEFF'))
-                    .SequenceEqual(Headers, StringComparer.OrdinalIgnoreCase))
+                var pageHeaders = parser.ReadFields() ?? throw new InvalidDataException($"{SourceLabel} page has no CSV header.");
+                if (!pageHeaders.Select(value => value.TrimStart('\uFEFF'))
+                    .SequenceEqual(headers, StringComparer.OrdinalIgnoreCase))
                     throw new InvalidDataException($"{SourceLabel} page schema changed during collection.");
 
                 var pageRows = 0;
@@ -232,10 +248,10 @@ public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRost
                 {
                     ct.ThrowIfCancellationRequested();
                     var fields = parser.ReadFields() ?? throw new InvalidDataException($"{SourceLabel} page contains an empty row.");
-                    if (fields.Length != Headers.Count)
+                    if (fields.Length != headers.Count)
                         throw new InvalidDataException($"Invalid {SourceLabel} page row shape near line {parser.LineNumber}.");
                     if (offset == 0 && pageRows == 0)
-                        await WriteCsvRowAsync(writer, Headers, ct);
+                        await WriteCsvRowAsync(writer, headers, ct);
                     await WriteCsvRowAsync(writer, fields, ct);
                     pageRows++;
                     if (pageRows > PageSize)
@@ -246,7 +262,7 @@ public abstract class SocrataBulkRosterProvider : IBulkRosterProvider, IBulkRost
                 if (pageRows != expectedPageRows)
                     throw new InvalidDataException($"{SourceLabel} page at offset {offset} contained {pageRows} rows; expected {expectedPageRows}.");
                 if (offset == 0 && pageRows == 0)
-                    await WriteCsvRowAsync(writer, Headers, ct);
+                    await WriteCsvRowAsync(writer, headers, ct);
                 await writer.FlushAsync(ct);
                 bytes = destination.Length;
                 progress(bytes, null);
@@ -291,12 +307,14 @@ public sealed class ColoradoDoraBulkRosterProvider : SocrataBulkRosterProvider
     public override string ArchiveFolder => "colorado-dora-bulk";
     public override string ParserVersion => ColoradoDoraBulkImportService.ParserVersion;
     public override string Layout => "UTF-8 CSV with the 20-column DORA 4zse-6bnw schema; complete source rows retained";
-    public override IReadOnlyList<FloridaBulkFileDefinition> Files => ColoradoDoraBulkImportService.Definitions;
-    public override string? RowCountUrl => ColoradoDoraBulkImportService.RowCountUrl;
+    protected override IReadOnlyList<SocrataDataset> Datasets { get; } =
+    [
+        new(ColoradoDoraBulkImportService.Definitions[0], ColoradoDoraBulkImportService.SourceUrl,
+            ColoradoDoraBulkImportService.RowCountUrl,
+            "lastname,firstname,middlename,suffix,entityname,city,state,zipcode,licenseprefix,licensenumber,licensetype,licensefirstissuedate,licenselastreneweddate,licenseexpirationdate,licensestatus,casenumber,programaction,disciplineeffectivedate,disciplinecompletedate,verifylicense",
+            ColoradoDoraBulkImportService.Headers)
+    ];
     protected override string SourceLabel => "DORA";
-    protected override string SourceUrl => ColoradoDoraBulkImportService.SourceUrl;
-    protected override string OrderBy => "lastname,firstname,middlename,suffix,entityname,city,state,zipcode,licenseprefix,licensenumber,licensetype,licensefirstissuedate,licenselastreneweddate,licenseexpirationdate,licensestatus,casenumber,programaction,disciplineeffectivedate,disciplinecompletedate,verifylicense";
-    protected override IReadOnlyList<string> Headers => ColoradoDoraBulkImportService.Headers;
 
     public override Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct,
         Action<long>? progress = null)
@@ -320,12 +338,14 @@ public sealed class NewYorkDosBulkRosterProvider : SocrataBulkRosterProvider
     public override string ArchiveFolder => "new-york-dos-bulk";
     public override string ParserVersion => NewYorkDosBulkImportService.ParserVersion;
     public override string Layout => "UTF-8 CSV with the 11-column NY DOS yg7h-zjbf schema; complete source rows retained";
-    public override IReadOnlyList<FloridaBulkFileDefinition> Files => NewYorkDosBulkImportService.Definitions;
-    public override string? RowCountUrl => NewYorkDosBulkImportService.RowCountUrl;
+    protected override IReadOnlyList<SocrataDataset> Datasets { get; } =
+    [
+        new(NewYorkDosBulkImportService.Definitions[0], NewYorkDosBulkImportService.SourceUrl,
+            NewYorkDosBulkImportService.RowCountUrl,
+            "license_type,license_number,license_holder_name,business_name,business_address_1,business_address_2,business_city,business_state,business_zip,county,license_expiration_date",
+            NewYorkDosBulkImportService.Headers)
+    ];
     protected override string SourceLabel => "NY DOS";
-    protected override string SourceUrl => NewYorkDosBulkImportService.SourceUrl;
-    protected override string OrderBy => "license_type,license_number,license_holder_name,business_name,business_address_1,business_address_2,business_city,business_state,business_zip,county,license_expiration_date";
-    protected override IReadOnlyList<string> Headers => NewYorkDosBulkImportService.Headers;
 
     public override Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct,
         Action<long>? progress = null)
@@ -341,4 +361,37 @@ public sealed class NewYorkDosBulkRosterProvider : SocrataBulkRosterProvider
     public override Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
         Action<string, long, long>? progress, Action<long>? staged) =>
         services.GetRequiredService<NewYorkDosBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
+}
+
+public sealed class ConnecticutDcpBulkRosterProvider : SocrataBulkRosterProvider
+{
+    public override string State => ConnecticutDcpBulkImportService.State;
+    public override string ArchiveFolder => "connecticut-dcp-bulk";
+    public override string ParserVersion => ConnecticutDcpBulkImportService.ParserVersion;
+    public override string Layout => "UTF-8 CSV exports of CT DCP datasets 7y8e-cawe (salespersons, 20 columns), fwpc-pgqj (brokers, 20 columns) and 6tja-6vdt (salesperson-broker associations, 4 columns); complete source rows retained";
+    protected override IReadOnlyList<SocrataDataset> Datasets { get; } =
+    [
+        new(ConnecticutDcpBulkImportService.Definitions[0], ConnecticutDcpBulkImportService.SalespersonsUrl,
+            ConnecticutDcpBulkImportService.SalespersonsRowCountUrl, ConnecticutDcpBulkImportService.CredentialOrderBy,
+            ConnecticutDcpBulkImportService.CredentialHeaders),
+        new(ConnecticutDcpBulkImportService.Definitions[1], ConnecticutDcpBulkImportService.BrokersUrl,
+            ConnecticutDcpBulkImportService.BrokersRowCountUrl, ConnecticutDcpBulkImportService.CredentialOrderBy,
+            ConnecticutDcpBulkImportService.CredentialHeaders),
+        new(ConnecticutDcpBulkImportService.Definitions[2], ConnecticutDcpBulkImportService.AssociationsUrl,
+            ConnecticutDcpBulkImportService.AssociationsRowCountUrl, ConnecticutDcpBulkImportService.AssociationOrderBy,
+            ConnecticutDcpBulkImportService.AssociationHeaders)
+    ];
+    protected override string SourceLabel => "CT DCP";
+
+    public override Task<long> CheckFileAsync(string path, FloridaBulkFileDefinition file, CancellationToken ct,
+        Action<long>? progress = null) =>
+        Task.FromResult(ConnecticutDcpBulkImportService.CheckFile(path, file.Name, ct, progress));
+
+    public override Task<IReadOnlyList<FloridaBulkManifestEntry>> ValidateAsync(string root, CancellationToken ct,
+        Action<string, long, long>? progress) =>
+        ConnecticutDcpBulkImportService.ValidateArchiveAsync(root, ct, progress);
+
+    public override Task<Guid> ImportAsync(IServiceProvider services, string root, CancellationToken ct,
+        Action<string, long, long>? progress, Action<long>? staged) =>
+        services.GetRequiredService<ConnecticutDcpBulkImportService>().ImportArchiveAsync(root, ct, progress, staged);
 }

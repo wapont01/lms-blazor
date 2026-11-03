@@ -13,7 +13,7 @@ public sealed class RegulatoryStatisticsWarmupService(
     IServiceScopeFactory scopeFactory,
     ILogger<RegulatoryStatisticsWarmupService> logger) : BackgroundService
 {
-    private static readonly string[] BulkStates = ["Florida", "Texas", "California", "Colorado", "Nevada", "New York", "Arizona"];
+    private static readonly string[] BulkStates = ["Florida", "Texas", "California", "Colorado", "Nevada", "New York", "Arizona", "Connecticut"];
     private static readonly TimeSpan InitialDelay = TimeSpan.FromSeconds(30);
     private static readonly TimeSpan Interval = TimeSpan.FromMinutes(15);
 

@@ -481,7 +481,7 @@ public class BulkCollectionService : IAsyncDisposable
                 var hash = Convert.ToHexString(await SHA256.HashDataAsync(file, token)).ToLowerInvariant();
                 var rows = await provider.CheckFileAsync(path, definition, token,
                     count => UpdateAsync("Downloading", definition.Name, "Checking downloaded rows", count, file.Length).GetAwaiter().GetResult());
-                var publishedRows = await provider.GetPublishedRowsAsync(clients, token);
+                var publishedRows = await provider.GetPublishedRowsAsync(clients, definition, token);
                 if (publishedRows is { } publishedCount && publishedCount != rows)
                     throw new InvalidDataException("Downloaded rows do not match the official statewide source count. The source may have changed; retry the collection.");
                 await UpdateAsync("Downloading", definition.Name, "Downloaded", rows, file.Length);
@@ -489,7 +489,7 @@ public class BulkCollectionService : IAsyncDisposable
                     "official HTTP download", new() { [definition.Columns.ToString()] = rows })
                     { Parsing = provider.Layout, Encoding = definition.Encoding,
                         SourceLastModifiedUtc = sourceLastModifiedUtc, SourceETag = sourceETag,
-                        SourceRowCount = publishedRows, SourceRowCountUrl = provider.RowCountUrl,
+                        SourceRowCount = publishedRows, SourceRowCountUrl = provider.GetRowCountUrl(definition),
                         SourceRowCountVerifiedAtUtc = publishedRows.HasValue ? DateTimeOffset.UtcNow : null };
             }
             catch (Exception ex) when (attempt < 3 && !token.IsCancellationRequested
@@ -557,6 +557,7 @@ public class BulkRefreshBackgroundService(BulkCollectionService collection,
                                         "Nevada" => scope.ServiceProvider.GetRequiredService<NevadaBulkCollectionOptions>(),
                                         "New York" => scope.ServiceProvider.GetRequiredService<NewYorkBulkCollectionOptions>(),
                                         "Arizona" => scope.ServiceProvider.GetRequiredService<ArizonaBulkCollectionOptions>(),
+                                        "Connecticut" => scope.ServiceProvider.GetRequiredService<ConnecticutBulkCollectionOptions>(),
                                         _ => throw new InvalidOperationException($"Unknown bulk collection alert state '{state}'.")
                                     },
                                     scope.ServiceProvider.GetRequiredService<ILogger<FloridaBulkAlertService>>(), state: state);
@@ -657,6 +658,17 @@ public sealed class ArizonaBulkCollectionService(IServiceScopeFactory scopes, IH
 public sealed class ArizonaBulkRefreshBackgroundService(ArizonaBulkCollectionService collection,
     ILogger<ArizonaBulkRefreshBackgroundService> logger, IServiceScopeFactory scopes)
     : BulkRefreshBackgroundService(collection, logger, scopes, "Arizona");
+
+public sealed class ConnecticutBulkCollectionOptions : FloridaBulkCollectionOptions;
+
+public sealed class ConnecticutBulkCollectionService(IServiceScopeFactory scopes, IHttpClientFactory clients,
+    IHostApplicationLifetime lifetime, IWebHostEnvironment environment, IOptions<ConnecticutBulkCollectionOptions> options,
+    ILogger<ConnecticutBulkCollectionService> logger, BulkCollectionScheduleStore? schedules = null)
+    : BulkCollectionService(scopes, clients, lifetime, environment, options.Value, logger, new ConnecticutDcpBulkRosterProvider(), schedules);
+
+public sealed class ConnecticutBulkRefreshBackgroundService(ConnecticutBulkCollectionService collection,
+    ILogger<ConnecticutBulkRefreshBackgroundService> logger, IServiceScopeFactory scopes)
+    : BulkRefreshBackgroundService(collection, logger, scopes, "Connecticut");
 
 public sealed class ColoradoDoraBulkCollectionService(IServiceScopeFactory scopes, IHttpClientFactory clients,
     IHostApplicationLifetime lifetime, IWebHostEnvironment environment, IOptions<ColoradoDoraBulkCollectionOptions> options,
