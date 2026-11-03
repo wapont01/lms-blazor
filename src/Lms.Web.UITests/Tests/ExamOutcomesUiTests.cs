@@ -82,8 +82,14 @@ public sealed class ExamOutcomesUiTests : IClassFixture<WebHostFixture>
         await ExpectTextAsync(page, "Real Estate Certification LMS");
 
         await page.GotoAsync($"{_fixture.BaseUrl}/admin/courses");
-        await page.Locator(".sidebar-details summary").Filter(new LocatorFilterOptions { HasTextString = "Admin" }).ClickAsync();
-        await page.GetByRole(AriaRole.Link, new() { Name = "Regulatory Directory", Exact = true }).ClickAsync();
+        var directoryLink = page.GetByRole(AriaRole.Link, new() { Name = "Regulatory Directory", Exact = true });
+        // An early click can be lost when the interactive render replaces the prerendered (closed) menu.
+        for (var attempt = 0; attempt < 20 && !await directoryLink.IsVisibleAsync(); attempt++)
+        {
+            await page.Locator(".sidebar-details summary").Filter(new LocatorFilterOptions { HasTextString = "Admin" }).ClickAsync();
+            await page.WaitForTimeoutAsync(500);
+        }
+        await directoryLink.ClickAsync();
         await Assertions.Expect(page).ToHaveURLAsync($"{_fixture.BaseUrl}/admin/regulatory-directory");
         await ExpectVisibleWithReloadAsync(page, page.GetByRole(AriaRole.Heading, new() { Name = "Regulatory Directory", Exact = true }));
     }

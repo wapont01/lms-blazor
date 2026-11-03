@@ -133,7 +133,8 @@ builder.Services.AddSingleton<BulkCollectionService>(services => services.GetReq
 builder.Services.AddHttpClient("NevadaBulk", client => client.Timeout = TimeSpan.FromMinutes(10))
     .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
 builder.Services.AddHostedService<NevadaBulkRefreshBackgroundService>();
-var newYorkBulk = new NewYorkBulkCollectionOptions();
+// NY DOS posts the dataset daily.
+var newYorkBulk = new NewYorkBulkCollectionOptions { RefreshDays = 1, StaleAfterDays = 2 };
 builder.Configuration.GetSection("NewYorkBulk").Bind(newYorkBulk);
 builder.Services.AddSingleton(newYorkBulk);
 builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<NewYorkBulkCollectionOptions>>(

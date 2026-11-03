@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Lms.Application.Data;
 using Lms.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -253,37 +254,44 @@ public sealed class RegulatoryDirectoryService : IRegulatoryDirectoryService
             .FirstOrDefaultAsync();
     }
 
-    public async Task<List<RegulatorySnapshotSummary>> GetRecentSnapshotsAsync(int take = 25)
-    {
-        return await _dbContext.RegulatoryDataSnapshots
+    public async Task<List<RegulatorySnapshotSummary>> GetRecentSnapshotsAsync(int take = 25) =>
+        await WithCountsAsync(_dbContext.RegulatoryDataSnapshots
             .AsNoTracking()
             .OrderByDescending(snapshot => snapshot.RetrievedAtUtc)
             .ThenByDescending(snapshot => snapshot.ImportedAtUtc)
-            .Take(Math.Clamp(take, 1, 100))
-            .Select(snapshot => new RegulatorySnapshotSummary(
-                snapshot.Id,
-                snapshot.State,
-                snapshot.SourceName,
-                snapshot.SourceUrl,
-                snapshot.RetrievedAtUtc,
-                snapshot.AcquisitionCost,
-                snapshot.Status,
-                snapshot.Firms.Count,
-                snapshot.Licensees.Count,
-                snapshot.ReviewedAtUtc,
-                snapshot.ParserVersion,
-                snapshot.ActivatedAtUtc))
-            .ToListAsync();
-    }
+            .Take(Math.Clamp(take, 1, 100)));
 
     public Task<List<RegulatorySnapshotSummary>> GetFloridaRosterHistoryAsync(int page = 1, string state = "Florida") =>
-        RegulatoryRoster.Published(_dbContext.RegulatoryDataSnapshots.AsNoTracking().Where(snapshot =>
+        WithCountsAsync(RegulatoryRoster.Published(_dbContext.RegulatoryDataSnapshots.AsNoTracking().Where(snapshot =>
             snapshot.State == state && snapshot.ParserVersion == RegulatoryRoster.BulkParser(state)))
-            .Skip((Math.Clamp(page, 1, 10000) - 1) * 20).Take(21)
-            .Select(snapshot => new RegulatorySnapshotSummary(snapshot.Id, snapshot.State, snapshot.SourceName,
-                snapshot.SourceUrl, snapshot.RetrievedAtUtc, snapshot.AcquisitionCost, snapshot.Status,
-                snapshot.Firms.Count, snapshot.Licensees.Count, snapshot.ReviewedAtUtc,
-                snapshot.ParserVersion, snapshot.ActivatedAtUtc)).ToListAsync();
+            .Skip((Math.Clamp(page, 1, 10000) - 1) * 20).Take(21));
+
+    // Counting rows in multi-hundred-thousand-row bulk snapshots dominated directory load time. Approved bulk
+    // snapshots are written in one transaction and never change afterwards, so their counts are cached per process.
+    private static readonly ConcurrentDictionary<Guid, (int Firms, int Licensees)> ImmutableSnapshotCounts = new();
+
+    private async Task<List<RegulatorySnapshotSummary>> WithCountsAsync(IQueryable<RegulatoryDataSnapshot> snapshots)
+    {
+        var rows = await snapshots.Select(snapshot => new RegulatorySnapshotSummary(snapshot.Id, snapshot.State,
+            snapshot.SourceName, snapshot.SourceUrl, snapshot.RetrievedAtUtc, snapshot.AcquisitionCost, snapshot.Status,
+            0, 0, snapshot.ReviewedAtUtc, snapshot.ParserVersion, snapshot.ActivatedAtUtc)).ToListAsync();
+        var missing = rows.Where(row => !ImmutableSnapshotCounts.ContainsKey(row.SnapshotId)).Select(row => row.SnapshotId).ToList();
+        var counted = missing.Count == 0
+            ? new Dictionary<Guid, (int Firms, int Licensees)>()
+            : (await _dbContext.RegulatoryDataSnapshots.AsNoTracking().Where(snapshot => missing.Contains(snapshot.Id))
+                .Select(snapshot => new { snapshot.Id, Firms = snapshot.Firms.Count, Licensees = snapshot.Licensees.Count })
+                .ToListAsync()).ToDictionary(item => item.Id, item => (item.Firms, item.Licensees));
+        return rows.Select(row =>
+        {
+            if (!ImmutableSnapshotCounts.TryGetValue(row.SnapshotId, out var counts) && counted.TryGetValue(row.SnapshotId, out counts)
+                && row.Status == RegulatorySnapshotStatuses.Approved && RegulatoryRoster.HasBulkProvider(row.State)
+                && row.ParserVersion == RegulatoryRoster.BulkParser(row.State))
+            {
+                ImmutableSnapshotCounts[row.SnapshotId] = counts;
+            }
+            return row with { FirmCount = counts.Firms, LicenseeCount = counts.Licensees };
+        }).ToList();
+    }
 
     public Task<List<RosterSelection>> GetFloridaRosterRecordsAsync(Guid snapshotId, int page = 1, string state = "Florida")
     {
