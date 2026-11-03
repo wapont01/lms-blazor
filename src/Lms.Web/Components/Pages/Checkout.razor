@@ -336,7 +336,7 @@
             }
 
             // Retrieve the payment transaction that was just created
-            var transaction = await _dbContext.PaymentTransactions
+            var transaction = await DbContext.PaymentTransactions
                 .OrderByDescending(t => t.CreatedAt)
                 .FirstOrDefaultAsync(t => t.StripePaymentIntentId == paymentResult.StripePaymentIntentId);
 

@@ -389,7 +389,7 @@ public class PaymentReportingService : IPaymentReportingService
             .ToListAsync();
 
         var breakdown = enrollments
-            .GroupBy(e => new { e.CourseId, e.Course.Title })
+            .GroupBy(e => new { e.CourseId, Title = e.Course?.Title ?? string.Empty })
             .Select(g => new CourseRevenueBreakdown(
                 g.Key.CourseId,
                 g.Key.Title,

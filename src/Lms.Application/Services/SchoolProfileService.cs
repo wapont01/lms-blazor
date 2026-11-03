@@ -119,7 +119,7 @@ public sealed class SchoolProfileService : ISchoolProfileService
                 }
                 else
                 {
-                    hasChanges |= SetIfChanged(milena.Role, SchoolStaffRoles.Instructor, value => milena.Role = value);
+                    hasChanges |= SetIfChanged(milena.Role, SchoolStaffRoles.Instructor, value => milena.Role = value ?? SchoolStaffRoles.Instructor);
                     hasChanges |= SetIfChanged(milena.Title, "Instructor", value => milena.Title = value);
                     hasChanges |= SetIfChanged(milena.LicenseNumber, "FL-INSTRUCTOR-PLACEHOLDER", value => milena.LicenseNumber = value);
                 }

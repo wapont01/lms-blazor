@@ -512,7 +512,7 @@
 						SetRetakeGrantDraft="SetRetakeGrantDraft"
 						OnUpdateRetakeGrant="UpdateRetakeGrantAsync"
 						OnRevokeRetakeGrant="RevokeRetakeGrantAsync" />
-					<ExamAttemptAuditPanel Courses="_courses" InitialCourseId="_editingCourse.Id" />
+					<ExamAttemptAuditPanel Courses="_courses" InitialCourseId="_editingCourse?.Id" />
 
 					<div class="course-actions editor-step-actions">
 						<button type="button" @onclick="PreviousEditorStep">Previous</button>
@@ -967,11 +967,11 @@ else
 			await JSRuntime.InvokeVoidAsync("localStorage.setItem", CreateDraftStorageKey, JsonSerializer.Serialize(new InstructorCourseDraftState
 			{
 				Title = _newCourseDraft.Title,
-				Description = _newCourseDraft.Description,
+				Description = _newCourseDraft.Description ?? string.Empty,
 				Level = _newCourseDraft.Level,
 				DurationHours = _newCourseDraft.DurationHours,
 				CreditHours = _newCourseDraft.CreditHours,
-				State = _newCourseDraft.State,
+				State = _newCourseDraft.State ?? string.Empty,
 				Price = _newCourseDraft.Price
 			}));
 		}
