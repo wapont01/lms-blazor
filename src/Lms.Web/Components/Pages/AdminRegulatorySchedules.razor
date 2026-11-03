@@ -86,7 +86,7 @@
     {
         try
         {
-            foreach (var collection in Collections.OrderBy(item => item.State, StringComparer.Ordinal))
+            foreach (var collection in Collections.Where(item => item.SupportsDownload).OrderBy(item => item.State, StringComparer.Ordinal))
             {
                 var schedule = await collection.GetScheduleAsync();
                 _rows.Add(new ScheduleRow(collection, schedule));

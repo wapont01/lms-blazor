@@ -1,0 +1,73 @@
+@using Lms.Application.Services
+@using Lms.Web.Services
+@inject MontanaBulkCollectionService Collection
+@inject ILogger<AdminMontanaCollection> Logger
+
+<section class="card" aria-label="Montana bulk collection">
+    <h2>Montana roster import</h2>
+    <p>Download the official CSV after completing Montana's CAPTCHA, then select it here. Automatic collection is unavailable; no CAPTCHA is bypassed.</p>
+    <a href="@MontanaRreBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Montana official license export</a>
+    <div class="form-field">
+        <label>Official Montana CSV <InputFile @key="_fileVersion" OnChange="SelectFile" accept=".csv" disabled="@_busy" /></label>
+        <label>Acquired date (UTC) <input type="date" @bind="_acquiredDate" disabled="@_busy" /></label>
+    </div>
+    <button type="button" disabled="@(_busy || _file is null)" @onclick="ImportAsync">@(_busy ? "Importing..." : "Import roster")</button>
+    @if (_error is not null)
+    {
+        <p role="alert" class="auth-error">@_error</p>
+    }
+    @if (_status is { } status)
+    {
+        <p role="status">@status.State · Last completed: @(status.CompletedAtUtc?.ToString("yyyy-MM-dd HH:mm") ?? "Not yet available") UTC · Automatic collection disabled</p>
+        @if (status.SnapshotId.HasValue)
+        {
+            <a href="/admin/montana-bulk/exports/realty-regulation-licenses.csv">Last imported original CSV</a>
+            <a href="/admin/montana-bulk/exports/manifest.json">Archive manifest</a>
+        }
+    }
+    <details>
+        <summary>Sources and coverage</summary>
+        <p>The October 12 baseline covers broker, salesperson, temporary salesperson and timeshare salesperson exports only; its statewide query coverage was not independently verified. The November 3 export also contains property managers, instructors, course approvals and timeshare offering registrations. Added categories are new to this baseline, not necessarily newly licensed. Original CSVs retain all rows; course approvals and offering registrations are evidence, not individual licensees. Published business names do not establish firm licenses or employment links. Source acquisition dates are not regulator publication dates.</p>
+    </details>
+</section>
+
+@code {
+    [Parameter] public EventCallback<Guid> SnapshotCompleted { get; set; }
+    private IBrowserFile? _file;
+    private int _fileVersion;
+    private DateTime _acquiredDate = DateTime.UtcNow.Date;
+    private bool _busy;
+    private string? _error;
+    private FloridaBulkCollectionStatus? _status;
+
+    protected override async Task OnInitializedAsync() => _status = await Collection.GetStatusAsync();
+
+    private void SelectFile(InputFileChangeEventArgs args)
+    {
+        _file = args.File;
+        _error = null;
+    }
+
+    private async Task ImportAsync()
+    {
+        if (_file is null) return;
+        _busy = true;
+        _error = null;
+        try
+        {
+            await using var stream = _file.OpenReadStream(MontanaBulkCollectionService.MaxUploadBytes);
+            await Collection.ImportFileAsync(stream, new DateTimeOffset(DateTime.SpecifyKind(_acquiredDate.Date, DateTimeKind.Utc)));
+            _status = await Collection.GetStatusAsync();
+            _file = null;
+            _fileVersion++;
+            if (_status.SnapshotId is { } id) await SnapshotCompleted.InvokeAsync(id);
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or InvalidOperationException or System.Text.Json.JsonException)
+        {
+            Logger.LogError(ex, "Montana roster upload failed");
+            _error = ex.Message;
+            _status = await Collection.GetStatusAsync();
+        }
+        finally { _busy = false; }
+    }
+}

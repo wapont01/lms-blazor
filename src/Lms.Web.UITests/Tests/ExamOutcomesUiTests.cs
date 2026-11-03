@@ -1607,6 +1607,8 @@ public sealed class WebHostFixture : IAsyncLifetime
         Path.GetFileNameWithoutExtension(DatabasePath) + "-maine-bulk");
     private string VermontArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
         Path.GetFileNameWithoutExtension(DatabasePath) + "-vermont-bulk");
+    private string MontanaArchiveDirectory => Path.Combine(Path.GetDirectoryName(DatabasePath)!,
+        Path.GetFileNameWithoutExtension(DatabasePath) + "-montana-bulk");
 
     internal void ImportCaliforniaArchiveBeforeStartup(string archivePath)
     {
@@ -1758,6 +1760,7 @@ public sealed class WebHostFixture : IAsyncLifetime
         process.StartInfo.Environment["MaineBulk__ArchiveDirectory"] = MaineArchiveDirectory;
         process.StartInfo.Environment["VermontBulk__WeeklyEnabled"] = "false";
         process.StartInfo.Environment["VermontBulk__ArchiveDirectory"] = VermontArchiveDirectory;
+        process.StartInfo.Environment["MontanaBulk__ArchiveDirectory"] = MontanaArchiveDirectory;
         // A fresh test database triggers the Colorado baseline bootstrap; keep its archive out of the real App_Data.
         // A fresh test database would otherwise download the full DORA dataset and hold SQLite's write lock for minutes.
         process.StartInfo.Environment["ColoradoDoraBulk__BaselineBootstrapEnabled"] = "false";
@@ -1896,7 +1899,7 @@ public sealed class WebHostFixture : IAsyncLifetime
         {
             Console.Error.WriteLine($"Could not clean up Oregon test archive {OregonArchiveDirectory}: {exception.Message}");
         }
-        foreach (var directory in new[] { DelawareArchiveDirectory, VirginiaArchiveDirectory, IllinoisArchiveDirectory, MichiganArchiveDirectory, WestVirginiaArchiveDirectory, MaineArchiveDirectory, VermontArchiveDirectory })
+        foreach (var directory in new[] { DelawareArchiveDirectory, VirginiaArchiveDirectory, IllinoisArchiveDirectory, MichiganArchiveDirectory, WestVirginiaArchiveDirectory, MaineArchiveDirectory, VermontArchiveDirectory, MontanaArchiveDirectory })
         {
             try
             {

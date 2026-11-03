@@ -48,7 +48,14 @@
 
     @if (IsBulkState)
     {
-        <Lms.Web.Components.Shared.Admin.AdminFloridaBulkCollection @key="_state" State="@_state" SnapshotCompleted="OnBulkSnapshotCompletedAsync" />
+        @if (_state == "Montana")
+        {
+            <Lms.Web.Components.Shared.Admin.AdminMontanaCollection @key="_state" SnapshotCompleted="OnBulkSnapshotCompletedAsync" />
+        }
+        else
+        {
+            <Lms.Web.Components.Shared.Admin.AdminFloridaBulkCollection @key="_state" State="@_state" SnapshotCompleted="OnBulkSnapshotCompletedAsync" />
+        }
         @if (_state == "Florida")
         {
         <Lms.Web.Components.Shared.Admin.AdminFloridaBulkBrowse />

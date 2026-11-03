@@ -11,6 +11,11 @@ public static class RegulatoryLicenseTypes
     private static readonly IReadOnlyDictionary<string, HashSet<string>> NonRealEstate =
         new Dictionary<string, HashSet<string>>(StringComparer.Ordinal)
         {
+            ["Montana"] = new(StringComparer.OrdinalIgnoreCase)
+            {
+                "Property Manager License", "Property Manager  License", "Property Manager Temporary License",
+                "Pre-Licensing Instructor License", "Timeshare Salesperson License"
+            },
             ["Arizona"] = new(StringComparer.OrdinalIgnoreCase) { "Candidate", "Unlicensed" },
             ["Colorado"] = new(ColoradoDoraLicenseTypes.All.Where(option => !option.IsRealEstate)
                 .Select(option => option.Name), StringComparer.OrdinalIgnoreCase),

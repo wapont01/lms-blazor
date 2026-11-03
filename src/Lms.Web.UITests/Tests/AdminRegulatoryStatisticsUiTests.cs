@@ -10,6 +10,43 @@ namespace Lms.Web.UITests.Tests;
 public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : IClassFixture<WebHostFixture>
 {
     [UiFact]
+    public async Task MontanaUsesManualCsvUploadAndComparesPreviousWithCurrent()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"montana-ui-{Guid.NewGuid():N}.csv");
+        try
+        {
+            await using var context = await fixture.CreateBrowserContextAsync();
+            var page = await context.NewPageAsync();
+            await LoginAsync(page, "admin@wlr.com", "Admin123!");
+            await page.GotoAsync($"{fixture.BaseUrl}/admin/regulatory-directory?state=Montana");
+            var collector = page.GetByRole(AriaRole.Region, new() { Name = "Montana bulk collection", Exact = true });
+            await Assertions.Expect(collector.Locator("button")).ToHaveCountAsync(1);
+            await Assertions.Expect(collector).ToContainTextAsync("CAPTCHA");
+            var header = "License Number,License Type,Status,Expiration Date,Business Name,Last Name,First Name,City,State,Zip\n";
+            await File.WriteAllTextAsync(path, header + "RRE-BRO-LIC-123,Broker License,Active,10/31/2027,,Test,Montana,HELENA,MT,59601\n");
+            await collector.Locator("input[type=file]").SetInputFilesAsync(path);
+            await collector.GetByRole(AriaRole.Button, new() { Name = "Import roster", Exact = true }).ClickAsync();
+            await Assertions.Expect(collector.GetByRole(AriaRole.Status)).ToContainTextAsync("Completed", new() { Timeout = 30_000 });
+            await Assertions.Expect(collector.Locator("input[type=file]")).ToBeEnabledAsync(new() { Timeout = 30_000 });
+            await File.WriteAllTextAsync(path, header + "RRE-BRO-LIC-123,Broker License,Inactive,10/31/2027,,Test,Montana,HELENA,MT,59601\n"
+                + "RRE-RBS-LIC-456,Salesperson License,Active,10/31/2027,,Other,Montana,HELENA,MT,59601\n");
+            await collector.Locator("input[type=file]").SetInputFilesAsync(path);
+            await collector.GetByRole(AriaRole.Button, new() { Name = "Import roster", Exact = true }).ClickAsync();
+            await Assertions.Expect(collector.GetByRole(AriaRole.Alert)).ToHaveCountAsync(0);
+            await Assertions.Expect(page.GetByRole(AriaRole.Region, new() { Name = "Montana roster history", Exact = true })).ToContainTextAsync("2 licensees", new() { Timeout = 30_000 });
+            await page.GotoAsync($"{fixture.BaseUrl}/admin/regulatory-statistics");
+            await page.GetByLabel("Statistics state", new() { Exact = true }).SelectOptionAsync("Montana");
+            var comparison = page.GetByRole(AriaRole.Region, new() { Name = "Comparison scope", Exact = true });
+            await Assertions.Expect(comparison).ToContainTextAsync("Montana");
+            await Assertions.Expect(comparison).ToContainTextAsync("Status changes");
+            await Assertions.Expect(comparison.Locator(".summary-metrics strong")).ToHaveTextAsync(new[] { "1", "2", "1", "1", "0", "0" });
+            await Assertions.Expect(page.GetByRole(AriaRole.Region, new() { Name = "Montana bulk collection", Exact = true })
+                .Locator("button")).ToHaveCountAsync(1);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [UiFact]
     public async Task NewBulkStatesHaveOneCollectionButtonAndEnabledRealEstateTypes()
     {
         foreach (var state in new[] { "Michigan", "West Virginia", "Maine", "Vermont" })
@@ -129,6 +166,7 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
 
         var schedules = page.GetByRole(AriaRole.Table, new() { Name = "State collection schedules", Exact = true });
         await Assertions.Expect(schedules.Locator("tbody tr")).ToHaveCountAsync(16);
+        await Assertions.Expect(schedules.GetByLabel("Montana automatic updates", new() { Exact = true })).ToHaveCountAsync(0);
         var nevadaCadence = schedules.GetByLabel("Nevada publication cadence", new() { Exact = true });
         await nevadaCadence.Locator("summary").ClickAsync();
         await Assertions.Expect(nevadaCadence).ToContainTextAsync("Monthly");

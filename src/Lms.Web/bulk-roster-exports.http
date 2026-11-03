@@ -1,6 +1,14 @@
 @baseUrl = http://localhost:5000
 @adminCookie = replace-with-authenticated-admin-cookie
 
+### Montana original administrator-supplied CSV (CAPTCHA download is manual)
+GET {{baseUrl}}/admin/montana-bulk/exports/realty-regulation-licenses.csv
+Cookie: {{adminCookie}}
+
+### Montana acquisition manifest
+GET {{baseUrl}}/admin/montana-bulk/exports/manifest.json
+Cookie: {{adminCookie}}
+
 ### Michigan original license report (404 before a completed collection)
 GET {{baseUrl}}/admin/michigan-bulk/exports/real-estate-licenses.xlsx
 Cookie: {{adminCookie}}

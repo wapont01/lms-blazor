@@ -111,9 +111,12 @@ public class BulkCollectionService : IAsyncDisposable
     }
 
     public string State => provider.State;
+    public bool SupportsDownload => provider.SupportsDownload;
 
     public async Task StartAsync(CancellationToken cancellationToken = default, bool scheduled = false)
     {
+        if (!provider.SupportsDownload)
+            throw new InvalidOperationException($"{provider.State} requires an administrator-supplied export after CAPTCHA.");
         await gate.WaitAsync(cancellationToken);
         try
         {
@@ -136,6 +139,8 @@ public class BulkCollectionService : IAsyncDisposable
 
     private async Task RunAndWaitAsync(string? archivePath, CancellationToken cancellationToken)
     {
+        if (archivePath is null && !provider.SupportsDownload)
+            throw new InvalidOperationException($"{provider.State} requires an administrator-supplied export after CAPTCHA.");
         Task task;
         await gate.WaitAsync(cancellationToken);
         try

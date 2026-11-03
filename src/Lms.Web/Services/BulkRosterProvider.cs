@@ -8,6 +8,7 @@ namespace Lms.Web.Services;
 
 public interface IBulkRosterProvider
 {
+    bool SupportsDownload => true;
     string State { get; }
     string ArchiveFolder { get; }
     string ParserVersion { get; }
