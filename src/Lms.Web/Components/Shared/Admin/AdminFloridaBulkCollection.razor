@@ -37,6 +37,10 @@
 @inject IdahoBulkCollectionOptions IdahoOptions
 @inject KentuckyBulkCollectionService KentuckyCollection
 @inject KentuckyBulkCollectionOptions KentuckyOptions
+@inject WyomingBulkCollectionService WyomingCollection
+@inject WyomingBulkCollectionOptions WyomingOptions
+@inject RhodeIslandBulkCollectionService RhodeIslandCollection
+@inject RhodeIslandBulkCollectionOptions RhodeIslandOptions
 @inject ILogger<AdminFloridaBulkCollection> Logger
 
 <section class="card bulk-collection" aria-label="@($"{State} bulk collection")">
@@ -47,7 +51,7 @@
             @(_starting ? "Starting..." : _stopping || _status?.State == "Stopping" ? "Cancelling..." : IsRunning ? "Cancel collection" : State == "Nevada" ? "Collect data" : "Collect now")
         </button>
     </div>
-    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : State == "Oregon" ? "OREA active business and active and inactive individual rosters" : State == "Delaware" ? "DPR real estate and appraiser professional licensing dataset" : State == "Illinois" ? "IDFPR real estate and appraisal professional licensing dataset" : State == "Virginia" ? "DPOR Real Estate Board regulant lists" : State == "Michigan" ? "LARA current real-estate license and employer reports" : State == "West Virginia" ? "WVREC active licensee workbooks" : State == "Maine" ? "ALMS active individual and company exports" : State == "Vermont" ? "OPR real-estate profession exports in all statuses" : State == "Idaho" ? "DOPL active Real Estate Commission list" : State == "Kentucky" ? "OOP active Real Estate Commission directory exports" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
+    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : State == "Oregon" ? "OREA active business and active and inactive individual rosters" : State == "Delaware" ? "DPR real estate and appraiser professional licensing dataset" : State == "Illinois" ? "IDFPR real estate and appraisal professional licensing dataset" : State == "Virginia" ? "DPOR Real Estate Board regulant lists" : State == "Michigan" ? "LARA current real-estate license and employer reports" : State == "West Virginia" ? "WVREC active licensee workbooks" : State == "Maine" ? "ALMS active individual and company exports" : State == "Vermont" ? "OPR real-estate profession exports in all statuses" : State == "Idaho" ? "DOPL active Real Estate Commission list" : State == "Kentucky" ? "OOP active Real Estate Commission directory exports" : State == "Wyoming" ? "WREC public licensee and firm registry" : State == "Rhode Island" ? "DBR public broker, salesperson and corporation registry" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
     @if (State == "Nevada")
     {
         <p class="muted-text">Collects the 12 supported active lists directly from NRED on the application server, not through this browser. NRED updates these lists monthly. Reserve Study Specialists is a separate historical workbook and is not included. Acquisition timestamps are recorded; no source publication date is inferred.</p>
@@ -133,6 +137,14 @@
         else if (State == "Kentucky")
         {
             <a href="@KentuckyOopBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Kentucky OOP active license directory</a>
+        }
+        else if (State == "Wyoming")
+        {
+            <a href="@WyomingWrecBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Wyoming WREC public license verification</a>
+        }
+        else if (State == "Rhode Island")
+        {
+            <a href="@RhodeIslandDbrBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Rhode Island DBR public license registry</a>
         }
     </nav>
     @if (_error is not null)
@@ -287,6 +299,14 @@
         {
             <p>The OOP directory exports Broker, Sales Associate and Registered Firm Branch queries for the Kentucky Real Estate Commission in All Regions, without other restrictions. These are active-directory queries, not an all-status history; published Probation and Active - Requested Cancellation statuses are retained unchanged. Identical duplicate rows remain source evidence, not additional credentials. Published firm and branch credentials are retained without inferred ownership or employer affiliations. The export address headings differ from the visible directory; original labels and values are preserved rather than corrected by assumption. All three files must pass schema, row count and hash checks before activation. Missing licenses never imply revocation.</p>
         }
+        else if (State == "Wyoming")
+        {
+            <p>The public WREC API supplies unrestricted individual, firm and appraisal-management-company queries. All published statuses are retained; appraisal credentials are stored but not yet offered in real-estate registration. Complete query counts, record identities and archive hashes must validate before activation. Ambiguous credentials and branch identifiers remain source evidence; no ownership or broker affiliations are guessed from names. The original JSON archives remain Admin-only.</p>
+        }
+        else if (State == "Rhode Island")
+        {
+            <p>The public DBR registry supplies statewide broker, salesperson and corporation queries without status or geography restrictions. Published statuses and literal license numbers are retained. Complete query counts, record identities and archive hashes must validate before activation. Conflicting same-number credentials, unnamed records and corrupted historical export dates remain source evidence rather than guessed searchable credentials. Corporations become firms; affiliations use only explicit licensed supervision references, never names or inferred broker-in-charge designations. The original archives remain Admin-only. Missing licenses never imply revocation.</p>
+        }
         <p>Stop collection cancels only the current run. An uncommitted import is rolled back and the last completed archive is retained. You can collect again manually; automatic collection waits at least one refresh interval after an administrator stops a run.</p>
     </details>
 </section>
@@ -312,6 +332,8 @@
         "Vermont" => VermontCollection,
         "Idaho" => IdahoCollection,
         "Kentucky" => KentuckyCollection,
+        "Wyoming" => WyomingCollection,
+        "Rhode Island" => RhodeIslandCollection,
         _ => FloridaCollection
     };
     private FloridaBulkCollectionOptions Options => State switch
@@ -333,6 +355,8 @@
         "Vermont" => VermontOptions,
         "Idaho" => IdahoOptions,
         "Kentucky" => KentuckyOptions,
+        "Wyoming" => WyomingOptions,
+        "Rhode Island" => RhodeIslandOptions,
         _ => FloridaOptions
     };
     [Parameter] public EventCallback<Guid> SnapshotCompleted { get; set; }
@@ -445,6 +469,12 @@
     }
     private static string FilePurpose(string name) => name switch
     {
+        "real-estate-brokers.json" => "Brokers; all published statuses; ambiguous credentials retained as source evidence",
+        "real-estate-salespersons.json" => "Salespersons; all published statuses",
+        "real-estate-corporations.json" => "Corporation credentials and explicit licensed supervision references",
+        "individuals.json" => "Published individual credentials; ambiguous records retained as source evidence",
+        "firms.json" => "Published firm credentials and branch evidence",
+        "amc.json" => "Appraisal management company credentials",
         "real-estate-active-all-types.ods" => "Active licensees, companies and branch locations; other types retained as source evidence",
         "active-brokers.xls" => "Active brokers; all regions",
         "active-sales-associates.xls" => "Active sales associates; all regions",

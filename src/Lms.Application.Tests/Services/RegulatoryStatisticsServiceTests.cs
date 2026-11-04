@@ -12,6 +12,8 @@ public sealed class RegulatoryStatisticsServiceTests
     [Theory]
     [InlineData("Idaho")]
     [InlineData("Kentucky")]
+    [InlineData("Wyoming")]
+    [InlineData("Rhode Island")]
     public async Task NewActiveBulkStatesCompareOnlyMatchingParserSnapshots(string state)
     {
         await using var fixture = await Fixture.CreateAsync();

@@ -1,6 +1,38 @@
 @baseUrl = http://localhost:5000
 @adminCookie = replace-with-authenticated-admin-cookie
 
+### Rhode Island original unrestricted broker registry records
+GET {{baseUrl}}/admin/rhode%20island-bulk/exports/real-estate-brokers.json
+Cookie: {{adminCookie}}
+
+### Rhode Island original unrestricted salesperson registry records
+GET {{baseUrl}}/admin/rhode%20island-bulk/exports/real-estate-salespersons.json
+Cookie: {{adminCookie}}
+
+### Rhode Island original corporation records and published details
+GET {{baseUrl}}/admin/rhode%20island-bulk/exports/real-estate-corporations.json
+Cookie: {{adminCookie}}
+
+### Rhode Island acquisition manifest
+GET {{baseUrl}}/admin/rhode%20island-bulk/exports/manifest.json
+Cookie: {{adminCookie}}
+
+### Wyoming original individual registry records
+GET {{baseUrl}}/admin/wyoming-bulk/exports/individuals.json
+Cookie: {{adminCookie}}
+
+### Wyoming original firm registry records
+GET {{baseUrl}}/admin/wyoming-bulk/exports/firms.json
+Cookie: {{adminCookie}}
+
+### Wyoming original appraisal management company registry records
+GET {{baseUrl}}/admin/wyoming-bulk/exports/amc.json
+Cookie: {{adminCookie}}
+
+### Wyoming acquisition manifest
+GET {{baseUrl}}/admin/wyoming-bulk/exports/manifest.json
+Cookie: {{adminCookie}}
+
 ### Idaho original active Real Estate Commission export
 GET {{baseUrl}}/admin/idaho-bulk/exports/real-estate-active-all-types.ods
 Cookie: {{adminCookie}}

@@ -44,6 +44,10 @@ public static class FloridaBulkCollectionEndpoints
             .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
         MapExports(app, "Kentucky", new(Lms.Application.Services.KentuckyOopBulkImportService.Definitions
             .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
+        MapExports(app, "Wyoming", new(Lms.Application.Services.WyomingWrecBulkImportService.Definitions
+            .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
+        MapExports(app, "Rhode Island", new(Lms.Application.Services.RhodeIslandDbrBulkImportService.Definitions
+            .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
         MapExports(app, "West Virginia", new(Lms.Application.Services.WestVirginiaRecBulkImportService.Definitions
             .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
     }
@@ -76,6 +80,8 @@ public static class FloridaBulkCollectionEndpoints
                     "Montana" => services.GetRequiredService<MontanaBulkCollectionService>(),
                     "Idaho" => services.GetRequiredService<IdahoBulkCollectionService>(),
                     "Kentucky" => services.GetRequiredService<KentuckyBulkCollectionService>(),
+                    "Wyoming" => services.GetRequiredService<WyomingBulkCollectionService>(),
+                    "Rhode Island" => services.GetRequiredService<RhodeIslandBulkCollectionService>(),
                     "West Virginia" => services.GetRequiredService<WestVirginiaBulkCollectionService>(),
                     _ => services.GetRequiredService<FloridaBulkCollectionService>()
                 };

@@ -17,6 +17,7 @@ public static class RegulatoryLicenseTypes
                 "Pre-Licensing Instructor License", "Timeshare Salesperson License"
             },
             ["Arizona"] = new(StringComparer.OrdinalIgnoreCase) { "Candidate", "Unlicensed" },
+            ["Wyoming"] = new(WyomingWrecBulkImportService.AppraiserLicenseTypes, StringComparer.OrdinalIgnoreCase),
             ["Colorado"] = new(ColoradoDoraLicenseTypes.All.Where(option => !option.IsRealEstate)
                 .Select(option => option.Name), StringComparer.OrdinalIgnoreCase),
             ["Delaware"] = new(DelawareDprBulkImportService.AppraiserLicenseTypes, StringComparer.OrdinalIgnoreCase),
