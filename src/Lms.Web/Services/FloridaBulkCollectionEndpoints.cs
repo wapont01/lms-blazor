@@ -40,6 +40,10 @@ public static class FloridaBulkCollectionEndpoints
             .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
         MapExports(app, "Montana", new(Lms.Application.Services.MontanaRreBulkImportService.Definitions
             .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
+        MapExports(app, "Idaho", new(Lms.Application.Services.IdahoDoplBulkImportService.Definitions
+            .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
+        MapExports(app, "Kentucky", new(Lms.Application.Services.KentuckyOopBulkImportService.Definitions
+            .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
         MapExports(app, "West Virginia", new(Lms.Application.Services.WestVirginiaRecBulkImportService.Definitions
             .Select(file => file.Name).Append("manifest.json"), StringComparer.Ordinal));
     }
@@ -70,6 +74,8 @@ public static class FloridaBulkCollectionEndpoints
                     "Maine" => services.GetRequiredService<MaineBulkCollectionService>(),
                     "Vermont" => services.GetRequiredService<VermontBulkCollectionService>(),
                     "Montana" => services.GetRequiredService<MontanaBulkCollectionService>(),
+                    "Idaho" => services.GetRequiredService<IdahoBulkCollectionService>(),
+                    "Kentucky" => services.GetRequiredService<KentuckyBulkCollectionService>(),
                     "West Virginia" => services.GetRequiredService<WestVirginiaBulkCollectionService>(),
                     _ => services.GetRequiredService<FloridaBulkCollectionService>()
                 };
@@ -97,6 +103,7 @@ public static class FloridaBulkCollectionEndpoints
                         ".zip" => "application/zip",
                         ".xls" => "application/vnd.ms-excel",
                         ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        ".ods" => "application/vnd.oasis.opendocument.spreadsheet",
                         _ => "application/json"
                     },
                     fileDownloadName: fileName);

@@ -33,6 +33,10 @@
 @inject MaineBulkCollectionOptions MaineOptions
 @inject VermontBulkCollectionService VermontCollection
 @inject VermontBulkCollectionOptions VermontOptions
+@inject IdahoBulkCollectionService IdahoCollection
+@inject IdahoBulkCollectionOptions IdahoOptions
+@inject KentuckyBulkCollectionService KentuckyCollection
+@inject KentuckyBulkCollectionOptions KentuckyOptions
 @inject ILogger<AdminFloridaBulkCollection> Logger
 
 <section class="card bulk-collection" aria-label="@($"{State} bulk collection")">
@@ -43,7 +47,7 @@
             @(_starting ? "Starting..." : _stopping || _status?.State == "Stopping" ? "Cancelling..." : IsRunning ? "Cancel collection" : State == "Nevada" ? "Collect data" : "Collect now")
         </button>
     </div>
-    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : State == "Oregon" ? "OREA active business and active and inactive individual rosters" : State == "Delaware" ? "DPR real estate and appraiser professional licensing dataset" : State == "Illinois" ? "IDFPR real estate and appraisal professional licensing dataset" : State == "Virginia" ? "DPOR Real Estate Board regulant lists" : State == "Michigan" ? "LARA current real-estate license and employer reports" : State == "West Virginia" ? "WVREC active licensee workbooks" : State == "Maine" ? "ALMS active individual and company exports" : State == "Vermont" ? "OPR real-estate profession exports in all statuses" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
+    <p class="muted-text">Official statewide @(State == "Florida" ? "DBPR files" : State == "California" ? "DRE license and broker-associate files" : State == "Colorado" ? "DORA real-estate dataset" : State == "Nevada" ? "NRED active-license workbooks" : State == "New York" ? "NY DOS active real-estate licensee dataset" : State == "Arizona" ? "ADRE individual and entity license lists" : State == "Connecticut" ? "DCP real estate salesperson, broker and broker-association datasets" : State == "Oregon" ? "OREA active business and active and inactive individual rosters" : State == "Delaware" ? "DPR real estate and appraiser professional licensing dataset" : State == "Illinois" ? "IDFPR real estate and appraisal professional licensing dataset" : State == "Virginia" ? "DPOR Real Estate Board regulant lists" : State == "Michigan" ? "LARA current real-estate license and employer reports" : State == "West Virginia" ? "WVREC active licensee workbooks" : State == "Maine" ? "ALMS active individual and company exports" : State == "Vermont" ? "OPR real-estate profession exports in all statuses" : State == "Idaho" ? "DOPL active Real Estate Commission list" : State == "Kentucky" ? "OOP active Real Estate Commission directory exports" : "TREC roster"). A validated collection automatically becomes the current roster. Failed or stopped runs leave the current roster unchanged.</p>
     @if (State == "Nevada")
     {
         <p class="muted-text">Collects the 12 supported active lists directly from NRED on the application server, not through this browser. NRED updates these lists monthly. Reserve Study Specialists is a separate historical workbook and is not included. Acquisition timestamps are recorded; no source publication date is inferred.</p>
@@ -121,6 +125,14 @@
         else if (State == "West Virginia")
         {
             <a href="@WestVirginiaRecBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">West Virginia REC active licensee rosters</a>
+        }
+        else if (State == "Idaho")
+        {
+            <a href="@IdahoDoplBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Idaho DOPL public license list</a>
+        }
+        else if (State == "Kentucky")
+        {
+            <a href="@KentuckyOopBulkImportService.SourcePage" target="_blank" rel="noopener noreferrer">Kentucky OOP active license directory</a>
         }
     </nav>
     @if (_error is not null)
@@ -267,6 +279,14 @@
         {
             <p>OPR generates Excel exports through its public guest profession-roster workflow. All nine real-estate license types are requested with every portal status filter: Active, Inactive per Request, Expired and Disciplined. This is not comprehensive discipline history or a guarantee of every historical status. All files must pass schema, row count and hash checks before activation; a published header-only category is valid. Where a credential has multiple terms, the latest published effective term is kept. Firms and branches retain their published identities, including missing historical names, without inferred ownership or broker-in-charge relationships. The original files remain Admin-only.</p>
         }
+        else if (State == "Idaho")
+        {
+            <p>The DOPL list requests the Real Estate Commission, every license type, Active status and unrestricted geography. Broker, salesperson and cooperative broker credentials become licensees; company credentials become firms and branch credentials remain locations without guessed ownership. Instructor, provider and timeshare registrations remain source evidence only. Missing active licenses never imply revocation. The original export remains Admin-only.</p>
+        }
+        else if (State == "Kentucky")
+        {
+            <p>The OOP directory exports Broker, Sales Associate and Registered Firm Branch queries for the Kentucky Real Estate Commission in All Regions, without other restrictions. These are active-directory queries, not an all-status history; published Probation and Active - Requested Cancellation statuses are retained unchanged. Identical duplicate rows remain source evidence, not additional credentials. Published firm and branch credentials are retained without inferred ownership or employer affiliations. The export address headings differ from the visible directory; original labels and values are preserved rather than corrected by assumption. All three files must pass schema, row count and hash checks before activation. Missing licenses never imply revocation.</p>
+        }
         <p>Stop collection cancels only the current run. An uncommitted import is rolled back and the last completed archive is retained. You can collect again manually; automatic collection waits at least one refresh interval after an administrator stops a run.</p>
     </details>
 </section>
@@ -290,6 +310,8 @@
         "West Virginia" => WestVirginiaCollection,
         "Maine" => MaineCollection,
         "Vermont" => VermontCollection,
+        "Idaho" => IdahoCollection,
+        "Kentucky" => KentuckyCollection,
         _ => FloridaCollection
     };
     private FloridaBulkCollectionOptions Options => State switch
@@ -309,6 +331,8 @@
         "West Virginia" => WestVirginiaOptions,
         "Maine" => MaineOptions,
         "Vermont" => VermontOptions,
+        "Idaho" => IdahoOptions,
+        "Kentucky" => KentuckyOptions,
         _ => FloridaOptions
     };
     [Parameter] public EventCallback<Guid> SnapshotCompleted { get; set; }
@@ -421,6 +445,10 @@
     }
     private static string FilePurpose(string name) => name switch
     {
+        "real-estate-active-all-types.ods" => "Active licensees, companies and branch locations; other types retained as source evidence",
+        "active-brokers.xls" => "Active brokers; all regions",
+        "active-sales-associates.xls" => "Active sales associates; all regions",
+        "active-registered-firm-branches.xls" => "Active registered firm and branch credentials; ownership not inferred",
         "active-individuals.csv" => "Active sales agents and brokers; all locations",
         "active-companies.csv" => "Active firms and branch locations; published responsible individuals",
         "NGLP083-MAIN.xlsx" => "Brokerage firms - main offices; all portal status filters",

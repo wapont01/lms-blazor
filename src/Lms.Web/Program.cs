@@ -273,6 +273,28 @@ builder.Services.AddHostedService<VermontBulkRefreshBackgroundService>();
 builder.Services.AddScoped<MontanaRreBulkImportService>();
 builder.Services.AddSingleton<MontanaBulkCollectionService>();
 builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<MontanaBulkCollectionService>());
+var idahoBulk = new IdahoBulkCollectionOptions { WeeklyEnabled = false, RefreshDays = 1, StaleAfterDays = 2 };
+builder.Configuration.GetSection("IdahoBulk").Bind(idahoBulk);
+builder.Services.AddSingleton(idahoBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<IdahoBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(idahoBulk));
+builder.Services.AddScoped<IdahoDoplBulkImportService>();
+builder.Services.AddSingleton<IdahoBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<IdahoBulkCollectionService>());
+builder.Services.AddHttpClient("IdahoBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+builder.Services.AddHostedService<IdahoBulkRefreshBackgroundService>();
+var kentuckyBulk = new KentuckyBulkCollectionOptions { WeeklyEnabled = false, RefreshDays = 1, StaleAfterDays = 2 };
+builder.Configuration.GetSection("KentuckyBulk").Bind(kentuckyBulk);
+builder.Services.AddSingleton(kentuckyBulk);
+builder.Services.AddSingleton<Microsoft.Extensions.Options.IOptions<KentuckyBulkCollectionOptions>>(
+    Microsoft.Extensions.Options.Options.Create(kentuckyBulk));
+builder.Services.AddScoped<KentuckyOopBulkImportService>();
+builder.Services.AddSingleton<KentuckyBulkCollectionService>();
+builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<KentuckyBulkCollectionService>());
+builder.Services.AddHttpClient("KentuckyBulk", client => client.Timeout = TimeSpan.FromMinutes(20))
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+builder.Services.AddHostedService<KentuckyBulkRefreshBackgroundService>();
 builder.Services.AddSingleton<TexasBulkCollectionService>();
 builder.Services.AddSingleton<BulkCollectionService>(services => services.GetRequiredService<TexasBulkCollectionService>());
 builder.Services.AddHttpClient("TexasBulk", client => client.Timeout = TimeSpan.FromMinutes(10))

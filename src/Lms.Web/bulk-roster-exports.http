@@ -1,6 +1,30 @@
 @baseUrl = http://localhost:5000
 @adminCookie = replace-with-authenticated-admin-cookie
 
+### Idaho original active Real Estate Commission export
+GET {{baseUrl}}/admin/idaho-bulk/exports/real-estate-active-all-types.ods
+Cookie: {{adminCookie}}
+
+### Idaho acquisition manifest
+GET {{baseUrl}}/admin/idaho-bulk/exports/manifest.json
+Cookie: {{adminCookie}}
+
+### Kentucky original active broker export (HTML table served as XLS)
+GET {{baseUrl}}/admin/kentucky-bulk/exports/active-brokers.xls
+Cookie: {{adminCookie}}
+
+### Kentucky original active sales associate export
+GET {{baseUrl}}/admin/kentucky-bulk/exports/active-sales-associates.xls
+Cookie: {{adminCookie}}
+
+### Kentucky original active registered firm and branch export
+GET {{baseUrl}}/admin/kentucky-bulk/exports/active-registered-firm-branches.xls
+Cookie: {{adminCookie}}
+
+### Kentucky acquisition manifest
+GET {{baseUrl}}/admin/kentucky-bulk/exports/manifest.json
+Cookie: {{adminCookie}}
+
 ### Montana original administrator-supplied CSV (CAPTCHA download is manual)
 GET {{baseUrl}}/admin/montana-bulk/exports/realty-regulation-licenses.csv
 Cookie: {{adminCookie}}

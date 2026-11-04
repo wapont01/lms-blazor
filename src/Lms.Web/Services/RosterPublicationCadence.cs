@@ -72,6 +72,10 @@ public sealed record RosterPublicationCadence(string Frequency, string Evidence,
             "OPR provides a complete exportable list through Profession Roster Download; no publication interval is stated.",
             VermontOprBulkImportService.SourcePage,
             "2026-11-03", "Recommended collection: 1 Day provisionally. All nine real-estate types are requested with every portal status filter. Automatic collection is disabled by default."),
+        "Kentucky" => new("Not verified",
+            "The active license directory displays a dated update and generates exports of selected queries; a recurring publication interval is not stated.",
+            KentuckyOopBulkImportService.SourcePage,
+            "2026-11-03", "Recommended collection: 1 Day provisionally. All Regions are requested for each of the three offered Real Estate Commission types. The active directory also publishes some probation and requested-cancellation statuses, retained unchanged. Automatic collection is disabled by default."),
         _ => new("Not verified", "No regulator publication cadence has been recorded for this state.",
             "", "", "Recommended collection: not established. Verify the official source before choosing an interval. More frequent collection may repeat unchanged data; less frequent collection may delay changes.")
     };

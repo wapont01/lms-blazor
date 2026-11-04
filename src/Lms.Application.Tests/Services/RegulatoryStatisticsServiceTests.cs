@@ -9,6 +9,29 @@ namespace Lms.Application.Tests.Services;
 
 public sealed class RegulatoryStatisticsServiceTests
 {
+    [Theory]
+    [InlineData("Idaho")]
+    [InlineData("Kentucky")]
+    public async Task NewActiveBulkStatesCompareOnlyMatchingParserSnapshots(string state)
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var previous = fixture.Snapshot(state, RegulatorySnapshotStatuses.Approved, 1);
+        var legacy = fixture.Snapshot(state, RegulatorySnapshotStatuses.Approved, 2);
+        var current = fixture.Snapshot(state, RegulatorySnapshotStatuses.Approved, 3);
+        previous.ParserVersion = current.ParserVersion = RegulatoryRoster.BulkParser(state);
+        fixture.License(previous, "updated", name: "Previous name");
+        fixture.License(legacy, "legacy-only");
+        fixture.License(current, "updated", name: "Updated name");
+        fixture.License(current, "new");
+        await fixture.Db.SaveChangesAsync();
+        var stats = await fixture.Service.GetAsync(state, bulkOnly: true);
+        Assert.True(RegulatoryRoster.HasBulkProvider(state));
+        Assert.Equal(previous.Id, stats.Baseline!.Id);
+        Assert.Equal(current.Id, stats.Incoming!.Id);
+        Assert.Equal(new[] { "New license", "Other updates" },
+            stats.Records.Select(row => row.Classification).OrderBy(value => value).ToArray());
+    }
+
     [Fact]
     public async Task NevadaInitialSynchronizationDoesNotCompareAgainstPartialLegacyCapture()
     {

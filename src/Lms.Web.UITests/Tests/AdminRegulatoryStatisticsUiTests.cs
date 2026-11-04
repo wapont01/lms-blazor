@@ -49,7 +49,7 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
     [UiFact]
     public async Task NewBulkStatesHaveOneCollectionButtonAndEnabledRealEstateTypes()
     {
-        foreach (var state in new[] { "Michigan", "West Virginia", "Maine", "Vermont" })
+        foreach (var state in new[] { "Michigan", "West Virginia", "Maine", "Vermont", "Idaho", "Kentucky" })
         {
             await using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
                 .UseSqlite($"Data Source={fixture.DatabasePath}").Options);
@@ -67,6 +67,8 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
                 "Vermont" => new[] { "Real Estate Broker", "Real Estate Broker - Emergency Temporary License",
                     "Real Estate Broker - Temporary License", "Real Estate Salesperson",
                     "Real Estate Salesperson - Emergency Temporary License", "Real Estate Salesperson - Temporary" },
+                "Idaho" => new[] { "Broker", "Salesperson", "Cooperative Broker" },
+                "Kentucky" => new[] { "Broker", "Sales Associate" },
                 _ => new[] { "Salesperson", "Associate Broker", "Broker" }
             };
             foreach (var type in types)
@@ -165,7 +167,7 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         await page.GotoAsync($"{fixture.BaseUrl}/admin/regulatory-schedules");
 
         var schedules = page.GetByRole(AriaRole.Table, new() { Name = "State collection schedules", Exact = true });
-        await Assertions.Expect(schedules.Locator("tbody tr")).ToHaveCountAsync(16);
+        await Assertions.Expect(schedules.Locator("tbody tr")).ToHaveCountAsync(18);
         await Assertions.Expect(schedules.GetByLabel("Montana automatic updates", new() { Exact = true })).ToHaveCountAsync(0);
         var nevadaCadence = schedules.GetByLabel("Nevada publication cadence", new() { Exact = true });
         await nevadaCadence.Locator("summary").ClickAsync();
@@ -208,6 +210,8 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
         await Assertions.Expect(schedules.GetByLabel("Michigan time zone")).ToHaveValueAsync("America/Detroit");
         await Assertions.Expect(schedules.GetByLabel("Maine time zone", new() { Exact = true })).ToHaveValueAsync("America/New_York");
         await Assertions.Expect(schedules.GetByLabel("Vermont time zone", new() { Exact = true })).ToHaveValueAsync("America/New_York");
+        await Assertions.Expect(schedules.GetByLabel("Idaho time zone", new() { Exact = true })).ToHaveValueAsync("America/Boise");
+        await Assertions.Expect(schedules.GetByLabel("Kentucky time zone", new() { Exact = true })).ToHaveValueAsync("America/New_York");
         await Assertions.Expect(schedules.GetByLabel("West Virginia time zone")).ToHaveValueAsync("America/New_York");
         await Assertions.Expect(schedules.Locator("tbody tr").Filter(new() { Has = page.GetByLabel("Virginia time zone", new() { Exact = true }) }))
             .ToContainTextAsync("Recommended collection: 1 Week");
@@ -375,11 +379,11 @@ public sealed class AdminRegulatoryStatisticsUiTests(WebHostFixture fixture) : I
             await page.SetViewportSizeAsync(width, 1000);
             await page.WaitForFunctionAsync("document.documentElement.scrollWidth <= innerWidth", null, new() { Timeout = 5000 });
         }
-        await page.GetByLabel("Statistics state", new() { Exact = true }).SelectOptionAsync("Idaho");
+        await page.GetByLabel("Statistics state", new() { Exact = true }).SelectOptionAsync("Alaska");
         await Assertions.Expect(bulk).ToHaveCountAsync(0);
         await Assertions.Expect(browse).ToHaveCountAsync(0);
         await Assertions.Expect(page.GetByRole(AriaRole.Region, new() { Name = "Live collection progress", Exact = true }))
-            .ToContainTextAsync("No live collection feed is configured for Idaho");
+            .ToContainTextAsync("No live collection feed is configured for Alaska");
         await page.GotoAsync($"{fixture.BaseUrl}/admin/regulatory-directory");
         await Assertions.Expect(bulk).ToBeVisibleAsync();
         await Assertions.Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Other sources: import normalized snapshot", Exact = true })).ToBeVisibleAsync();

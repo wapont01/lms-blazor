@@ -31,6 +31,8 @@ public sealed class BulkCollectionScheduleStore
             ["Michigan"] = "America/Detroit",
             ["Maine"] = "America/New_York",
             ["Vermont"] = "America/New_York",
+            ["Idaho"] = "America/Boise",
+            ["Kentucky"] = "America/New_York",
             ["West Virginia"] = "America/New_York",
             ["Florida"] = "America/New_York",
             ["Texas"] = "America/Chicago"
